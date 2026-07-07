@@ -6,7 +6,9 @@ import { SignedImage } from "@/components/signed-image";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { MessageCircle, Settings } from "lucide-react";
+import { MessageCircle, Settings, Ban } from "lucide-react";
+import { UserActionsMenu } from "@/components/user-actions-menu";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export const Route = createFileRoute("/_authenticated/u/$username")({
   component: ProfilePage,

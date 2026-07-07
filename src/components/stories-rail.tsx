@@ -44,7 +44,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
       const pmap = new Map((profs ?? []).map((p: any) => [p.id, p]));
       const byUser = new Map<string, Grouped>();
       for (const s of list) {
-        const g = byUser.get(s.user_id) ?? { userId: s.user_id, profile: pmap.get(s.user_id), stories: [] };
+        const g: Grouped = byUser.get(s.user_id) ?? { userId: s.user_id, profile: pmap.get(s.user_id), stories: [] as StoryRow[] };
         g.stories.push(s);
         byUser.set(s.user_id, g);
       }

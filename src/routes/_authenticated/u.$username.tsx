@@ -35,6 +35,11 @@ function ProfilePage() {
 
   const profile = profileQuery.data;
   const isMe = profile?.id === user.id;
+  const blocks = useBlocks();
+  const iBlocked = profile ? blocks.data?.blocked.has(profile.id) ?? false : false;
+  const blockedMe = profile ? blocks.data?.blockedBy.has(profile.id) ?? false : false;
+  const isBlockedPair = iBlocked || blockedMe;
+
 
   const stats = useQuery({
     queryKey: ["profile-stats", profile?.id],

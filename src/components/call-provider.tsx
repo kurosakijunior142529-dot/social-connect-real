@@ -71,82 +71,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const remoteDescSetRef = useRef(false);
-
-  // Listen for incoming calls
-  useEffect(() => {
-    if (!user) return;
-    const ch = supabase
-      .channel(`incoming-calls-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "calls",
-          filter: `callee_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          const row = payload.new as {
-            id: string;
-            caller_id: string;
-            call_type: CallType;
-            status: CallStatus;
-          };
-          if (row.status !== "ringing") return;
-          // Fetch caller profile
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("id, username, display_name, avatar_url")
-            .eq("id", row.caller_id)
-            .maybeSingle();
-          setIncoming({
-            id: row.id,
-            type: row.call_type,
-            other: prof ?? { id: row.caller_id },
-          });
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [user]);
-
-  // Listen for updates to my active/incoming calls
-  useEffect(() => {
-    if (!user) return;
-    const ch = supabase
-      .channel(`call-updates-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "calls" },
-        (payload) => {
-          const row = payload.new as {
-            id: string;
-            status: CallStatus;
-            caller_id: string;
-            callee_id: string;
-          };
-          if (row.caller_id !== user.id && row.callee_id !== user.id) return;
-          if (incoming && row.id === incoming.id && row.status !== "ringing") {
-            setIncoming(null);
-          }
-          setActive((prev) => {
-            if (!prev || prev.id !== row.id) return prev;
-            if (row.status === "ended" || row.status === "rejected" || row.status === "canceled") {
-              teardown();
-              return null;
-            }
-            return { ...prev, status: row.status };
-          });
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, incoming?.id]);
+  const callerReadyRef = useRef(false); // caller has already set up pc
 
   const teardown = useCallback(() => {
     if (channelRef.current) {
@@ -165,15 +90,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setRemoteStream(null);
     pendingIceRef.current = [];
     remoteDescSetRef.current = false;
+    callerReadyRef.current = false;
   }, []);
 
   const setupPeer = useCallback(
-    async (
-      callId: string,
-      type: CallType,
-      role: CallRole,
-      selfId: string,
-    ) => {
+    async (callId: string, type: CallType, role: CallRole, selfId: string) => {
       const stream = await getLocalMedia(type === "video");
       localStreamRef.current = stream;
       setLocalStream(stream);
@@ -185,7 +106,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const remote = new MediaStream();
       setRemoteStream(remote);
       pc.ontrack = (ev) => {
-        ev.streams[0]?.getTracks().forEach((t) => remote.addTrack(t));
+        ev.streams[0]?.getTracks().forEach((t) => {
+          if (!remote.getTracks().find((rt) => rt.id === t.id)) remote.addTrack(t);
+        });
         setRemoteStream(new MediaStream(remote.getTracks()));
       };
 
@@ -207,15 +130,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
       channel.on("broadcast", { event: "signal" }, async ({ payload }) => {
         if (!payload || payload.from === selfId) return;
         try {
-          if (payload.kind === "offer") {
+          if (payload.kind === "offer" && role === "callee") {
             await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             remoteDescSetRef.current = true;
             for (const c of pendingIceRef.current) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(c));
-              } catch (e) {
-                console.warn("ice add failed", e);
-              }
+              try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.warn(e); }
             }
             pendingIceRef.current = [];
             const answer = await pc.createAnswer();
@@ -225,29 +144,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
               event: "signal",
               payload: { kind: "answer", from: selfId, sdp: answer },
             });
-          } else if (payload.kind === "answer") {
+          } else if (payload.kind === "answer" && role === "caller") {
             await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             remoteDescSetRef.current = true;
             for (const c of pendingIceRef.current) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(c));
-              } catch (e) {
-                console.warn("ice add failed", e);
-              }
+              try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.warn(e); }
             }
             pendingIceRef.current = [];
           } else if (payload.kind === "ice") {
             if (remoteDescSetRef.current) {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-              } catch (e) {
-                console.warn("ice add failed", e);
-              }
+              try { await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)); } catch (e) { console.warn(e); }
             } else {
               pendingIceRef.current.push(payload.candidate);
             }
           } else if (payload.kind === "bye") {
-            hangupLocal();
+            hangupLocalRef.current?.();
           }
         } catch (e) {
           console.error("signal error", e);
@@ -273,6 +184,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const hangupLocalRef = useRef<(() => void) | null>(null);
   const hangupLocal = useCallback(() => {
     setActive((prev) => {
       if (prev) {
@@ -289,27 +201,95 @@ export function CallProvider({ children }: { children: ReactNode }) {
             event: "signal",
             payload: { kind: "bye", from: user?.id },
           });
-        } catch {
-          // ignore
-        }
+        } catch { /* ignore */ }
       }
       teardown();
       return null;
     });
   }, [teardown, user?.id]);
+  hangupLocalRef.current = hangupLocal;
+
+  // Incoming call listener
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`incoming-calls-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "calls",
+          filter: `callee_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const row = payload.new as {
+            id: string; caller_id: string; call_type: CallType; status: CallStatus;
+          };
+          if (row.status !== "ringing") return;
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("id, username, display_name, avatar_url")
+            .eq("id", row.caller_id)
+            .maybeSingle();
+          setIncoming({ id: row.id, type: row.call_type, other: prof ?? { id: row.caller_id } });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
+
+  // Call status update listener
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`call-updates-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "calls" },
+        async (payload) => {
+          const row = payload.new as {
+            id: string; status: CallStatus; caller_id: string; callee_id: string; call_type: CallType;
+          };
+          if (row.caller_id !== user.id && row.callee_id !== user.id) return;
+          setIncoming((prev) => (prev && prev.id === row.id && row.status !== "ringing" ? null : prev));
+
+          if (row.status === "ended" || row.status === "rejected" || row.status === "canceled") {
+            setActive((prev) => {
+              if (!prev || prev.id !== row.id) return prev;
+              teardown();
+              return null;
+            });
+            return;
+          }
+
+          if (row.status === "accepted") {
+            // Caller: set up peer now and send offer
+            setActive((prev) => {
+              if (!prev || prev.id !== row.id) return prev;
+              const next = { ...prev, status: "accepted" as CallStatus };
+              if (prev.role === "caller" && !callerReadyRef.current) {
+                callerReadyRef.current = true;
+                setupPeer(prev.id, prev.type, "caller", user.id).catch((e) => {
+                  console.error(e);
+                  hangupLocalRef.current?.();
+                });
+              }
+              return next;
+            });
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, setupPeer, teardown]);
 
   const startCall = useCallback(
     async (other: OtherParty, type: CallType) => {
-      if (!user) return;
-      if (active) return;
-      // Insert row
+      if (!user || active) return;
       const { data, error } = await supabase
         .from("calls")
-        .insert({
-          caller_id: user.id,
-          callee_id: other.id,
-          call_type: type,
-        })
+        .insert({ caller_id: user.id, callee_id: other.id, call_type: type })
         .select("id")
         .single();
       if (error || !data) {
@@ -317,41 +297,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
         alert("Não foi possível iniciar a chamada.");
         return;
       }
-      setActive({
-        id: data.id,
-        type,
-        role: "caller",
-        other,
-        status: "ringing",
-      });
-      // Caller sets up peer immediately, waits on channel; offer will be sent, callee will only set remote after accepting and joining channel.
-      try {
-        await setupPeer(data.id, type, "caller", user.id);
-      } catch (e) {
-        console.error(e);
-        alert("Não foi possível acessar câmera/microfone.");
-        await supabase
-          .from("calls")
-          .update({ status: "ended", ended_at: new Date().toISOString() })
-          .eq("id", data.id);
-        teardown();
-        setActive(null);
-      }
+      setActive({ id: data.id, type, role: "caller", other, status: "ringing" });
     },
-    [user, active, setupPeer, teardown],
+    [user, active],
   );
 
   const acceptIncoming = useCallback(async () => {
     if (!incoming || !user) return;
     const inc = incoming;
     setIncoming(null);
-    setActive({
-      id: inc.id,
-      type: inc.type,
-      role: "callee",
-      other: inc.other,
-      status: "accepted",
-    });
+    setActive({ id: inc.id, type: inc.type, role: "callee", other: inc.other, status: "accepted" });
     try {
       await setupPeer(inc.id, inc.type, "callee", user.id);
       await supabase
@@ -380,7 +335,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
       .eq("id", id);
   }, [incoming]);
 
-  // Cleanup on unmount
   useEffect(() => () => teardown(), [teardown]);
 
   const value = useMemo<Ctx>(() => ({ startCall, activeCall: active }), [startCall, active]);
@@ -389,11 +343,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     <CallContext.Provider value={value}>
       {children}
       {incoming ? (
-        <IncomingCallDialog
-          incoming={incoming}
-          onAccept={acceptIncoming}
-          onReject={rejectIncoming}
-        />
+        <IncomingCallDialog incoming={incoming} onAccept={acceptIncoming} onReject={rejectIncoming} />
       ) : null}
       {active ? (
         <CallScreen

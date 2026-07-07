@@ -5,9 +5,11 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
+import { UserActionsMenu } from "@/components/user-actions-menu";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export type FeedPost = {
   id: string;

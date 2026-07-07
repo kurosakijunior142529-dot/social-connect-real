@@ -71,6 +71,106 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_members: {
+        Row: {
+          chat_id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_members_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          chat_id: string
+          content: string | null
+          created_at: string
+          id: string
+          media_url: string | null
+          sender_id: string
+        }
+        Insert: {
+          chat_id: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          sender_id: string
+        }
+        Update: {
+          chat_id?: string
+          content?: string | null
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chats: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          last_message_at: string
+          owner_id: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_message_at?: string
+          owner_id: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_message_at?: string
+          owner_id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           author_id: string
@@ -237,29 +337,41 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          cover_url: string | null
           created_at: string
           display_name: string
           id: string
+          location: string | null
+          pronouns: string | null
           updated_at: string
           username: string
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          cover_url?: string | null
           created_at?: string
           display_name: string
           id: string
+          location?: string | null
+          pronouns?: string | null
           updated_at?: string
           username: string
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          cover_url?: string | null
           created_at?: string
           display_name?: string
           id?: string
+          location?: string | null
+          pronouns?: string | null
           updated_at?: string
           username?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -299,6 +411,62 @@ export type Database = {
         }
         Relationships: []
       }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          media_type: string
+          media_url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: string
+          media_url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_views: {
+        Row: {
+          story_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          story_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          story_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_views_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -322,6 +490,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      chat_role: { Args: { _chat: string; _user: string }; Returns: string }
       get_or_create_conversation: {
         Args: { _other_user: string }
         Returns: string
@@ -334,6 +503,10 @@ export type Database = {
         Returns: boolean
       }
       is_blocked_pair: { Args: { _a: string; _b: string }; Returns: boolean }
+      is_chat_member: {
+        Args: { _chat: string; _user: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"

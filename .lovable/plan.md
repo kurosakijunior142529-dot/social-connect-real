@@ -1,120 +1,61 @@
-- Plano: Rede Social "All-in-One"
+## Diagnóstico
 
-Uma rede social inspirada no melhor do Instagram, Facebook, Telegram e WhatsApp — com foco em fotos/vídeos, feed social e mensagens em tempo real. Visual colorido e divertido.
+O app já tem: auth, feed, posts, curtidas, comentários, seguir, DMs, chamadas 1-a-1, stories, grupos/canais, perfis estendidos, PWA. Faltam camadas de **retenção** (notificações, busca, descoberta) e **polish visual**.
 
-## Direção visual
+## O que falta pra ficar "completo"
 
-- **Estilo**: Colorido e divertido, moderno, com gradientes vibrantes e formas ousadas (inspiração BeReal + Instagram + Threads)
-- **Paleta**: Gradientes rosa/laranja/roxo como acentos, fundos claros com muito espaço branco, cards com sombras suaves e cantos generosamente arredondados
-- **Tipografia**: Título display marcante (ex: Outfit ou Space Grotesk) + corpo legível (ex: Inter alternativa como Figtree)
-- **Motion**: Micro-animações em curtidas (coração pulsando), transições suaves entre telas, skeleton loaders
+### A. Núcleo social (alta prioridade)
+1. **Notificações in-app + realtime** — tabela `notifications`, triggers pra curtida/comentário/seguidor/menção/mensagem/story visto, página `/notifications`, badge no bottom-nav, toast em tempo real.
+2. **Busca global** (`/search`) — usuários, posts (legenda), canais/grupos públicos, hashtags.
+3. **Reações em stories** — 6 emojis rápidos + resposta como DM; dono vê lista.
+4. **Convites para grupos** — em vez de add direto: tabela `chat_invites` + aceitar/recusar via notificação.
+5. **Menções `@user`** em posts, comentários e mensagens → viram link e geram notificação.
+6. **Salvar posts** (bookmarks) — aba no perfil.
+7. **Editar/apagar** — mensagens de DM (grupos já têm), posts e comentários próprios.
 
-## Escopo do MVP
+### B. Presença e engajamento
+8. **Status online / última vez visto** (Realtime presence + `last_seen_at`).
+9. **Indicador "digitando…"** em DM e chats.
+10. **Silenciar** conversa e stories de um usuário (mute sem bloquear).
+11. **Hashtags** clicáveis com página `/tag/$tag`.
+12. **Compartilhar post** (link + copiar + repostar).
 
-### 1. Autenticação
+### C. Stories & mídia
+13. **Stories em destaque** (highlights permanentes no perfil).
+14. **Múltiplas mídias por post** (carrossel).
+15. **Filtros/crop básicos** ao publicar foto.
+16. **Reels curtos** (feed vertical de vídeos) — opcional, mais pesado.
 
-- Cadastro/login com email + senha
-- Login com Google
-- Criação automática de perfil (username, nome, bio, avatar)
-- Página `/auth` pública, rotas do app dentro de `_authenticated/`
+### D. Descoberta e moderação
+17. **Canais/grupos públicos** com página de descoberta.
+18. **Sugestões de quem seguir** no feed e no explore.
+19. **Denúncia** de story, mensagem e chat (hoje só user/post).
+20. **Verificação/badges** — flag `verified` em profiles.
 
-### 2. Perfil
+### E. Chamadas
+21. **Chamadas em grupo** (WebRTC mesh até 4 participantes).
+22. **Histórico de chamadas** com duração e status (perdida/atendida).
 
-- Página `/u/$username` com avatar, bio, contagem de posts/seguidores/seguindo
-- Edição de perfil próprio (avatar, bio, nome)
-- Botão seguir/deixar de seguir
+### F. Interface (redesign focado)
+23. **Refino do Midnight Indigo** — mais respiro, hierarquia tipográfica com Syne, glow mais contido, cards com bordas mais sutis, transições com framer-motion.
+24. **Feed redesenhado** — header sticky com blur, ações do post reposicionadas, densidade ajustada.
+25. **Perfil premium** — hero com capa + parallax leve, stats maiores, tabs animadas.
+26. **Bottom-nav flutuante refinada** — indicador ativo com spring animation, botão central de criar destacado.
+27. **Skeleton loaders** consistentes em todas as listas.
+28. **Empty states ilustrados** (feed vazio, sem mensagens, sem notificações).
+29. **Dark/light toggle** (hoje só dark).
 
-### 3. Posts (fotos e vídeos)
+## Proposta de execução
 
-- Criar post com upload de imagem ou vídeo + legenda
-- Feed principal (`/`) com posts de quem você segue + descoberta
-- Página `/explore` com grid de posts populares
-- Página de detalhe do post `/p/$id`
+Como "tudo agora" fica enorme e arriscado, sugiro **3 ondas**:
 
-### 4. Interações
+- **Onda 1 (essencial):** 1, 2, 3, 4, 5, 6, 7 + refino visual 23, 24, 25, 26, 27, 28
+- **Onda 2 (engajamento):** 8, 9, 10, 11, 12, 13, 18, 19, 22
+- **Onda 3 (avançado):** 14, 15, 16, 17, 20, 21, 29
 
-- Curtir/descurtir posts
-- Comentar em posts
-- Ver lista de curtidas e comentários
+## Preciso confirmar antes de partir
 
-### 5. Seguir usuários
-
-- Botão seguir em perfis
-- Feed filtrado por quem você segue
-- Notificações básicas (nova curtida, comentário, seguidor)
-
-### 6. Mensagens diretas em tempo real
-
-- Lista de conversas em `/messages`
-- Chat 1-a-1 com mensagens em tempo real (Supabase Realtime)
-- Indicador de mensagem lida
-
-## Estrutura de rotas
-
-```text
-/                          → Feed principal (autenticado)
-/auth                      → Login/cadastro (público)
-/explore                   → Descobrir posts
-/create                    → Criar novo post
-/u/$username               → Perfil de usuário
-/p/$id                     → Detalhe do post
-/messages                  → Lista de conversas
-/messages/$conversationId  → Chat individual
-/notifications             → Notificações
-/settings                  → Editar perfil
-```
-
-## Backend (Lovable Cloud)
-
-**Tabelas principais:**
-
-- `profiles` — dados públicos do usuário (username, display_name, bio, avatar_url)
-- `posts` — post com media_url, media_type (image/video), caption, author_id
-- `likes` — user_id + post_id
-- `comments` — post_id, author_id, content
-- `follows` — follower_id + following_id
-- `conversations` — thread de DM entre 2 usuários
-- `messages` — conversation_id, sender_id, content, read_at
-- `notifications` — user_id, type, actor_id, target_id
-- `user_roles` — separação segura de roles (admin/user)
-
-**Storage buckets:**
-
-- `avatars` (público) — fotos de perfil
-- `posts` (público) — mídia dos posts
-
-**Segurança:**
-
-- RLS em todas as tabelas
-- Perfis públicos legíveis por todos, edição só do dono
-- Mensagens visíveis só para os dois participantes
-- Trigger `handle_new_user` cria profile automaticamente no signup
-- Realtime habilitado em `messages` e `notifications`
-
-## Entregas por fase
-
-**Fase 1 (esta iteração):**
-
-1. Ativar Lovable Cloud + Google OAuth
-2. Design system colorido (styles.css + fontes)
-3. Auth (login/signup/Google) + criação de perfil
-4. Layout autenticado com bottom nav (mobile-first) e sidebar (desktop)
-5. Feed, criar post, perfil, curtir, comentar, seguir
-6. Storage de mídia
-7. Explore
-8. DMs em tempo real
-9. Notificações básicas
-
-Vou construir tudo em uma iteração robusta, priorizando um app **funcional de verdade** — não uma casca. Depois iteramos com features avançadas (stories, reels, grupos, chamadas etc.) conforme prioridade.
-
-## Detalhes técnicos
-
-- **Stack**: TanStack Start + React + Tailwind v4 + shadcn + Lovable Cloud (Supabase)
-- **Server functions** para leituras/escritas autenticadas com `requireSupabaseAuth`
-- **Realtime** para chat e notificações via cliente browser Supabase
-- **Uploads** direto do browser para Storage com URL assinada quando necessário
-- **Validação** com Zod em todos os formulários
-- **Mobile-first**: viewport atual é 390px, então priorizo layout mobile com bottom nav
-- Função de chamadas reais, vídeo ,normal , ou em grupos 
-
-Aprova para começar a construir?
+1. **Escopo:** faço só a Onda 1 agora, ou você quer combinar 1+2, ou tudo?
+2. **Notificações push nativas** (fora do app, via Web Push/VAPID) entram já ou depois? Se depois, esta rodada é só in-app + realtime.
+3. **Reels** entram no roadmap ou você prefere manter foco em fotos + stories?
+4. **Sobre o visual:** manter Midnight Indigo e apenas refinar, ou quer rodar o processo de escolher nova paleta/tipografia/layout?

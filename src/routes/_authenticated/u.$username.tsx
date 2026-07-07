@@ -3,10 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { SignedImage } from "@/components/signed-image";
+import { useSignedUrl } from "@/hooks/use-signed-url";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MessageCircle, Settings, Ban } from "lucide-react";
+import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles } from "lucide-react";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
 
@@ -33,29 +35,40 @@ function ProfilePage() {
     },
   });
 
-  const profile = profileQuery.data;
+  const profile: any = profileQuery.data;
   const isMe = profile?.id === user.id;
   const blocks = useBlocks();
   const iBlocked = profile ? blocks.data?.blocked.has(profile.id) ?? false : false;
   const blockedMe = profile ? blocks.data?.blockedBy.has(profile.id) ?? false : false;
   const isBlockedPair = iBlocked || blockedMe;
 
+  const { data: coverUrl } = useSignedUrl("covers", profile?.cover_url ?? null);
 
   const stats = useQuery({
     queryKey: ["profile-stats", profile?.id],
     enabled: !!profile?.id,
     queryFn: async () => {
-      const [posts, followers, following, mine] = await Promise.all([
+      const [posts, followers, following, mine, liked] = await Promise.all([
         supabase.from("posts").select("id, media_url, media_type").eq("author_id", profile!.id).order("created_at", { ascending: false }),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profile!.id),
         supabase.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", profile!.id),
         supabase.from("follows").select("*").match({ follower_id: user.id, following_id: profile!.id }).maybeSingle(),
+        profile!.id === user.id
+          ? supabase.from("likes").select("post_id").eq("user_id", user.id).limit(60)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
+      let likedPosts: any[] = [];
+      if (profile!.id === user.id && liked.data && liked.data.length) {
+        const ids = liked.data.map((l: any) => l.post_id);
+        const { data } = await supabase.from("posts").select("id, media_url, media_type").in("id", ids);
+        likedPosts = data ?? [];
+      }
       return {
         posts: posts.data ?? [],
         followers: followers.count ?? 0,
         following: following.count ?? 0,
         isFollowing: !!mine.data,
+        likedPosts,
       };
     },
   });
@@ -81,91 +94,148 @@ function ProfilePage() {
     navigate({ to: "/messages/$conversationId", params: { conversationId: data as string } });
   }
 
-  if (profileQuery.isLoading) {
-    return <Skeleton className="h-64 rounded-3xl" />;
-  }
-  if (!profile) {
-    return <div className="text-center py-12">Usuário não encontrado.</div>;
-  }
+  if (profileQuery.isLoading) return <Skeleton className="h-64 rounded-3xl" />;
+  if (!profile) return <div className="text-center py-12">Usuário não encontrado.</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start gap-4">
-        <UserAvatar
-          avatarPath={profile.avatar_url}
-          displayName={profile.display_name}
-          className="h-20 w-20"
-          ring
-        />
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold truncate">{profile.display_name}</h1>
-          <div className="text-sm text-muted-foreground">@{profile.username}</div>
-          {profile.bio ? <p className="text-sm mt-2 whitespace-pre-wrap">{profile.bio}</p> : null}
+    <div className="-mt-4 md:-mt-10 space-y-6">
+      {/* Cover */}
+      <div className="relative -mx-4 h-44 md:h-56 md:rounded-3xl overflow-hidden">
+        {coverUrl ? (
+          <img src={coverUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-primary/30 via-secondary to-background" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+      </div>
+
+      {/* Header */}
+      <div className="relative -mt-16 px-1 flex items-end justify-between gap-3">
+        <div className="rounded-full ring-4 ring-background bg-background">
+          <UserAvatar
+            avatarPath={profile.avatar_url}
+            displayName={profile.display_name}
+            className="h-24 w-24"
+          />
         </div>
-        {!isMe ? (
-          <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} />
-        ) : null}
+        <div className="flex gap-2 pb-1">
+          {isMe ? (
+            <Link to="/settings">
+              <Button variant="outline" className="rounded-full gap-2">
+                <Settings className="h-4 w-4" /> Editar
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Button
+                onClick={() => toggleFollow.mutate()}
+                className={
+                  stats.data?.isFollowing
+                    ? "rounded-full"
+                    : "rounded-full bg-gradient-brand hover:opacity-90 shadow-elegant"
+                }
+                variant={stats.data?.isFollowing ? "outline" : "default"}
+              >
+                {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
+              </Button>
+              <Button onClick={openChat} variant="outline" size="icon" className="rounded-full">
+                <MessageCircle className="h-4 w-4" />
+              </Button>
+              <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} />
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Identity */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-2xl font-display font-black tracking-tight">{profile.display_name}</h1>
+          {profile.pronouns ? (
+            <span className="text-xs rounded-full bg-white/5 px-2 py-0.5 text-muted-foreground">{profile.pronouns}</span>
+          ) : null}
+        </div>
+        <div className="text-sm text-muted-foreground">@{profile.username}</div>
+        {profile.bio ? <p className="text-sm whitespace-pre-wrap">{profile.bio}</p> : null}
+        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground pt-1">
+          {profile.location ? (
+            <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {profile.location}</span>
+          ) : null}
+          {profile.website ? (
+            <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+              <LinkIcon className="h-3.5 w-3.5" /> {profile.website.replace(/^https?:\/\//, "")}
+            </a>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2">
+        <StatCard label="Posts" value={stats.data?.posts.length ?? 0} />
+        <StatCard label="Seguidores" value={stats.data?.followers ?? 0} />
+        <StatCard label="Seguindo" value={stats.data?.following ?? 0} />
       </div>
 
       {isBlockedPair ? (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">
           <Ban className="h-4 w-4 shrink-0" />
           <span>
-            {iBlocked
-              ? "Você bloqueou este usuário."
-              : "Este perfil não está disponível."}
+            {iBlocked ? "Você bloqueou este usuário." : "Este perfil não está disponível."}
           </span>
         </div>
       ) : (
-        <>
-          <div className="flex items-center gap-6 text-sm">
-            <div><span className="font-bold">{stats.data?.posts.length ?? 0}</span> posts</div>
-            <div><span className="font-bold">{stats.data?.followers ?? 0}</span> seguidores</div>
-            <div><span className="font-bold">{stats.data?.following ?? 0}</span> seguindo</div>
-          </div>
+        <Tabs defaultValue="posts">
+          <TabsList className="w-full grid grid-cols-3 rounded-full glass p-1">
+            <TabsTrigger value="posts" className="rounded-full gap-1.5">
+              <Grid3x3 className="h-4 w-4" /> Posts
+            </TabsTrigger>
+            <TabsTrigger value="media" className="rounded-full gap-1.5">
+              <Sparkles className="h-4 w-4" /> Mídia
+            </TabsTrigger>
+            <TabsTrigger value="likes" disabled={!isMe} className="rounded-full gap-1.5">
+              {isMe ? <Heart className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+              {isMe ? "Curtidos" : "Priv."}
+            </TabsTrigger>
+          </TabsList>
 
-          {isMe ? (
-            <Link to="/settings">
-              <Button variant="outline" className="w-full rounded-full gap-2">
-                <Settings className="h-4 w-4" /> Editar perfil
-              </Button>
-            </Link>
-          ) : (
-            <div className="flex gap-2">
-              <Button
-                onClick={() => toggleFollow.mutate()}
-                className={
-                  stats.data?.isFollowing
-                    ? "flex-1 rounded-full"
-                    : "flex-1 rounded-full bg-gradient-brand hover:opacity-90"
-                }
-                variant={stats.data?.isFollowing ? "outline" : "default"}
-              >
-                {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
-              </Button>
-              <Button onClick={openChat} variant="outline" className="rounded-full gap-2">
-                <MessageCircle className="h-4 w-4" /> Mensagem
-              </Button>
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-1">
-            {stats.data?.posts.map((p) => (
-              <Link
-                key={p.id}
-                to="/p/$id"
-                params={{ id: p.id }}
-                className="aspect-square overflow-hidden rounded-xl bg-muted"
-              >
-                <SignedImage bucket="posts" path={p.media_url} alt="" className="w-full h-full object-cover" />
-              </Link>
-            ))}
-          </div>
-          {stats.data && stats.data.posts.length === 0 ? (
-            <div className="text-center text-sm text-muted-foreground py-8">Nenhum post ainda.</div>
-          ) : null}
-        </>
+          <TabsContent value="posts" className="mt-4">
+            <PostGrid posts={stats.data?.posts ?? []} empty="Nenhum post ainda." />
+          </TabsContent>
+          <TabsContent value="media" className="mt-4">
+            <PostGrid posts={(stats.data?.posts ?? []).filter((p: any) => p.media_url)} empty="Sem mídia." />
+          </TabsContent>
+          <TabsContent value="likes" className="mt-4">
+            {isMe ? <PostGrid posts={stats.data?.likedPosts ?? []} empty="Você ainda não curtiu nada." /> : null}
+          </TabsContent>
+        </Tabs>
       )}
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="glass rounded-2xl px-3 py-3 text-center">
+      <div className="text-xl font-display font-bold">{value}</div>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function PostGrid({ posts, empty }: { posts: any[]; empty: string }) {
+  if (!posts.length) return <div className="text-center text-sm text-muted-foreground py-8">{empty}</div>;
+  return (
+    <div className="grid grid-cols-3 gap-1">
+      {posts.map((p) => (
+        <Link
+          key={p.id}
+          to="/p/$id"
+          params={{ id: p.id }}
+          className="aspect-square overflow-hidden rounded-xl bg-muted"
+        >
+          <SignedImage bucket="posts" path={p.media_url} alt="" className="w-full h-full object-cover" />
+        </Link>
+      ))}
     </div>
   );
 }

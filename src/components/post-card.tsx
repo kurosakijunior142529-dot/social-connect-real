@@ -148,12 +148,18 @@ export function usePostsQuery(opts: {
   currentUserId: string | null;
   fetchPosts: () => Promise<{ data: any[] | null; error: any }>;
 }) {
+  const blocks = useBlocks();
+  const hidden = blocks.data?.hidden;
   return useQuery({
-    queryKey: opts.key,
+    queryKey: [...opts.key, "blocks", hidden ? hidden.size : 0],
+    enabled: !opts.currentUserId || !!blocks.data,
     queryFn: async () => {
       const { data, error } = await opts.fetchPosts();
       if (error) throw error;
-      const posts = (data ?? []) as any[];
+      let posts = (data ?? []) as any[];
+      if (hidden && hidden.size > 0) {
+        posts = posts.filter((p) => !hidden.has(p.author_id));
+      }
       if (posts.length === 0) return [] as FeedPost[];
       const ids = posts.map((p) => p.id);
       const authorIds = Array.from(new Set(posts.map((p) => p.author_id)));

@@ -88,10 +88,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Compartilhe fotos e vídeos, siga amigos, converse em tempo real. Tudo em um só lugar." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/df934fd2-d3de-41b2-9e63-d055c0e2a707/id-preview-4a00225b--1ba4969f-0e25-4120-b942-2fecf308cde3.lovable.app-1783460781736.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/df934fd2-d3de-41b2-9e63-d055c0e2a707/id-preview-4a00225b--1ba4969f-0e25-4120-b942-2fecf308cde3.lovable.app-1783460781736.png" },
+      { name: "theme-color", content: "#E8436B" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/icon-192.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,
@@ -117,6 +122,10 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+
+  useEffect(() => {
+    registerPWA();
+  }, []);
 
   useEffect(() => {
     // Refresh router + query cache on auth state changes

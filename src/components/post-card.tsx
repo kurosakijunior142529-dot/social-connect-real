@@ -137,13 +137,12 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
 export function usePostsQuery(opts: {
   key: unknown[];
   currentUserId: string | null;
-  build: (q: ReturnType<typeof supabase.from<any, any>>) => any;
+  fetchPosts: () => Promise<{ data: any[] | null; error: any }>;
 }) {
   return useQuery({
     queryKey: opts.key,
     queryFn: async () => {
-      const query = opts.build(supabase.from("posts"));
-      const { data, error } = await query;
+      const { data, error } = await opts.fetchPosts();
       if (error) throw error;
       const posts = (data ?? []) as any[];
       if (posts.length === 0) return [] as FeedPost[];

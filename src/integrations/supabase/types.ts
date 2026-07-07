@@ -35,6 +35,42 @@ export type Database = {
         }
         Relationships: []
       }
+      calls: {
+        Row: {
+          accepted_at: string | null
+          call_type: Database["public"]["Enums"]["call_type"]
+          callee_id: string
+          caller_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          status: Database["public"]["Enums"]["call_status"]
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          call_type?: Database["public"]["Enums"]["call_type"]
+          callee_id: string
+          caller_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["call_status"]
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          call_type?: Database["public"]["Enums"]["call_type"]
+          callee_id?: string
+          caller_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["call_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           author_id: string
@@ -301,6 +337,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      call_status:
+        | "ringing"
+        | "accepted"
+        | "rejected"
+        | "ended"
+        | "missed"
+        | "canceled"
+      call_type: "audio" | "video"
       media_type: "image" | "video"
       report_status: "pending" | "reviewed" | "dismissed" | "actioned"
       report_target: "user" | "post" | "message"
@@ -432,6 +476,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      call_status: [
+        "ringing",
+        "accepted",
+        "rejected",
+        "ended",
+        "missed",
+        "canceled",
+      ],
+      call_type: ["audio", "video"],
       media_type: ["image", "video"],
       report_status: ["pending", "reviewed", "dismissed", "actioned"],
       report_target: ["user", "post", "message"],

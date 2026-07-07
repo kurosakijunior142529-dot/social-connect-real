@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send, Ban } from "lucide-react";
+import { ArrowLeft, Send, Ban, Phone, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
+import { useCall } from "@/components/call-provider";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,
@@ -22,6 +23,7 @@ function ConversationPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const blocks = useBlocks();
+  const { startCall } = useCall();
 
   const conv = useQuery({
     queryKey: ["conversation", conversationId],
@@ -124,6 +126,24 @@ function ConversationPage() {
               <div className="font-semibold truncate">{other.display_name}</div>
               <div className="text-xs text-muted-foreground truncate">@{other.username}</div>
             </Link>
+            <button
+              type="button"
+              onClick={() => startCall({ id: other.id, username: other.username, display_name: other.display_name, avatar_url: other.avatar_url }, "audio")}
+              disabled={isBlockedPair}
+              className="p-2 rounded-full hover:bg-muted disabled:opacity-40"
+              aria-label="Chamada de voz"
+            >
+              <Phone className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => startCall({ id: other.id, username: other.username, display_name: other.display_name, avatar_url: other.avatar_url }, "video")}
+              disabled={isBlockedPair}
+              className="p-2 rounded-full hover:bg-muted disabled:opacity-40"
+              aria-label="Chamada de vídeo"
+            >
+              <Video className="h-5 w-5" />
+            </button>
             <UserActionsMenu targetUserId={other.id} targetUsername={other.username} />
           </>
         ) : null}

@@ -6,6 +6,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle } from "lucide-react";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
   component: MessagesPage,
@@ -13,9 +14,12 @@ export const Route = createFileRoute("/_authenticated/messages/")({
 
 function MessagesPage() {
   const { user } = Route.useRouteContext();
+  const blocks = useBlocks();
+  const hidden = blocks.data?.hidden;
 
   const query = useQuery({
-    queryKey: ["conversations", user.id],
+    queryKey: ["conversations", user.id, hidden ? hidden.size : 0],
+    enabled: !!blocks.data,
     queryFn: async () => {
       const { data: convs, error } = await supabase
         .from("conversations")
@@ -23,7 +27,10 @@ function MessagesPage() {
         .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
         .order("last_message_at", { ascending: false });
       if (error) throw error;
-      const list = convs ?? [];
+      const list = (convs ?? []).filter((c) => {
+        const other = c.user_a === user.id ? c.user_b : c.user_a;
+        return !hidden?.has(other);
+      });
       const otherIds = list.map((c) => (c.user_a === user.id ? c.user_b : c.user_a));
       const [profilesRes, lastMessagesRes] = await Promise.all([
         otherIds.length

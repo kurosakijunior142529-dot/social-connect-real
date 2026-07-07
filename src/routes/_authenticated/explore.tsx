@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export const Route = createFileRoute("/_authenticated/explore")({
   component: ExplorePage,
@@ -14,32 +15,37 @@ export const Route = createFileRoute("/_authenticated/explore")({
 
 function ExplorePage() {
   const [q, setQ] = useState("");
+  const blocks = useBlocks();
+  const hidden = blocks.data?.hidden;
+
   const posts = useQuery({
-    queryKey: ["explore", "posts"],
+    queryKey: ["explore", "posts", hidden ? hidden.size : 0],
+    enabled: !!blocks.data,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select("id, media_url, media_type")
+        .select("id, media_url, media_type, author_id")
         .order("created_at", { ascending: false })
-        .limit(60);
+        .limit(120);
       if (error) throw error;
-      return data;
+      const filtered = (data ?? []).filter((p) => !hidden!.has(p.author_id));
+      return filtered.slice(0, 60);
     },
   });
 
   const users = useQuery({
-    queryKey: ["explore", "users", q],
+    queryKey: ["explore", "users", q, hidden ? hidden.size : 0],
     queryFn: async () => {
       if (!q.trim()) return [];
       const { data, error } = await supabase
         .from("profiles")
         .select("id, username, display_name, avatar_url, bio")
         .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
-        .limit(15);
+        .limit(30);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).filter((u) => !hidden?.has(u.id)).slice(0, 15);
     },
-    enabled: q.trim().length > 0,
+    enabled: q.trim().length > 0 && !!blocks.data,
   });
 
   return (

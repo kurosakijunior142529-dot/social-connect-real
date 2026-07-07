@@ -5,8 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserActionsMenu } from "@/components/user-actions-menu";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,
@@ -19,6 +21,7 @@ function ConversationPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const blocks = useBlocks();
 
   const conv = useQuery({
     queryKey: ["conversation", conversationId],
@@ -94,35 +97,67 @@ function ConversationPage() {
     }
   }
 
+  const other = conv.data?.other ?? null;
+  const otherId = other?.id ?? null;
+  const isBlockedPair = otherId ? blocks.data?.hidden.has(otherId) ?? false : false;
+  const iBlocked = otherId ? blocks.data?.blocked.has(otherId) ?? false : false;
+  const visibleMessages = (messages.data ?? []).filter((m) => {
+    // hide messages from a user who blocked me (I'm still in their conversation)
+    if (blocks.data?.blockedBy.has(m.sender_id)) return false;
+    return true;
+  });
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)] -mx-4 md:mx-0 md:rounded-3xl md:border md:bg-card md:overflow-hidden">
       <header className="flex items-center gap-3 p-3 border-b bg-card sticky top-0 z-10">
         <Link to="/messages" className="p-2 -ml-1 rounded-full hover:bg-muted md:hidden">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        {conv.data?.other ? (
+        {other ? (
           <>
             <UserAvatar
-              avatarPath={conv.data.other.avatar_url}
-              displayName={conv.data.other.display_name}
+              avatarPath={other.avatar_url}
+              displayName={other.display_name}
               className="h-9 w-9"
             />
-            <Link to="/u/$username" params={{ username: conv.data.other.username }}>
-              <div className="font-semibold">{conv.data.other.display_name}</div>
-              <div className="text-xs text-muted-foreground">@{conv.data.other.username}</div>
+            <Link to="/u/$username" params={{ username: other.username }} className="flex-1 min-w-0">
+              <div className="font-semibold truncate">{other.display_name}</div>
+              <div className="text-xs text-muted-foreground truncate">@{other.username}</div>
             </Link>
+            <UserActionsMenu targetUserId={other.id} targetUsername={other.username} />
           </>
         ) : null}
       </header>
 
+      {isBlockedPair ? (
+        <div className="p-3 bg-destructive/10 border-b text-sm text-destructive flex items-center gap-2">
+          <Ban className="h-4 w-4 shrink-0" />
+          <span>
+            {iBlocked
+              ? "Você bloqueou este usuário. Desbloqueie para trocar mensagens."
+              : "Não é possível enviar mensagens nesta conversa."}
+          </span>
+        </div>
+      ) : null}
+
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {messages.data?.map((m) => {
+        {visibleMessages.map((m) => {
           const mine = m.sender_id === user.id;
           return (
-            <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+            <div key={m.id} className={cn("flex group", mine ? "justify-end" : "justify-start")}>
+              {!mine && otherId ? (
+                <div className="opacity-0 group-hover:opacity-100 transition mr-1 self-center">
+                  <UserActionsMenu
+                    targetUserId={otherId}
+                    targetUsername={other?.username}
+                    messageId={m.id}
+                    className="p-1"
+                  />
+                </div>
+              ) : null}
               <div
                 className={cn(
-                  "max-w-[75%] rounded-2xl px-4 py-2 text-sm",
+                  "max-w-[75%] rounded-2xl px-4 py-2 text-sm break-words",
                   mine
                     ? "bg-gradient-brand text-white rounded-br-md"
                     : "bg-muted text-foreground rounded-bl-md",
@@ -140,13 +175,14 @@ function ConversationPage() {
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Mensagem…"
+          placeholder={isBlockedPair ? "Mensagens desativadas" : "Mensagem…"}
           maxLength={2000}
+          disabled={isBlockedPair}
           className="rounded-full bg-muted border-transparent h-11"
         />
         <Button
           type="submit"
-          disabled={!draft.trim() || sending}
+          disabled={!draft.trim() || sending || isBlockedPair}
           size="icon"
           className="rounded-full bg-gradient-brand h-11 w-11 shrink-0"
         >

@@ -5,9 +5,11 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
+import { UserActionsMenu } from "@/components/user-actions-menu";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export type FeedPost = {
   id: string;
@@ -78,6 +80,13 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
             {formatDistanceToNowStrict(new Date(post.created_at), { locale: ptBR, addSuffix: true })}
           </div>
         </div>
+        {currentUserId && currentUserId !== post.author_id ? (
+          <UserActionsMenu
+            targetUserId={post.author_id}
+            targetUsername={author?.username}
+            postId={post.id}
+          />
+        ) : null}
       </header>
 
       <Link to="/p/$id" params={{ id: post.id }} className="block bg-black">
@@ -139,12 +148,18 @@ export function usePostsQuery(opts: {
   currentUserId: string | null;
   fetchPosts: () => Promise<{ data: any[] | null; error: any }>;
 }) {
+  const blocks = useBlocks();
+  const hidden = blocks.data?.hidden;
   return useQuery({
-    queryKey: opts.key,
+    queryKey: [...opts.key, "blocks", hidden ? hidden.size : 0],
+    enabled: !opts.currentUserId || !!blocks.data,
     queryFn: async () => {
       const { data, error } = await opts.fetchPosts();
       if (error) throw error;
-      const posts = (data ?? []) as any[];
+      let posts = (data ?? []) as any[];
+      if (hidden && hidden.size > 0) {
+        posts = posts.filter((p) => !hidden.has(p.author_id));
+      }
       if (posts.length === 0) return [] as FeedPost[];
       const ids = posts.map((p) => p.id);
       const authorIds = Array.from(new Set(posts.map((p) => p.author_id)));

@@ -6,7 +6,9 @@ import { SignedImage } from "@/components/signed-image";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { MessageCircle, Settings } from "lucide-react";
+import { MessageCircle, Settings, Ban } from "lucide-react";
+import { UserActionsMenu } from "@/components/user-actions-menu";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export const Route = createFileRoute("/_authenticated/u/$username")({
   component: ProfilePage,
@@ -33,6 +35,11 @@ function ProfilePage() {
 
   const profile = profileQuery.data;
   const isMe = profile?.id === user.id;
+  const blocks = useBlocks();
+  const iBlocked = profile ? blocks.data?.blocked.has(profile.id) ?? false : false;
+  const blockedMe = profile ? blocks.data?.blockedBy.has(profile.id) ?? false : false;
+  const isBlockedPair = iBlocked || blockedMe;
+
 
   const stats = useQuery({
     queryKey: ["profile-stats", profile?.id],
@@ -95,54 +102,70 @@ function ProfilePage() {
           <div className="text-sm text-muted-foreground">@{profile.username}</div>
           {profile.bio ? <p className="text-sm mt-2 whitespace-pre-wrap">{profile.bio}</p> : null}
         </div>
+        {!isMe ? (
+          <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} />
+        ) : null}
       </div>
 
-      <div className="flex items-center gap-6 text-sm">
-        <div><span className="font-bold">{stats.data?.posts.length ?? 0}</span> posts</div>
-        <div><span className="font-bold">{stats.data?.followers ?? 0}</span> seguidores</div>
-        <div><span className="font-bold">{stats.data?.following ?? 0}</span> seguindo</div>
-      </div>
-
-      {isMe ? (
-        <Link to="/settings">
-          <Button variant="outline" className="w-full rounded-full gap-2">
-            <Settings className="h-4 w-4" /> Editar perfil
-          </Button>
-        </Link>
-      ) : (
-        <div className="flex gap-2">
-          <Button
-            onClick={() => toggleFollow.mutate()}
-            className={
-              stats.data?.isFollowing
-                ? "flex-1 rounded-full"
-                : "flex-1 rounded-full bg-gradient-brand hover:opacity-90"
-            }
-            variant={stats.data?.isFollowing ? "outline" : "default"}
-          >
-            {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
-          </Button>
-          <Button onClick={openChat} variant="outline" className="rounded-full gap-2">
-            <MessageCircle className="h-4 w-4" /> Mensagem
-          </Button>
+      {isBlockedPair ? (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">
+          <Ban className="h-4 w-4 shrink-0" />
+          <span>
+            {iBlocked
+              ? "Você bloqueou este usuário."
+              : "Este perfil não está disponível."}
+          </span>
         </div>
-      )}
+      ) : (
+        <>
+          <div className="flex items-center gap-6 text-sm">
+            <div><span className="font-bold">{stats.data?.posts.length ?? 0}</span> posts</div>
+            <div><span className="font-bold">{stats.data?.followers ?? 0}</span> seguidores</div>
+            <div><span className="font-bold">{stats.data?.following ?? 0}</span> seguindo</div>
+          </div>
 
-      <div className="grid grid-cols-3 gap-1">
-        {stats.data?.posts.map((p) => (
-          <Link
-            key={p.id}
-            to="/p/$id"
-            params={{ id: p.id }}
-            className="aspect-square overflow-hidden rounded-xl bg-muted"
-          >
-            <SignedImage bucket="posts" path={p.media_url} alt="" className="w-full h-full object-cover" />
-          </Link>
-        ))}
-      </div>
-      {stats.data && stats.data.posts.length === 0 ? (
-        <div className="text-center text-sm text-muted-foreground py-8">Nenhum post ainda.</div>
-      ) : null}
+          {isMe ? (
+            <Link to="/settings">
+              <Button variant="outline" className="w-full rounded-full gap-2">
+                <Settings className="h-4 w-4" /> Editar perfil
+              </Button>
+            </Link>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => toggleFollow.mutate()}
+                className={
+                  stats.data?.isFollowing
+                    ? "flex-1 rounded-full"
+                    : "flex-1 rounded-full bg-gradient-brand hover:opacity-90"
+                }
+                variant={stats.data?.isFollowing ? "outline" : "default"}
+              >
+                {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
+              </Button>
+              <Button onClick={openChat} variant="outline" className="rounded-full gap-2">
+                <MessageCircle className="h-4 w-4" /> Mensagem
+              </Button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-1">
+            {stats.data?.posts.map((p) => (
+              <Link
+                key={p.id}
+                to="/p/$id"
+                params={{ id: p.id }}
+                className="aspect-square overflow-hidden rounded-xl bg-muted"
+              >
+                <SignedImage bucket="posts" path={p.media_url} alt="" className="w-full h-full object-cover" />
+              </Link>
+            ))}
+          </div>
+          {stats.data && stats.data.posts.length === 0 ? (
+            <div className="text-center text-sm text-muted-foreground py-8">Nenhum post ainda.</div>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

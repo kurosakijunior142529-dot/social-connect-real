@@ -79,10 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Compartilhe fotos e vídeos, siga amigos, converse em tempo real. Tudo em um só lugar.",
       },
-      { property: "og:title", content: "Vibely" },
-      { property: "og:description", content: "Sua rede social de verdade." },
+      { property: "og:title", content: "Vibely — sua rede social de verdade" },
+      { property: "og:description", content: "Compartilhe fotos e vídeos, siga amigos, converse em tempo real. Tudo em um só lugar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Vibely — sua rede social de verdade" },
+      { name: "twitter:description", content: "Compartilhe fotos e vídeos, siga amigos, converse em tempo real. Tudo em um só lugar." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/df934fd2-d3de-41b2-9e63-d055c0e2a707/id-preview-4a00225b--1ba4969f-0e25-4120-b942-2fecf308cde3.lovable.app-1783460781736.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/df934fd2-d3de-41b2-9e63-d055c0e2a707/id-preview-4a00225b--1ba4969f-0e25-4120-b942-2fecf308cde3.lovable.app-1783460781736.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

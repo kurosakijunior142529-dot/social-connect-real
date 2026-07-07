@@ -1,0 +1,165 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { UserAvatar } from "@/components/user-avatar";
+import { SignedImage, SignedVideo } from "@/components/signed-image";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Heart, Send, ArrowLeft } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { formatDistanceToNowStrict } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export const Route = createFileRoute("/_authenticated/p/$id")({
+  component: PostDetailPage,
+});
+
+function PostDetailPage() {
+  const { id } = Route.useParams();
+  const { user } = Route.useRouteContext();
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState("");
+
+  const post = useQuery({
+    queryKey: ["post", id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("posts").select("*").eq("id", id).maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      const { data: author } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url")
+        .eq("id", data.author_id)
+        .maybeSingle();
+      const [likes, myLike] = await Promise.all([
+        supabase.from("likes").select("user_id", { count: "exact", head: true }).eq("post_id", id),
+        supabase.from("likes").select("*").match({ post_id: id, user_id: user.id }).maybeSingle(),
+      ]);
+      return {
+        ...data,
+        author,
+        likes_count: likes.count ?? 0,
+        liked_by_me: !!myLike.data,
+      };
+    },
+  });
+
+  const comments = useQuery({
+    queryKey: ["comments", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comments")
+        .select("*")
+        .eq("post_id", id)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const authorIds = Array.from(new Set((data ?? []).map((c) => c.author_id)));
+      const { data: profs } = authorIds.length
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds)
+        : { data: [] };
+      const map = new Map((profs ?? []).map((p) => [p.id, p]));
+      return (data ?? []).map((c) => ({ ...c, author: map.get(c.author_id) }));
+    },
+  });
+
+  const toggleLike = useMutation({
+    mutationFn: async () => {
+      if (post.data?.liked_by_me) {
+        await supabase.from("likes").delete().match({ user_id: user.id, post_id: id });
+      } else {
+        await supabase.from("likes").insert({ user_id: user.id, post_id: id });
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["post", id] }),
+  });
+
+  async function addComment(e: FormEvent) {
+    e.preventDefault();
+    const text = draft.trim();
+    if (!text) return;
+    setDraft("");
+    const { error } = await supabase.from("comments").insert({
+      post_id: id,
+      author_id: user.id,
+      content: text,
+    });
+    if (error) setDraft(text);
+    else queryClient.invalidateQueries({ queryKey: ["comments", id] });
+  }
+
+  if (post.isLoading) return <Skeleton className="h-96 rounded-3xl" />;
+  if (!post.data) return <div className="text-center py-12">Post não encontrado.</div>;
+
+  const p = post.data;
+  return (
+    <div className="space-y-4">
+      <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4" /> Voltar
+      </Link>
+
+      <article className="rounded-3xl bg-card border overflow-hidden">
+        <header className="flex items-center gap-3 p-4">
+          <Link to="/u/$username" params={{ username: p.author?.username ?? "" }}>
+            <UserAvatar avatarPath={p.author?.avatar_url} displayName={p.author?.display_name ?? "?"} ring />
+          </Link>
+          <div>
+            <Link to="/u/$username" params={{ username: p.author?.username ?? "" }} className="font-semibold text-sm hover:underline">
+              {p.author?.display_name}
+            </Link>
+            <div className="text-xs text-muted-foreground">@{p.author?.username}</div>
+          </div>
+        </header>
+        <div className="bg-black">
+          {p.media_type === "video" ? (
+            <SignedVideo bucket="posts" path={p.media_url} className="w-full aspect-square object-cover" />
+          ) : (
+            <SignedImage bucket="posts" path={p.media_url} alt={p.caption ?? ""} className="w-full aspect-square object-cover" />
+          )}
+        </div>
+        <div className="p-4 space-y-3">
+          <button onClick={() => toggleLike.mutate()} className="flex items-center gap-1.5">
+            <Heart className={cn("h-6 w-6", p.liked_by_me && "fill-primary text-primary")} />
+            <span className="font-medium">{p.likes_count}</span>
+          </button>
+          {p.caption ? <p className="text-sm">{p.caption}</p> : null}
+          <div className="text-xs text-muted-foreground">
+            {formatDistanceToNowStrict(new Date(p.created_at), { locale: ptBR, addSuffix: true })}
+          </div>
+        </div>
+      </article>
+
+      <section className="space-y-3">
+        <h2 className="font-semibold text-sm px-1">Comentários</h2>
+        <div className="space-y-3">
+          {comments.data?.map((c) => (
+            <div key={c.id} className="flex items-start gap-3">
+              <UserAvatar avatarPath={c.author?.avatar_url} displayName={c.author?.display_name ?? "?"} className="h-8 w-8" />
+              <div className="flex-1 rounded-2xl bg-muted px-3 py-2">
+                <div className="text-xs font-semibold">{c.author?.display_name}</div>
+                <div className="text-sm">{c.content}</div>
+              </div>
+            </div>
+          ))}
+          {comments.data?.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Seja o primeiro a comentar.</p>
+          ) : null}
+        </div>
+
+        <form onSubmit={addComment} className="flex items-center gap-2 pt-2">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Adicione um comentário…"
+            maxLength={500}
+            className="rounded-full bg-muted border-transparent"
+          />
+          <Button type="submit" size="icon" className="rounded-full bg-gradient-brand shrink-0">
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </section>
+    </div>
+  );
+}

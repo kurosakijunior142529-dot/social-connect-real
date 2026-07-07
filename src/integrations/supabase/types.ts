@@ -71,6 +71,44 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_invites: {
+        Row: {
+          chat_id: string
+          created_at: string
+          id: string
+          invitee_id: string
+          inviter_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          id?: string
+          invitee_id: string
+          inviter_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_invites_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_members: {
         Row: {
           chat_id: string
@@ -306,6 +344,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json
+          read_at: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           author_id: string
@@ -411,6 +485,32 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_posts: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stories: {
         Row: {
           caption: string | null
@@ -440,6 +540,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      story_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_reactions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_views: {
         Row: {
@@ -506,6 +638,17 @@ export type Database = {
       is_chat_member: {
         Args: { _chat: string; _user: string }
         Returns: boolean
+      }
+      notify_user: {
+        Args: {
+          _actor: string
+          _entity_id: string
+          _entity_type: string
+          _meta: Json
+          _type: string
+          _user: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

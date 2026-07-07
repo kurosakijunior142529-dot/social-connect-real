@@ -1,10 +1,11 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Compass, PlusSquare, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { Home, Compass, PlusSquare, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bell, Bookmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useUnreadNotifications } from "@/hooks/use-notifications";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
@@ -18,11 +19,18 @@ export function AppShell({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [userId, setUserId] = useState<string | undefined>();
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id));
+  }, []);
+  const unread = useUnreadNotifications(userId);
+  const unreadCount = unread.data ?? 0;
 
   const items: NavItem[] = [
     { to: "/", label: "Feed", Icon: Home },
     { to: "/explore", label: "Explorar", Icon: Compass },
     { to: "/create", label: "Criar", Icon: PlusSquare },
+    { to: "/notifications", label: "Alertas", Icon: Bell },
     { to: "/messages", label: "Conversas", Icon: MessageCircle },
     {
       to: currentUsername ? `/u/${currentUsername}` : "/settings",
@@ -37,6 +45,12 @@ export function AppShell({
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   };
+
+  const Badge = () => unreadCount > 0 ? (
+    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center shadow-elegant">
+      {unreadCount > 99 ? "99+" : unreadCount}
+    </span>
+  ) : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,6 +69,7 @@ export function AppShell({
               to === "/"
                 ? pathname === "/"
                 : pathname === to || pathname.startsWith(to + "/");
+            const isNotif = to === "/notifications";
             return (
               <Link
                 key={to}
@@ -66,11 +81,26 @@ export function AppShell({
                     : "text-foreground/80 hover:bg-white/5",
                 )}
               >
-                <Icon className={cn("h-5 w-5", active ? "" : "text-primary/90")} />
+                <span className="relative">
+                  <Icon className={cn("h-5 w-5", active ? "" : "text-primary/90")} />
+                  {isNotif ? <Badge /> : null}
+                </span>
                 {label}
               </Link>
             );
           })}
+          <Link
+            to="/saved"
+            className={cn(
+              "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
+              pathname.startsWith("/saved")
+                ? "bg-gradient-brand text-white shadow-elegant"
+                : "text-foreground/80 hover:bg-white/5",
+            )}
+          >
+            <Bookmark className="h-5 w-5 text-primary/90" />
+            Salvos
+          </Link>
         </nav>
         <div className="p-3 border-t border-border/50 space-y-1">
           <Link
@@ -104,6 +134,7 @@ export function AppShell({
                   ? pathname === "/"
                   : pathname === to || pathname.startsWith(to + "/");
               const isCreate = to === "/create";
+              const isNotif = to === "/notifications";
               return (
                 <Link
                   key={to}
@@ -115,7 +146,10 @@ export function AppShell({
                   )}
                   aria-label={label}
                 >
-                  <Icon className={cn(isCreate ? "h-6 w-6" : "h-6 w-6", active && !isCreate && "drop-shadow-[0_0_8px_var(--primary)]")} />
+                  <span className="relative">
+                    <Icon className={cn(isCreate ? "h-6 w-6" : "h-6 w-6", active && !isCreate && "drop-shadow-[0_0_8px_var(--primary)]")} />
+                    {isNotif ? <Badge /> : null}
+                  </span>
                   {!isCreate && active && (
                     <span className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-primary" />
                   )}

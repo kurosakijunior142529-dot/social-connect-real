@@ -140,8 +140,29 @@ export function StoryViewer({
 
         {/* Caption */}
         {story.caption ? (
-          <div className="absolute bottom-6 inset-x-4 z-10 rounded-2xl bg-black/40 backdrop-blur px-4 py-3 text-white text-sm">
+          <div className="absolute bottom-24 inset-x-4 z-10 rounded-2xl bg-black/40 backdrop-blur px-4 py-3 text-white text-sm">
             {story.caption}
+          </div>
+        ) : null}
+
+        {/* Reactions bar (only for others' stories) */}
+        {!isOwn ? (
+          <div className="absolute bottom-6 inset-x-4 z-20 flex justify-center gap-2">
+            {["❤️","🔥","😂","😮","😢","👏"].map((e) => (
+              <button
+                key={e}
+                onClick={async (ev) => {
+                  ev.stopPropagation();
+                  const { error } = await (supabase as any).from("story_reactions").insert({
+                    story_id: story.id, user_id: viewerId, emoji: e,
+                  });
+                  if (error && !String(error.message).includes("duplicate")) toast.error(error.message);
+                  else toast.success(`Reagiu com ${e}`);
+                }}
+                className="h-11 w-11 rounded-full bg-white/15 backdrop-blur text-xl grid place-items-center hover:scale-110 active:scale-95 transition"
+                aria-label={`Reagir ${e}`}
+              >{e}</button>
+            ))}
           </div>
         ) : null}
 

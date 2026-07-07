@@ -56,19 +56,9 @@ async function unregisterMatching(): Promise<void> {
 export async function registerPWA(): Promise<void> {
   if (shouldRegister()) {
     try {
-      const { registerSW } = await import("virtual:pwa-register");
-      registerSW({
-        immediate: true,
-        onNeedRefresh() {
-          // Auto-update without prompting
-          window.location.reload();
-        },
-        onOfflineReady() {
-          // silently ready
-        },
-      });
-    } catch {
-      // virtual:pwa-register may not resolve in some builds; ignore
+      await navigator.serviceWorker.register(SW_PATH, { scope: "/" });
+    } catch (err) {
+      console.warn("PWA registration failed:", err);
     }
   } else {
     await unregisterMatching();

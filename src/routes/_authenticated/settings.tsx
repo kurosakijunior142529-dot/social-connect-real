@@ -3,12 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
+import { useSignedUrl } from "@/hooks/use-signed-url";
 import { uploadMedia } from "@/lib/media";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Camera, ImagePlus } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -23,19 +25,27 @@ function SettingsPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
       if (error) throw error;
-      return data;
+      return data as any;
     },
   });
 
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [website, setWebsite] = useState("");
+  const [location, setLocation] = useState("");
+  const [pronouns, setPronouns] = useState("");
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
+
+  const { data: coverUrl } = useSignedUrl("covers", profile.data?.cover_url ?? null);
 
   useEffect(() => {
     if (profile.data) {
-      setDisplayName(profile.data.display_name);
+      setDisplayName(profile.data.display_name ?? "");
       setBio(profile.data.bio ?? "");
+      setWebsite(profile.data.website ?? "");
+      setLocation(profile.data.location ?? "");
+      setPronouns(profile.data.pronouns ?? "");
     }
   }, [profile.data]);
 
@@ -46,7 +56,13 @@ function SettingsPage() {
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ display_name: displayName.trim(), bio: bio.trim() })
+      .update({
+        display_name: displayName.trim(),
+        bio: bio.trim(),
+        website: website.trim() || null,
+        location: location.trim() || null,
+        pronouns: pronouns.trim() || null,
+      } as any)
       .eq("id", user.id);
     setSaving(false);
     if (error) return toast.error(error.message);
@@ -55,46 +71,56 @@ function SettingsPage() {
     queryClient.invalidateQueries({ queryKey: ["profile"] });
   }
 
-  async function onAvatarPick(file: File | null) {
+  async function onPick(kind: "avatar" | "cover", file: File | null) {
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return toast.error("Imagem maior que 5MB");
-    setUploading(true);
+    if (file.size > 8 * 1024 * 1024) return toast.error("Imagem maior que 8MB");
+    setUploading(kind);
     try {
-      const path = await uploadMedia("avatars", user.id, file);
-      const { error } = await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
+      const bucket = kind === "avatar" ? "avatars" : "covers";
+      const path = await uploadMedia(bucket, user.id, file);
+      const column = kind === "avatar" ? "avatar_url" : "cover_url";
+      const { error } = await supabase.from("profiles").update({ [column]: path } as any).eq("id", user.id);
       if (error) throw error;
-      toast.success("Avatar atualizado!");
+      toast.success(kind === "avatar" ? "Avatar atualizado!" : "Capa atualizada!");
       queryClient.invalidateQueries({ queryKey: ["me-profile", user.id] });
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-      queryClient.invalidateQueries({ queryKey: ["signed-url", "avatars"] });
+      queryClient.invalidateQueries({ queryKey: ["signed-url"] });
     } catch (err: any) {
       toast.error(err.message ?? "Falha ao enviar");
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   }
 
   return (
     <div className="space-y-6 max-w-lg">
-      <h1 className="text-3xl font-bold">Configurações</h1>
+      <h1 className="text-3xl font-display font-black">Configurações</h1>
 
-      <div className="flex items-center gap-4">
-        <UserAvatar
-          avatarPath={profile.data?.avatar_url}
-          displayName={profile.data?.display_name ?? "?"}
-          className="h-20 w-20"
-          ring
-        />
-        <label className="cursor-pointer">
-          <Button asChild variant="outline" className="rounded-full" disabled={uploading}>
-            <span>{uploading ? "Enviando…" : "Trocar foto"}</span>
-          </Button>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => onAvatarPick(e.target.files?.[0] ?? null)}
+      {/* Cover */}
+      <label className="relative block h-36 rounded-3xl overflow-hidden bg-gradient-to-br from-primary/30 to-secondary cursor-pointer group">
+        {coverUrl ? <img src={coverUrl} alt="" className="h-full w-full object-cover" /> : null}
+        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition grid place-items-center">
+          <div className="rounded-full bg-white/10 backdrop-blur px-3 py-1.5 text-xs text-white flex items-center gap-1.5">
+            <ImagePlus className="h-4 w-4" /> {uploading === "cover" ? "Enviando…" : "Trocar capa"}
+          </div>
+        </div>
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick("cover", e.target.files?.[0] ?? null)} />
+      </label>
+
+      {/* Avatar */}
+      <div className="flex items-center gap-4 -mt-16 px-4">
+        <div className="rounded-full ring-4 ring-background bg-background">
+          <UserAvatar
+            avatarPath={profile.data?.avatar_url}
+            displayName={profile.data?.display_name ?? "?"}
+            className="h-20 w-20"
           />
+        </div>
+        <label className="cursor-pointer">
+          <Button asChild variant="outline" className="rounded-full gap-2" disabled={uploading === "avatar"}>
+            <span><Camera className="h-4 w-4" /> {uploading === "avatar" ? "Enviando…" : "Trocar foto"}</span>
+          </Button>
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick("avatar", e.target.files?.[0] ?? null)} />
         </label>
       </div>
 
@@ -105,33 +131,30 @@ function SettingsPage() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="dn">Nome</Label>
-          <Input
-            id="dn"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            maxLength={50}
-            className="rounded-xl"
-          />
+          <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={50} className="rounded-xl" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="pr">Pronomes</Label>
+            <Input id="pr" value={pronouns} onChange={(e) => setPronouns(e.target.value)} maxLength={20} placeholder="ela/dela" className="rounded-xl" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="loc">Localização</Label>
+            <Input id="loc" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={60} placeholder="São Paulo" className="rounded-xl" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="web">Site</Label>
+          <Input id="web" value={website} onChange={(e) => setWebsite(e.target.value)} maxLength={120} placeholder="https://…" className="rounded-xl" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="bio">Bio</Label>
-          <Textarea
-            id="bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            maxLength={300}
-            rows={4}
-            className="rounded-2xl resize-none"
-          />
+          <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={300} rows={4} className="rounded-2xl resize-none" />
           <div className="text-right text-xs text-muted-foreground">{bio.length}/300</div>
         </div>
 
-        <Button
-          type="submit"
-          disabled={saving}
-          className="w-full h-11 rounded-full bg-gradient-brand hover:opacity-90"
-        >
-          Salvar
+        <Button type="submit" disabled={saving} className="w-full h-11 rounded-full bg-gradient-brand hover:opacity-90 shadow-elegant">
+          {saving ? "Salvando…" : "Salvar"}
         </Button>
       </form>
     </div>

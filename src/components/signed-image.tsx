@@ -1,8 +1,9 @@
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { cn } from "@/lib/utils";
+import type { MediaBucket } from "@/lib/media";
 
 type Props = {
-  bucket: "avatars" | "posts";
+  bucket: MediaBucket;
   path: string | null | undefined;
   alt: string;
   className?: string;

@@ -1,0 +1,347 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { UserAvatar } from "@/components/user-avatar";
+import { SignedImage } from "@/components/signed-image";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Send, Users, Megaphone, LogOut, UserPlus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+export const Route = createFileRoute("/_authenticated/chats/$id")({
+  component: ChatPage,
+});
+
+function ChatPage() {
+  const { id } = Route.useParams();
+  const { user } = Route.useRouteContext();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
+
+  const chat = useQuery({
+    queryKey: ["chat", id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("chats").select("*").eq("id", id).maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
+  const membership = useQuery({
+    queryKey: ["chat-me", id, user.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("chat_members")
+        .select("role")
+        .eq("chat_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return (data as any) ?? null;
+    },
+  });
+
+  const messages = useQuery({
+    queryKey: ["chat-messages", id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("chat_messages")
+        .select("*")
+        .eq("chat_id", id)
+        .order("created_at", { ascending: true })
+        .limit(300);
+      if (error) throw error;
+      const list = (data ?? []) as any[];
+      const senderIds = Array.from(new Set(list.map((m) => m.sender_id)));
+      const { data: profs } = senderIds.length
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", senderIds)
+        : { data: [] as any[] };
+      const pmap = new Map((profs ?? []).map((p) => [p.id, p]));
+      return list.map((m) => ({ ...m, sender: pmap.get(m.sender_id) }));
+    },
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`chat-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["chat-messages", id] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, queryClient]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.data?.length]);
+
+  const chatData = chat.data;
+  const role = membership.data?.role;
+  const isMember = !!role;
+  const isAdmin = role === "owner" || role === "admin";
+  const isChannel = chatData?.type === "channel";
+  const canPost = isMember && (!isChannel || isAdmin);
+
+  async function send(e: FormEvent) {
+    e.preventDefault();
+    const text = draft.trim();
+    if (!text || sending || !canPost) return;
+    setSending(true);
+    setDraft("");
+    const { error } = await (supabase as any).from("chat_messages").insert({
+      chat_id: id,
+      sender_id: user.id,
+      content: text,
+    });
+    setSending(false);
+    if (error) {
+      setDraft(text);
+      toast.error(error.message);
+    }
+  }
+
+  async function leave() {
+    if (!confirm("Sair deste chat?")) return;
+    const { error } = await (supabase as any)
+      .from("chat_members")
+      .delete()
+      .eq("chat_id", id)
+      .eq("user_id", user.id);
+    if (error) return toast.error(error.message);
+    toast.success("Você saiu");
+    navigate({ to: "/messages" });
+  }
+
+  async function deleteMessage(mid: string) {
+    if (!confirm("Apagar mensagem?")) return;
+    const { error } = await (supabase as any).from("chat_messages").delete().eq("id", mid);
+    if (error) return toast.error(error.message);
+    queryClient.invalidateQueries({ queryKey: ["chat-messages", id] });
+  }
+
+  if (chat.isLoading) return <Skeleton className="h-96 rounded-3xl" />;
+  if (!chatData) return <div className="text-center py-12">Chat não encontrado.</div>;
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)] -mx-4 md:mx-0 md:rounded-3xl md:border md:border-border/50 md:glass md:overflow-hidden">
+      <header className="flex items-center gap-3 p-3 border-b border-border/50 sticky top-0 z-10 bg-card/70 backdrop-blur">
+        <Link to="/messages" className="p-2 -ml-1 rounded-full hover:bg-white/5 md:hidden" aria-label="Voltar">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        {chatData.avatar_url ? (
+          <div className="h-9 w-9 rounded-full overflow-hidden bg-muted">
+            <SignedImage bucket="chats" path={chatData.avatar_url} alt="" className="h-full w-full object-cover" />
+          </div>
+        ) : (
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-brand text-white">
+            {isChannel ? <Megaphone className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+          </div>
+        )}
+        <button onClick={() => setMembersOpen(true)} className="flex-1 min-w-0 text-left">
+          <div className="font-semibold truncate">{chatData.title}</div>
+          <div className="text-xs text-muted-foreground truncate">
+            {isChannel ? "Canal" : "Grupo"}{chatData.description ? ` · ${chatData.description}` : ""}
+          </div>
+        </button>
+        {isMember ? (
+          <button onClick={leave} className="p-2 rounded-full hover:bg-white/5" aria-label="Sair">
+            <LogOut className="h-5 w-5" />
+          </button>
+        ) : null}
+      </header>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.data?.map((m: any) => {
+          const mine = m.sender_id === user.id;
+          return (
+            <div key={m.id} className={cn("flex items-end gap-2 group", mine ? "justify-end" : "justify-start")}>
+              {!mine ? (
+                <UserAvatar avatarPath={m.sender?.avatar_url} displayName={m.sender?.display_name ?? "?"} className="h-7 w-7" />
+              ) : null}
+              <div className={cn("max-w-[75%] space-y-0.5", mine ? "items-end" : "items-start")}>
+                {!mine && !isChannel ? (
+                  <div className="text-[11px] text-muted-foreground px-3">{m.sender?.display_name}</div>
+                ) : null}
+                <div
+                  className={cn(
+                    "rounded-2xl px-4 py-2 text-sm break-words shadow-sm",
+                    mine
+                      ? "bg-gradient-brand text-white rounded-br-md"
+                      : "bg-white/5 border border-white/5 text-foreground rounded-bl-md",
+                  )}
+                >
+                  {m.content}
+                </div>
+              </div>
+              {mine || isAdmin ? (
+                <button
+                  onClick={() => deleteMessage(m.id)}
+                  className="opacity-0 group-hover:opacity-100 transition p-1 rounded-full hover:bg-white/5"
+                  aria-label="Apagar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      <form onSubmit={send} className="p-3 border-t border-border/50 bg-card/50 backdrop-blur flex items-center gap-2">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={
+            !isMember ? "Entre no chat para conversar" : canPost ? "Mensagem…" : "Somente admins publicam neste canal"
+          }
+          maxLength={2000}
+          disabled={!canPost}
+          className="rounded-full bg-white/5 border-transparent h-11"
+        />
+        <Button
+          type="submit"
+          disabled={!draft.trim() || sending || !canPost}
+          size="icon"
+          className="rounded-full bg-gradient-brand h-11 w-11 shrink-0"
+        >
+          <Send className="h-5 w-5" />
+        </Button>
+      </form>
+
+      <MembersDialog
+        chatId={id}
+        open={membersOpen}
+        onOpenChange={setMembersOpen}
+        isAdmin={isAdmin}
+        currentUserId={user.id}
+      />
+    </div>
+  );
+}
+
+function MembersDialog({
+  chatId,
+  open,
+  onOpenChange,
+  isAdmin,
+  currentUserId,
+}: {
+  chatId: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  isAdmin: boolean;
+  currentUserId: string;
+}) {
+  const queryClient = useQueryClient();
+  const [addQuery, setAddQuery] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const members = useQuery({
+    queryKey: ["chat-members", chatId],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("chat_members")
+        .select("*")
+        .eq("chat_id", chatId);
+      const list = (data ?? []) as any[];
+      const ids = list.map((m) => m.user_id);
+      const { data: profs } = ids.length
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids)
+        : { data: [] as any[] };
+      const pmap = new Map((profs ?? []).map((p) => [p.id, p]));
+      return list.map((m) => ({ ...m, profile: pmap.get(m.user_id) }));
+    },
+  });
+
+  async function addByUsername() {
+    const uname = addQuery.trim().replace(/^@/, "");
+    if (!uname) return;
+    setAdding(true);
+    try {
+      const { data: prof } = await supabase.from("profiles").select("id").eq("username", uname).maybeSingle();
+      if (!prof) throw new Error("Usuário não encontrado");
+      const { error } = await (supabase as any).from("chat_members").insert({ chat_id: chatId, user_id: prof.id });
+      if (error) throw error;
+      setAddQuery("");
+      toast.success("Membro adicionado");
+      queryClient.invalidateQueries({ queryKey: ["chat-members", chatId] });
+    } catch (err: any) {
+      toast.error(err.message ?? "Falha");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function remove(uid: string) {
+    if (uid === currentUserId) return;
+    if (!confirm("Remover membro?")) return;
+    const { error } = await (supabase as any).from("chat_members").delete().eq("chat_id", chatId).eq("user_id", uid);
+    if (error) return toast.error(error.message);
+    queryClient.invalidateQueries({ queryKey: ["chat-members", chatId] });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="glass border-white/10 max-w-md">
+        <DialogHeader>
+          <DialogTitle>Membros</DialogTitle>
+        </DialogHeader>
+
+        {isAdmin ? (
+          <div className="flex gap-2">
+            <Input
+              value={addQuery}
+              onChange={(e) => setAddQuery(e.target.value)}
+              placeholder="@usuario"
+              className="rounded-full"
+            />
+            <Button onClick={addByUsername} disabled={adding} size="icon" className="rounded-full bg-gradient-brand">
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : null}
+
+        <div className="max-h-80 overflow-y-auto space-y-1">
+          {members.data?.map((m: any) => (
+            <div key={m.user_id} className="flex items-center gap-3 rounded-xl p-2 hover:bg-white/5">
+              <UserAvatar avatarPath={m.profile?.avatar_url} displayName={m.profile?.display_name ?? "?"} className="h-9 w-9" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{m.profile?.display_name}</div>
+                <div className="text-xs text-muted-foreground truncate">@{m.profile?.username} · {m.role}</div>
+              </div>
+              {isAdmin && m.user_id !== currentUserId && m.role !== "owner" ? (
+                <button onClick={() => remove(m.user_id)} className="text-xs text-destructive px-2 py-1 rounded-full hover:bg-destructive/10">
+                  Remover
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// keep unused Dialog trigger import happy
+void DialogTrigger;

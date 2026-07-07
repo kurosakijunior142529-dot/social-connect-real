@@ -281,11 +281,14 @@ function MembersDialog({
     try {
       const { data: prof } = await supabase.from("profiles").select("id").eq("username", uname).maybeSingle();
       if (!prof) throw new Error("Usuário não encontrado");
-      const { error } = await (supabase as any).from("chat_members").insert({ chat_id: chatId, user_id: prof.id });
+      const { error } = await (supabase as any).from("chat_invites").insert({
+        chat_id: chatId,
+        inviter_id: currentUserId,
+        invitee_id: prof.id,
+      });
       if (error) throw error;
       setAddQuery("");
-      toast.success("Membro adicionado");
-      queryClient.invalidateQueries({ queryKey: ["chat-members", chatId] });
+      toast.success("Convite enviado");
     } catch (err: any) {
       toast.error(err.message ?? "Falha");
     } finally {

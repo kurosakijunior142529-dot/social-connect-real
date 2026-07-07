@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.is_blocked_pair(UUID, UUID) FROM PUBLIC, anon, authenticated;

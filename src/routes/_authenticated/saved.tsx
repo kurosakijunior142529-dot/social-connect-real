@@ -22,7 +22,7 @@ function SavedPage() {
       if (ids.length === 0) return { data: [], error: null };
       const { data: posts, error: e2 } = await supabase.from("posts").select("*").in("id", ids);
       if (e2) return { data: null, error: e2 };
-      const order = new Map(ids.map((id: string, i: number) => [id, i]));
+      const order = new Map<string, number>(ids.map((id: string, i: number) => [id, i] as [string, number]));
       const sorted = (posts ?? []).slice().sort((a: any, b: any) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
       return { data: sorted, error: null };
     },

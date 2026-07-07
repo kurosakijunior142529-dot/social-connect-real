@@ -22,7 +22,6 @@ function ConversationPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const blocks = useBlocks();
-  const otherId = useMemo<string | null>(() => null, []); // placeholder — computed below via conv
 
   const conv = useQuery({
     queryKey: ["conversation", conversationId],

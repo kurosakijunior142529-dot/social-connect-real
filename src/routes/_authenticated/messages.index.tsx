@@ -6,6 +6,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle } from "lucide-react";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
   component: MessagesPage,

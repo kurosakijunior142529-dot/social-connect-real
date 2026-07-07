@@ -1,7 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type MediaBucket = "avatars" | "posts" | "stories" | "chats" | "covers";
+
 export async function uploadMedia(
-  bucket: "avatars" | "posts",
+  bucket: MediaBucket,
   userId: string,
   file: File,
 ): Promise<string> {
@@ -17,7 +19,7 @@ export async function uploadMedia(
 }
 
 export async function createSignedUrl(
-  bucket: "avatars" | "posts",
+  bucket: MediaBucket,
   path: string,
   expiresIn = 60 * 60,
 ): Promise<string | null> {

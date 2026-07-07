@@ -80,6 +80,13 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
             {formatDistanceToNowStrict(new Date(post.created_at), { locale: ptBR, addSuffix: true })}
           </div>
         </div>
+        {currentUserId && currentUserId !== post.author_id ? (
+          <UserActionsMenu
+            targetUserId={post.author_id}
+            targetUsername={author?.username}
+            postId={post.id}
+          />
+        ) : null}
       </header>
 
       <Link to="/p/$id" params={{ id: post.id }} className="block bg-black">

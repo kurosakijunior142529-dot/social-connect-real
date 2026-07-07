@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, useMemo, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserActionsMenu } from "@/components/user-actions-menu";
+import { useBlocks } from "@/hooks/use-blocks";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,

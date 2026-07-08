@@ -147,7 +147,17 @@ export type Database = {
           edited_at: string | null
           expires_at: string | null
           id: string
+          kind: string
+          media_bucket: string | null
+          media_duration_ms: number | null
+          media_name: string | null
+          media_size: number | null
+          media_type: string | null
           media_url: string | null
+          meta: Json
+          pinned_at: string | null
+          pinned_by: string | null
+          read_at: string | null
           reply_to: string | null
           sender_id: string
         }
@@ -159,7 +169,17 @@ export type Database = {
           edited_at?: string | null
           expires_at?: string | null
           id?: string
+          kind?: string
+          media_bucket?: string | null
+          media_duration_ms?: number | null
+          media_name?: string | null
+          media_size?: number | null
+          media_type?: string | null
           media_url?: string | null
+          meta?: Json
+          pinned_at?: string | null
+          pinned_by?: string | null
+          read_at?: string | null
           reply_to?: string | null
           sender_id: string
         }
@@ -171,7 +191,17 @@ export type Database = {
           edited_at?: string | null
           expires_at?: string | null
           id?: string
+          kind?: string
+          media_bucket?: string | null
+          media_duration_ms?: number | null
+          media_name?: string | null
+          media_size?: number | null
+          media_type?: string | null
           media_url?: string | null
+          meta?: Json
+          pinned_at?: string | null
+          pinned_by?: string | null
+          read_at?: string | null
           reply_to?: string | null
           sender_id?: string
         }
@@ -421,37 +451,67 @@ export type Database = {
       }
       messages: {
         Row: {
-          content: string
+          content: string | null
           conversation_id: string
           created_at: string
           deleted_at: string | null
           edited_at: string | null
           expires_at: string | null
           id: string
+          kind: string
+          media_bucket: string | null
+          media_duration_ms: number | null
+          media_name: string | null
+          media_size: number | null
+          media_type: string | null
+          media_url: string | null
+          meta: Json
+          pinned_at: string | null
+          pinned_by: string | null
           read_at: string | null
           reply_to: string | null
           sender_id: string
         }
         Insert: {
-          content: string
+          content?: string | null
           conversation_id: string
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
           expires_at?: string | null
           id?: string
+          kind?: string
+          media_bucket?: string | null
+          media_duration_ms?: number | null
+          media_name?: string | null
+          media_size?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          meta?: Json
+          pinned_at?: string | null
+          pinned_by?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id: string
         }
         Update: {
-          content?: string
+          content?: string | null
           conversation_id?: string
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
           expires_at?: string | null
           id?: string
+          kind?: string
+          media_bucket?: string | null
+          media_duration_ms?: number | null
+          media_name?: string | null
+          media_size?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          meta?: Json
+          pinned_at?: string | null
+          pinned_by?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string

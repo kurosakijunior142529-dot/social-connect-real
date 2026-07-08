@@ -30,6 +30,7 @@ export function AppShell({
 
   const items: NavItem[] = [
     { to: "/", label: "Feed", Icon: Home },
+    { to: "/reels", label: "Reels", Icon: Play },
     { to: "/explore", label: "Explorar", Icon: Search },
     { to: "/create", label: "Criar", Icon: PlusSquare },
     { to: "/notifications", label: "Alertas", Icon: Bell },

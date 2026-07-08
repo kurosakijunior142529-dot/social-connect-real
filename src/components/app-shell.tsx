@@ -1,11 +1,13 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Compass, PlusSquare, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bell, Bookmark } from "lucide-react";
+import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUnreadNotifications } from "@/hooks/use-notifications";
+import { SwipeableTabs } from "@/components/gestures/swipeable-tabs";
+import { SwipeBack } from "@/components/gestures/swipe-back";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
@@ -28,7 +30,7 @@ export function AppShell({
 
   const items: NavItem[] = [
     { to: "/", label: "Feed", Icon: Home },
-    { to: "/explore", label: "Explorar", Icon: Compass },
+    { to: "/explore", label: "Explorar", Icon: Search },
     { to: "/create", label: "Criar", Icon: PlusSquare },
     { to: "/notifications", label: "Alertas", Icon: Bell },
     { to: "/messages", label: "Conversas", Icon: MessageCircle },
@@ -46,43 +48,47 @@ export function AppShell({
     navigate({ to: "/auth", replace: true });
   };
 
-  const Badge = () => unreadCount > 0 ? (
-    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center shadow-elegant">
-      {unreadCount > 99 ? "99+" : unreadCount}
-    </span>
-  ) : null;
+  const isRoot =
+    pathname === "/" ||
+    pathname === "/explore" ||
+    pathname === "/messages" ||
+    pathname === "/notifications" ||
+    pathname === "/create" ||
+    pathname === "/settings" ||
+    pathname === "/saved";
+
+  const Badge = () =>
+    unreadCount > 0 ? (
+      <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+    ) : null;
+
+  const content = isRoot ? <SwipeableTabs>{children}</SwipeableTabs> : <SwipeBack>{children}</SwipeBack>;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-64 md:flex-col md:border-r md:border-border/50 md:bg-sidebar/60 md:backdrop-blur-xl">
-        <div className="px-6 pt-10 pb-6">
-          <Link to="/" className="inline-flex items-baseline gap-1">
-            <span className="text-3xl font-display font-black tracking-tight text-gradient-brand">Vibely</span>
-            <span className="h-2 w-2 rounded-full bg-primary shadow-elegant" />
+      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-60 md:flex-col md:border-r md:border-[color:var(--hairline)] md:bg-sidebar">
+        <div className="px-6 pt-8 pb-6">
+          <Link to="/" className="inline-flex items-center gap-2">
+            <span className="text-2xl font-display font-semibold tracking-tight">vibely</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
           </Link>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Midnight edition</p>
         </div>
-        <nav className="flex-1 space-y-1 px-3">
+        <nav className="flex-1 space-y-0.5 px-3">
           {items.map(({ to, label, Icon }) => {
-            const active =
-              to === "/"
-                ? pathname === "/"
-                : pathname === to || pathname.startsWith(to + "/");
+            const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
             const isNotif = to === "/notifications";
             return (
               <Link
                 key={to}
                 to={to}
                 className={cn(
-                  "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
-                  active
-                    ? "bg-gradient-brand text-white shadow-elegant"
-                    : "text-foreground/80 hover:bg-white/5",
+                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  active ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
                 )}
               >
                 <span className="relative">
-                  <Icon className={cn("h-5 w-5", active ? "" : "text-primary/90")} />
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.2 : 1.6} />
                   {isNotif ? <Badge /> : null}
                 </span>
                 {label}
@@ -92,67 +98,71 @@ export function AppShell({
           <Link
             to="/saved"
             className={cn(
-              "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
-              pathname.startsWith("/saved")
-                ? "bg-gradient-brand text-white shadow-elegant"
-                : "text-foreground/80 hover:bg-white/5",
+              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              pathname.startsWith("/saved") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
             )}
           >
-            <Bookmark className="h-5 w-5 text-primary/90" />
+            <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.6} />
             Salvos
           </Link>
         </nav>
-        <div className="p-3 border-t border-border/50 space-y-1">
+        <div className="p-3 hairline-t space-y-0.5">
           <Link
             to="/settings"
-            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-white/5"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]"
           >
-            <SettingsIcon className="h-4 w-4" /> Configurações
+            <SettingsIcon className="h-[18px] w-[18px]" strokeWidth={1.6} /> Configurações
           </Link>
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 rounded-2xl px-4"
+            className="w-full justify-start gap-3 rounded-xl px-3 h-auto py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]"
             onClick={handleSignOut}
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-[18px] w-[18px]" />
             Sair
           </Button>
         </div>
       </aside>
 
-      <main className="md:pl-64 pb-24 md:pb-8">
-        <div className="mx-auto max-w-2xl px-4 pt-4 md:pt-10">{children}</div>
+      <main className="md:pl-60 pb-24 md:pb-8">
+        <div className="mx-auto max-w-2xl md:px-4 md:pt-6">{content}</div>
       </main>
 
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-3 mb-3 glass rounded-3xl shadow-elegant">
-          <div className="flex items-center justify-around px-2 py-2">
+      {/* Mobile bottom nav — floating pill */}
+      <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none">
+        <div className="mx-4 mb-3 pointer-events-auto glass-heavy rounded-full">
+          <div className="flex items-center justify-between px-2 py-1.5">
             {items.map(({ to, label, Icon }) => {
-              const active =
-                to === "/"
-                  ? pathname === "/"
-                  : pathname === to || pathname.startsWith(to + "/");
+              const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
               const isCreate = to === "/create";
               const isNotif = to === "/notifications";
+              if (isCreate) {
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    aria-label={label}
+                    className="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
+                  >
+                    <Icon className="h-5 w-5" strokeWidth={2.2} />
+                  </Link>
+                );
+              }
               return (
                 <Link
                   key={to}
                   to={to}
-                  className={cn(
-                    "relative flex flex-col items-center justify-center rounded-2xl transition",
-                    isCreate ? "h-12 w-12 -mt-4 bg-gradient-brand text-white shadow-elegant" : "px-3 py-2",
-                    !isCreate && (active ? "text-primary" : "text-muted-foreground"),
-                  )}
                   aria-label={label}
+                  className={cn(
+                    "relative grid h-11 w-11 place-items-center rounded-full transition-colors",
+                    active ? "text-foreground" : "text-muted-foreground",
+                  )}
                 >
                   <span className="relative">
-                    <Icon className={cn(isCreate ? "h-6 w-6" : "h-6 w-6", active && !isCreate && "drop-shadow-[0_0_8px_var(--primary)]")} />
+                    <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.6} />
                     {isNotif ? <Badge /> : null}
                   </span>
-                  {!isCreate && active && (
-                    <span className="absolute -bottom-0.5 h-1 w-1 rounded-full bg-primary" />
-                  )}
+                  {active ? <span className="absolute bottom-1 h-1 w-1 rounded-full bg-primary" /> : null}
                 </Link>
               );
             })}

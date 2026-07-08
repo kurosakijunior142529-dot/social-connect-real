@@ -7,7 +7,7 @@ import { SignedImage } from "@/components/signed-image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Send, Users, Megaphone, LogOut, UserPlus, Trash2 } from "lucide-react";
+import { ArrowLeft, Send, Users, Megaphone, LogOut, UserPlus, Trash2, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -17,6 +17,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { MessageActions, ReactionsBar, ReplyQuote } from "@/components/message-actions";
+import { ScheduleButton } from "@/components/schedule-message";
+import { SummarizeButton, SmartReplyBar, MuteToggle, useMessageReactions, toggleReaction } from "@/components/chat-extras";
+import { useAiActions } from "@/hooks/use-ai-actions";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -31,6 +35,10 @@ function ChatPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<{ id: string; content: string | null } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; content: string | null } | null>(null);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const ai = useAiActions();
 
   const chat = useQuery({
     queryKey: ["chat", id],

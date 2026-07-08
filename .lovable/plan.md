@@ -1,34 +1,28 @@
-## Diagnóstico
+## Causa
 
-Quando alguém completa login (Google ou confirmação de e-mail), a URL do navegador fica com tokens de sessão no fragmento (ex.: `https://social-connect-real.lovable.app/#access_token=...&refresh_token=...`). Se você copia a URL da barra de endereço nesse momento — mesmo poucos segundos depois — e manda para outra pessoa, o navegador dela abre o link, o Supabase lê os tokens da URL automaticamente e ela cai **logada como você**. É por isso que o comportamento parece aleatório: só acontece se o link foi copiado logo após você entrar.
+Ao criar `src/routes/auth.callback.tsx`, o roteador transformou `src/routes/auth.tsx` em rota-pai de `/auth/*`. Como `auth.tsx` renderiza o formulário de login (sem `<Outlet />`), a rota `/auth` falha na hidratação (`Hydration failed ... matchId="/auth/auth"`) e o formulário não funciona.
 
-Fatores atuais que deixam esse buraco aberto:
-1. O OAuth do Google e o `emailRedirectTo` do cadastro apontam direto para `window.location.origin` (a home), então os tokens ficam colados na URL da própria página que você navega.
-2. Não há nenhuma limpeza do fragmento da URL depois que o Supabase consome os tokens — o hash permanece no histórico até você navegar para outra rota.
+O backend continua OK: os logs mostram login Google `status:200` às 01:50:39 e `/user 200`. É só a página que está quebrada.
 
 ## Correção
 
-### 1. Nova rota pública `/auth/callback`
-Cria `src/routes/auth.callback.tsx` (rota pública, sem gate) que:
-- Aguarda o Supabase consumir os tokens do fragmento (`onAuthStateChange` → `SIGNED_IN` ou `getSession()`).
-- Usa `history.replaceState` para limpar completamente hash + query da URL.
-- Redireciona: se autenticado → `/`; se não → `/auth`.
+Renomear os arquivos para o padrão que o TanStack espera quando uma rota tem filhos:
 
-### 2. Redirecionar todos os fluxos para essa rota
-- `src/routes/auth.tsx` → OAuth Google: `redirect_uri: ${window.location.origin}/auth/callback`.
-- `src/routes/auth.tsx` → `signUp` `emailRedirectTo: ${window.location.origin}/auth/callback`.
-- Qualquer outro `emailRedirectTo`/`redirectTo` (reset de senha etc.) passa a apontar para a mesma rota.
+- `src/routes/auth.tsx` → `src/routes/auth.index.tsx`
+  - Muda `createFileRoute("/auth")` para `createFileRoute("/auth/")` (é o único ajuste no código; o restante da página fica igual).
+- `src/routes/auth.callback.tsx` permanece igual (`/auth/callback`).
 
-### 3. Rede de segurança no root
-No `src/routes/__root.tsx`, dentro do `useEffect` que já ouve `onAuthStateChange`, adicionar um passo: sempre que o evento for `SIGNED_IN` ou `USER_UPDATED` e a URL contiver `access_token=`, `refresh_token=` ou `type=recovery` no hash/query, chamar `window.history.replaceState({}, "", window.location.pathname)` imediatamente. Isso protege qualquer fluxo futuro que esqueça de mandar para `/auth/callback`.
+Com isso:
+- `/auth` volta a ser uma rota-folha e renderiza o formulário de login normalmente.
+- `/auth/callback` continua funcionando como rota irmã, sem exigir Outlet.
 
-## Notas técnicas
+## Verificação
 
-- Não editamos `src/integrations/supabase/client.ts` (auto-gerado). A limpeza de URL fica em código de aplicação.
-- A rota `/auth/callback` é pública (fora de `_authenticated`) para o Supabase conseguir hidratar a sessão via `localStorage` no navegador do recém-logado sem redirect loop.
-- Não mexemos em nada de backend, RLS ou funções — o problema é 100% de fluxo de URL no cliente.
+1. Abrir `/auth` no preview e confirmar que o formulário monta sem erro de hidratação no console.
+2. Fazer login com e-mail/senha e com Google e confirmar redirect para `/`.
+3. Abrir `/auth/callback` diretamente e confirmar que redireciona para `/auth` (se sem sessão) ou `/` (se logado).
 
-## O que NÃO faz parte
+## Fora de escopo
 
-- Não invalida sessões já existentes (quem já entrou como você via link antigo continua entrando até você trocar a senha — se quiser, depois posso adicionar um botão "Sair de todas as sessões").
-- Não altera a UI de login/cadastro além do destino do redirect.
+- Não mexer no backend, RLS, políticas ou funções.
+- Não alterar o fluxo de OAuth do Google — só corrigir o roteamento da página de login.

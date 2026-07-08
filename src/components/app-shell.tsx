@@ -51,6 +51,7 @@ export function AppShell({
 
   const isRoot =
     pathname === "/" ||
+    pathname === "/reels" ||
     pathname === "/explore" ||
     pathname === "/messages" ||
     pathname === "/notifications" ||

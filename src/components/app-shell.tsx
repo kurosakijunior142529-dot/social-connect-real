@@ -45,7 +45,29 @@ export function AppShell({
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    // scope: 'global' revoga o refresh token no servidor (invalida a sessão em todos os dispositivos)
+    try {
+      await supabase.auth.signOut({ scope: "global" });
+    } catch {
+      // se a chamada de rede falhar, ainda limpamos o armazenamento local abaixo
+    }
+    // Rede de segurança: apaga qualquer token residual do Supabase no navegador
+    if (typeof window !== "undefined") {
+      try {
+        const wipe = (store: Storage) => {
+          const keys: string[] = [];
+          for (let i = 0; i < store.length; i++) {
+            const k = store.key(i);
+            if (k && (k.startsWith("sb-") || k.includes("supabase"))) keys.push(k);
+          }
+          keys.forEach((k) => store.removeItem(k));
+        };
+        wipe(window.localStorage);
+        wipe(window.sessionStorage);
+      } catch {
+        /* storage indisponível */
+      }
+    }
     navigate({ to: "/auth", replace: true });
   };
 

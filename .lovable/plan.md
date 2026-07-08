@@ -1,97 +1,96 @@
-## Escopo confirmado
 
-**Foco**: Rede social-primeiro + camada de mensagens rica + IA + monetização + privacidade.
+# Redesign "Minimal Escuro Premium" + Gestos
 
-## Conflitos e limites que preciso sinalizar antes
+Duas frentes em paralelo: (1) reformar o design system e as 4 telas principais num visual escuro premium coeso, (2) adicionar gestos de arrastar em 4 lugares. Sem mexer em regras de negócio, banco ou server functions — só camada visual e de interação.
 
-1. **E2E nos DMs vs IA no chat (resumo/tradução/respostas)** são incompatíveis por design. E2E significa servidor cego — sem servidor lendo mensagens, não há como resumir/traduzir do lado servidor. Duas opções:
-   - **(a)** IA opcional por conversa: usuário liga IA → conversa passa a NÃO ser E2E (rótulo claro). E2E fica default; ou
-   - **(b)** IA só nos grupos/canais/DMs "não-privados", E2E só num tipo novo "Chat Secreto" 1:1. **Vou assumir (b)** — melhor UX.
-2. **Lives (1→N)** exigem serviço externo pago (LiveKit Cloud, Cloudflare Stream, Mux). Sem isso, no máximo 1:1 WebRTC. **Vou entregar a UI + tabelas de live agora e deixar o transporte plugável; assim que você conectar um provedor, ativa.** Se topar LiveKit gratuito de dev, ligo direto.
-3. **Chamadas em grupo com tela compartilhada** — WebRTC mesh escala mal. Vou entregar suporte até 4 participantes; acima disso precisa SFU (LiveKit/Mediasoup).
-4. **Monetização** — vou usar o `enable_stripe_payments` da Lovable (sem chave). Requer você preencher formulário curto (email, nome do negócio).
-5. **Vídeos curtos (reels)** — armazenamento vai crescer rápido. Vou adicionar limite de tamanho/duração por upload.
+## 1. Design system (base pra tudo)
 
-## Onda 1 — Mensagens ricas + IA no chat + privacidade fina
-Foco em experiência de conversa (o que hoje está mais raso). Sem provedores externos, entrega imediata.
+Reescrever `src/styles.css` com uma paleta escura premium única:
 
-**Mensagens (DM + grupos + canais):**
-- Editar mensagem (com histórico de edições visível)
-- Apagar pra mim / apagar pra todos
-- Responder (quote inline) + encaminhar
-- Reações com emoji
-- Agendar envio (server-side com pg_cron rodando a cada minuto)
-- Mensagens temporárias por conversa (auto-delete 24h/7d/custom)
-- "Digitando…" e recibos de leitura por membro
-- Anexos: imagem, vídeo, áudio, arquivo genérico até 25 MB
+- Fundo `#0A0A0B` (quase preto puro), superfície `#111113`, superfície elevada `#17171A`, borda hairline `rgba(255,255,255,0.06)`.
+- Texto: primário `#F5F5F7`, secundário `#8E8E93`, terciário `#48484A`.
+- Acento único e sutil: verde-limão neon `#D7FF3A` só em CTAs, badges de "ao vivo", indicador de aba ativa e curtidas ativas. Sem gradientes coloridos, sem roxo, sem azul saturado.
+- Tipografia: **Geist** (display + body) via `<link>` no `__root.tsx`, pesos 400/500/600/700. Tracking apertado (`-0.02em`) nos headings, `-0.01em` no body. Números tabulares em contadores.
+- Raio: 12px padrão, 20px em cards de post e sheets, 999px em pílulas.
+- Sombras substituídas por bordas hairline + leve inner glow no acento. Nada de sombra colorida difusa.
+- Espaçamento generoso: gutters de 16px no mobile, altura de linha 1.5 no body.
+- Motion tokens: `--ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1)`, durações 180ms/260ms/420ms.
 
-**IA no chat (canais não-privados):**
-- Comando `/ia <pergunta>` em qualquer conversa → responde só pra você (efêmero) ou pra todos
-- Botão "Resumir conversa" nos grupos
-- Botão "Traduzir" por mensagem (auto-detecta idioma origem, 100+ destinos via Lovable AI)
-- Respostas inteligentes: 3 sugestões contextuais acima do input
-- Transcrever áudio: mensagens de voz caem no `openai/gpt-4o-mini-transcribe` e mostram texto
-- Legenda em chamadas: transcrição em tempo real do próprio áudio (STT streaming) exibida como overlay
+Tudo via `@theme` no `styles.css` — nenhum componente ganha classe de cor hardcoded.
 
-**Privacidade:**
-- Ocultar status online individualmente (whitelist/blacklist por usuário)
-- Ocultar "visualizado" por conversa
-- Silenciar conversa/story/usuário (mute, sem bloquear)
-- Cofre secreto: aba trancada por PIN local que esconde conversas escolhidas (o PIN gera passphrase local; conversas continuam server-side)
-- Chat Secreto 1:1 com E2E de verdade (libsignal-like via WebCrypto: ECDH X25519 + AES-GCM, chaves no dispositivo, servidor só encaminha bytes). Sem IA, sem preview em notificação, sem backup.
+## 2. Feed principal (home)
 
-## Onda 2 — Rede social expandida
-**Reels:**
-- Novo tipo de post: `video` vertical até 60s
-- Rota `/reels` com feed vertical fullscreen, swipe, autoplay, mute default
-- Contador de views, curtida-duplo-toque, share
+- Header sticky ultra-fino (48px), logo wordmark "vibely" à esquerda, ícones de busca / notificações à direita, borda hairline embaixo.
+- Barra de stories: avatares 56px com anel `#D7FF3A` só quando tem novo; sem anel colorido pra "já visto".
+- Card de post repensado: sem card container visível — só a mídia (raio 20px) + metadados abaixo em texto. Ações (like/coment/salvar/share) numa linha horizontal com ícones outline finos, contadores em número tabular ao lado. Nome do autor em peso 600, handle em terciário.
+- Bottom nav flutuante: pílula centralizada com blur `backdrop-blur-xl`, 5 ícones outline, ativo ganha fill + linha `#D7FF3A` de 2px abaixo.
 
-**Novos tipos de post:**
-- Enquetes com múltiplas opções + resultado ao vivo
-- Eventos com data/local/RSVP
-- Blog longo (rich text via TipTap, capa, tempo de leitura)
+## 3. Chats/DMs
 
-**Lives (UI + tabelas prontas, transporte plugável):**
-- Tabela `live_streams` (host, título, status, viewer_count)
-- Tela de host + tela de viewer, chat lateral em tempo real
-- Placeholder de vídeo até você conectar LiveKit/Mux/Cloudflare
+- Lista de conversas: sem divisores, hairline sutil entre linhas, avatar 44px, última mensagem em terciário com truncate, horário no canto direito em terciário, badge de não-lida como ponto sólido `#D7FF3A` de 8px (sem número, hover mostra).
+- Tela de mensagem: header com avatar + nome + status ("online" com ponto verde). Balões:
+  - Mensagens do outro: sem fundo, texto direto na superfície com padding.
+  - Mensagens minhas: bolha `#17171A`, texto `#F5F5F7`, raio 20px com "tail" só no último da sequência.
+- Composer: input pill com blur, botão de anexo (+) à esquerda, mic + enviar à direita. Enviar aparece só quando tem texto.
+- Timestamps agrupados por dia com chip central minúsculo.
 
-**Perfis profissionais:**
-- Flag `is_professional` + campos: categoria, contato comercial, botões CTA
-- Aba "Loja" no perfil pro (produtos digitais)
+## 4. Stories/Reels viewer
 
-## Onda 3 — Monetização + chamadas em grupo
-**Stripe (via `enable_stripe_payments`):**
-- Assinaturas de criadores (mensal/anual)
-- Gorjetas em posts/lives
-- Venda de produto digital ou curso (arquivo + páginas)
-- Painel `/studio` com receita, seguidores, alcance
+- Fullscreen preto puro, mídia edge-to-edge.
+- Barra de progresso segmentada no topo (altura 2px, gap 2px, hairline branco 20% + fill branco).
+- Overlay superior: avatar + nome + tempo relativo à esquerda, botão fechar à direita. Overlay inferior transparente com gradiente sutil pra legibilidade.
+- Ações à direita (like/coment/share/save) em coluna vertical, ícones outline brancos com contador embaixo em número tabular pequeno.
+- Reels: mesmo layout, com waveform mínimo indicando áudio + botão mute canto superior esquerdo.
 
-**Chamadas:**
-- Chamada em grupo até 4 (mesh WebRTC), promoção de DM 1:1 para grupo
-- Compartilhamento de tela (getDisplayMedia)
-- Histórico de chamadas com duração e status
+## 5. Gestos de arrastar (Framer Motion)
 
-## Onda 4 — Antispam por IA + verificação
-- Classificador Lovable AI roda em toda nova mensagem/comentário/post → score de spam/golpe → auto-mute ou aviso
-- Denúncia por usuário aciona re-scan com contexto
-- Fluxo de verificação: upload de doc + selfie → fila de review → badge azul (moderação manual, sem KYC real)
+Instalar `framer-motion` se ainda não estiver no projeto. Criar 4 primitivas reutilizáveis em `src/components/gestures/`:
 
-## Estimativa e formato
+### a. `<SwipeableTabs>` — trocar aba (feed ↔ reels ↔ chats)
+Wrapper com `motion.div` + `drag="x"` + `dragConstraints`. Threshold de 25% da largura ou velocity > 500 troca de aba. Indicator do bottom nav anima junto via `layoutId`. Rotas envolvidas: home, reels, chats — mesma stack lateral. Sincroniza com o router (navigate on release).
 
-- **Onda 1** entrego agora nesta rodada (é grande, mas cabe: reaproveita a infra atual de mensagens e stories).
-- **Ondas 2, 3, 4** cada uma em rodada própria depois — se meter tudo junto, nada fica bom.
-- Marco cada wave como "publish milestone" no final.
+### b. `<SwipeBackRoute>` — voltar tipo iOS
+Detecta `pan` iniciado nos primeiros 20px da borda esquerda. Anima a rota atual pra direita com `motion.div`, se ultrapassar 40% da tela ou velocity, chama `router.history.back()`. Aplicado no `_authenticated/route.tsx` como wrapper de `<Outlet />` em telas não-raiz.
 
-## Tech details (para você, não precisa entender)
+### c. `<StoryReelSwiper>` — trocar de story/reel
+Swipe vertical em reels (próximo/anterior), horizontal em stories (próximo autor). Já existe `story-viewer.tsx` — trocar tap-only por `drag` com snap. Preload da mídia adjacente.
 
-- Edição/histórico: coluna `edited_at` + tabela `chat_message_edits(message_id, previous_content, edited_at)`
-- Agendamento: `scheduled_messages(...)` + cron `SELECT * FROM scheduled_messages WHERE send_at <= now() AND sent = false` a cada minuto via pg_cron → mesma trigger `bump_chat`
-- Temporárias: coluna `expires_at` nas mensagens + job de purga
-- E2E: dispositivos com par de chaves gerado no primeiro login, `device_keys(user_id, device_id, public_key)`, mensagens de Chat Secreto vão em tabela separada `secret_messages(ciphertext BYTEA, nonce, sender_device, recipient_device)`. Backend só encaminha; realtime igual às normais.
-- IA: server functions `createServerFn` com `@ai-sdk/openai-compatible` no gateway Lovable AI. Modelo default `google/gemini-3-flash-preview`. STT via `openai/gpt-4o-mini-transcribe`. Chaves ficam no server.
-- Reels/lives: bucket `reels` privado, live via tabela + placeholder de transporte.
+### d. `<SwipeMessageRow>` — ações em mensagem/conversa
+- Lista de conversas: swipe left revela "Silenciar" + "Arquivar" (ainda não temos backend de arquivar; apenas silenciar já existe). Swipe right revela "Marcar lida".
+- Bolha de mensagem: swipe right curto (60px) dispara "Responder" (já existe reply, só plugar o gesto). Snap-back com spring.
 
-## Pergunta única antes de partir pra Onda 1
+Todos os gestos respeitam `prefers-reduced-motion` (sem animação, tap-only fallback).
 
-Você quer que **Chat Secreto E2E** entre já na Onda 1 (é o item mais pesado — reescreve o cliente de DM), ou fica pra rodada posterior e a Onda 1 sai mais leve/entregável?
+## 6. Arquivos afetados
+
+**Novos:**
+- `src/components/gestures/swipeable-tabs.tsx`
+- `src/components/gestures/swipe-back.tsx`
+- `src/components/gestures/story-reel-swiper.tsx`
+- `src/components/gestures/swipe-message-row.tsx`
+
+**Editados:**
+- `src/styles.css` — nova paleta, tipografia, tokens
+- `src/routes/__root.tsx` — font `<link>`, meta
+- `src/components/app-shell.tsx` — bottom nav flutuante + swipe entre tabs
+- `src/components/post-card.tsx` — layout sem container
+- `src/routes/_authenticated/route.tsx` — swipe-back wrapper
+- `src/routes/_authenticated/index.tsx` (feed) — header slim + stories row
+- `src/routes/_authenticated/chats.tsx` (lista) — swipe rows
+- `src/routes/_authenticated/chats.$id.tsx` — balões novos + swipe reply
+- `src/routes/_authenticated/messages.$conversationId.tsx` — idem
+- `src/components/story-viewer.tsx` — swipe entre autores/reels
+
+## 7. Fora de escopo (não mexo)
+
+- Server functions, migrations, RLS, IA — tudo intacto.
+- Features novas (Reels feed dedicado, Lives, monetização) ficam pra próxima onda.
+- Modo claro — vai continuar existindo mas os tokens escuros são o foco desta rodada.
+
+## 8. Validação
+
+Depois de implementar, capturo screenshots com Playwright em mobile viewport (feed, chat aberto, story) pra confirmar que a hierarquia visual e os gestos funcionam.
+
+---
+
+Se aprovar, começo pelo design system + feed (pra você já ver o novo visual), depois chats, depois viewer, e os gestos por último em cima da base pronta.

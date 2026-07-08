@@ -9,8 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -27,13 +27,13 @@ import { Route as AuthenticatedMessagesConversationIdRouteImport } from './route
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
+  id: '/auth/',
+  path: '/auth/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -42,9 +42,9 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
-  getParentRoute: () => AuthRoute,
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
@@ -117,7 +117,6 @@ const AuthenticatedChatsIdRoute = AuthenticatedChatsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
-  '/auth': typeof AuthRouteWithChildren
   '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
@@ -125,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/': typeof AuthIndexRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -134,7 +134,6 @@ export interface FileRoutesByFullPath {
   '/messages/': typeof AuthenticatedMessagesIndexRoute
 }
 export interface FileRoutesByTo {
-  '/auth': typeof AuthRouteWithChildren
   '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
@@ -143,6 +142,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthIndexRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -154,7 +154,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
   '/_authenticated/create': typeof AuthenticatedCreateRoute
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
@@ -163,6 +162,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/auth/': typeof AuthIndexRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
   '/_authenticated/chats/new': typeof AuthenticatedChatsNewRoute
   '/_authenticated/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -175,7 +175,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/auth'
     | '/create'
     | '/explore'
     | '/notifications'
@@ -183,6 +182,7 @@ export interface FileRouteTypes {
     | '/saved'
     | '/settings'
     | '/auth/callback'
+    | '/auth/'
     | '/chats/$id'
     | '/chats/new'
     | '/messages/$conversationId'
@@ -192,7 +192,6 @@ export interface FileRouteTypes {
     | '/messages/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/auth'
     | '/create'
     | '/explore'
     | '/notifications'
@@ -201,6 +200,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/'
+    | '/auth'
     | '/chats/$id'
     | '/chats/new'
     | '/messages/$conversationId'
@@ -211,7 +211,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
-    | '/auth'
     | '/_authenticated/create'
     | '/_authenticated/explore'
     | '/_authenticated/notifications'
@@ -220,6 +219,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/callback'
     | '/_authenticated/'
+    | '/auth/'
     | '/_authenticated/chats/$id'
     | '/_authenticated/chats/new'
     | '/_authenticated/messages/$conversationId'
@@ -231,23 +231,24 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRouteWithChildren
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthIndexRoute: typeof AuthIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/': {
+      id: '/auth/'
+      path: '/auth'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -259,10 +260,10 @@ declare module '@tanstack/react-router' {
     }
     '/auth/callback': {
       id: '/auth/callback'
-      path: '/callback'
+      path: '/auth/callback'
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof AuthRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
@@ -396,19 +397,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface AuthRouteChildren {
-  AuthCallbackRoute: typeof AuthCallbackRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthCallbackRoute: AuthCallbackRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRouteWithChildren,
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthIndexRoute: AuthIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

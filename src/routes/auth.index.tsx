@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { z } from "zod";
 
-export const Route = createFileRoute("/auth")({
+export const Route = createFileRoute("/auth/")({
   component: AuthPage,
 });
 

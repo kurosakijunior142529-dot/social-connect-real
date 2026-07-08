@@ -18,7 +18,7 @@ export function AttachMenu({
   const video = useRef<HTMLInputElement>(null);
   const doc = useRef<HTMLInputElement>(null);
 
-  function pick(input: React.RefObject<HTMLInputElement>) {
+  function pick(input: React.RefObject<HTMLInputElement | null>) {
     input.current?.click();
   }
 

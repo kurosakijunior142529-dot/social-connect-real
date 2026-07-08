@@ -1,59 +1,32 @@
-# Reels — feed vertical de vídeos (estilo TikTok)
+# Corrigir GRANTs faltando no Data API
 
-Nova aba `/reels` com feed vertical fullscreen, snap por vídeo, autoplay do vídeo visível, e ações laterais (curtir, comentar, compartilhar, salvar).
+## Diagnóstico
 
-## Escopo
+Todas as 27 tabelas em `public` estão sem `GRANT` para os roles `authenticated`, `anon` e `service_role`. Isso impede o cliente (frontend + edge) de ler ou escrever, apesar das políticas RLS estarem corretas. Sintomas do usuário — "story não publica nada", "feed não deixa publicar" — batem com `permission denied for table posts/stories` mascarado no toast como falha genérica.
 
-- Nova rota `src/routes/_authenticated/reels.tsx` no design "Minimal Escuro Premium".
-- Item de posts existente já suporta `media_type = 'video'`; reels reaproveita `posts` filtrando por vídeo (sem nova tabela). Salvar usa `saved_posts`, curtir usa `likes`, comentar usa `comments` (tudo já existe).
-- Adicionar item "Reels" na bottom nav do `AppShell` (substitui/entra ao lado de "Explorar").
-- Integrar com `SwipeableTabs` já existente (feed ↔ reels ↔ alertas ↔ chats).
+Causa raiz: projeto remixado de uma versão anterior aos defaults explícitos do Supabase. RLS não é o bastante — o Data API exige `GRANT` explícito.
 
-## UX
+## Correção
 
-- Fullscreen preto puro, um vídeo por "página", snap vertical (`scroll-snap-type: y mandatory`).
-- Autoplay + loop + muted por padrão; tap no vídeo → play/pause; tap no ícone de som → unmute.
-- Barra de progresso fina no rodapé do vídeo.
-- Overlay:
-  - Esquerda inferior: avatar + @username + botão Seguir, legenda truncada (expandir on tap).
-  - Direita (coluna vertical de ações): Curtir (coração + contagem), Comentar (abre bottom sheet), Compartilhar (Web Share API + fallback copiar link), Salvar (bookmark), menu "…".
-- Swipe vertical entre vídeos (nativo via scroll-snap; sem lib extra).
-- Header transparente com "Para você" / "Seguindo" (tabs simples; "Seguindo" filtra por `follows`).
+Uma migration que aplica os `GRANT`s corretos a **todas** as tabelas de `public`, respeitando a natureza de cada uma:
 
-## Comentários
+1. **Para todas as 27 tabelas:**
+   - `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated`
+   - `GRANT ALL ... TO service_role`
 
-- Bottom sheet (Drawer shadcn já disponível) com lista de comentários do post + composer, reaproveitando o mesmo componente usado no feed. Sem tela nova.
+2. **Adicionalmente para tabelas com policy pública de leitura** (SELECT `USING (true)`), garantir leitura anônima também usada em compartilhamento de links de posts públicos:
+   - `posts`, `profiles`, `comments`, `likes`, `follows` → `GRANT SELECT ... TO anon`
 
-## Dados
-
-- Server fn `listReels` em `src/lib/reels.functions.ts` (publishable client) → `posts` onde `media_type = 'video'`, join com `profiles`, contagens de likes/comments, e flags `liked_by_me` / `saved_by_me` (via `requireSupabaseAuth`).
-- Paginação por cursor (created_at desc, limit 10). `useInfiniteQuery` do TanStack Query.
-- Mutations reutilizam handlers existentes de like/save/comment do feed.
-
-## Performance
-
-- Só o vídeo visível toca; vizinhos ficam em `preload="metadata"`. IntersectionObserver com threshold 0.7 pausa os demais e dá `.play()` no ativo.
-- `playsInline`, `muted` inicial (necessário para autoplay em mobile).
-
-## Arquivos
-
-**Novos**
-- `src/routes/_authenticated/reels.tsx` — rota + layout snap.
-- `src/components/reels/reel-item.tsx` — vídeo + overlay + ações.
-- `src/components/reels/reel-actions.tsx` — coluna de ações à direita.
-- `src/components/reels/comments-sheet.tsx` — bottom sheet de comentários.
-- `src/lib/reels.functions.ts` — `listReels` server fn.
-
-**Editados**
-- `src/components/app-shell.tsx` — adiciona item "Reels" na bottom nav (ícone Play) e no `SwipeableTabs`.
-- `src/routeTree.gen.ts` — regenerado automaticamente.
-
-## Fora de escopo
-
-- Upload/gravação de vídeo (usa vídeos já existentes em `posts`).
-- Lives, efeitos, música, duetos.
-- Migrations/RLS novas — nada muda no backend.
+Sem alteração em RLS, colunas, tipos, buckets ou código.
 
 ## Validação
 
-- Playwright mobile viewport: abrir `/reels`, confirmar snap vertical, autoplay do primeiro vídeo, tap toggle play/pause, like incrementa, sheet de comentários abre, share dispara.
+- Após aplicar: `SELECT` em `information_schema.role_table_grants` confirma privilégios em cada tabela.
+- Publicar um post pela aba Criar → aparece no feed.
+- Publicar um story em `/stories/new` → aparece na barra de stories.
+- Curtir/comentar/salvar continua funcionando.
+
+## Fora de escopo
+
+- Nenhuma mudança de código de aplicação — o bug é 100% de permissão de banco.
+- Sem tocar em `auth`, `storage` ou outros schemas de sistema.

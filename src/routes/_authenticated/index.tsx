@@ -41,29 +41,30 @@ function FeedPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Bem-vindo de volta</div>
-          <h1 className="text-4xl font-display font-black tracking-tight text-gradient-brand leading-none">Vibely</h1>
-        </div>
-        <div className="text-right text-xs text-muted-foreground">
-          <div>@{meProfile.data?.username ?? "…"}</div>
+    <div>
+      {/* Sticky slim header */}
+      <header className="sticky top-0 z-20 glass-heavy hairline-b">
+        <div className="flex items-center justify-between px-4 h-12">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[19px] font-display font-semibold tracking-tight">vibely</span>
+            <span className="h-1 w-1 rounded-full bg-primary" />
+          </div>
+          <span className="text-[11px] text-muted-foreground tabular">@{meProfile.data?.username ?? "…"}</span>
         </div>
       </header>
 
-      <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
-
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
+      <div className="pt-4 pb-2">
+        <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
+      </div>
 
       {query.isLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-6 px-4 pt-2">
           {[0, 1].map((i) => (
-            <Skeleton key={i} className="h-96 rounded-3xl" />
+            <Skeleton key={i} className="aspect-square rounded-2xl" />
           ))}
         </div>
       ) : query.data && query.data.length > 0 ? (
-        <div className="space-y-6">
+        <div className="divide-y divide-[color:var(--hairline)]">
           {query.data.map((p) => (
             <PostCard key={p.id} post={p} currentUserId={user.id} />
           ))}
@@ -77,11 +78,10 @@ function FeedPage() {
 
 function EmptyFeed() {
   return (
-    <div className="glass rounded-3xl p-10 text-center space-y-3">
-      <div className="text-4xl">🌌</div>
-      <h2 className="text-xl font-semibold">Seu feed está silencioso</h2>
+    <div className="mx-4 mt-4 rounded-2xl bg-[color:var(--surface)] p-10 text-center space-y-3">
+      <h2 className="text-lg font-semibold">Seu feed está silencioso</h2>
       <p className="text-sm text-muted-foreground">
-        Siga perfis no Explorar, participe de grupos ou publique seu primeiro post.
+        Siga perfis no Explorar ou publique seu primeiro post.
       </p>
     </div>
   );

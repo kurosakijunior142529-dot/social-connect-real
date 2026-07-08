@@ -171,36 +171,36 @@ function ChatPage() {
   if (!chatData) return <div className="text-center py-12">Chat não encontrado.</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)] -mx-4 md:mx-0 md:rounded-3xl md:border md:border-border/50 md:glass md:overflow-hidden">
-      <header className="flex items-center gap-3 p-3 border-b border-border/50 sticky top-0 z-10 bg-card/70 backdrop-blur">
-        <Link to="/messages" className="p-2 -ml-1 rounded-full hover:bg-white/5 md:hidden" aria-label="Voltar">
-          <ArrowLeft className="h-5 w-5" />
+    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
+      <header className="flex items-center gap-3 px-3 h-14 glass-heavy hairline-b sticky top-0 z-10">
+        <Link to="/messages" className="p-2 -ml-1 rounded-full active:bg-[color:var(--surface-2)] md:hidden" aria-label="Voltar">
+          <ArrowLeft className="h-5 w-5" strokeWidth={1.8} />
         </Link>
         {chatData.avatar_url ? (
-          <div className="h-9 w-9 rounded-full overflow-hidden bg-muted">
+          <div className="h-9 w-9 rounded-full overflow-hidden bg-[color:var(--surface-2)]">
             <SignedImage bucket="chats" path={chatData.avatar_url} alt="" className="h-full w-full object-cover" />
           </div>
         ) : (
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-brand text-white">
-            {isChannel ? <Megaphone className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)] text-foreground">
+            {isChannel ? <Megaphone className="h-4 w-4" strokeWidth={1.8} /> : <Users className="h-4 w-4" strokeWidth={1.8} />}
           </div>
         )}
-        <button onClick={() => setMembersOpen(true)} className="flex-1 min-w-0 text-left">
-          <div className="font-semibold truncate">{chatData.title}</div>
-          <div className="text-xs text-muted-foreground truncate">
+        <button onClick={() => setMembersOpen(true)} className="flex-1 min-w-0 text-left leading-tight">
+          <div className="font-semibold text-[15px] truncate">{chatData.title}</div>
+          <div className="text-[11px] text-muted-foreground truncate">
             {isChannel ? "Canal" : "Grupo"}{chatData.description ? ` · ${chatData.description}` : ""}
           </div>
         </button>
         <SummarizeButton scope="chat" id={id} />
         <MuteToggle table="muted_chats" keyCol="chat_id" keyVal={id} userId={user.id} />
         {isMember ? (
-          <button onClick={leave} className="p-2 rounded-full hover:bg-white/5" aria-label="Sair">
-            <LogOut className="h-5 w-5" />
+          <button onClick={leave} className="p-2 rounded-full active:bg-[color:var(--surface-2)]" aria-label="Sair">
+            <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </button>
         ) : null}
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.data?.map((m: any) => {
           const mine = m.sender_id === user.id;
           const replied = m.reply_to ? (byId.get(m.reply_to) as any) : null;
@@ -216,17 +216,18 @@ function ChatPage() {
                   onReply={setReplyTo} onEdit={(x) => { setEditing(x); setDraft(x.content ?? ""); }}
                   onDelete={deleteMessage} onTranslated={(mid, t) => setTranslations((p) => ({ ...p, [mid]: t }))} />
               ) : null}
-              <div className={cn("max-w-[75%] space-y-0.5", mine ? "items-end" : "items-start")}>
+              <div className={cn("max-w-[78%] space-y-0.5", mine ? "items-end" : "items-start")}>
                 {!mine && !isChannel ? (
                   <div className="text-[11px] text-muted-foreground px-3">{m.sender?.display_name}</div>
                 ) : null}
-                <div className={cn("rounded-2xl px-4 py-2 text-sm break-words shadow-sm",
-                  mine ? "bg-gradient-brand text-white rounded-br-md"
-                       : "bg-white/5 border border-white/5 text-foreground rounded-bl-md")}>
+                <div className={cn("rounded-[20px] px-3.5 py-2 text-[14px] leading-snug break-words",
+                  mine
+                    ? "bg-primary text-primary-foreground rounded-br-[6px]"
+                    : "bg-[color:var(--surface-2)] text-foreground rounded-bl-[6px]")}>
                   {replied ? <ReplyQuote text={replied.content} /> : null}
                   {m.content}
-                  {m.edited_at ? <span className="ml-2 text-[10px] opacity-70">editado</span> : null}
-                  {translated ? <div className="mt-1 pt-1 border-t border-white/20 text-xs opacity-90">🌐 {translated}</div> : null}
+                  {m.edited_at ? <span className={cn("ml-2 text-[10px]", mine ? "opacity-70" : "text-muted-foreground")}>editado</span> : null}
+                  {translated ? <div className={cn("mt-1 pt-1 border-t text-[12px]", mine ? "border-black/20 opacity-90" : "border-white/10 text-muted-foreground")}>🌐 {translated}</div> : null}
                 </div>
                 <ReactionsBar reactions={rs}
                   onToggle={(emoji, mineR) => toggleReaction("chat", m.id, user.id, emoji, mineR)
@@ -246,27 +247,31 @@ function ChatPage() {
       {canPost ? <SmartReplyBar scope="chat" id={id} onPick={(s) => setDraft(s)} /> : null}
 
       {replyTo || editing ? (
-        <div className="px-3 py-2 border-t bg-white/5 flex items-center gap-2 text-xs">
-          <span className="opacity-70">{editing ? "Editando:" : "Respondendo:"}</span>
+        <div className="px-4 py-2 hairline-t bg-[color:var(--surface)] flex items-center gap-2 text-[12px]">
+          <span className="text-muted-foreground">{editing ? "Editando:" : "Respondendo:"}</span>
           <span className="flex-1 truncate">{editing?.content ?? replyTo?.content}</span>
-          <button onClick={() => { setReplyTo(null); setEditing(null); setDraft(""); }} className="p-1 rounded-full hover:bg-white/10"><X className="h-3 w-3" /></button>
+          <button onClick={() => { setReplyTo(null); setEditing(null); setDraft(""); }} className="p-1 rounded-full active:bg-[color:var(--surface-2)]"><X className="h-3 w-3" /></button>
         </div>
       ) : null}
 
-      <form onSubmit={send} className="p-3 border-t border-border/50 bg-card/50 backdrop-blur flex items-center gap-2">
+      <form onSubmit={send} className="p-3 hairline-t bg-background flex items-end gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <ScheduleButton userId={user.id} target={{ type: "chat", chatId: id }} />
-        <Input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={!isMember ? "Entre no chat para conversar" : canPost ? "Mensagem ou /ia pergunta…" : "Somente admins publicam neste canal"}
-          maxLength={2000}
-          disabled={!canPost}
-          className="rounded-full bg-white/5 border-transparent h-11"
-        />
-        {draft.startsWith("/ia") ? <Sparkles className="h-5 w-5 text-primary animate-pulse" /> : null}
-        <Button type="submit" disabled={!draft.trim() || sending || !canPost} size="icon" className="rounded-full bg-gradient-brand h-11 w-11 shrink-0">
-          <Send className="h-5 w-5" />
-        </Button>
+        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={!isMember ? "Entre no chat para conversar" : canPost ? "Mensagem ou /ia pergunta…" : "Somente admins publicam neste canal"}
+            maxLength={2000}
+            disabled={!canPost}
+            className="border-0 bg-transparent h-8 p-0 text-[14px] focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
+          />
+          {draft.startsWith("/ia") ? <Sparkles className="h-4 w-4 text-primary animate-pulse shrink-0" /> : null}
+        </div>
+        {canPost && draft.trim() ? (
+          <Button type="submit" disabled={sending} size="icon" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 shrink-0">
+            <Send className="h-4 w-4" strokeWidth={2.2} />
+          </Button>
+        ) : null}
       </form>
 
       <MembersDialog

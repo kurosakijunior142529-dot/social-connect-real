@@ -82,20 +82,20 @@ function ChatPage() {
     },
   });
 
+  const messageIds = (messages.data ?? []).map((m: any) => m.id);
+  const reactions = useMessageReactions("chat", messageIds, user.id);
+
   useEffect(() => {
     const channel = supabase
       .channel(`chat-${id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${id}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["chat-messages", id] });
-        },
-      )
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "chat_messages", filter: `chat_id=eq.${id}` },
+        () => queryClient.invalidateQueries({ queryKey: ["chat-messages", id] }))
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "message_reactions" },
+        () => queryClient.invalidateQueries({ queryKey: ["reactions", "chat"] }))
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [id, queryClient]);
 
   useEffect(() => {
@@ -108,42 +108,63 @@ function ChatPage() {
   const isAdmin = role === "owner" || role === "admin";
   const isChannel = chatData?.type === "channel";
   const canPost = isMember && (!isChannel || isAdmin);
+  const byId = new Map((messages.data ?? []).map((m: any) => [m.id, m]));
 
   async function send(e: FormEvent) {
     e.preventDefault();
     const text = draft.trim();
     if (!text || sending || !canPost) return;
-    setSending(true);
-    setDraft("");
-    const { error } = await (supabase as any).from("chat_messages").insert({
-      chat_id: id,
-      sender_id: user.id,
-      content: text,
-    });
-    setSending(false);
-    if (error) {
-      setDraft(text);
-      toast.error(error.message);
+
+    if (editing) {
+      setSending(true);
+      const prev = (messages.data ?? []).find((m: any) => m.id === editing.id)?.content ?? null;
+      const { error } = await (supabase as any).from("chat_messages")
+        .update({ content: text, edited_at: new Date().toISOString() }).eq("id", editing.id);
+      if (!error) {
+        await (supabase as any).from("message_edits").insert({
+          source: "chat", message_id: editing.id, previous_content: prev, editor_id: user.id,
+        });
+      }
+      setSending(false);
+      setEditing(null); setDraft("");
+      if (error) toast.error(error.message);
+      return;
     }
+
+    if (text.startsWith("/ia ")) {
+      const q = text.slice(4).trim();
+      setDraft("");
+      const answer = await ai.ask(q);
+      if (answer) {
+        await (supabase as any).from("chat_messages").insert({
+          chat_id: id, sender_id: user.id,
+          content: `🤖 ${q}\n\n${answer}`,
+        });
+      }
+      return;
+    }
+
+    setSending(true); setDraft("");
+    const payload: any = { chat_id: id, sender_id: user.id, content: text };
+    if (replyTo) payload.reply_to = replyTo.id;
+    const { error } = await (supabase as any).from("chat_messages").insert(payload);
+    setSending(false);
+    setReplyTo(null);
+    if (error) { setDraft(text); toast.error(error.message); }
   }
 
   async function leave() {
     if (!confirm("Sair deste chat?")) return;
-    const { error } = await (supabase as any)
-      .from("chat_members")
-      .delete()
-      .eq("chat_id", id)
-      .eq("user_id", user.id);
+    const { error } = await (supabase as any).from("chat_members").delete().eq("chat_id", id).eq("user_id", user.id);
     if (error) return toast.error(error.message);
     toast.success("Você saiu");
     navigate({ to: "/messages" });
   }
 
   async function deleteMessage(mid: string) {
-    if (!confirm("Apagar mensagem?")) return;
+    if (!confirm("Apagar para todos?")) return;
     const { error } = await (supabase as any).from("chat_messages").delete().eq("id", mid);
     if (error) return toast.error(error.message);
-    queryClient.invalidateQueries({ queryKey: ["chat-messages", id] });
   }
 
   if (chat.isLoading) return <Skeleton className="h-96 rounded-3xl" />;

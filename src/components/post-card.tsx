@@ -59,24 +59,23 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
   const author = post.author;
 
   return (
-    <article className="rounded-3xl bg-card border shadow-sm overflow-hidden">
-      <header className="flex items-center gap-3 p-4">
+    <article className="px-4 pb-2">
+      <header className="flex items-center gap-3 py-3">
         <Link to="/u/$username" params={{ username: author?.username ?? "" }}>
           <UserAvatar
             avatarPath={author?.avatar_url}
             displayName={author?.display_name ?? "?"}
-            ring
           />
         </Link>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 leading-tight">
           <Link
             to="/u/$username"
             params={{ username: author?.username ?? "" }}
-            className="font-semibold text-sm hover:underline"
+            className="block font-semibold text-[15px] truncate"
           >
             {author?.display_name}
           </Link>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-[12px] text-muted-foreground truncate">
             @{author?.username} ·{" "}
             {formatDistanceToNowStrict(new Date(post.created_at), { locale: ptBR, addSuffix: true })}
           </div>
@@ -90,7 +89,11 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
         ) : null}
       </header>
 
-      <Link to="/p/$id" params={{ id: post.id }} className="block bg-black">
+      <Link
+        to="/p/$id"
+        params={{ id: post.id }}
+        className="block overflow-hidden rounded-2xl bg-[color:var(--surface)]"
+      >
         {post.media_type === "video" ? (
           <SignedVideo bucket="posts" path={post.media_url} className="w-full aspect-square object-cover" />
         ) : (
@@ -103,8 +106,8 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
         )}
       </Link>
 
-      <div className="p-4 space-y-3">
-        <div className="flex items-center gap-4">
+      <div className="pt-3 space-y-2">
+        <div className="flex items-center gap-5">
           <button
             onClick={() => toggleLike.mutate()}
             className="flex items-center gap-1.5 group"
@@ -113,26 +116,29 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
             <Heart
               key={popKey}
               className={cn(
-                "h-6 w-6 transition",
+                "h-[22px] w-[22px] transition",
                 post.liked_by_me
                   ? "fill-primary text-primary animate-heart-pop"
-                  : "text-foreground group-hover:text-primary",
+                  : "text-foreground",
               )}
+              strokeWidth={post.liked_by_me ? 2 : 1.6}
             />
-            <span className="text-sm font-medium tabular-nums">{post.likes_count}</span>
+            <span className="text-[13px] font-medium tabular">{post.likes_count}</span>
           </button>
           <Link to="/p/$id" params={{ id: post.id }} className="flex items-center gap-1.5">
-            <MessageCircle className="h-6 w-6" />
-            <span className="text-sm font-medium tabular-nums">{post.comments_count}</span>
+            <MessageCircle className="h-[22px] w-[22px]" strokeWidth={1.6} />
+            <span className="text-[13px] font-medium tabular">{post.comments_count}</span>
           </Link>
-          {currentUserId ? <SavePostButton postId={post.id} userId={currentUserId} /> : null}
+          <div className="ml-auto">
+            {currentUserId ? <SavePostButton postId={post.id} userId={currentUserId} /> : null}
+          </div>
         </div>
         {post.caption ? (
-          <p className="text-sm leading-relaxed">
+          <p className="text-[14px] leading-snug text-foreground/90">
             <Link
               to="/u/$username"
               params={{ username: author?.username ?? "" }}
-              className="font-semibold mr-2"
+              className="font-semibold mr-1.5"
             >
               {author?.username}
             </Link>

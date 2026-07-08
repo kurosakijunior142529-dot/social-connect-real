@@ -62,7 +62,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
 
   return (
     <>
-      <div className="-mx-4 px-4">
+      <div className="px-4">
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
           {/* Your story: either add or view */}
           {myGroup ? (

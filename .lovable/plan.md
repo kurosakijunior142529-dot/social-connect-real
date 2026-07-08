@@ -1,61 +1,97 @@
-## Diagnóstico
+## Escopo confirmado
 
-O app já tem: auth, feed, posts, curtidas, comentários, seguir, DMs, chamadas 1-a-1, stories, grupos/canais, perfis estendidos, PWA. Faltam camadas de **retenção** (notificações, busca, descoberta) e **polish visual**.
+**Foco**: Rede social-primeiro + camada de mensagens rica + IA + monetização + privacidade.
 
-## O que falta pra ficar "completo"
+## Conflitos e limites que preciso sinalizar antes
 
-### A. Núcleo social (alta prioridade)
-1. **Notificações in-app + realtime** — tabela `notifications`, triggers pra curtida/comentário/seguidor/menção/mensagem/story visto, página `/notifications`, badge no bottom-nav, toast em tempo real.
-2. **Busca global** (`/search`) — usuários, posts (legenda), canais/grupos públicos, hashtags.
-3. **Reações em stories** — 6 emojis rápidos + resposta como DM; dono vê lista.
-4. **Convites para grupos** — em vez de add direto: tabela `chat_invites` + aceitar/recusar via notificação.
-5. **Menções `@user`** em posts, comentários e mensagens → viram link e geram notificação.
-6. **Salvar posts** (bookmarks) — aba no perfil.
-7. **Editar/apagar** — mensagens de DM (grupos já têm), posts e comentários próprios.
+1. **E2E nos DMs vs IA no chat (resumo/tradução/respostas)** são incompatíveis por design. E2E significa servidor cego — sem servidor lendo mensagens, não há como resumir/traduzir do lado servidor. Duas opções:
+   - **(a)** IA opcional por conversa: usuário liga IA → conversa passa a NÃO ser E2E (rótulo claro). E2E fica default; ou
+   - **(b)** IA só nos grupos/canais/DMs "não-privados", E2E só num tipo novo "Chat Secreto" 1:1. **Vou assumir (b)** — melhor UX.
+2. **Lives (1→N)** exigem serviço externo pago (LiveKit Cloud, Cloudflare Stream, Mux). Sem isso, no máximo 1:1 WebRTC. **Vou entregar a UI + tabelas de live agora e deixar o transporte plugável; assim que você conectar um provedor, ativa.** Se topar LiveKit gratuito de dev, ligo direto.
+3. **Chamadas em grupo com tela compartilhada** — WebRTC mesh escala mal. Vou entregar suporte até 4 participantes; acima disso precisa SFU (LiveKit/Mediasoup).
+4. **Monetização** — vou usar o `enable_stripe_payments` da Lovable (sem chave). Requer você preencher formulário curto (email, nome do negócio).
+5. **Vídeos curtos (reels)** — armazenamento vai crescer rápido. Vou adicionar limite de tamanho/duração por upload.
 
-### B. Presença e engajamento
-8. **Status online / última vez visto** (Realtime presence + `last_seen_at`).
-9. **Indicador "digitando…"** em DM e chats.
-10. **Silenciar** conversa e stories de um usuário (mute sem bloquear).
-11. **Hashtags** clicáveis com página `/tag/$tag`.
-12. **Compartilhar post** (link + copiar + repostar).
+## Onda 1 — Mensagens ricas + IA no chat + privacidade fina
+Foco em experiência de conversa (o que hoje está mais raso). Sem provedores externos, entrega imediata.
 
-### C. Stories & mídia
-13. **Stories em destaque** (highlights permanentes no perfil).
-14. **Múltiplas mídias por post** (carrossel).
-15. **Filtros/crop básicos** ao publicar foto.
-16. **Reels curtos** (feed vertical de vídeos) — opcional, mais pesado.
+**Mensagens (DM + grupos + canais):**
+- Editar mensagem (com histórico de edições visível)
+- Apagar pra mim / apagar pra todos
+- Responder (quote inline) + encaminhar
+- Reações com emoji
+- Agendar envio (server-side com pg_cron rodando a cada minuto)
+- Mensagens temporárias por conversa (auto-delete 24h/7d/custom)
+- "Digitando…" e recibos de leitura por membro
+- Anexos: imagem, vídeo, áudio, arquivo genérico até 25 MB
 
-### D. Descoberta e moderação
-17. **Canais/grupos públicos** com página de descoberta.
-18. **Sugestões de quem seguir** no feed e no explore.
-19. **Denúncia** de story, mensagem e chat (hoje só user/post).
-20. **Verificação/badges** — flag `verified` em profiles.
+**IA no chat (canais não-privados):**
+- Comando `/ia <pergunta>` em qualquer conversa → responde só pra você (efêmero) ou pra todos
+- Botão "Resumir conversa" nos grupos
+- Botão "Traduzir" por mensagem (auto-detecta idioma origem, 100+ destinos via Lovable AI)
+- Respostas inteligentes: 3 sugestões contextuais acima do input
+- Transcrever áudio: mensagens de voz caem no `openai/gpt-4o-mini-transcribe` e mostram texto
+- Legenda em chamadas: transcrição em tempo real do próprio áudio (STT streaming) exibida como overlay
 
-### E. Chamadas
-21. **Chamadas em grupo** (WebRTC mesh até 4 participantes).
-22. **Histórico de chamadas** com duração e status (perdida/atendida).
+**Privacidade:**
+- Ocultar status online individualmente (whitelist/blacklist por usuário)
+- Ocultar "visualizado" por conversa
+- Silenciar conversa/story/usuário (mute, sem bloquear)
+- Cofre secreto: aba trancada por PIN local que esconde conversas escolhidas (o PIN gera passphrase local; conversas continuam server-side)
+- Chat Secreto 1:1 com E2E de verdade (libsignal-like via WebCrypto: ECDH X25519 + AES-GCM, chaves no dispositivo, servidor só encaminha bytes). Sem IA, sem preview em notificação, sem backup.
 
-### F. Interface (redesign focado)
-23. **Refino do Midnight Indigo** — mais respiro, hierarquia tipográfica com Syne, glow mais contido, cards com bordas mais sutis, transições com framer-motion.
-24. **Feed redesenhado** — header sticky com blur, ações do post reposicionadas, densidade ajustada.
-25. **Perfil premium** — hero com capa + parallax leve, stats maiores, tabs animadas.
-26. **Bottom-nav flutuante refinada** — indicador ativo com spring animation, botão central de criar destacado.
-27. **Skeleton loaders** consistentes em todas as listas.
-28. **Empty states ilustrados** (feed vazio, sem mensagens, sem notificações).
-29. **Dark/light toggle** (hoje só dark).
+## Onda 2 — Rede social expandida
+**Reels:**
+- Novo tipo de post: `video` vertical até 60s
+- Rota `/reels` com feed vertical fullscreen, swipe, autoplay, mute default
+- Contador de views, curtida-duplo-toque, share
 
-## Proposta de execução
+**Novos tipos de post:**
+- Enquetes com múltiplas opções + resultado ao vivo
+- Eventos com data/local/RSVP
+- Blog longo (rich text via TipTap, capa, tempo de leitura)
 
-Como "tudo agora" fica enorme e arriscado, sugiro **3 ondas**:
+**Lives (UI + tabelas prontas, transporte plugável):**
+- Tabela `live_streams` (host, título, status, viewer_count)
+- Tela de host + tela de viewer, chat lateral em tempo real
+- Placeholder de vídeo até você conectar LiveKit/Mux/Cloudflare
 
-- **Onda 1 (essencial):** 1, 2, 3, 4, 5, 6, 7 + refino visual 23, 24, 25, 26, 27, 28
-- **Onda 2 (engajamento):** 8, 9, 10, 11, 12, 13, 18, 19, 22
-- **Onda 3 (avançado):** 14, 15, 16, 17, 20, 21, 29
+**Perfis profissionais:**
+- Flag `is_professional` + campos: categoria, contato comercial, botões CTA
+- Aba "Loja" no perfil pro (produtos digitais)
 
-## Preciso confirmar antes de partir
+## Onda 3 — Monetização + chamadas em grupo
+**Stripe (via `enable_stripe_payments`):**
+- Assinaturas de criadores (mensal/anual)
+- Gorjetas em posts/lives
+- Venda de produto digital ou curso (arquivo + páginas)
+- Painel `/studio` com receita, seguidores, alcance
 
-1. **Escopo:** faço só a Onda 1 agora, ou você quer combinar 1+2, ou tudo?
-2. **Notificações push nativas** (fora do app, via Web Push/VAPID) entram já ou depois? Se depois, esta rodada é só in-app + realtime.
-3. **Reels** entram no roadmap ou você prefere manter foco em fotos + stories?
-4. **Sobre o visual:** manter Midnight Indigo e apenas refinar, ou quer rodar o processo de escolher nova paleta/tipografia/layout?
+**Chamadas:**
+- Chamada em grupo até 4 (mesh WebRTC), promoção de DM 1:1 para grupo
+- Compartilhamento de tela (getDisplayMedia)
+- Histórico de chamadas com duração e status
+
+## Onda 4 — Antispam por IA + verificação
+- Classificador Lovable AI roda em toda nova mensagem/comentário/post → score de spam/golpe → auto-mute ou aviso
+- Denúncia por usuário aciona re-scan com contexto
+- Fluxo de verificação: upload de doc + selfie → fila de review → badge azul (moderação manual, sem KYC real)
+
+## Estimativa e formato
+
+- **Onda 1** entrego agora nesta rodada (é grande, mas cabe: reaproveita a infra atual de mensagens e stories).
+- **Ondas 2, 3, 4** cada uma em rodada própria depois — se meter tudo junto, nada fica bom.
+- Marco cada wave como "publish milestone" no final.
+
+## Tech details (para você, não precisa entender)
+
+- Edição/histórico: coluna `edited_at` + tabela `chat_message_edits(message_id, previous_content, edited_at)`
+- Agendamento: `scheduled_messages(...)` + cron `SELECT * FROM scheduled_messages WHERE send_at <= now() AND sent = false` a cada minuto via pg_cron → mesma trigger `bump_chat`
+- Temporárias: coluna `expires_at` nas mensagens + job de purga
+- E2E: dispositivos com par de chaves gerado no primeiro login, `device_keys(user_id, device_id, public_key)`, mensagens de Chat Secreto vão em tabela separada `secret_messages(ciphertext BYTEA, nonce, sender_device, recipient_device)`. Backend só encaminha; realtime igual às normais.
+- IA: server functions `createServerFn` com `@ai-sdk/openai-compatible` no gateway Lovable AI. Modelo default `google/gemini-3-flash-preview`. STT via `openai/gpt-4o-mini-transcribe`. Chaves ficam no server.
+- Reels/lives: bucket `reels` privado, live via tabela + placeholder de transporte.
+
+## Pergunta única antes de partir pra Onda 1
+
+Você quer que **Chat Secreto E2E** entre já na Onda 1 (é o item mais pesado — reescreve o cliente de DM), ou fica pra rodada posterior e a Onda 1 sai mais leve/entregável?

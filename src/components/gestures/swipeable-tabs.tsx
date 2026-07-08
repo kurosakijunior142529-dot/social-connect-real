@@ -2,7 +2,7 @@ import { useRef, type ReactNode } from "react";
 import { motion, type PanInfo } from "framer-motion";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
-const TABS = ["/", "/explore", "/messages", "/notifications"] as const;
+const TABS = ["/", "/reels", "/explore", "/messages", "/notifications"] as const;
 
 /**
  * Horizontal swipe between top-level authenticated tabs.

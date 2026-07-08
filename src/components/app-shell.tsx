@@ -64,6 +64,17 @@ export function AppShell({
         };
         wipe(window.localStorage);
         wipe(window.sessionStorage);
+        // Apaga cookies sb-* (usados pelo @supabase/ssr) no domínio atual e no domínio pai
+        const host = window.location.hostname;
+        const parent = host.split(".").slice(-2).join(".");
+        document.cookie.split(";").forEach((c) => {
+          const name = c.split("=")[0].trim();
+          if (!name || (!name.startsWith("sb-") && !name.includes("supabase"))) return;
+          for (const domain of [undefined, host, "." + host, parent, "." + parent]) {
+            const d = domain ? `; domain=${domain}` : "";
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${d}`;
+          }
+        });
       } catch {
         /* storage indisponível */
       }

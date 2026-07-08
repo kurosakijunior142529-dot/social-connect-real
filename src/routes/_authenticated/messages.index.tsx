@@ -7,10 +7,9 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Users, Megaphone, Plus } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useBlocks } from "@/hooks/use-blocks";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,52 +21,67 @@ export const Route = createFileRoute("/_authenticated/messages/")({
   component: MessagesPage,
 });
 
+const TABS = [
+  { id: "direct", label: "Diretas" },
+  { id: "group", label: "Grupos" },
+  { id: "channel", label: "Canais" },
+] as const;
+
 function MessagesPage() {
   const { user } = Route.useRouteContext();
-  const [tab, setTab] = useState("direct");
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("direct");
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-5">
-      <header className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Comunidade</div>
-          <h1 className="text-3xl font-display font-black">Conversas</h1>
+    <div>
+      <header className="sticky top-0 z-20 glass-heavy hairline-b">
+        <div className="flex items-center justify-between px-4 h-12">
+          <h1 className="text-[19px] font-display font-semibold tracking-tight">Conversas</h1>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Novo"
+                className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground transition active:scale-95"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => navigate({ to: "/chats/new", search: { type: "group" } })}>
+                <Users className="h-4 w-4 mr-2" /> Novo grupo
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: "/chats/new", search: { type: "channel" } })}>
+                <Megaphone className="h-4 w-4 mr-2" /> Novo canal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" className="rounded-full bg-gradient-brand h-11 w-11 shadow-elegant">
-              <Plus className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => navigate({ to: "/chats/new", search: { type: "group" } })}>
-              <Users className="h-4 w-4 mr-2" /> Novo grupo
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate({ to: "/chats/new", search: { type: "channel" } })}>
-              <Megaphone className="h-4 w-4 mr-2" /> Novo canal
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="px-4 pb-3 flex gap-1">
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "relative px-3 py-1.5 text-[13px] font-medium rounded-full transition-colors",
+                  active
+                    ? "bg-[color:var(--surface-2)] text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </header>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full grid grid-cols-3 rounded-full glass p-1">
-          <TabsTrigger value="direct" className="rounded-full">Diretas</TabsTrigger>
-          <TabsTrigger value="group" className="rounded-full">Grupos</TabsTrigger>
-          <TabsTrigger value="channel" className="rounded-full">Canais</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="direct" className="mt-4">
-          <DirectList userId={user.id} />
-        </TabsContent>
-        <TabsContent value="group" className="mt-4">
-          <ChatList userId={user.id} type="group" />
-        </TabsContent>
-        <TabsContent value="channel" className="mt-4">
-          <ChatList userId={user.id} type="channel" />
-        </TabsContent>
-      </Tabs>
+      <div className="pt-1">
+        {tab === "direct" && <DirectList userId={user.id} />}
+        {tab === "group" && <ChatList userId={user.id} type="group" />}
+        {tab === "channel" && <ChatList userId={user.id} type="channel" />}
+      </div>
     </div>
   );
 }
@@ -119,36 +133,37 @@ function DirectList({ userId }: { userId: string }) {
   if (!query.data?.length) {
     return (
       <EmptyState
-        icon={<MessageCircle className="h-10 w-10 text-primary" />}
+        icon={<MessageCircle className="h-6 w-6" strokeWidth={1.6} />}
         title="Nenhuma conversa direta"
         hint="Encontre pessoas no Explorar e converse pelo perfil."
       />
     );
   }
   return (
-    <div className="space-y-1">
+    <ul className="divide-y divide-[color:var(--hairline)]">
       {query.data.map((c) => (
-        <Link
-          key={c.id}
-          to="/messages/$conversationId"
-          params={{ conversationId: c.id }}
-          className="flex items-center gap-3 rounded-2xl p-3 hover:bg-white/5 transition"
-        >
-          <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} className="h-11 w-11" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="font-semibold truncate">{c.other?.display_name}</div>
-              {c.last ? (
-                <div className="text-xs text-muted-foreground shrink-0">
-                  {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
-                </div>
-              ) : null}
+        <li key={c.id}>
+          <Link
+            to="/messages/$conversationId"
+            params={{ conversationId: c.id }}
+            className="flex items-center gap-3 px-4 py-3 active:bg-[color:var(--surface)] transition-colors"
+          >
+            <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} className="h-12 w-12" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="font-semibold text-[15px] truncate">{c.other?.display_name}</div>
+                {c.last ? (
+                  <div className="text-[11px] text-muted-foreground shrink-0 tabular">
+                    {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
+                  </div>
+                ) : null}
+              </div>
+              <div className="text-[13px] text-muted-foreground truncate leading-snug">{c.last?.content ?? "Diga oi 👋"}</div>
             </div>
-            <div className="text-sm text-muted-foreground truncate">{c.last?.content ?? "Diga oi 👋"}</div>
-          </div>
-        </Link>
+          </Link>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -188,61 +203,72 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
   if (!query.data?.length) {
     return (
       <EmptyState
-        icon={type === "group" ? <Users className="h-10 w-10 text-primary" /> : <Megaphone className="h-10 w-10 text-primary" />}
+        icon={type === "group" ? <Users className="h-6 w-6" strokeWidth={1.6} /> : <Megaphone className="h-6 w-6" strokeWidth={1.6} />}
         title={type === "group" ? "Você não está em nenhum grupo" : "Nenhum canal ainda"}
         hint={type === "group" ? "Crie um grupo com seus amigos ou espere ser convidado." : "Crie um canal para transmitir suas ideias."}
       />
     );
   }
   return (
-    <div className="space-y-1">
+    <ul className="divide-y divide-[color:var(--hairline)]">
       {query.data.map((c: any) => (
-        <Link
-          key={c.id}
-          to="/chats/$id"
-          params={{ id: c.id }}
-          className="flex items-center gap-3 rounded-2xl p-3 hover:bg-white/5 transition"
-        >
-          {c.avatar_url ? (
-            <div className="h-11 w-11 rounded-full overflow-hidden bg-muted">
-              <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
+        <li key={c.id}>
+          <Link
+            to="/chats/$id"
+            params={{ id: c.id }}
+            className="flex items-center gap-3 px-4 py-3 active:bg-[color:var(--surface)] transition-colors"
+          >
+            {c.avatar_url ? (
+              <div className="h-12 w-12 rounded-full overflow-hidden bg-[color:var(--surface-2)]">
+                <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
+              </div>
+            ) : (
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] text-foreground">
+                {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="font-semibold text-[15px] truncate">{c.title}</div>
+                {c.last ? (
+                  <div className="text-[11px] text-muted-foreground shrink-0 tabular">
+                    {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
+                  </div>
+                ) : null}
+              </div>
+              <div className="text-[13px] text-muted-foreground truncate leading-snug">
+                {c.last?.content ?? c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
+              </div>
             </div>
-          ) : (
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-gradient-brand text-white">
-              {type === "group" ? <Users className="h-5 w-5" /> : <Megaphone className="h-5 w-5" />}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="font-semibold truncate">{c.title}</div>
-              {c.last ? (
-                <div className="text-xs text-muted-foreground shrink-0">
-                  {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
-                </div>
-              ) : null}
-            </div>
-            <div className="text-sm text-muted-foreground truncate">{c.last?.content ?? c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}</div>
-          </div>
-        </Link>
+          </Link>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
 function ListSkeleton() {
   return (
-    <div className="space-y-2">
-      {[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-2xl" />)}
+    <div className="divide-y divide-[color:var(--hairline)]">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3 w-32 rounded" />
+            <Skeleton className="h-3 w-48 rounded" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 function EmptyState({ icon, title, hint }: { icon: React.ReactNode; title: string; hint: string }) {
   return (
-    <div className="glass rounded-3xl p-10 text-center space-y-3">
-      <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-white/5">{icon}</div>
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <p className="text-sm text-muted-foreground">{hint}</p>
+    <div className="mx-4 mt-6 rounded-2xl bg-[color:var(--surface)] p-8 text-center space-y-3">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] text-muted-foreground">{icon}</div>
+      <h2 className="text-[15px] font-semibold">{title}</h2>
+      <p className="text-[13px] text-muted-foreground">{hint}</p>
     </div>
   );
 }

@@ -133,6 +133,26 @@ function RootComponent() {
     import("@/integrations/supabase/client").then(({ supabase }) => {
       const { data } = supabase.auth.onAuthStateChange((event) => {
         if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+        // Safety net: strip any auth tokens that may still be in the URL so
+        // users can't accidentally share a link that logs someone else in as them.
+        if (typeof window !== "undefined" && event !== "SIGNED_OUT") {
+          const url = new URL(window.location.href);
+          const hasTokens =
+            url.hash.includes("access_token") ||
+            url.hash.includes("refresh_token") ||
+            url.hash.includes("type=recovery") ||
+            url.hash.includes("provider_token") ||
+            url.searchParams.has("code") ||
+            url.searchParams.has("access_token") ||
+            url.searchParams.has("refresh_token");
+          if (hasTokens) {
+            ["code", "access_token", "refresh_token", "expires_in", "expires_at", "token_type", "provider_token", "type"].forEach(
+              (k) => url.searchParams.delete(k),
+            );
+            url.hash = "";
+            window.history.replaceState({}, "", url.pathname + url.search);
+          }
+        }
         router.invalidate();
         if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
       });

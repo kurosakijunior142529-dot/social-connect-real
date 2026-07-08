@@ -113,7 +113,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       };
 
       const channel = supabase.channel(`call-${callId}`, {
-        config: { broadcast: { self: false } },
+        config: { broadcast: { self: false }, private: true },
       });
       channelRef.current = channel;
 

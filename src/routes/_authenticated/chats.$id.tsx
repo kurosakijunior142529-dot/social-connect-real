@@ -191,6 +191,8 @@ function ChatPage() {
             {isChannel ? "Canal" : "Grupo"}{chatData.description ? ` · ${chatData.description}` : ""}
           </div>
         </button>
+        <SummarizeButton scope="chat" id={id} />
+        <MuteToggle table="muted_chats" keyCol="chat_id" keyVal={id} userId={user.id} />
         {isMember ? (
           <button onClick={leave} className="p-2 rounded-full hover:bg-white/5" aria-label="Sair">
             <LogOut className="h-5 w-5" />
@@ -201,34 +203,39 @@ function ChatPage() {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.data?.map((m: any) => {
           const mine = m.sender_id === user.id;
+          const replied = m.reply_to ? (byId.get(m.reply_to) as any) : null;
+          const rs = reactions.data?.[m.id] ?? [];
+          const translated = translations[m.id];
           return (
             <div key={m.id} className={cn("flex items-end gap-2 group", mine ? "justify-end" : "justify-start")}>
               {!mine ? (
                 <UserAvatar avatarPath={m.sender?.avatar_url} displayName={m.sender?.display_name ?? "?"} className="h-7 w-7" />
               ) : null}
+              {mine || isAdmin ? (
+                <MessageActions message={m} ctx={{ scope: "chat", ownerId: user.id }} mine={mine}
+                  onReply={setReplyTo} onEdit={(x) => { setEditing(x); setDraft(x.content ?? ""); }}
+                  onDelete={deleteMessage} onTranslated={(mid, t) => setTranslations((p) => ({ ...p, [mid]: t }))} />
+              ) : null}
               <div className={cn("max-w-[75%] space-y-0.5", mine ? "items-end" : "items-start")}>
                 {!mine && !isChannel ? (
                   <div className="text-[11px] text-muted-foreground px-3">{m.sender?.display_name}</div>
                 ) : null}
-                <div
-                  className={cn(
-                    "rounded-2xl px-4 py-2 text-sm break-words shadow-sm",
-                    mine
-                      ? "bg-gradient-brand text-white rounded-br-md"
-                      : "bg-white/5 border border-white/5 text-foreground rounded-bl-md",
-                  )}
-                >
+                <div className={cn("rounded-2xl px-4 py-2 text-sm break-words shadow-sm",
+                  mine ? "bg-gradient-brand text-white rounded-br-md"
+                       : "bg-white/5 border border-white/5 text-foreground rounded-bl-md")}>
+                  {replied ? <ReplyQuote text={replied.content} /> : null}
                   {m.content}
+                  {m.edited_at ? <span className="ml-2 text-[10px] opacity-70">editado</span> : null}
+                  {translated ? <div className="mt-1 pt-1 border-t border-white/20 text-xs opacity-90">🌐 {translated}</div> : null}
                 </div>
+                <ReactionsBar reactions={rs}
+                  onToggle={(emoji, mineR) => toggleReaction("chat", m.id, user.id, emoji, mineR)
+                    .then(() => queryClient.invalidateQueries({ queryKey: ["reactions", "chat"] }))} />
               </div>
-              {mine || isAdmin ? (
-                <button
-                  onClick={() => deleteMessage(m.id)}
-                  className="opacity-0 group-hover:opacity-100 transition p-1 rounded-full hover:bg-white/5"
-                  aria-label="Apagar"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+              {!mine && !isAdmin ? (
+                <MessageActions message={m} ctx={{ scope: "chat", ownerId: user.id }} mine={false}
+                  onReply={setReplyTo} onEdit={() => {}} onDelete={() => {}}
+                  onTranslated={(mid, t) => setTranslations((p) => ({ ...p, [mid]: t }))} />
               ) : null}
             </div>
           );
@@ -236,23 +243,28 @@ function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
+      {canPost ? <SmartReplyBar scope="chat" id={id} onPick={(s) => setDraft(s)} /> : null}
+
+      {replyTo || editing ? (
+        <div className="px-3 py-2 border-t bg-white/5 flex items-center gap-2 text-xs">
+          <span className="opacity-70">{editing ? "Editando:" : "Respondendo:"}</span>
+          <span className="flex-1 truncate">{editing?.content ?? replyTo?.content}</span>
+          <button onClick={() => { setReplyTo(null); setEditing(null); setDraft(""); }} className="p-1 rounded-full hover:bg-white/10"><X className="h-3 w-3" /></button>
+        </div>
+      ) : null}
+
       <form onSubmit={send} className="p-3 border-t border-border/50 bg-card/50 backdrop-blur flex items-center gap-2">
+        <ScheduleButton userId={user.id} target={{ type: "chat", chatId: id }} />
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={
-            !isMember ? "Entre no chat para conversar" : canPost ? "Mensagem…" : "Somente admins publicam neste canal"
-          }
+          placeholder={!isMember ? "Entre no chat para conversar" : canPost ? "Mensagem ou /ia pergunta…" : "Somente admins publicam neste canal"}
           maxLength={2000}
           disabled={!canPost}
           className="rounded-full bg-white/5 border-transparent h-11"
         />
-        <Button
-          type="submit"
-          disabled={!draft.trim() || sending || !canPost}
-          size="icon"
-          className="rounded-full bg-gradient-brand h-11 w-11 shrink-0"
-        >
+        {draft.startsWith("/ia") ? <Sparkles className="h-5 w-5 text-primary animate-pulse" /> : null}
+        <Button type="submit" disabled={!draft.trim() || sending || !canPost} size="icon" className="rounded-full bg-gradient-brand h-11 w-11 shrink-0">
           <Send className="h-5 w-5" />
         </Button>
       </form>

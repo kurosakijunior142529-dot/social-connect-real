@@ -13,7 +13,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.5",
+    "@fontsource-variable/geist": "^5.2.9",
     "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
+    "@fontsource/geist-mono": "^5.2.8",
     "@fontsource/syne": "^5.2.7",
     "@hookform/resolvers": "^5.2.2",
     "@lovable.dev/cloud-auth-js": "^1.1.2",
@@ -55,6 +57,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "framer-motion": "^12.42.2",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",

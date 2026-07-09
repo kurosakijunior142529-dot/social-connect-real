@@ -140,6 +140,16 @@ export function AppShell({
             <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.6} />
             Salvos
           </Link>
+          <Link
+            to="/watch"
+            className={cn(
+              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              pathname.startsWith("/watch") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
+            )}
+          >
+            <Tv className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            Streaming Amigo
+          </Link>
         </nav>
         <div className="p-3 hairline-t space-y-0.5">
           <Link

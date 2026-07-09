@@ -106,10 +106,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const remote = new MediaStream();
       setRemoteStream(remote);
       pc.ontrack = (ev) => {
-        ev.streams[0]?.getTracks().forEach((t) => {
-          if (!remote.getTracks().find((rt) => rt.id === t.id)) remote.addTrack(t);
-        });
-        setRemoteStream(new MediaStream(remote.getTracks()));
+        // add tracks from the primary stream; do NOT recreate the MediaStream
+        // (recreating resets srcObject and cuts audio on some browsers).
+        const src = ev.streams[0];
+        if (src) {
+          src.getTracks().forEach((t) => {
+            if (!remote.getTracks().find((rt) => rt.id === t.id)) remote.addTrack(t);
+          });
+        } else if (ev.track) {
+          if (!remote.getTracks().find((rt) => rt.id === ev.track.id)) remote.addTrack(ev.track);
+        }
+        // trigger effect re-run in consumers by re-setting the same stream reference
+        setRemoteStream(remote);
+      };
+
+      // Auto-recover on ICE failures
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        if (state === "failed" || state === "disconnected") {
+          try { pc.restartIce(); } catch (e) { console.warn("restartIce failed", e); }
+        }
       };
 
       const channel = supabase.channel(`call-${callId}`, {

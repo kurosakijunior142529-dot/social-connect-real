@@ -6,7 +6,7 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv } from "lucide-react";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
 import { cn } from "@/lib/utils";

@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play } from "lucide-react";
+import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";

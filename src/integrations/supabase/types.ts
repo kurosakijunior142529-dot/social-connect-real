@@ -936,6 +936,141 @@ export type Database = {
         }
         Relationships: []
       }
+      watch_room_members: {
+        Row: {
+          joined_at: string
+          left_at: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          left_at?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          left_at?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "watch_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_room_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          room_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          room_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          room_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_room_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "watch_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_room_state: {
+        Row: {
+          playing: boolean
+          position_sec: number
+          room_id: string
+          updated_at: string
+          updated_by: string | null
+          video_id: string | null
+        }
+        Insert: {
+          playing?: boolean
+          position_sec?: number
+          room_id: string
+          updated_at?: string
+          updated_by?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          playing?: boolean
+          position_sec?: number
+          room_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_room_state_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "watch_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_rooms: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          host_id: string
+          id: string
+          invite_code: string
+          is_private: boolean
+          provider: string
+          title: string | null
+          updated_at: string
+          video_id: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          host_id: string
+          id?: string
+          invite_code?: string
+          is_private?: boolean
+          provider?: string
+          title?: string | null
+          updated_at?: string
+          video_id?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          host_id?: string
+          id?: string
+          invite_code?: string
+          is_private?: boolean
+          provider?: string
+          title?: string | null
+          updated_at?: string
+          video_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -957,6 +1092,14 @@ export type Database = {
       is_blocked_pair: { Args: { _a: string; _b: string }; Returns: boolean }
       is_chat_member: {
         Args: { _chat: string; _user: string }
+        Returns: boolean
+      }
+      is_watch_host: {
+        Args: { _room: string; _user: string }
+        Returns: boolean
+      }
+      is_watch_member: {
+        Args: { _room: string; _user: string }
         Returns: boolean
       }
       notify_user: {

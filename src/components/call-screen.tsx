@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Volume2, VolumeX } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,7 @@ export function CallScreen({ call, localStream, remoteStream, onHangup }: Props)
   const remoteRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(true);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -37,6 +38,9 @@ export function CallScreen({ call, localStream, remoteStream, onHangup }: Props)
   useEffect(() => {
     if (remoteRef.current && remoteStream) {
       remoteRef.current.srcObject = remoteStream;
+      // muted: audio playback is handled by the provider's hidden <audio> sink
+      remoteRef.current.muted = true;
+      remoteRef.current.play().catch(() => {});
     }
   }, [remoteStream]);
 

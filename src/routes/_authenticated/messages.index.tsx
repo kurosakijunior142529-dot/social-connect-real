@@ -53,6 +53,9 @@ function MessagesPage() {
               <DropdownMenuItem onClick={() => navigate({ to: "/chats/new", search: { type: "channel" } })}>
                 <Megaphone className="h-4 w-4 mr-2" /> Novo canal
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: "/watch" })}>
+                <Tv className="h-4 w-4 mr-2" /> Sala de assistir (YouTube)
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

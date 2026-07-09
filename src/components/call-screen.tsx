@@ -158,6 +158,25 @@ export function CallScreen({ call, localStream, remoteStream, onHangup }: Props)
         )}
 
         <button
+          onClick={() => {
+            const next = !speakerOn;
+            setSpeakerOn(next);
+            // Toggle volume on all audio elements (speakerphone on mobile is approximated
+            // by adjusting output; true routing needs setSinkId with a real speaker device).
+            document.querySelectorAll("audio, video").forEach((el) => {
+              (el as HTMLMediaElement).volume = next ? 1 : 0;
+            });
+          }}
+          className={cn(
+            "h-14 w-14 rounded-full flex items-center justify-center transition",
+            speakerOn ? "bg-white/15 hover:bg-white/25" : "bg-white text-black",
+          )}
+          aria-label={speakerOn ? "Silenciar alto-falante" : "Ativar alto-falante"}
+        >
+          {speakerOn ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
+        </button>
+
+        <button
           onClick={onHangup}
           className="h-16 w-16 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center shadow-lg shadow-red-900/40"
           aria-label="Encerrar chamada"

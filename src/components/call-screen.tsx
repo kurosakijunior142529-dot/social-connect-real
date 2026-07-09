@@ -86,11 +86,11 @@ export function CallScreen({ call, localStream, remoteStream, onHangup }: Props)
             ref={remoteRef}
             autoPlay
             playsInline
+            muted
             className="absolute inset-0 h-full w-full object-cover bg-black"
           />
-        ) : (
-          <audio ref={remoteRef} autoPlay />
-        )}
+        ) : null}
+        {/* Audio playback of the remote stream is handled by the CallProvider's hidden <audio> element. */}
 
         {(!isVideo || call.status !== "accepted") && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-purple-900 via-pink-900 to-orange-900">

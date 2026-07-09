@@ -6,7 +6,7 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv } from "lucide-react";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,9 @@ function MessagesPage() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate({ to: "/chats/new", search: { type: "channel" } })}>
                 <Megaphone className="h-4 w-4 mr-2" /> Novo canal
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate({ to: "/watch" })}>
+                <Tv className="h-4 w-4 mr-2" /> Sala de assistir (YouTube)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

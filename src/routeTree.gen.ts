@@ -19,7 +19,9 @@ import { Route as AuthenticatedReelsRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticated/explore'
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
+import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
+import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
 import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.$id'
@@ -77,10 +79,21 @@ const AuthenticatedCreateRoute = AuthenticatedCreateRouteImport.update({
   path: '/create',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWatchIndexRoute = AuthenticatedWatchIndexRouteImport.update({
+  id: '/watch/',
+  path: '/watch/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMessagesIndexRoute =
   AuthenticatedMessagesIndexRouteImport.update({
     id: '/messages/',
     path: '/messages/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWatchRoomIdRoute =
+  AuthenticatedWatchRoomIdRouteImport.update({
+    id: '/watch/$roomId',
+    path: '/watch/$roomId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedUUsernameRoute = AuthenticatedUUsernameRouteImport.update({
@@ -131,7 +144,9 @@ export interface FileRoutesByFullPath {
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
+  '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/watch/': typeof AuthenticatedWatchIndexRoute
 }
 export interface FileRoutesByTo {
   '/create': typeof AuthenticatedCreateRoute
@@ -149,7 +164,9 @@ export interface FileRoutesByTo {
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
+  '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
+  '/watch': typeof AuthenticatedWatchIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,7 +186,9 @@ export interface FileRoutesById {
   '/_authenticated/p/$id': typeof AuthenticatedPIdRoute
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRoute
+  '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,7 +208,9 @@ export interface FileRouteTypes {
     | '/p/$id'
     | '/stories/new'
     | '/u/$username'
+    | '/watch/$roomId'
     | '/messages/'
+    | '/watch/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/create'
@@ -207,7 +228,9 @@ export interface FileRouteTypes {
     | '/p/$id'
     | '/stories/new'
     | '/u/$username'
+    | '/watch/$roomId'
     | '/messages'
+    | '/watch'
   id:
     | '__root__'
     | '/_authenticated'
@@ -226,7 +249,9 @@ export interface FileRouteTypes {
     | '/_authenticated/p/$id'
     | '/_authenticated/stories/new'
     | '/_authenticated/u/$username'
+    | '/_authenticated/watch/$roomId'
     | '/_authenticated/messages/'
+    | '/_authenticated/watch/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -307,11 +332,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCreateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/watch/': {
+      id: '/_authenticated/watch/'
+      path: '/watch'
+      fullPath: '/watch/'
+      preLoaderRoute: typeof AuthenticatedWatchIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/messages/': {
       id: '/_authenticated/messages/'
       path: '/messages'
       fullPath: '/messages/'
       preLoaderRoute: typeof AuthenticatedMessagesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/watch/$roomId': {
+      id: '/_authenticated/watch/$roomId'
+      path: '/watch/$roomId'
+      fullPath: '/watch/$roomId'
+      preLoaderRoute: typeof AuthenticatedWatchRoomIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/u/$username': {
@@ -373,7 +412,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPIdRoute: typeof AuthenticatedPIdRoute
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRoute
+  AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
+  AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -391,7 +432,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPIdRoute: AuthenticatedPIdRoute,
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRoute,
+  AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
+  AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

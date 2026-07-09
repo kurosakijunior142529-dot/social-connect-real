@@ -106,10 +106,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const remote = new MediaStream();
       setRemoteStream(remote);
       pc.ontrack = (ev) => {
-        ev.streams[0]?.getTracks().forEach((t) => {
-          if (!remote.getTracks().find((rt) => rt.id === t.id)) remote.addTrack(t);
-        });
-        setRemoteStream(new MediaStream(remote.getTracks()));
+        // add tracks from the primary stream; do NOT recreate the MediaStream
+        // (recreating resets srcObject and cuts audio on some browsers).
+        const src = ev.streams[0];
+        if (src) {
+          src.getTracks().forEach((t) => {
+            if (!remote.getTracks().find((rt) => rt.id === t.id)) remote.addTrack(t);
+          });
+        } else if (ev.track) {
+          if (!remote.getTracks().find((rt) => rt.id === ev.track.id)) remote.addTrack(ev.track);
+        }
+        // trigger effect re-run in consumers by re-setting the same stream reference
+        setRemoteStream(remote);
+      };
+
+      // Auto-recover on ICE failures
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState;
+        if (state === "failed" || state === "disconnected") {
+          try { pc.restartIce(); } catch (e) { console.warn("restartIce failed", e); }
+        }
       };
 
       const channel = supabase.channel(`call-${callId}`, {
@@ -337,11 +353,28 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => () => teardown(), [teardown]);
 
+  // Always-on hidden remote audio element. Guarantees audio playback even
+  // when CallScreen conditionally mounts a <video> vs <audio> element.
+  const audioSinkRef = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    const el = audioSinkRef.current;
+    if (!el) return;
+    if (remoteStream) {
+      if (el.srcObject !== remoteStream) el.srcObject = remoteStream;
+      const p = el.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } else {
+      el.srcObject = null;
+    }
+  }, [remoteStream]);
+
   const value = useMemo<Ctx>(() => ({ startCall, activeCall: active }), [startCall, active]);
 
   return (
     <CallContext.Provider value={value}>
       {children}
+      {/* Hidden audio sink — always mounted while provider is alive */}
+      <audio ref={audioSinkRef} autoPlay playsInline className="hidden" />
       {incoming ? (
         <IncomingCallDialog incoming={incoming} onAccept={acceptIncoming} onReject={rejectIncoming} />
       ) : null}

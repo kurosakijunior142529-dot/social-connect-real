@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Volume2, VolumeX } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,7 @@ export function CallScreen({ call, localStream, remoteStream, onHangup }: Props)
   const remoteRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(false);
   const [camOff, setCamOff] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(true);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -37,6 +38,9 @@ export function CallScreen({ call, localStream, remoteStream, onHangup }: Props)
   useEffect(() => {
     if (remoteRef.current && remoteStream) {
       remoteRef.current.srcObject = remoteStream;
+      // muted: audio playback is handled by the provider's hidden <audio> sink
+      remoteRef.current.muted = true;
+      remoteRef.current.play().catch(() => {});
     }
   }, [remoteStream]);
 
@@ -82,11 +86,11 @@ export function CallScreen({ call, localStream, remoteStream, onHangup }: Props)
             ref={remoteRef}
             autoPlay
             playsInline
+            muted
             className="absolute inset-0 h-full w-full object-cover bg-black"
           />
-        ) : (
-          <audio ref={remoteRef} autoPlay />
-        )}
+        ) : null}
+        {/* Audio playback of the remote stream is handled by the CallProvider's hidden <audio> element. */}
 
         {(!isVideo || call.status !== "accepted") && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-purple-900 via-pink-900 to-orange-900">
@@ -152,6 +156,25 @@ export function CallScreen({ call, localStream, remoteStream, onHangup }: Props)
             {camOff ? <VideoOff className="h-6 w-6" /> : <Video className="h-6 w-6" />}
           </button>
         )}
+
+        <button
+          onClick={() => {
+            const next = !speakerOn;
+            setSpeakerOn(next);
+            // Toggle volume on all audio elements (speakerphone on mobile is approximated
+            // by adjusting output; true routing needs setSinkId with a real speaker device).
+            document.querySelectorAll("audio, video").forEach((el) => {
+              (el as HTMLMediaElement).volume = next ? 1 : 0;
+            });
+          }}
+          className={cn(
+            "h-14 w-14 rounded-full flex items-center justify-center transition",
+            speakerOn ? "bg-white/15 hover:bg-white/25" : "bg-white text-black",
+          )}
+          aria-label={speakerOn ? "Silenciar alto-falante" : "Ativar alto-falante"}
+        >
+          {speakerOn ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
+        </button>
 
         <button
           onClick={onHangup}

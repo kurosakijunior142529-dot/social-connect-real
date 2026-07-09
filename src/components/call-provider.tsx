@@ -353,11 +353,28 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => () => teardown(), [teardown]);
 
+  // Always-on hidden remote audio element. Guarantees audio playback even
+  // when CallScreen conditionally mounts a <video> vs <audio> element.
+  const audioSinkRef = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    const el = audioSinkRef.current;
+    if (!el) return;
+    if (remoteStream) {
+      if (el.srcObject !== remoteStream) el.srcObject = remoteStream;
+      const p = el.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } else {
+      el.srcObject = null;
+    }
+  }, [remoteStream]);
+
   const value = useMemo<Ctx>(() => ({ startCall, activeCall: active }), [startCall, active]);
 
   return (
     <CallContext.Provider value={value}>
       {children}
+      {/* Hidden audio sink — always mounted while provider is alive */}
+      <audio ref={audioSinkRef} autoPlay playsInline className="hidden" />
       {incoming ? (
         <IncomingCallDialog incoming={incoming} onAccept={acceptIncoming} onReject={rejectIncoming} />
       ) : null}

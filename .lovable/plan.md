@@ -1,106 +1,104 @@
-## Roadmap em 4 fases
+## Fase 4 — Streaming Amigo (YouTube) + correção de chamadas + fix likes/comments
 
-Escopo enorme; entrego por fases e você aprova cada uma antes de eu ir para a próxima. Abaixo o plano completo com o que entra em cada fase.
-
----
-
-### Fase 1 — Chat completo estilo WhatsApp + limpeza de UI  *(começar por aqui)*
-
-**Mídias no chat** (buckets novos, privados, com signed URLs):
-- `chat_audio`, `chat_video`, `chat_docs` (o bucket `chats` continua para imagens).
-- Gravação de áudio (MediaRecorder, waveform simples, play inline).
-- Envio de foto, vídeo, documento (PDF/qualquer), com preview e progresso.
-- GIFs via Tenor API (chave pública via secret) e sticker packs internos (bucket `stickers` público read-only + tabela `sticker_packs`).
-- Compartilhar localização (Geolocation API, render em mini-mapa estático via Leaflet + OSM tiles — sem chave).
-- Compartilhar contato (picker de amigos → card com avatar/nome/@).
-- Preview de links (server fn que faz fetch de OG tags + cache em `link_previews`).
-
-**Mensagens**:
-- Encaminhar para 1+ conversas/chats.
-- Copiar (menu já existe, garantir em todos os tipos).
-- Fixar mensagens (nova coluna `pinned_at` + barra no topo).
-- Busca de mensagens dentro da conversa (input + highlight).
-- Indicador "digitando…" e "gravando áudio…" (Realtime Presence).
-- Read receipts (tabela `message_reads` + tick duplo).
-- Reações, responder, editar, excluir para todos/para si — já existem, apenas polir.
-
-**UI da conversa**:
-- Remover botão "Silenciar" do header.
-- Menu de 3 pontos com: Silenciar, Buscar, Fixadas, Mídia compartilhada, Bloquear, Denunciar, Limpar conversa.
-- Header mais limpo (só avatar+nome+chamadas), tudo secundário no menu.
+Três frentes em uma entrega:
 
 ---
 
-### Fase 2 — Feed rico + Perfil a partir do chat
+### 1) Bug de likes / comentários (correção rápida)
 
-**Feed / posts**:
-- Composer no topo do feed (não só página `/create`).
-- Múltiplas imagens em um post (carrossel swipeable) — nova tabela `post_media` (post_id, url, order, type).
-- Post só de texto (media opcional).
-- Enquetes: tabelas `poll_options`, `poll_votes` + UI de voto/resultado.
-- Compartilhar publicação (via DM ou link).
-- Editar e excluir post próprio (já há delete? garantir + edit de caption).
-- Salvar já existe; garantir botão em todos os cards.
+**Sintoma:** ao curtir, o like "some" e não dá para comentar.
 
-**Perfil clicável a partir do chat**:
-- Avatar/nome no header da conversa e em cada mensagem viram `<Link to="/u/$username">`.
-- Página de perfil já existe; garantir botões Seguir/Deixar de seguir/Bloquear/Denunciar bem visíveis e com estados corretos.
+**Causa provável:** o `onSettled` do `toggleLike` chama `invalidateQueries({ queryKey: ["feed"] })` a cada clique, e o refetch do feed sobrescreve o estado otimista antes do INSERT/DELETE propagar (corrida). Além disso, se houver erro na mutation não há `onError` para reverter — o like some. Comentar depende do mesmo card/rota; se o refetch dispara e retorna vazio por causa de RLS/erro, o botão fica inerte.
+
+**Correção:**
+- Adicionar `onError` no `toggleLike` para reverter o estado otimista e mostrar erro.
+- Fazer o `mutationFn` retornar erro real (`{ error }` do Supabase) em vez de silenciar.
+- Trocar `invalidateQueries` por `refetchQueries` só quando não houver mutation em voo, ou simplesmente remover o `invalidateQueries` já que o estado otimista é suficiente (o contador real é reconciliado na próxima navegação).
+- Verificar RLS de `likes` e `comments` (SELECT/INSERT policies) e GRANTs — se estiverem faltando, corrigir por migração.
+- Investigar o botão de comentário: confirmar que `/p/$id` abre e que `comments-sheet` está montado corretamente.
 
 ---
 
-### Fase 3 — Chamadas em grupo até 4 + screen share
+### 2) Correção do áudio nas chamadas 1:1 + melhorias
 
-- Refactor de `call-provider` para mesh WebRTC (N-1 peer connections por participante, N ≤ 4).
-- Nova tabela `call_participants` + sinalização via Realtime broadcast (offer/answer/ice por par).
-- `getDisplayMedia()` para compartilhar tela; toggle no `call-screen`.
-- UI de grade 2x2 responsiva, controles de mute/câmera/tela/encerrar.
-- Convite para chamada em grupo a partir de um chat (todos os membros recebem push).
+**Problema atual:** chamada conecta mas sem áudio audível entre os pares.
 
----
+**Causas prováveis identificadas em `call-provider.tsx` / `call-screen.tsx`:**
+- No modo `audio`, o `remoteRef` é um `<audio>` — mas o elemento é montado dentro de um container com condicional que pode não anexar o `srcObject` antes da faixa chegar (o `useEffect` roda, mas o `<audio>` só existe se `isVideo` for false — ok — porém sem `autoPlay` garantido em iOS até haver gesto).
+- Falta `playsInline` no `<audio>` e falta chamar `.play()` explicitamente após atribuir `srcObject` (Safari/iOS bloqueia autoplay de MediaStream sem play() manual).
+- O `remoteStream` é reconstruído (`new MediaStream(remote.getTracks())`) a cada `ontrack`, o que reseta o `srcObject` e pode cortar o áudio em alguns navegadores.
+- Sem elemento `<audio>` dedicado para a trilha de áudio no modo vídeo — o áudio depende do elemento `<video>`; se `muted` estiver por engano, some.
 
-### Fase 4 — Streaming Amigo
+**Correções:**
+- Sempre montar um `<audio autoPlay playsInline>` oculto para a stream remota, independentemente de ser áudio ou vídeo, e chamar `element.play()` no `useEffect` com try/catch.
+- Não recriar `MediaStream` a cada `ontrack`; adicionar a track à stream existente e forçar re-render via key/estado separado.
+- Garantir que `getUserMedia` peça `audio: { echoCancellation, noiseSuppression, autoGainControl }` (já está) e adicionar sample rate.
+- Adicionar renegociação: `pc.onnegotiationneeded` → novo offer/answer.
+- Adicionar `pc.oniceconnectionstatechange` → se `failed`/`disconnected`, tentar `pc.restartIce()`.
 
-**Rooms** (`watch_rooms`, `watch_room_members`, `watch_room_state`):
-- Criação de sala por qualquer usuário, convite por link e via chat (mensagem-card).
-- Chat lateral (reusa `chat_messages` com `room_id` opcional, ou tabela dedicada `watch_room_messages`).
-- Chamada de voz/vídeo opcional dentro da sala (reusa Fase 3, até 4 pessoas).
-
-**Provedores**:
-- **YouTube (sync real)**: IFrame Player API. Estado `{videoId, positionSec, playing, updatedAt}` broadcast via Realtime; drift > 1.5s dispara seek automático. Host controla; convidados podem pedir controle.
-- **Outras plataformas (co-watch)**: usuário cola o link (Netflix/Prime/Disney+/Max/Apple TV+/Paramount+/Crunchyroll), sistema detecta plataforma, mostra card "assistindo em Netflix — <título opcional>" e um timer compartilhado (host clica "iniciei em 0:00"), sem controlar o player. Cada participante abre no app oficial. Chat/voz/vídeo continuam sincronizados na sala.
-
-**UI**:
-- Aba nova "Assistir" no bottom nav ou entrada no menu +.
-- Tela da sala: player/placeholder à esquerda, chat + participantes à direita (empilhado no mobile).
-
----
-
-### Fase 5 — Polimento geral *(contínuo, ao fim de cada fase)*
-
-- Revisão de bugs, loading states, empty states, skeletons.
-- Performance: virtualização das listas longas (feed, mensagens, notificações).
-- Acessibilidade e responsividade em cada tela tocada.
-- Passe de design consistente (tokens, espaçamentos, tipografia).
+**Melhorias de UI/áudio:**
+- Botão viva-voz (alterna sinkId entre `default` e `speaker` via `HTMLMediaElement.setSinkId()` quando suportado).
+- Seletor de saída de áudio (dropdown com `enumerateDevices()` filtrando `audiooutput`).
+- Indicador visual de microfone ativo (nível de áudio via `AudioContext` + `AnalyserNode`).
+- Controle de volume da chamada (slider ligado a `audio.volume`).
+- Wake Lock API para manter tela/áudio ativos em background quando permitido.
 
 ---
 
-### Detalhes técnicos
+### 3) Streaming Amigo — YouTube (nova funcionalidade)
 
-- **Buckets novos**: `chat_audio`, `chat_video`, `chat_docs`, `stickers` (público SELECT), `watch_rooms` (thumbs).
-- **Tabelas novas**: `post_media`, `poll_options`, `poll_votes`, `link_previews`, `message_reads`, `pinned_messages` (ou coluna), `sticker_packs`, `stickers`, `call_participants`, `watch_rooms`, `watch_room_members`, `watch_room_state`, `watch_room_messages`.
-- **Realtime**: presença por conversa (typing/recording), broadcast para sinalização WebRTC e para estado do watch room.
-- **APIs externas**: Tenor (GIFs) — pedirei chave via `add_secret` quando chegar a hora; YouTube IFrame API (sem chave).
-- **Sem violação de DRM**: nenhum stream Netflix/Disney/etc. é reproduzido dentro do app; apenas co-watch com timer + chat.
-- **Chamadas**: mesh WebRTC via STUN público já configurado; sem TURN (grupos privados em mesma rede podem falhar — trato só se ocorrer).
+**Arquitetura preparada para múltiplas plataformas** (interface `Provider` com métodos `mount/play/pause/seek/getState`), mas nesta entrega apenas YouTube é implementado.
+
+**Backend (migração):**
+- `watch_rooms` (id, host_id, provider text default 'youtube', video_id text, title text, is_private bool, invite_code text unique, created_at, closed_at)
+- `watch_room_members` (room_id, user_id, joined_at, left_at, is_host bool) — PK composta
+- `watch_room_state` (room_id PK, position_sec numeric, playing bool, updated_at, updated_by uuid) — 1 linha por sala; upsert
+- `watch_room_messages` (id, room_id, sender_id, content, kind, media_url, created_at)
+- Todas com RLS: SELECT/INSERT/UPDATE só para membros da sala; host pode fechar sala e transferir host.
+- Função `is_room_member(_room, _user)` SECURITY DEFINER.
+- Função `transfer_host(_room, _new_host)` que valida caller = host atual.
+- GRANTs completos.
+- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE watch_room_state, watch_room_messages, watch_room_members`.
+
+**Frontend:**
+- Nova rota `_authenticated/watch.tsx` — lista salas do usuário + botão "Criar sala" e "Entrar por código/link".
+- Nova rota `_authenticated/watch.$roomId.tsx` — sala de streaming.
+  - Painel esquerdo: player YouTube (IFrame API, sem chave), controles Play/Pause/Seek/±10s.
+  - Painel direito (empilhado no mobile): abas Chat / Participantes.
+  - Header: título + código de convite copiável + botão sair.
+  - Ao entrar: `INSERT` em `watch_room_members`; ao sair/unmount: `UPDATE left_at`.
+  - Se todos saírem: trigger no backend fecha a sala (`closed_at`).
+- Sincronização:
+  - Host escreve em `watch_room_state` a cada play/pause/seek e a cada 5s (heartbeat).
+  - Convidados assinam Realtime em `watch_room_state`; se drift > 1.5s, `seekTo`; ajuste de play/pause.
+  - Host pode ser transferido via botão "Passar comando" na lista de participantes (chama `transfer_host`).
+  - Qualquer membro pode "pedir controle" (mensagem no chat com botão de aceitar do host) OU controle liberado (flag `open_control` na sala — decisão: liberado por padrão em sala privada).
+- Chat: reusa padrão de `chat_messages`, tabela dedicada `watch_room_messages` para isolar.
+- Voz/vídeo opcional: botão "Iniciar chamada de voz/vídeo" na sala — reusa mesh WebRTC 1:1 já existente para até 2 pessoas nesta entrega (grupos completos ficam na Fase 3 seguinte). Se a sala tem mais de 2, botão fica desabilitado com tooltip "Chamada em grupo em breve".
+- Convite: link `/watch/<code>` (rota pública que redireciona para `/watch/$roomId` após login).
+- Entrada no bottom nav: nova aba "Assistir" (ícone Tv) OU item no menu +. Decisão: adicionar ao menu + para não sobrecarregar o nav.
+- Fullscreen: usa Fullscreen API sobre o container do player; sincronização continua funcionando.
+
+**Preparação para outras plataformas** (não implementado agora, só estrutura):
+- Interface `WatchProvider` em `src/lib/watch/provider.ts` com `youtube.ts` implementando.
+- Futuro: `co-watch.ts` para Netflix/Disney+ apenas com timer compartilhado.
 
 ---
 
-### Verificação por fase
-
-- Build limpo (`tsgo`/vite).
-- Playwright headless: fluxo crítico de cada fase (enviar áudio, criar enquete, iniciar chamada em grupo, criar sala YouTube e sincronizar seek entre 2 abas).
-- Screenshots das telas novas.
+### Verificação
+- `tsgo` limpo.
+- Playwright: abrir 2 abas, criar sala com vídeo YouTube, dar play numa e verificar sync na outra; testar transferência de host; testar chat.
+- Testar chamada de voz em 2 abas com áudio real (verificar `srcObject` e nível).
+- Testar like/comentário: curtir → recarregar → contador correto; comentar → aparece.
 
 ---
 
-**Confirmando: começo pela Fase 1 (chat + UI) assim que você aprovar este plano. Ao final dela peço aprovação para seguir para a Fase 2.**
+### Arquivos principais
+- **Migração**: `supabase/migrations/<timestamp>_watch_rooms.sql`
+- **Novo**: `src/routes/_authenticated/watch.tsx`, `src/routes/_authenticated/watch.$roomId.tsx`, `src/components/watch/*` (player, chat, participants, invite), `src/lib/watch/provider.ts`, `src/lib/watch/youtube.ts`
+- **Editar**: `src/components/call-provider.tsx`, `src/components/call-screen.tsx`, `src/lib/webrtc.ts` (renegociação, ICE restart, sinkId)
+- **Editar**: `src/components/post-card.tsx` (fix like), possivelmente migração de RLS/GRANT em `likes`/`comments` se faltar.
+
+---
+
+**Confirma para eu iniciar?** Se quiser priorizar apenas 1 ou 2 dessas frentes agora (por exemplo, fix de likes + áudio da chamada primeiro, Streaming Amigo depois), me diga.

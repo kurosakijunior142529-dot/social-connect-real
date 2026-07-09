@@ -33,14 +33,22 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
     mutationFn: async () => {
       if (!currentUserId) throw new Error("Not signed in");
       if (post.liked_by_me) {
-        await supabase.from("likes").delete().match({ user_id: currentUserId, post_id: post.id });
+        const { error } = await supabase
+          .from("likes")
+          .delete()
+          .match({ user_id: currentUserId, post_id: post.id });
+        if (error) throw error;
       } else {
-        await supabase.from("likes").insert({ user_id: currentUserId, post_id: post.id });
+        const { error } = await supabase
+          .from("likes")
+          .insert({ user_id: currentUserId, post_id: post.id });
+        if (error) throw error;
       }
     },
     onMutate: async () => {
       setPopKey((k) => k + 1);
       await queryClient.cancelQueries({ queryKey: ["feed"] });
+      const snapshot = queryClient.getQueriesData<FeedPost[] | undefined>({ queryKey: ["feed"] });
       queryClient.setQueriesData<FeedPost[] | undefined>({ queryKey: ["feed"] }, (old) =>
         old?.map((p) =>
           p.id === post.id
@@ -52,8 +60,12 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
             : p,
         ),
       );
+      return { snapshot };
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["feed"] }),
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.snapshot) for (const [key, data] of ctx.snapshot) queryClient.setQueryData(key, data);
+    },
+    // No invalidate on every click — refetch would race with the optimistic state before the row is visible via RLS.
   });
 
   const author = post.author;

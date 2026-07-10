@@ -28,6 +28,9 @@ import { PinnedSheet } from "@/components/chat/pinned-sheet";
 import { ChatSearchBar } from "@/components/chat/search-bar";
 import { TypingIndicator, useConversationPresence } from "@/components/chat/typing-indicator";
 import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
+import { GifPicker } from "@/components/chat/gif-picker";
+import { captureVideoPoster } from "@/lib/media/video-thumbnail";
+import { Sticker } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,
@@ -154,6 +157,21 @@ function ConversationPage() {
       const bucket = bucketForFile(file);
       const kind = kindForFile(file);
       const { path } = await uploadChatFile(user.id, file, bucket);
+      let poster_url: string | null = null;
+      if (kind === "video") {
+        try {
+          const posterBlob = await captureVideoPoster(file);
+          if (posterBlob) {
+            const posterUpload = await uploadChatFile(
+              user.id,
+              posterBlob,
+              bucket,
+              `${crypto.randomUUID()}.jpg`,
+            );
+            poster_url = posterUpload.path;
+          }
+        } catch { /* ignore poster failure */ }
+      }
       await sendPayload({
         kind,
         media_url: path,
@@ -161,11 +179,23 @@ function ConversationPage() {
         media_type: file.type || null,
         media_name: file.name,
         media_size: file.size,
+        poster_url,
       });
       toast.success("Enviado", { id: toastId });
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao enviar", { id: toastId });
     }
+  }
+
+  async function handleGif(g: { url: string; w: number; h: number; alt: string }) {
+    if (isBlockedPair) return;
+    await sendPayload({
+      kind: "gif",
+      media_url: g.url,
+      media_type: "image/gif",
+      content: g.alt,
+      meta: { w: g.w, h: g.h },
+    });
   }
 
   async function handleAudio(file: File, durationMs: number) {
@@ -509,6 +539,19 @@ function ConversationPage() {
         className="p-3 hairline-t bg-background flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
+        <GifPicker
+          onPick={handleGif}
+          trigger={
+            <button
+              type="button"
+              disabled={isBlockedPair}
+              aria-label="GIF"
+              className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+            >
+              <Sticker className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </button>
+          }
+        />
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
           <Input

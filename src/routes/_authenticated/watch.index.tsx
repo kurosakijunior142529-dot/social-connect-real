@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tv, Plus, LogIn } from "lucide-react";
-import { extractYouTubeId } from "@/lib/watch/provider";
+import { resolveSource } from "@/lib/watch/provider";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -20,6 +20,7 @@ function WatchIndex() {
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
   const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const myRooms = useQuery({
@@ -34,7 +35,7 @@ function WatchIndex() {
       if (!ids.length) return [];
       const { data } = await (supabase as any)
         .from("watch_rooms")
-        .select("id, title, video_id, invite_code, host_id, created_at, closed_at")
+        .select("id, title, video_id, invite_code, host_id, created_at, closed_at, provider")
         .in("id", ids)
         .is("closed_at", null)
         .order("created_at", { ascending: false });
@@ -45,19 +46,21 @@ function WatchIndex() {
   async function createRoom(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const videoId = extractYouTubeId(videoInput);
-    if (!videoId) {
-      setError("Cole um link válido do YouTube ou um ID de vídeo.");
+    const src = resolveSource(videoInput);
+    if (!src) {
+      setError("Cole um link válido do YouTube ou Twitch (canal ou vídeo).");
       return;
     }
     setCreating(true);
+    // Encode video_id: youtube → id, twitch → "channel:name" or "video:id"
+    const videoId = src.provider === "youtube" ? src.videoId : `${src.kind}:${src.id}`;
     const { data, error: err } = await (supabase as any)
       .from("watch_rooms")
       .insert({
         host_id: user.id,
-        provider: "youtube",
+        provider: src.provider,
         video_id: videoId,
-        title: title || "Sala de assistir",
+        title: title || (src.provider === "twitch" ? `Twitch: ${src.id}` : "Sala de assistir"),
       })
       .select("id")
       .single();
@@ -74,21 +77,17 @@ function WatchIndex() {
     setError(null);
     const c = code.trim();
     if (!c) return;
-    const { data } = await (supabase as any)
-      .from("watch_rooms")
-      .select("id")
-      .eq("invite_code", c)
-      .is("closed_at", null)
-      .maybeSingle();
-    if (!data) {
-      setError("Sala não encontrada ou já encerrada.");
+    setJoining(true);
+    const { data, error: err } = await (supabase as any).rpc("join_watch_room_by_code", {
+      _code: c,
+    });
+    setJoining(false);
+    const roomId = Array.isArray(data) ? data[0]?.room_id : data?.room_id;
+    if (err || !roomId) {
+      setError(err?.message?.includes("Room not found") ? "Sala não encontrada." : err?.message ?? "Falha ao entrar.");
       return;
     }
-    // Ensure membership row exists (RLS will reject a room they can't see, but we can insert as self)
-    await (supabase as any)
-      .from("watch_room_members")
-      .upsert({ room_id: data.id, user_id: user.id, left_at: null }, { onConflict: "room_id,user_id" });
-    navigate({ to: "/watch/$roomId", params: { roomId: data.id } });
+    navigate({ to: "/watch/$roomId", params: { roomId } });
   }
 
   return (
@@ -107,7 +106,7 @@ function WatchIndex() {
           </div>
           <form onSubmit={createRoom} className="space-y-2">
             <Input
-              placeholder="Link do YouTube ou ID do vídeo"
+              placeholder="Link do YouTube, Twitch (canal ou vídeo) ou ID"
               value={videoInput}
               onChange={(e) => setVideoInput(e.target.value)}
               required
@@ -120,6 +119,11 @@ function WatchIndex() {
             <Button type="submit" disabled={creating} className="w-full">
               {creating ? "Criando…" : "Criar e entrar"}
             </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Ex.: <code>https://youtu.be/dQw4w9WgXcQ</code>,{" "}
+              <code>https://twitch.tv/shroud</code>,{" "}
+              <code>https://twitch.tv/videos/12345678</code>
+            </p>
           </form>
         </section>
 
@@ -134,7 +138,9 @@ function WatchIndex() {
               onChange={(e) => setCode(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit" variant="secondary">Entrar</Button>
+            <Button type="submit" variant="secondary" disabled={joining}>
+              {joining ? "…" : "Entrar"}
+            </Button>
           </form>
         </section>
 
@@ -148,32 +154,46 @@ function WatchIndex() {
             <p className="text-sm text-muted-foreground">Você ainda não tem salas ativas.</p>
           ) : (
             <ul className="space-y-2">
-              {myRooms.data.map((r: any) => (
-                <li key={r.id}>
-                  <Link
-                    to="/watch/$roomId"
-                    params={{ roomId: r.id }}
-                    className="block rounded-xl bg-[color:var(--surface)] p-3 hover:bg-[color:var(--surface-2)] transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-20 rounded-lg overflow-hidden bg-black shrink-0">
-                        <img
-                          src={`https://i.ytimg.com/vi/${r.video_id}/hqdefault.jpg`}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-semibold text-sm truncate">{r.title ?? "Sala"}</div>
-                        <div className="text-[12px] text-muted-foreground">
-                          Código: <span className="font-mono">{r.invite_code}</span> ·{" "}
-                          {formatDistanceToNowStrict(new Date(r.created_at), { locale: ptBR, addSuffix: true })}
+              {myRooms.data.map((r: any) => {
+                const isYT = r.provider === "youtube";
+                const twitchChannel = r.video_id?.startsWith("channel:")
+                  ? r.video_id.split(":")[1]
+                  : null;
+                return (
+                  <li key={r.id}>
+                    <Link
+                      to="/watch/$roomId"
+                      params={{ roomId: r.id }}
+                      className="block rounded-xl bg-[color:var(--surface)] p-3 hover:bg-[color:var(--surface-2)] transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-20 rounded-lg overflow-hidden bg-black shrink-0 grid place-items-center text-[10px] text-white/70">
+                          {isYT ? (
+                            <img
+                              src={`https://i.ytimg.com/vi/${r.video_id}/hqdefault.jpg`}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span>{twitchChannel ? `@${twitchChannel}` : "TWITCH"}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-sm truncate">{r.title ?? "Sala"}</div>
+                          <div className="text-[12px] text-muted-foreground">
+                            {r.provider} · Código:{" "}
+                            <span className="font-mono">{r.invite_code}</span> ·{" "}
+                            {formatDistanceToNowStrict(new Date(r.created_at), {
+                              locale: ptBR,
+                              addSuffix: true,
+                            })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

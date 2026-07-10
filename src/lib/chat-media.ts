@@ -27,10 +27,12 @@ export function kindForFile(file: File): ChatMessageKind {
 
 export async function uploadChatFile(
   userId: string,
-  file: File,
-  bucket: ChatBucket = bucketForFile(file),
+  file: File | Blob,
+  bucket: ChatBucket = file instanceof File ? bucketForFile(file) : "chats",
+  filename?: string,
 ): Promise<{ bucket: ChatBucket; path: string }> {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+  const name = filename ?? (file instanceof File ? file.name : "blob");
+  const ext = name.split(".").pop()?.toLowerCase() ?? "bin";
   const path = `${userId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: "3600",

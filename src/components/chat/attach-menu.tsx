@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Paperclip, Image as ImageIcon, Film, FileText, MapPin } from "lucide-react";
+import { Paperclip, Image as ImageIcon, Film, FileText, MapPin, Sticker } from "lucide-react";
 import { toast } from "sonner";
 
 const MAX_MB = 50;
@@ -8,10 +8,12 @@ const MAX_MB = 50;
 export function AttachMenu({
   onFile,
   onLocation,
+  onOpenGifs,
   disabled,
 }: {
   onFile: (file: File) => void | Promise<void>;
   onLocation: (coords: { lat: number; lng: number }) => void | Promise<void>;
+  onOpenGifs?: () => void;
   disabled?: boolean;
 }) {
   const photo = useRef<HTMLInputElement>(null);
@@ -55,6 +57,7 @@ export function AttachMenu({
   const items: { label: string; icon: React.ReactNode; onClick: () => void }[] = [
     { label: "Foto", icon: <ImageIcon className="h-5 w-5" />, onClick: () => pick(photo) },
     { label: "Vídeo", icon: <Film className="h-5 w-5" />, onClick: () => pick(video) },
+    { label: "GIF", icon: <Sticker className="h-5 w-5" />, onClick: () => onOpenGifs?.() },
     { label: "Documento", icon: <FileText className="h-5 w-5" />, onClick: () => pick(doc) },
     { label: "Localização", icon: <MapPin className="h-5 w-5" />, onClick: shareLocation },
   ];
@@ -71,19 +74,19 @@ export function AttachMenu({
           <Paperclip className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
       </PopoverTrigger>
-      <PopoverContent side="top" align="start" className="w-56 p-2 glass border-white/10">
-        <div className="grid grid-cols-2 gap-1">
+      <PopoverContent side="top" align="start" className="w-64 p-2 glass border-white/10">
+        <div className="grid grid-cols-3 gap-1">
           {items.map((it) => (
             <button
               key={it.label}
               type="button"
               onClick={it.onClick}
-              className="flex flex-col items-center gap-1.5 rounded-xl px-3 py-3 hover:bg-white/10 transition"
+              className="flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 hover:bg-white/10 transition"
             >
               <div className="h-9 w-9 rounded-full bg-primary/15 text-primary grid place-items-center">
                 {it.icon}
               </div>
-              <span className="text-[12px]">{it.label}</span>
+              <span className="text-[11px]">{it.label}</span>
             </button>
           ))}
         </div>
@@ -94,3 +97,4 @@ export function AttachMenu({
     </Popover>
   );
 }
+

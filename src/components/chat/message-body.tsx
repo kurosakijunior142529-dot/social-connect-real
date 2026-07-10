@@ -14,6 +14,7 @@ type Msg = {
   media_name?: string | null;
   media_size?: number | null;
   media_duration_ms?: number | null;
+  poster_url?: string | null;
   meta?: any;
 };
 
@@ -29,6 +30,7 @@ function useChatSigned(bucket: string | null | undefined, path: string | null | 
 export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   const kind = msg.kind ?? "text";
 
+  if (kind === "gif") return <GifBody msg={msg} />;
   if (kind === "image") return <ImageBody msg={msg} />;
   if (kind === "video") return <VideoBody msg={msg} />;
   if (kind === "audio") return <AudioBody msg={msg} mine={mine} />;
@@ -37,8 +39,23 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   return <span>{msg.content}</span>;
 }
 
+function GifBody({ msg }: { msg: Msg }) {
+  const src = msg.media_url ?? "";
+  const w = msg.meta?.w as number | undefined;
+  const h = msg.meta?.h as number | undefined;
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={msg.content ?? "gif"}
+      loading="lazy"
+      className="rounded-xl max-h-72 max-w-full"
+      style={{ aspectRatio: w && h ? `${w}/${h}` : undefined }}
+    />
+  );
+}
+
 function ImageBody({ msg }: { msg: Msg }) {
-  // legacy "posts" bucket path or new "chats"
   const bucket = msg.media_bucket || (msg.media_url?.startsWith("http") ? null : "chats");
   const signed = useSignedUrl(bucket as any, msg.media_url ?? null);
   const src = msg.media_url?.startsWith("http") ? msg.media_url : signed.data ?? null;
@@ -53,11 +70,19 @@ function ImageBody({ msg }: { msg: Msg }) {
 
 function VideoBody({ msg }: { msg: Msg }) {
   const signed = useChatSigned(msg.media_bucket, msg.media_url);
+  const poster = useChatSigned(msg.media_bucket, msg.poster_url);
   const src = signed.data;
   if (!src) return <div className="w-56 h-40 rounded-xl bg-black/20 animate-pulse" />;
   return (
     <div>
-      <video src={src} controls className="rounded-xl max-h-80 w-full" preload="metadata" />
+      <video
+        src={src}
+        poster={poster.data ?? undefined}
+        controls
+        className="rounded-xl max-h-80 w-full bg-black"
+        preload="metadata"
+        playsInline
+      />
       {msg.content ? <div className="mt-1 text-[13px]">{msg.content}</div> : null}
     </div>
   );

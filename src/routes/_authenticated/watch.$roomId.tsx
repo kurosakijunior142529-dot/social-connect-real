@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/user-avatar";
 import { createYouTubePlayer } from "@/lib/watch/youtube";
+import { createTwitchPlayer } from "@/lib/watch/twitch";
 import type { WatchProviderPlayer } from "@/lib/watch/provider";
 import {
   Copy,
@@ -172,37 +173,46 @@ function WatchRoomPage() {
     };
   }, [roomId, queryClient]);
 
-  // Mount YouTube player once
+  // Mount player once (YouTube or Twitch based on room.provider)
   useEffect(() => {
     if (!room || !playerContainerRef.current) return;
     if (playerRef.current) return;
     let cancelled = false;
-    createYouTubePlayer(playerContainerRef.current, room.video_id, {
-      onReady: (p) => {
-        if (cancelled) {
-          p.destroy();
-          return;
-        }
-        playerRef.current = p;
-        setPlayerReady(true);
-      },
-      onStateChange: (s) => {
-        // If host, broadcast play/pause changes
-        if (!isHost || suppressBroadcastRef.current) return;
-        const p = playerRef.current;
-        if (!p) return;
-        if (s === "playing" || s === "paused") {
-          void writeState(s === "playing", p.getCurrentTime());
-        }
-      },
-    });
+    const onReady = (p: WatchProviderPlayer) => {
+      if (cancelled) {
+        p.destroy();
+        return;
+      }
+      playerRef.current = p;
+      setPlayerReady(true);
+    };
+    const onStateChange = (s: string) => {
+      if (!isHost || suppressBroadcastRef.current) return;
+      const p = playerRef.current;
+      if (!p) return;
+      if (s === "playing" || s === "paused") {
+        void writeState(s === "playing", p.getCurrentTime());
+      }
+    };
+    if (room.provider === "twitch") {
+      const raw = room.video_id ?? "";
+      const [kind, id] = raw.split(":");
+      if (id && (kind === "channel" || kind === "video")) {
+        void createTwitchPlayer(playerContainerRef.current, { kind, id }, { onReady, onStateChange });
+      }
+    } else {
+      void createYouTubePlayer(playerContainerRef.current, room.video_id, {
+        onReady,
+        onStateChange: (s) => onStateChange(s),
+      });
+    }
     return () => {
       cancelled = true;
       playerRef.current?.destroy();
       playerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room?.video_id]);
+  }, [room?.video_id, room?.provider]);
 
   const writeState = useCallback(
     async (playing: boolean, position: number) => {

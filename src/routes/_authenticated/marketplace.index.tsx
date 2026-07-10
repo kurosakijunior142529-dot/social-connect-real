@@ -4,9 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Store, Plus, Search, Heart, Bookmark, MapPin } from "lucide-react";
+import { Store, Plus, Search, Bookmark, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSignedUrl } from "@/hooks/use-signed-url";
 
 export const Route = createFileRoute("/_authenticated/marketplace/")({
   component: MarketplaceIndex,
@@ -147,8 +146,6 @@ function ListingCard({ listing, saved }: { listing: any; saved: boolean }) {
     const imgs = (listing.listing_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);
     return imgs[0]?.storage_path ?? null;
   }, [listing.listing_images]);
-  const signed = useSignedUrl("posts" as any, null);
-  const marketplaceUrl = useSignedUrl("chats" as any, null); // placeholder wiring
   const url = useMarketplaceSigned(cover);
   const price = (listing.price_cents ?? 0) / 100;
   return (

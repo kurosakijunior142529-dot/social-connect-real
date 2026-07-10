@@ -21,11 +21,14 @@ import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
 import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
+import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_authenticated/marketplace.index'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
 import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.$id'
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages.$conversationId'
+import { Route as AuthenticatedMarketplaceNewRouteImport } from './routes/_authenticated/marketplace.new'
+import { Route as AuthenticatedMarketplaceIdRouteImport } from './routes/_authenticated/marketplace.$id'
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 
@@ -90,6 +93,12 @@ const AuthenticatedMessagesIndexRoute =
     path: '/messages/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMarketplaceIndexRoute =
+  AuthenticatedMarketplaceIndexRouteImport.update({
+    id: '/marketplace/',
+    path: '/marketplace/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWatchRoomIdRoute =
   AuthenticatedWatchRoomIdRouteImport.update({
     id: '/watch/$roomId',
@@ -117,6 +126,18 @@ const AuthenticatedMessagesConversationIdRoute =
     path: '/messages/$conversationId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMarketplaceNewRoute =
+  AuthenticatedMarketplaceNewRouteImport.update({
+    id: '/marketplace/new',
+    path: '/marketplace/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMarketplaceIdRoute =
+  AuthenticatedMarketplaceIdRouteImport.update({
+    id: '/marketplace/$id',
+    path: '/marketplace/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedChatsNewRoute = AuthenticatedChatsNewRouteImport.update({
   id: '/chats/new',
   path: '/chats/new',
@@ -140,11 +161,14 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AuthIndexRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
+  '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
+  '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
   '/watch/': typeof AuthenticatedWatchIndexRoute
 }
@@ -160,11 +184,14 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthIndexRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
+  '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
+  '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
   '/watch': typeof AuthenticatedWatchIndexRoute
 }
@@ -182,11 +209,14 @@ export interface FileRoutesById {
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
   '/_authenticated/chats/new': typeof AuthenticatedChatsNewRoute
+  '/_authenticated/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
+  '/_authenticated/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/_authenticated/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/_authenticated/p/$id': typeof AuthenticatedPIdRoute
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRoute
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
 }
@@ -204,11 +234,14 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/chats/$id'
     | '/chats/new'
+    | '/marketplace/$id'
+    | '/marketplace/new'
     | '/messages/$conversationId'
     | '/p/$id'
     | '/stories/new'
     | '/u/$username'
     | '/watch/$roomId'
+    | '/marketplace/'
     | '/messages/'
     | '/watch/'
   fileRoutesByTo: FileRoutesByTo
@@ -224,11 +257,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chats/$id'
     | '/chats/new'
+    | '/marketplace/$id'
+    | '/marketplace/new'
     | '/messages/$conversationId'
     | '/p/$id'
     | '/stories/new'
     | '/u/$username'
     | '/watch/$roomId'
+    | '/marketplace'
     | '/messages'
     | '/watch'
   id:
@@ -245,11 +281,14 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/_authenticated/chats/$id'
     | '/_authenticated/chats/new'
+    | '/_authenticated/marketplace/$id'
+    | '/_authenticated/marketplace/new'
     | '/_authenticated/messages/$conversationId'
     | '/_authenticated/p/$id'
     | '/_authenticated/stories/new'
     | '/_authenticated/u/$username'
     | '/_authenticated/watch/$roomId'
+    | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
     | '/_authenticated/watch/'
   fileRoutesById: FileRoutesById
@@ -346,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessagesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/marketplace/': {
+      id: '/_authenticated/marketplace/'
+      path: '/marketplace'
+      fullPath: '/marketplace/'
+      preLoaderRoute: typeof AuthenticatedMarketplaceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/watch/$roomId': {
       id: '/_authenticated/watch/$roomId'
       path: '/watch/$roomId'
@@ -381,6 +427,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessagesConversationIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/marketplace/new': {
+      id: '/_authenticated/marketplace/new'
+      path: '/marketplace/new'
+      fullPath: '/marketplace/new'
+      preLoaderRoute: typeof AuthenticatedMarketplaceNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/marketplace/$id': {
+      id: '/_authenticated/marketplace/$id'
+      path: '/marketplace/$id'
+      fullPath: '/marketplace/$id'
+      preLoaderRoute: typeof AuthenticatedMarketplaceIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/chats/new': {
       id: '/_authenticated/chats/new'
       path: '/chats/new'
@@ -408,11 +468,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedChatsIdRoute: typeof AuthenticatedChatsIdRoute
   AuthenticatedChatsNewRoute: typeof AuthenticatedChatsNewRoute
+  AuthenticatedMarketplaceIdRoute: typeof AuthenticatedMarketplaceIdRoute
+  AuthenticatedMarketplaceNewRoute: typeof AuthenticatedMarketplaceNewRoute
   AuthenticatedMessagesConversationIdRoute: typeof AuthenticatedMessagesConversationIdRoute
   AuthenticatedPIdRoute: typeof AuthenticatedPIdRoute
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRoute
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
+  AuthenticatedMarketplaceIndexRoute: typeof AuthenticatedMarketplaceIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
   AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
 }
@@ -427,12 +490,15 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedChatsIdRoute: AuthenticatedChatsIdRoute,
   AuthenticatedChatsNewRoute: AuthenticatedChatsNewRoute,
+  AuthenticatedMarketplaceIdRoute: AuthenticatedMarketplaceIdRoute,
+  AuthenticatedMarketplaceNewRoute: AuthenticatedMarketplaceNewRoute,
   AuthenticatedMessagesConversationIdRoute:
     AuthenticatedMessagesConversationIdRoute,
   AuthenticatedPIdRoute: AuthenticatedPIdRoute,
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRoute,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
+  AuthenticatedMarketplaceIndexRoute: AuthenticatedMarketplaceIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
   AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
 }

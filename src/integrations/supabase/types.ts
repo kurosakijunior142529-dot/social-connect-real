@@ -157,6 +157,7 @@ export type Database = {
           meta: Json
           pinned_at: string | null
           pinned_by: string | null
+          poster_url: string | null
           read_at: string | null
           reply_to: string | null
           sender_id: string
@@ -179,6 +180,7 @@ export type Database = {
           meta?: Json
           pinned_at?: string | null
           pinned_by?: string | null
+          poster_url?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id: string
@@ -201,6 +203,7 @@ export type Database = {
           meta?: Json
           pinned_at?: string | null
           pinned_by?: string | null
+          poster_url?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
@@ -390,6 +393,164 @@ export type Database = {
           },
         ]
       }
+      listing_categories: {
+        Row: {
+          emoji: string | null
+          id: string
+          label: string
+          position: number
+        }
+        Insert: {
+          emoji?: string | null
+          id: string
+          label: string
+          position?: number
+        }
+        Update: {
+          emoji?: string | null
+          id?: string
+          label?: string
+          position?: number
+        }
+        Relationships: []
+      }
+      listing_images: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          position: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          position?: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          position?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_images_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_likes: {
+        Row: {
+          created_at: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_likes_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_saves: {
+        Row: {
+          created_at: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_saves_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          category_id: string | null
+          city: string | null
+          condition: string
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          price_cents: number
+          seller_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          city?: string | null
+          condition?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          price_cents?: number
+          seller_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          city?: string | null
+          condition?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          price_cents?: number
+          seller_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "listing_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_edits: {
         Row: {
           edited_at: string
@@ -468,6 +629,7 @@ export type Database = {
           meta: Json
           pinned_at: string | null
           pinned_by: string | null
+          poster_url: string | null
           read_at: string | null
           reply_to: string | null
           sender_id: string
@@ -490,6 +652,7 @@ export type Database = {
           meta?: Json
           pinned_at?: string | null
           pinned_by?: string | null
+          poster_url?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id: string
@@ -512,6 +675,7 @@ export type Database = {
           meta?: Json
           pinned_at?: string | null
           pinned_by?: string | null
+          poster_url?: string | null
           read_at?: string | null
           reply_to?: string | null
           sender_id?: string
@@ -644,6 +808,7 @@ export type Database = {
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
           media_url: string
+          thumbnail_url: string | null
         }
         Insert: {
           author_id: string
@@ -652,6 +817,7 @@ export type Database = {
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url: string
+          thumbnail_url?: string | null
         }
         Update: {
           author_id?: string
@@ -660,6 +826,7 @@ export type Database = {
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url?: string
+          thumbnail_url?: string | null
         }
         Relationships: []
       }
@@ -1101,6 +1268,12 @@ export type Database = {
       is_watch_member: {
         Args: { _room: string; _user: string }
         Returns: boolean
+      }
+      join_watch_room_by_code: {
+        Args: { _code: string }
+        Returns: {
+          room_id: string
+        }[]
       }
       notify_user: {
         Args: {

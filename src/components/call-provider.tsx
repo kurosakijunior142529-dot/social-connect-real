@@ -106,18 +106,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const remote = new MediaStream();
       setRemoteStream(remote);
       pc.ontrack = (ev) => {
-        // add tracks from the primary stream; do NOT recreate the MediaStream
-        // (recreating resets srcObject and cuts audio on some browsers).
+        // Add incoming tracks to the persistent MediaStream.
         const src = ev.streams[0];
-        if (src) {
-          src.getTracks().forEach((t) => {
-            if (!remote.getTracks().find((rt) => rt.id === t.id)) remote.addTrack(t);
-          });
-        } else if (ev.track) {
-          if (!remote.getTracks().find((rt) => rt.id === ev.track.id)) remote.addTrack(ev.track);
+        const incoming = src ? src.getTracks() : ev.track ? [ev.track] : [];
+        for (const t of incoming) {
+          if (!remote.getTracks().find((rt) => rt.id === t.id)) remote.addTrack(t);
         }
-        // trigger effect re-run in consumers by re-setting the same stream reference
-        setRemoteStream(remote);
+        // Force a new reference so React re-runs effects (audio sink .play()).
+        setRemoteStream(new MediaStream(remote.getTracks()));
       };
 
       // Auto-recover on ICE failures

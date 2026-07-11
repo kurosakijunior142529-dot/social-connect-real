@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { signChatUrl, humanFileSize, formatDuration, type ChatBucket } from "@/lib/chat-media";
 import { useQuery } from "@tanstack/react-query";
@@ -135,7 +135,7 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
     else audio.pause();
   }
 
-  function seek(e: React.MouseEvent<HTMLButtonElement>) {
+  function seek(e: MouseEvent<HTMLButtonElement>) {
     const audio = audioRef.current;
     if (!audio) return;
     const rect = e.currentTarget.getBoundingClientRect();

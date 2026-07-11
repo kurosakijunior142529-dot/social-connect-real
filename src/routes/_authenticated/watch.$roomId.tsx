@@ -12,6 +12,7 @@ import {
   Copy,
   Crown,
   DoorOpen,
+  Link2,
   Maximize2,
   MessageCircle,
   Pause,
@@ -310,7 +311,7 @@ function WatchRoomPage() {
   }
 
   const inviteLink = useMemo(
-    () => (room ? `${typeof window !== "undefined" ? window.location.origin : ""}/watch` : ""),
+    () => (room ? `${typeof window !== "undefined" ? window.location.origin : ""}/watch?code=${encodeURIComponent(room.invite_code)}` : ""),
     [room],
   );
 
@@ -322,20 +323,31 @@ function WatchRoomPage() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row md:h-[calc(100vh-2rem)]">
+    <div className="flex flex-col gap-3 md:flex-row md:h-[calc(100vh-2rem)]">
       {/* Player pane */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center gap-2 px-3 py-2 hairline-b glass-heavy sticky top-0 z-10">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)]">
+        <header className="flex items-center gap-2 px-3 py-3 hairline-b glass-heavy sticky top-0 z-10">
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-sm truncate">{room.title ?? "Sala de assistir"}</div>
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-primary">
+              <span>{room.provider}</span>
+              <span>·</span>
+              <span>{membersQuery.data?.length ?? 1} online</span>
+            </div>
+            <div className="font-semibold text-base truncate">{room.title ?? "Sala de assistir"}</div>
             <button
               type="button"
-              onClick={copyCode}
+              onClick={() => {
+                navigator.clipboard.writeText(inviteLink).then(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                });
+              }}
               className="text-[12px] text-muted-foreground flex items-center gap-1 hover:text-foreground"
-              title="Copiar código de convite"
+              title="Copiar link de convite"
             >
-              <span className="font-mono">{room.invite_code}</span>
-              <Copy className="h-3 w-3" /> {copied ? "copiado!" : ""}
+              <Link2 className="h-3 w-3" />
+              <span className="font-mono truncate">{room.invite_code}</span>
+              <Copy className="h-3 w-3" /> {copied ? "link copiado!" : ""}
             </button>
           </div>
           <button
@@ -355,11 +367,16 @@ function WatchRoomPage() {
 
         <div className="relative bg-black aspect-video md:aspect-auto md:flex-1">
           <div ref={playerContainerRef} className="absolute inset-0" />
+          {!playerReady ? (
+            <div className="absolute inset-0 grid place-items-center bg-black text-sm text-white/70">
+              Preparando player…
+            </div>
+          ) : null}
         </div>
 
         {/* Host controls */}
         {isHost ? (
-          <div className="flex items-center justify-center gap-2 py-2 hairline-t bg-[color:var(--surface)]">
+          <div className="flex items-center justify-center gap-2 py-3 hairline-t bg-[color:var(--surface)]">
             <Button
               variant="secondary"
               size="sm"
@@ -417,8 +434,8 @@ function WatchRoomPage() {
       </div>
 
       {/* Chat + people pane */}
-      <aside className="md:w-96 md:border-l md:border-[color:var(--hairline)] flex flex-col md:h-full max-h-[70vh] md:max-h-none">
-        <div className="flex hairline-b">
+      <aside className="md:w-[390px] overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] flex flex-col md:h-full max-h-[70vh] md:max-h-none shadow-elegant">
+        <div className="flex hairline-b bg-[color:var(--surface-2)]/55">
           <TabBtn active={tab === "chat"} onClick={() => setTab("chat")} icon={<MessageCircle className="h-4 w-4" />}>
             Chat
           </TabBtn>
@@ -429,7 +446,7 @@ function WatchRoomPage() {
 
         {tab === "chat" ? (
           <>
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-[280px]">
+            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 min-h-[280px] bg-[radial-gradient(circle_at_20%_0%,rgba(215,255,58,0.06),transparent_28%)]">
               {messagesQuery.data?.length ? (
                 messagesQuery.data.map((m: any) => (
                   <div key={m.id} className="flex items-start gap-2">
@@ -438,14 +455,14 @@ function WatchRoomPage() {
                       displayName={m.profile?.display_name ?? m.profile?.username ?? "?"}
                       className="h-7 w-7"
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[12px] font-semibold truncate">
+                    <div className="min-w-0 flex-1 rounded-2xl bg-background px-3 py-2">
+                      <div className="text-[12px] font-semibold truncate text-primary">
                         {m.profile?.display_name ?? m.profile?.username ?? "Usuário"}
                         <span className="ml-2 text-[10px] font-normal text-muted-foreground">
                           {formatDistanceToNowStrict(new Date(m.created_at), { locale: ptBR, addSuffix: true })}
                         </span>
                       </div>
-                      <div className="text-[13px] break-words">{m.content}</div>
+                      <div className="text-[13px] break-words leading-snug">{m.content}</div>
                     </div>
                   </div>
                 ))
@@ -455,14 +472,14 @@ function WatchRoomPage() {
                 </p>
               )}
             </div>
-            <form onSubmit={sendMessage} className="flex gap-2 p-2 hairline-t">
+            <form onSubmit={sendMessage} className="flex gap-2 p-3 hairline-t bg-[color:var(--surface)]">
               <Input
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Mensagem…"
-                className="flex-1"
+                className="flex-1 rounded-full bg-background"
               />
-              <Button type="submit" size="icon" aria-label="Enviar">
+              <Button type="submit" size="icon" aria-label="Enviar" className="rounded-full">
                 <Send className="h-4 w-4" />
               </Button>
             </form>
@@ -497,9 +514,12 @@ function WatchRoomPage() {
                 ) : null}
               </div>
             ))}
-            <div className="mt-4 p-3 rounded-xl bg-[color:var(--surface)] text-[12px] text-muted-foreground">
-              Convide amigos com o código <span className="font-mono text-foreground">{room.invite_code}</span> em{" "}
-              <span className="font-mono">{inviteLink}</span>.
+            <div className="mt-4 p-3 rounded-2xl bg-background text-[12px] text-muted-foreground">
+              <div className="mb-2 font-medium text-foreground">Convite da sala</div>
+              <div className="break-all font-mono">{inviteLink}</div>
+              <Button size="sm" variant="secondary" className="mt-3 rounded-full" onClick={copyCode}>
+                <Copy className="mr-1 h-3.5 w-3.5" /> Copiar código
+              </Button>
             </div>
           </div>
         )}

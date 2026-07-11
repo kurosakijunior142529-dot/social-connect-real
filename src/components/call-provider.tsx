@@ -407,11 +407,33 @@ export function CallProvider({ children }: { children: ReactNode }) {
   // Always-on hidden remote audio element. Guarantees audio playback even
   // when CallScreen conditionally mounts a <video> vs <audio> element.
   const audioSinkRef = useRef<HTMLAudioElement>(null);
+  const unlockAudioSink = useCallback(() => {
+    const el = audioSinkRef.current;
+    if (!el) return;
+    el.muted = false;
+    el.volume = 1;
+    void el.play().catch(() => {});
+  }, []);
+
+  const startCallWithAudioUnlock = useCallback(
+    async (other: OtherParty, type: CallType) => {
+      unlockAudioSink();
+      await startCall(other, type);
+    },
+    [startCall, unlockAudioSink],
+  );
+
+  const acceptIncomingWithAudioUnlock = useCallback(async () => {
+    unlockAudioSink();
+    await acceptIncoming();
+  }, [acceptIncoming, unlockAudioSink]);
+
   useEffect(() => {
     const el = audioSinkRef.current;
     if (!el) return;
     if (remoteStream) {
       if (el.srcObject !== remoteStream) el.srcObject = remoteStream;
+      el.muted = false;
       const p = el.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
     } else {
@@ -419,15 +441,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, [remoteStream]);
 
-  const value = useMemo<Ctx>(() => ({ startCall, activeCall: active }), [startCall, active]);
+  const value = useMemo<Ctx>(
+    () => ({ startCall: startCallWithAudioUnlock, activeCall: active }),
+    [startCallWithAudioUnlock, active],
+  );
 
   return (
     <CallContext.Provider value={value}>
       {children}
       {/* Hidden audio sink — always mounted while provider is alive */}
-      <audio ref={audioSinkRef} autoPlay playsInline className="hidden" />
+      <audio ref={audioSinkRef} autoPlay playsInline />
       {incoming ? (
-        <IncomingCallDialog incoming={incoming} onAccept={acceptIncoming} onReject={rejectIncoming} />
+        <IncomingCallDialog incoming={incoming} onAccept={acceptIncomingWithAudioUnlock} onReject={rejectIncoming} />
       ) : null}
       {active ? (
         <CallScreen

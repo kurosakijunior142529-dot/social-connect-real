@@ -1,5 +1,5 @@
 {
-  "name": "Vibely",
+  "name": "Vibely — sua rede social de verdade",
   "short_name": "Vibely",
   "id": "/",
   "description": "Compartilhe fotos e vídeos, siga amigos, converse em tempo real. Tudo em um só lugar.",
@@ -11,18 +11,21 @@
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
   "scope": "/",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
+  "prefer_related_applications": false,
   "categories": ["social", "entertainment", "photo"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/maskable-icon-512.png",
@@ -44,6 +47,13 @@
       "short_name": "Streaming",
       "description": "Criar ou entrar em uma sala para assistir junto",
       "url": "/watch",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Marketplace",
+      "short_name": "Market",
+      "description": "Comprar e vender no marketplace",
+      "url": "/marketplace",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]

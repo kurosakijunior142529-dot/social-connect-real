@@ -1,13 +1,18 @@
 {
   "name": "Vibely",
   "short_name": "Vibely",
+  "id": "/",
   "description": "Compartilhe fotos e vídeos, siga amigos, converse em tempo real. Tudo em um só lugar.",
+  "lang": "pt-BR",
+  "dir": "ltr",
   "theme_color": "#E8436B",
   "background_color": "#FEFDFB",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
   "scope": "/",
   "start_url": "/",
+  "categories": ["social", "entertainment", "photo"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -24,6 +29,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Conversas",
+      "short_name": "Chats",
+      "description": "Abrir mensagens e grupos",
+      "url": "/messages",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Streaming Amigo",
+      "short_name": "Streaming",
+      "description": "Criar ou entrar em uma sala para assistir junto",
+      "url": "/watch",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

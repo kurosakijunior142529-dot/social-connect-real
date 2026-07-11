@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CallScreen } from "@/components/call-screen";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
-import { createPeerConnection, getLocalMedia, stopStream } from "@/lib/webrtc";
+import { createPeerConnection, getCameraTrack, getLocalMedia, stopStream } from "@/lib/webrtc";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type CallType = "audio" | "video";
@@ -69,9 +69,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const videoSenderRef = useRef<RTCRtpSender | null>(null);
+  const facingModeRef = useRef<"user" | "environment">("user");
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const remoteDescSetRef = useRef(false);
   const callerReadyRef = useRef(false); // caller has already set up pc
+  const [connectionLabel, setConnectionLabel] = useState("Conectando");
 
   const teardown = useCallback(() => {
     if (channelRef.current) {
@@ -88,20 +91,27 @@ export function CallProvider({ children }: { children: ReactNode }) {
     localStreamRef.current = null;
     setLocalStream(null);
     setRemoteStream(null);
+    videoSenderRef.current = null;
+    facingModeRef.current = "user";
     pendingIceRef.current = [];
     remoteDescSetRef.current = false;
     callerReadyRef.current = false;
+    setConnectionLabel("Conectando");
   }, []);
 
   const setupPeer = useCallback(
     async (callId: string, type: CallType, role: CallRole, selfId: string) => {
-      const stream = await getLocalMedia(type === "video");
+      const stream = localStreamRef.current ?? (await getLocalMedia(type === "video", facingModeRef.current));
       localStreamRef.current = stream;
       setLocalStream(stream);
 
       const pc = createPeerConnection();
       pcRef.current = pc;
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      videoSenderRef.current = null;
+      stream.getTracks().forEach((t) => {
+        const sender = pc.addTrack(t, stream);
+        if (t.kind === "video") videoSenderRef.current = sender;
+      });
 
       const remote = new MediaStream();
       setRemoteStream(remote);
@@ -119,13 +129,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
       // Auto-recover on ICE failures
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState;
+        setConnectionLabel(
+          state === "connected" || state === "completed"
+            ? "Conectado"
+            : state === "checking"
+              ? "Estabilizando"
+              : state === "failed" || state === "disconnected"
+                ? "Reconectando"
+                : "Conectando",
+        );
         if (state === "failed" || state === "disconnected") {
           try { pc.restartIce(); } catch (e) { console.warn("restartIce failed", e); }
         }
       };
 
       const channel = supabase.channel(`call-${callId}`, {
-        config: { broadcast: { self: false }, private: true },
+        config: { broadcast: { self: false } },
       });
       channelRef.current = channel;
 
@@ -299,12 +318,29 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const startCall = useCallback(
     async (other: OtherParty, type: CallType) => {
       if (!user || active) return;
+      let preparedStream: MediaStream | null = null;
+      try {
+        preparedStream = await getLocalMedia(type === "video", facingModeRef.current);
+        localStreamRef.current = preparedStream;
+        setLocalStream(preparedStream);
+      } catch (err: any) {
+        const msg = err?.name === "NotAllowedError"
+          ? "Permita o acesso ao microfone para iniciar a chamada."
+          : err?.name === "NotFoundError"
+            ? "Microfone não encontrado neste dispositivo."
+            : "Não foi possível acessar microfone/câmera.";
+        alert(msg);
+        return;
+      }
       const { data, error } = await supabase
         .from("calls")
         .insert({ caller_id: user.id, callee_id: other.id, call_type: type })
         .select("id")
         .single();
       if (error || !data) {
+        stopStream(preparedStream);
+        localStreamRef.current = null;
+        setLocalStream(null);
         console.error("start call failed", error);
         alert("Não foi possível iniciar a chamada.");
         return;
@@ -347,16 +383,57 @@ export function CallProvider({ children }: { children: ReactNode }) {
       .eq("id", id);
   }, [incoming]);
 
+  const switchCamera = useCallback(async () => {
+    const stream = localStreamRef.current;
+    if (!stream?.getVideoTracks().length) return;
+    const nextFacing = facingModeRef.current === "user" ? "environment" : "user";
+    try {
+      const nextTrack = await getCameraTrack(nextFacing);
+      const oldTrack = stream.getVideoTracks()[0];
+      if (videoSenderRef.current) await videoSenderRef.current.replaceTrack(nextTrack);
+      stream.removeTrack(oldTrack);
+      oldTrack.stop();
+      stream.addTrack(nextTrack);
+      facingModeRef.current = nextFacing;
+      setLocalStream(new MediaStream(stream.getTracks()));
+    } catch (err) {
+      console.warn("switch camera failed", err);
+      alert("Não foi possível alternar a câmera neste dispositivo.");
+    }
+  }, []);
+
   useEffect(() => () => teardown(), [teardown]);
 
   // Always-on hidden remote audio element. Guarantees audio playback even
   // when CallScreen conditionally mounts a <video> vs <audio> element.
   const audioSinkRef = useRef<HTMLAudioElement>(null);
+  const unlockAudioSink = useCallback(() => {
+    const el = audioSinkRef.current;
+    if (!el) return;
+    el.muted = false;
+    el.volume = 1;
+    void el.play().catch(() => {});
+  }, []);
+
+  const startCallWithAudioUnlock = useCallback(
+    async (other: OtherParty, type: CallType) => {
+      unlockAudioSink();
+      await startCall(other, type);
+    },
+    [startCall, unlockAudioSink],
+  );
+
+  const acceptIncomingWithAudioUnlock = useCallback(async () => {
+    unlockAudioSink();
+    await acceptIncoming();
+  }, [acceptIncoming, unlockAudioSink]);
+
   useEffect(() => {
     const el = audioSinkRef.current;
     if (!el) return;
     if (remoteStream) {
       if (el.srcObject !== remoteStream) el.srcObject = remoteStream;
+      el.muted = false;
       const p = el.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
     } else {
@@ -364,21 +441,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, [remoteStream]);
 
-  const value = useMemo<Ctx>(() => ({ startCall, activeCall: active }), [startCall, active]);
+  const value = useMemo<Ctx>(
+    () => ({ startCall: startCallWithAudioUnlock, activeCall: active }),
+    [startCallWithAudioUnlock, active],
+  );
 
   return (
     <CallContext.Provider value={value}>
       {children}
       {/* Hidden audio sink — always mounted while provider is alive */}
-      <audio ref={audioSinkRef} autoPlay playsInline className="hidden" />
+      <audio ref={audioSinkRef} autoPlay playsInline />
       {incoming ? (
-        <IncomingCallDialog incoming={incoming} onAccept={acceptIncoming} onReject={rejectIncoming} />
+        <IncomingCallDialog incoming={incoming} onAccept={acceptIncomingWithAudioUnlock} onReject={rejectIncoming} />
       ) : null}
       {active ? (
         <CallScreen
           call={active}
           localStream={localStream}
           remoteStream={remoteStream}
+          connectionLabel={connectionLabel}
+          onSwitchCamera={switchCamera}
           onHangup={hangupLocal}
         />
       ) : null}

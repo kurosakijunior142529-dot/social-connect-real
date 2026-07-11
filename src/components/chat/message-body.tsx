@@ -1,7 +1,8 @@
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { signChatUrl, humanFileSize, formatDuration, type ChatBucket } from "@/lib/chat-media";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, MapPin, Download, Play } from "lucide-react";
+import { FileText, MapPin, Download, Pause, Play, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Msg = {
@@ -91,18 +92,104 @@ function VideoBody({ msg }: { msg: Msg }) {
 function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   const signed = useChatSigned(msg.media_bucket, msg.media_url);
   const src = signed.data;
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentMs, setCurrentMs] = useState(0);
+  const totalMs = msg.media_duration_ms ?? 0;
+  const bars = useMemo(
+    () => Array.from({ length: 28 }, (_, i) => 28 + ((msg.id.charCodeAt(i % msg.id.length) + i * 17) % 46)),
+    [msg.id],
+  );
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const update = () => {
+      const duration = audio.duration || totalMs / 1000 || 0;
+      const current = audio.currentTime || 0;
+      setCurrentMs(current * 1000);
+      setProgress(duration ? Math.min(1, current / duration) : 0);
+    };
+    const ended = () => {
+      setPlaying(false);
+      setProgress(0);
+      setCurrentMs(0);
+    };
+    audio.addEventListener("timeupdate", update);
+    audio.addEventListener("loadedmetadata", update);
+    audio.addEventListener("ended", ended);
+    audio.addEventListener("pause", () => setPlaying(false));
+    audio.addEventListener("play", () => setPlaying(true));
+    return () => {
+      audio.removeEventListener("timeupdate", update);
+      audio.removeEventListener("loadedmetadata", update);
+      audio.removeEventListener("ended", ended);
+    };
+  }, [totalMs]);
+
+  function toggle() {
+    const audio = audioRef.current;
+    if (!audio || !src) return;
+    if (audio.paused) void audio.play();
+    else audio.pause();
+  }
+
+  function seek(e: MouseEvent<HTMLButtonElement>) {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const duration = audio.duration || totalMs / 1000 || 0;
+    if (duration) audio.currentTime = duration * pct;
+  }
+
   return (
-    <div className={cn("flex items-center gap-2 min-w-[180px]", mine ? "" : "")}>
-      {src ? (
-        <audio controls src={src} className="h-8 max-w-[220px]" />
-      ) : (
-        <div className="h-9 w-9 rounded-full bg-white/10 grid place-items-center">
-          <Play className="h-4 w-4" />
+    <div className="min-w-[240px] max-w-[290px] py-1">
+      {src ? <audio ref={audioRef} src={src} preload="metadata" /> : null}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={!src}
+          className={cn(
+            "grid h-11 w-11 shrink-0 place-items-center rounded-full transition active:scale-95 disabled:opacity-40",
+            mine ? "bg-background/20" : "bg-primary text-primary-foreground",
+          )}
+          aria-label={playing ? "Pausar áudio" : "Reproduzir áudio"}
+        >
+          {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-0.5" />}
+        </button>
+        <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={seek}
+            disabled={!src}
+            className="flex h-10 w-full items-center gap-[3px] rounded-full px-1 disabled:opacity-50"
+            aria-label="Buscar no áudio"
+          >
+            {bars.map((height, index) => {
+              const active = index / bars.length <= progress;
+              return (
+                <span
+                  key={index}
+                  className={cn(
+                    "w-1 flex-1 rounded-full transition-colors",
+                    active ? "bg-current" : mine ? "bg-background/25" : "bg-muted-foreground/30",
+                  )}
+                  style={{ height: `${height}%` }}
+                />
+              );
+            })}
+          </button>
+          <div className="mt-0.5 flex items-center justify-between text-[11px] opacity-70 tabular-nums">
+            <span>{formatDuration(currentMs || totalMs)}</span>
+            <span className="inline-flex items-center gap-1">
+              <Mic2 className="h-3 w-3" /> voz
+            </span>
+          </div>
         </div>
-      )}
-      <span className="text-[11px] opacity-70 tabular-nums">
-        {formatDuration(msg.media_duration_ms ?? 0)}
-      </span>
+      </div>
     </div>
   );
 }

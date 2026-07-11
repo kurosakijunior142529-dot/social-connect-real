@@ -5,7 +5,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Link2, LogIn, Plus, Radio, Tv, Video } from "lucide-react";
+import { Copy, Link2, LogIn, Plus, Radio, Tv } from "lucide-react";
 import { resolveSource } from "@/lib/watch/provider";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";

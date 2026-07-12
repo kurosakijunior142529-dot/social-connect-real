@@ -264,11 +264,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
           .eq("id", prev.id)
           .then(() => {});
         try {
-          channelRef.current?.send({
-            type: "broadcast",
-            event: "signal",
-            payload: { kind: "bye", from: user?.id },
-          });
+          if (user?.id) {
+            void (supabase as any).from("call_signals").insert({
+              call_id: prev.id,
+              sender_id: user.id,
+              kind: "bye",
+              payload: {},
+            });
+          }
         } catch { /* ignore */ }
       }
       teardown();

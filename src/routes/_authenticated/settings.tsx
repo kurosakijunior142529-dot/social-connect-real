@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { useSignedUrl } from "@/hooks/use-signed-url";
@@ -199,7 +199,15 @@ function SettingsPage() {
   );
 }
 
-function SettingsShortcut({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+function SettingsShortcut({
+  to,
+  icon,
+  label,
+}: {
+  to: "/notifications" | "/saved" | "/watch" | "/marketplace";
+  icon: ReactNode;
+  label: string;
+}) {
   return (
     <Link
       to={to}

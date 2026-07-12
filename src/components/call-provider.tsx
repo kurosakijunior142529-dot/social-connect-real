@@ -67,13 +67,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  
+  // persistentRemoteStreamRef holds the actual MediaStream object throughout the call
+  const persistentRemoteStreamRef = useRef<MediaStream>(new MediaStream());
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [trackUpdate, setTrackUpdate] = useState(0);
+
   const channelRef = useRef<RealtimeChannel | null>(null);
   const videoSenderRef = useRef<RTCRtpSender | null>(null);
   const facingModeRef = useRef<"user" | "environment">("user");
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const remoteDescSetRef = useRef(false);
-  const callerReadyRef = useRef(false); // caller has already set up pc
+  const callerReadyRef = useRef(false);
   const [connectionLabel, setConnectionLabel] = useState("Conectando");
 
   const teardown = useCallback(() => {
@@ -90,7 +95,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     stopStream(localStreamRef.current);
     localStreamRef.current = null;
     setLocalStream(null);
+    
+    // Clear the persistent remote stream tracks
+    persistentRemoteStreamRef.current.getTracks().forEach(t => t.stop());
+    persistentRemoteStreamRef.current = new MediaStream();
     setRemoteStream(null);
+    setTrackUpdate(0);
+    
     videoSenderRef.current = null;
     facingModeRef.current = "user";
     pendingIceRef.current = [];
@@ -113,20 +124,27 @@ export function CallProvider({ children }: { children: ReactNode }) {
         if (t.kind === "video") videoSenderRef.current = sender;
       });
 
-      const remote = new MediaStream();
+      const remote = persistentRemoteStreamRef.current;
       setRemoteStream(remote);
+      
       pc.ontrack = (ev) => {
-        // Add incoming tracks to the persistent MediaStream.
         const src = ev.streams[0];
-        const incoming = src ? src.getTracks() : ev.track ? [ev.track] : [];
-        for (const t of incoming) {
-          if (!remote.getTracks().find((rt) => rt.id === t.id)) remote.addTrack(t);
+        const incomingTracks = src ? src.getTracks() : ev.track ? [ev.track] : [];
+        let added = false;
+        for (const t of incomingTracks) {
+          if (!remote.getTracks().find((rt) => rt.id === t.id)) {
+            remote.addTrack(t);
+            added = true;
+          }
         }
-        // Force a new reference so React re-runs effects (audio sink .play()).
-        setRemoteStream(new MediaStream(remote.getTracks()));
+        if (added) {
+          setTrackUpdate(v => v + 1);
+          // We still trigger a state change for the UI, but we keep the SAME MediaStream object
+          // so the audio element doesn't reset its srcObject.
+          setRemoteStream(new MediaStream(remote.getTracks()));
+        }
       };
 
-      // Auto-recover on ICE failures
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState;
         setConnectionLabel(
@@ -295,7 +313,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
           }
 
           if (row.status === "accepted") {
-            // Caller: set up peer now and send offer
             setActive((prev) => {
               if (!prev || prev.id !== row.id) return prev;
               const next = { ...prev, status: "accepted" as CallStatus };
@@ -404,14 +421,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => () => teardown(), [teardown]);
 
-  // Always-on hidden remote audio element. Guarantees audio playback even
-  // when CallScreen conditionally mounts a <video> vs <audio> element.
   const audioSinkRef = useRef<HTMLAudioElement>(null);
   const unlockAudioSink = useCallback(() => {
     const el = audioSinkRef.current;
     if (!el) return;
     el.muted = false;
     el.volume = 1;
+    // Attempting a tiny playback to unlock audio context on some browsers
     void el.play().catch(() => {});
   }, []);
 
@@ -428,15 +444,27 @@ export function CallProvider({ children }: { children: ReactNode }) {
     await acceptIncoming();
   }, [acceptIncoming, unlockAudioSink]);
 
+  // Audio Playback Management
   useEffect(() => {
     const el = audioSinkRef.current;
     if (!el) return;
-    if (remoteStream) {
-      if (el.srcObject !== remoteStream) el.srcObject = remoteStream;
+    
+    const stream = remoteStream;
+    if (stream && stream.getTracks().length > 0) {
+      // Avoid resetting srcObject if it's essentially the same stream
+      // We check the ID of the first track as a heuristic
+      const currentStream = el.srcObject as MediaStream | null;
+      const currentTrackId = currentStream?.getTracks()[0]?.id;
+      const newTrackId = stream.getTracks()[0]?.id;
+      
+      if (el.srcObject !== stream && currentTrackId !== newTrackId) {
+        el.srcObject = stream;
+      }
+      
       el.muted = false;
       const p = el.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
-    } else {
+    } else if (!stream) {
       el.srcObject = null;
     }
   }, [remoteStream]);
@@ -449,7 +477,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
   return (
     <CallContext.Provider value={value}>
       {children}
-      {/* Hidden audio sink — always mounted while provider is alive */}
       <audio ref={audioSinkRef} autoPlay playsInline />
       {incoming ? (
         <IncomingCallDialog incoming={incoming} onAccept={acceptIncomingWithAudioUnlock} onReject={rejectIncoming} />

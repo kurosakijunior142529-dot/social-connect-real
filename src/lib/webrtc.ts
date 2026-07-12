@@ -1,7 +1,16 @@
 export const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun2.l.google.com:19302" },
+  { urls: "stun:stun3.l.google.com:19302" },
+  { urls: "stun:stun4.l.google.com:19302" },
   { urls: "stun:global.stun.twilio.com:3478" },
+  // Recommendation: Add TURN servers here for reliable connection across symmetric NATs
+  // {
+  //   urls: "turn:your-turn-server.com:3478",
+  //   username: "user",
+  //   credential: "password"
+  // }
 ];
 
 export async function getLocalMedia(
@@ -41,7 +50,10 @@ export async function getCameraTrack(
 }
 
 export function createPeerConnection(): RTCPeerConnection {
-  return new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  return new RTCPeerConnection({ 
+    iceServers: ICE_SERVERS,
+    iceCandidatePoolSize: 10,
+  });
 }
 
 export function stopStream(stream: MediaStream | null) {

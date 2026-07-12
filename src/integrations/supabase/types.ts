@@ -35,6 +35,41 @@ export type Database = {
         }
         Relationships: []
       }
+      call_signals: {
+        Row: {
+          call_id: string
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          sender_id: string
+        }
+        Insert: {
+          call_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          sender_id: string
+        }
+        Update: {
+          call_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_signals_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
           accepted_at: string | null
@@ -300,6 +335,8 @@ export type Database = {
           last_message_at: string
           user_a: string
           user_b: string
+          wallpaper_type: string
+          wallpaper_value: string | null
         }
         Insert: {
           created_at?: string
@@ -307,6 +344,8 @@ export type Database = {
           last_message_at?: string
           user_a: string
           user_b: string
+          wallpaper_type?: string
+          wallpaper_value?: string | null
         }
         Update: {
           created_at?: string
@@ -314,6 +353,8 @@ export type Database = {
           last_message_at?: string
           user_a?: string
           user_b?: string
+          wallpaper_type?: string
+          wallpaper_value?: string | null
         }
         Relationships: []
       }
@@ -1284,6 +1325,10 @@ export type Database = {
           _type: string
           _user: string
         }
+        Returns: undefined
+      }
+      set_conversation_wallpaper: {
+        Args: { _conversation: string; _type: string; _value?: string }
         Returns: undefined
       }
     }

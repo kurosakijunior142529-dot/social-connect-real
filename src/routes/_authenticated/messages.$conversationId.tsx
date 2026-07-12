@@ -31,6 +31,7 @@ import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
 import { GifPicker } from "@/components/chat/gif-picker";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
 import { Sticker } from "lucide-react";
+import { WallpaperPicker, wallpaperClass } from "@/components/chat/wallpaper-picker";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,
@@ -49,6 +50,7 @@ function ConversationPage() {
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [forwardMsg, setForwardMsg] = useState<any>(null);
   const [pinnedOpen, setPinnedOpen] = useState(false);
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const blocks = useBlocks();
@@ -374,6 +376,7 @@ function ConversationPage() {
               otherUserId={otherId}
               onOpenSearch={() => setSearchOpen(true)}
               onOpenPinned={() => setPinnedOpen(true)}
+              onOpenWallpaper={() => setWallpaperOpen(true)}
             />
           </>
         ) : null}
@@ -413,7 +416,8 @@ function ConversationPage() {
         </div>
       ) : null}
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5">
+      <div className={cn("relative flex-1 overflow-y-auto px-4 py-4 space-y-1.5", wallpaperClass((conv.data as any)?.wallpaper_type))}>
+        <div className="pointer-events-none absolute inset-0 bg-background/35 backdrop-blur-[1px]" />
         {visibleMessages.map((m) => {
           const mine = m.sender_id === user.id;
           const replied = m.reply_to ? byId.get(m.reply_to) : null;
@@ -422,7 +426,7 @@ function ConversationPage() {
           return (
             <div
               key={m.id}
-              className={cn("flex group items-end gap-2", mine ? "justify-end" : "justify-start")}
+              className={cn("relative flex group items-end gap-2", mine ? "justify-end" : "justify-start")}
             >
               {mine ? (
                 <MessageActions
@@ -601,6 +605,12 @@ function ConversationPage() {
         scope="dm"
         parentId={conversationId}
         currentUserId={user.id}
+      />
+      <WallpaperPicker
+        conversationId={conversationId}
+        current={(conv.data as any)?.wallpaper_type}
+        open={wallpaperOpen}
+        onOpenChange={setWallpaperOpen}
       />
     </div>
   );

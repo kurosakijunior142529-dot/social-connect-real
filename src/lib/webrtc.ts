@@ -17,11 +17,25 @@ export async function getLocalMedia(
   video: boolean,
   facingMode: "user" | "environment" = "user",
 ): Promise<MediaStream> {
-  return await navigator.mediaDevices.getUserMedia({
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new DOMException("Este navegador não permite chamadas neste ambiente.", "NotSupportedError");
+  }
+  if (navigator.permissions?.query) {
+    try {
+      const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+      if (status.state === "denied") {
+        throw new DOMException("Microfone bloqueado nas permissões do navegador.", "NotAllowedError");
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "NotAllowedError") throw err;
+    }
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
+      channelCount: { ideal: 1 },
     },
     video: video
       ? {
@@ -31,6 +45,11 @@ export async function getLocalMedia(
         }
       : false,
   });
+  if (!stream.getAudioTracks().length) {
+    stopStream(stream);
+    throw new DOMException("Microfone não encontrado.", "NotFoundError");
+  }
+  return stream;
 }
 
 export async function getCameraTrack(

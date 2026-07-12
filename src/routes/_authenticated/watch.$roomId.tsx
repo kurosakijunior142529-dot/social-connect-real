@@ -71,14 +71,6 @@ function WatchRoomPage() {
         { onConflict: "room_id,user_id" },
       )
       .then(() => {});
-    return () => {
-      (supabase as any)
-        .from("watch_room_members")
-        .update({ left_at: new Date().toISOString() })
-        .eq("room_id", roomId)
-        .eq("user_id", user.id)
-        .then(() => {});
-    };
   }, [roomId, user.id]);
 
   const roomQuery = useQuery({
@@ -292,6 +284,7 @@ function WatchRoomPage() {
       .update({ left_at: new Date().toISOString() })
       .eq("room_id", roomId)
       .eq("user_id", user.id);
+    queryClient.invalidateQueries({ queryKey: ["watch-rooms", user.id] });
     navigate({ to: "/watch" });
   }
 
@@ -304,7 +297,7 @@ function WatchRoomPage() {
 
   function copyCode() {
     if (!room) return;
-    navigator.clipboard.writeText(room.invite_code).then(() => {
+    navigator.clipboard.writeText(inviteLink || room.invite_code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
@@ -369,7 +362,10 @@ function WatchRoomPage() {
           <div ref={playerContainerRef} className="absolute inset-0" />
           {!playerReady ? (
             <div className="absolute inset-0 grid place-items-center bg-black text-sm text-white/70">
-              Preparando player…
+              <div className="space-y-2 text-center">
+                <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
+                <div>Preparando player…</div>
+              </div>
             </div>
           ) : null}
         </div>

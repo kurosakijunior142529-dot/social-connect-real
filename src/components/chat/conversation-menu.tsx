@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag } from "lucide-react";
+import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag, Palette } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,7 @@ export function ConversationMenu({
   otherUserId,
   onOpenSearch,
   onOpenPinned,
+  onOpenWallpaper,
   onReport,
 }: {
   scope: "dm" | "chat";
@@ -26,6 +27,7 @@ export function ConversationMenu({
   otherUserId?: string | null;
   onOpenSearch: () => void;
   onOpenPinned: () => void;
+  onOpenWallpaper?: () => void;
   onReport?: () => void;
 }) {
   const qc = useQueryClient();
@@ -86,6 +88,11 @@ export function ConversationMenu({
         <DropdownMenuItem onSelect={onOpenPinned}>
           <Pin className="h-4 w-4 mr-2" /> Mensagens fixadas
         </DropdownMenuItem>
+        {scope === "dm" && onOpenWallpaper ? (
+          <DropdownMenuItem onSelect={onOpenWallpaper}>
+            <Palette className="h-4 w-4 mr-2" /> Papel de parede
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem onSelect={toggleMute} disabled={busy}>
           {muted ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
           {muted ? "Reativar notificações" : "Silenciar"}

@@ -78,7 +78,13 @@ function WatchIndex() {
 
   async function joinRoomByCode(raw: string) {
     setError(null);
-    const c = raw.trim();
+    let c = raw.trim();
+    try {
+      const url = new URL(c);
+      c = url.searchParams.get("code") ?? c;
+    } catch {
+      if (c.includes("code=")) c = c.split("code=")[1]?.split("&")[0] ?? c;
+    }
     if (!c) return;
     setJoining(true);
     const { data, error: err } = await (supabase as any).rpc("join_watch_room_by_code", {
@@ -87,7 +93,13 @@ function WatchIndex() {
     setJoining(false);
     const roomId = Array.isArray(data) ? data[0]?.room_id : data?.room_id;
     if (err || !roomId) {
-      setError(err?.message?.includes("Room not found") ? "Sala não encontrada." : err?.message ?? "Falha ao entrar.");
+      setError(
+        err?.message?.includes("Room not found")
+          ? "Sala não encontrada. Confira se o código/link foi copiado completo."
+          : err?.message?.includes("Not authenticated")
+            ? "Entre na sua conta para acessar a sala."
+            : err?.message ?? "Falha ao entrar.",
+      );
       return;
     }
     navigate({ to: "/watch/$roomId", params: { roomId } });
@@ -160,7 +172,7 @@ function WatchIndex() {
           </div>
           <form onSubmit={joinByCode} className="flex gap-2">
             <Input
-              placeholder="Código ou link compartilhado"
+              placeholder="Código ou link de convite"
               value={code}
               onChange={(e) => {
                 const value = e.target.value;
@@ -173,8 +185,8 @@ function WatchIndex() {
               }}
               className="flex-1"
             />
-            <Button type="submit" variant="secondary" disabled={joining}>
-              {joining ? "…" : "Entrar"}
+             <Button type="submit" variant="secondary" disabled={joining} className="shrink-0">
+               {joining ? "Entrando…" : "Entrar"}
             </Button>
           </form>
         </section>

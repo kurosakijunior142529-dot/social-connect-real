@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useUnreadNotifications } from "@/hooks/use-notifications";
 import { SwipeableTabs } from "@/components/gestures/swipeable-tabs";
 import { SwipeBack } from "@/components/gestures/swipe-back";
+import { signOutAndClearSession } from "@/lib/auth-session";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
@@ -43,43 +44,7 @@ export function AppShell({
   ];
 
   const handleSignOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    // scope: 'global' revoga o refresh token no servidor (invalida a sessão em todos os dispositivos)
-    try {
-      await supabase.auth.signOut({ scope: "global" });
-    } catch {
-      // se a chamada de rede falhar, ainda limpamos o armazenamento local abaixo
-    }
-    // Rede de segurança: apaga qualquer token residual do Supabase no navegador
-    if (typeof window !== "undefined") {
-      try {
-        const wipe = (store: Storage) => {
-          const keys: string[] = [];
-          for (let i = 0; i < store.length; i++) {
-            const k = store.key(i);
-            if (k && (k.startsWith("sb-") || k.includes("supabase"))) keys.push(k);
-          }
-          keys.forEach((k) => store.removeItem(k));
-        };
-        wipe(window.localStorage);
-        wipe(window.sessionStorage);
-        // Apaga cookies sb-* (usados pelo @supabase/ssr) no domínio atual e no domínio pai
-        const host = window.location.hostname;
-        const parent = host.split(".").slice(-2).join(".");
-        document.cookie.split(";").forEach((c) => {
-          const name = c.split("=")[0].trim();
-          if (!name || (!name.startsWith("sb-") && !name.includes("supabase"))) return;
-          for (const domain of [undefined, host, "." + host, parent, "." + parent]) {
-            const d = domain ? `; domain=${domain}` : "";
-            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${d}`;
-          }
-        });
-      } catch {
-        /* storage indisponível */
-      }
-    }
-    navigate({ to: "/auth", replace: true });
+    await signOutAndClearSession(queryClient, navigate);
   };
 
   const isRoot =

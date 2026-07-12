@@ -78,6 +78,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const facingModeRef = useRef<"user" | "environment">("user");
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
   const remoteDescSetRef = useRef(false);
+  const processedSignalsRef = useRef<Set<string>>(new Set());
   const callerReadyRef = useRef(false);
   const [connectionLabel, setConnectionLabel] = useState("Conectando");
 
@@ -106,6 +107,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     facingModeRef.current = "user";
     pendingIceRef.current = [];
     remoteDescSetRef.current = false;
+    processedSignalsRef.current.clear();
     callerReadyRef.current = false;
     setConnectionLabel("Conectando");
   }, []);
@@ -120,7 +122,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
       pcRef.current = pc;
       videoSenderRef.current = null;
       stream.getTracks().forEach((t) => {
-        const sender = pc.addTrack(t, stream);
+        const transceiver = pc.addTransceiver(t, { direction: "sendrecv", streams: [stream] });
+        const sender = transceiver.sender;
         if (t.kind === "video") videoSenderRef.current = sender;
       });
 
@@ -161,25 +164,23 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      const channel = supabase.channel(`call-${callId}`, {
-        config: { broadcast: { self: false } },
-      });
-      channelRef.current = channel;
-
-      pc.onicecandidate = (ev) => {
-        if (ev.candidate) {
-          channel.send({
-            type: "broadcast",
-            event: "signal",
-            payload: { kind: "ice", from: selfId, candidate: ev.candidate.toJSON() },
-          });
-        }
+      const sendSignal = async (kind: "offer" | "answer" | "ice" | "bye", payload: Record<string, unknown>) => {
+        const { error } = await (supabase as any).from("call_signals").insert({
+          call_id: callId,
+          sender_id: selfId,
+          kind,
+          payload,
+        });
+        if (error) console.warn("call signal insert failed", error);
       };
 
-      channel.on("broadcast", { event: "signal" }, async ({ payload }) => {
-        if (!payload || payload.from === selfId) return;
+      const handleSignal = async (row: any) => {
+        if (!row || row.sender_id === selfId || processedSignalsRef.current.has(row.id)) return;
+        processedSignalsRef.current.add(row.id);
+        const payload = row.payload ?? {};
         try {
-          if (payload.kind === "offer" && role === "callee") {
+          if (row.kind === "offer" && role === "callee") {
+            if (pc.signalingState !== "stable") return;
             await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             remoteDescSetRef.current = true;
             for (const c of pendingIceRef.current) {
@@ -188,31 +189,45 @@ export function CallProvider({ children }: { children: ReactNode }) {
             pendingIceRef.current = [];
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            channel.send({
-              type: "broadcast",
-              event: "signal",
-              payload: { kind: "answer", from: selfId, sdp: answer },
-            });
-          } else if (payload.kind === "answer" && role === "caller") {
+            await sendSignal("answer", { sdp: answer });
+          } else if (row.kind === "answer" && role === "caller") {
+            if (pc.signalingState === "stable") return;
             await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             remoteDescSetRef.current = true;
             for (const c of pendingIceRef.current) {
               try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.warn(e); }
             }
             pendingIceRef.current = [];
-          } else if (payload.kind === "ice") {
+          } else if (row.kind === "ice") {
+            const candidate = payload.candidate as RTCIceCandidateInit | undefined;
+            if (!candidate) return;
             if (remoteDescSetRef.current) {
-              try { await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)); } catch (e) { console.warn(e); }
+              try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.warn(e); }
             } else {
-              pendingIceRef.current.push(payload.candidate);
+              pendingIceRef.current.push(candidate);
             }
-          } else if (payload.kind === "bye") {
+          } else if (row.kind === "bye") {
             hangupLocalRef.current?.();
           }
         } catch (e) {
           console.error("signal error", e);
         }
-      });
+      };
+
+      const channel = supabase.channel(`call-signals-${callId}`);
+      channelRef.current = channel;
+
+      pc.onicecandidate = (ev) => {
+        if (ev.candidate) {
+          void sendSignal("ice", { candidate: ev.candidate.toJSON() });
+        }
+      };
+
+      channel.on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "call_signals", filter: `call_id=eq.${callId}` },
+        (payload) => { void handleSignal(payload.new); },
+      );
 
       await new Promise<void>((resolve) => {
         channel.subscribe((status) => {
@@ -220,14 +235,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
         });
       });
 
+      const { data: existingSignals } = await (supabase as any)
+        .from("call_signals")
+        .select("*")
+        .eq("call_id", callId)
+        .order("created_at", { ascending: true });
+      for (const signal of existingSignals ?? []) await handleSignal(signal);
+
       if (role === "caller") {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        channel.send({
-          type: "broadcast",
-          event: "signal",
-          payload: { kind: "offer", from: selfId, sdp: offer },
-        });
+        await sendSignal("offer", { sdp: offer });
       }
     },
     [],
@@ -245,11 +263,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
           .eq("id", prev.id)
           .then(() => {});
         try {
-          channelRef.current?.send({
-            type: "broadcast",
-            event: "signal",
-            payload: { kind: "bye", from: user?.id },
-          });
+          if (user?.id) {
+            void (supabase as any).from("call_signals").insert({
+              call_id: prev.id,
+              sender_id: user.id,
+              kind: "bye",
+              payload: {},
+            });
+          }
         } catch { /* ignore */ }
       }
       teardown();

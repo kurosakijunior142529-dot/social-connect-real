@@ -121,10 +121,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const pc = createPeerConnection();
       pcRef.current = pc;
       videoSenderRef.current = null;
-      pc.addTransceiver("audio", { direction: "sendrecv" });
-      if (type === "video") pc.addTransceiver("video", { direction: "sendrecv" });
       stream.getTracks().forEach((t) => {
-        const sender = pc.addTrack(t, stream);
+        const transceiver = pc.addTransceiver(t, { direction: "sendrecv", streams: [stream] });
+        const sender = transceiver.sender;
         if (t.kind === "video") videoSenderRef.current = sender;
       });
 

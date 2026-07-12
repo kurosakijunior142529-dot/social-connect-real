@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Camera, ImagePlus } from "lucide-react";
+import { Bell, Bookmark, Camera, ImagePlus, LogOut, Shield, Store, Tv } from "lucide-react";
+import { signOutAndClearSession } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 function SettingsPage() {
   const { user } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const profile = useQuery({
     queryKey: ["me-profile", user.id],
@@ -94,7 +96,10 @@ function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <h1 className="text-3xl font-display font-black">Configurações</h1>
+      <header className="space-y-1">
+        <div className="text-[11px] uppercase tracking-[0.25em] text-primary">sua conta</div>
+        <h1 className="text-3xl font-display font-black">Configurações</h1>
+      </header>
 
       {/* Cover */}
       <label className="relative block h-36 rounded-3xl overflow-hidden bg-gradient-to-br from-primary/30 to-secondary cursor-pointer group">
@@ -157,6 +162,51 @@ function SettingsPage() {
           {saving ? "Salvando…" : "Salvar"}
         </Button>
       </form>
+
+      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+        <div>
+          <h2 className="text-base font-semibold">Preferências e atalhos</h2>
+          <p className="text-[13px] text-muted-foreground">Acesse rapidamente áreas importantes do app.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <SettingsShortcut to="/notifications" icon={<Bell className="h-4 w-4" />} label="Notificações" />
+          <SettingsShortcut to="/saved" icon={<Bookmark className="h-4 w-4" />} label="Salvos" />
+          <SettingsShortcut to="/watch" icon={<Tv className="h-4 w-4" />} label="Streaming" />
+          <SettingsShortcut to="/marketplace" icon={<Store className="h-4 w-4" />} label="Marketplace" />
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[color:var(--surface-2)] text-primary">
+            <Shield className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold">Sessão</h2>
+            <p className="truncate text-[13px] text-muted-foreground">{user.email}</p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="destructive"
+          className="h-11 w-full rounded-full gap-2"
+          onClick={() => signOutAndClearSession(queryClient, navigate)}
+        >
+          <LogOut className="h-4 w-4" /> Sair da conta
+        </Button>
+      </section>
     </div>
+  );
+}
+
+function SettingsShortcut({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)] px-3 py-3 text-sm font-medium transition active:scale-[0.98]"
+    >
+      <span className="text-primary">{icon}</span>
+      <span className="min-w-0 truncate">{label}</span>
+    </Link>
   );
 }

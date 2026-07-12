@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { PostCard, usePostsQuery } from "@/components/post-card";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -96,7 +97,7 @@ function FeedPage() {
 
 function EmptyFeed() {
   return (
-    <div className="mx-4 mt-4 rounded-[28px] bg-[radial-gradient(circle_at_50%_0%,rgba(215,255,58,0.14),transparent_34%),color:var(--surface)] p-8 text-center space-y-4 shadow-elegant">
+    <div className="mx-4 mt-4 rounded-[28px] bg-[radial-gradient(circle_at_50%_0%,rgba(215,255,58,0.14),transparent_34%),var(--surface)] p-8 text-center space-y-4 shadow-elegant">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground">
         <PlusSquare className="h-6 w-6" />
       </div>
@@ -119,7 +120,7 @@ function HeaderAction({
   primary,
 }: {
   to: "/watch" | "/messages" | "/create" | "/settings";
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   primary?: boolean;
 }) {

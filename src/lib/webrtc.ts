@@ -1,3 +1,17 @@
+function envTurn(): RTCIceServer[] {
+  const urls = (import.meta as any).env?.VITE_TURN_URLS as string | undefined;
+  if (!urls) return [];
+  const list = urls.split(",").map((u) => u.trim()).filter(Boolean);
+  if (!list.length) return [];
+  return [
+    {
+      urls: list,
+      username: (import.meta as any).env?.VITE_TURN_USERNAME,
+      credential: (import.meta as any).env?.VITE_TURN_CREDENTIAL,
+    },
+  ];
+}
+
 export const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
@@ -5,12 +19,17 @@ export const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun3.l.google.com:19302" },
   { urls: "stun:stun4.l.google.com:19302" },
   { urls: "stun:global.stun.twilio.com:3478" },
-  // Recommendation: Add TURN servers here for reliable connection across symmetric NATs
-  // {
-  //   urls: "turn:your-turn-server.com:3478",
-  //   username: "user",
-  //   credential: "password"
-  // }
+  // Free public TURN (Open Relay Project by Metered) — best effort, may be rate-limited.
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  ...envTurn(),
 ];
 
 export async function getLocalMedia(
@@ -69,9 +88,12 @@ export async function getCameraTrack(
 }
 
 export function createPeerConnection(): RTCPeerConnection {
-  return new RTCPeerConnection({ 
+  return new RTCPeerConnection({
     iceServers: ICE_SERVERS,
     iceCandidatePoolSize: 10,
+    // Force ICE trickling to use both host + relay candidates
+    bundlePolicy: "max-bundle",
+    rtcpMuxPolicy: "require",
   });
 }
 

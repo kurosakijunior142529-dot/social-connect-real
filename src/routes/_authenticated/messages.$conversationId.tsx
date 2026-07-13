@@ -51,6 +51,10 @@ function ConversationPage() {
   const [forwardMsg, setForwardMsg] = useState<any>(null);
   const [pinnedOpen, setPinnedOpen] = useState(false);
   const [wallpaperOpen, setWallpaperOpen] = useState(false);
+  const customWallpaperUrl = useCustomWallpaperUrl(
+    (undefined as any),
+    (undefined as any),
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const blocks = useBlocks();

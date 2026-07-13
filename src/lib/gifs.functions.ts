@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 type TenorGif = {
@@ -23,15 +22,23 @@ function pickFormat(gif: TenorGif) {
 
 async function tenor(path: string, params: Record<string, string>) {
   const key = process.env.TENOR_API_KEY;
-  if (!key) throw new Error("TENOR_API_KEY not configured");
+  if (!key) throw new Error("Serviço de GIFs não configurado");
   const q = new URLSearchParams({ key, client_key: "vibely", ...params });
-  const r = await fetch(`https://tenor.googleapis.com/v2/${path}?${q}`);
-  if (!r.ok) throw new Error(`Tenor error ${r.status}`);
+  const url = `https://tenor.googleapis.com/v2/${path}?${q}`;
+  let r: Response;
+  try {
+    r = await fetch(url);
+  } catch (e: any) {
+    throw new Error(`Falha de rede ao contatar Tenor: ${e?.message ?? "desconhecido"}`);
+  }
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    throw new Error(`Tenor ${r.status}: ${body.slice(0, 140)}`);
+  }
   return (await r.json()) as { results: TenorGif[]; next?: string };
 }
 
 export const searchGifs = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
     z.object({ q: z.string().max(120).default(""), pos: z.string().optional() }).parse(i),
   )

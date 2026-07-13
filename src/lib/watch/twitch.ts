@@ -29,6 +29,29 @@ function loadTwitchAPI(): Promise<void> {
 
 export type TwitchSource = { kind: "channel" | "video"; id: string };
 
+function parentDomains(): string[] {
+  const seen = new Set<string>();
+  const add = (h: string | undefined | null) => {
+    if (!h) return;
+    const clean = h.replace(/^https?:\/\//, "").split("/")[0]?.trim();
+    if (clean) seen.add(clean);
+  };
+  if (typeof window !== "undefined") {
+    add(window.location.hostname);
+    // If we're inside a Lovable preview iframe, the referrer/parent origin
+    // also needs to be authorized by Twitch.
+    try {
+      if (document.referrer) add(new URL(document.referrer).hostname);
+    } catch {
+      /* ignore */
+    }
+  }
+  // Common Lovable domains as fallback so shared/published links work.
+  add("lovable.app");
+  add("social-connect-real.lovable.app");
+  return Array.from(seen);
+}
+
 export async function createTwitchPlayer(
   container: HTMLElement,
   source: TwitchSource,
@@ -45,7 +68,7 @@ export async function createTwitchPlayer(
   const opts: any = {
     width: "100%",
     height: "100%",
-    parent: [window.location.hostname],
+    parent: parentDomains(),
     autoplay: true,
     muted: false,
   };

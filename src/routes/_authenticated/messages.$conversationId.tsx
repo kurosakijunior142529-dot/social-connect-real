@@ -31,7 +31,7 @@ import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
 import { GifPicker } from "@/components/chat/gif-picker";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
 import { Sticker } from "lucide-react";
-import { WallpaperPicker, wallpaperClass } from "@/components/chat/wallpaper-picker";
+import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,
@@ -76,6 +76,11 @@ function ConversationPage() {
       return { ...data, other: prof };
     },
   });
+
+  const customWallpaperUrl = useCustomWallpaperUrl(
+    (conv.data as any)?.wallpaper_type,
+    (conv.data as any)?.wallpaper_value,
+  );
 
   const messages = useQuery({
     queryKey: ["messages", conversationId],
@@ -416,7 +421,23 @@ function ConversationPage() {
         </div>
       ) : null}
 
-      <div className={cn("relative flex-1 overflow-y-auto px-4 py-4 space-y-1.5", wallpaperClass((conv.data as any)?.wallpaper_type))}>
+      <div
+        className={cn(
+          "relative flex-1 overflow-y-auto px-4 py-4 space-y-1.5",
+          (conv.data as any)?.wallpaper_type === "custom"
+            ? "bg-background"
+            : wallpaperClass((conv.data as any)?.wallpaper_type),
+        )}
+        style={
+          (conv.data as any)?.wallpaper_type === "custom" && customWallpaperUrl
+            ? {
+                backgroundImage: `url(${customWallpaperUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
+      >
         <div className="pointer-events-none absolute inset-0 bg-background/35 backdrop-blur-[1px]" />
         {visibleMessages.map((m) => {
           const mine = m.sender_id === user.id;
@@ -609,6 +630,7 @@ function ConversationPage() {
       <WallpaperPicker
         conversationId={conversationId}
         current={(conv.data as any)?.wallpaper_type}
+        currentValue={(conv.data as any)?.wallpaper_value}
         open={wallpaperOpen}
         onOpenChange={setWallpaperOpen}
       />

@@ -108,7 +108,7 @@ function GamePage() {
                 <div className="w-6 text-center text-sm font-bold tabular text-muted-foreground">
                   {i < 3 ? <Medal className={`inline h-4 w-4 ${i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : "text-orange-400"}`} /> : i + 1}
                 </div>
-                <UserAvatar avatarPath={r.profile?.avatar_url} displayName={r.profile?.display_name ?? "?"} size="sm" />
+                <UserAvatar avatarPath={r.profile?.avatar_url} displayName={r.profile?.display_name ?? "?"} className="h-9 w-9" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{r.profile?.display_name ?? "Anônimo"}</div>
                   <div className="text-[11px] text-muted-foreground truncate">@{r.profile?.username ?? "—"}</div>

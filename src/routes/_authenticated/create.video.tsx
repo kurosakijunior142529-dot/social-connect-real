@@ -214,7 +214,7 @@ function VideoStudio() {
 
   return (
     <div className="fixed inset-0 z-40 bg-black text-white">
-      <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 pt-safe py-3 bg-gradient-to-b from-black/70 to-transparent">
+      <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] bg-gradient-to-b from-black/70 to-transparent">
         <button
           onClick={() => (stage === "camera" ? navigate({ to: "/create" }) : resetAll())}
           className="grid h-10 w-10 place-items-center rounded-full bg-white/10 backdrop-blur"
@@ -296,7 +296,7 @@ function CameraStage(props: {
         </div>
       ) : null}
 
-      <div className="absolute bottom-0 inset-x-0 z-10 pb-safe pt-4 bg-gradient-to-t from-black/85 via-black/50 to-transparent">
+      <div className="absolute bottom-0 inset-x-0 z-10 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 via-black/50 to-transparent">
         <FilterStrip value={props.filterId} onChange={props.onFilter} />
 
         <div className="mt-4 flex items-center justify-between px-8">
@@ -388,7 +388,7 @@ function ReviewStage(props: {
   }, [props.trim, props.duration]);
 
   return (
-    <div className="absolute inset-0 flex flex-col pt-16 pb-safe">
+    <div className="absolute inset-0 flex flex-col pt-16 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="relative flex-1 min-h-0 bg-black">
         <video
           ref={vref}

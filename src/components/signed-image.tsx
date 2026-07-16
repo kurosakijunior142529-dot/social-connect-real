@@ -23,5 +23,14 @@ export function SignedVideo({ bucket, path, className }: Omit<Props, "alt" | "fa
   const { data: url, isLoading } = useSignedUrl(bucket, path);
   if (!path) return null;
   if (isLoading || !url) return <div className={cn("bg-muted animate-pulse", className)} />;
-  return <video src={url} className={className} controls playsInline />;
+  return (
+    <video
+      src={url}
+      className={cn("bg-black", className)}
+      controls
+      playsInline
+      preload="metadata"
+      controlsList="nodownload noremoteplayback"
+    />
+  );
 }

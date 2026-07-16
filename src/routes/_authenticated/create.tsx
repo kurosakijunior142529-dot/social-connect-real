@@ -1,11 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Video, X } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/create")({
   component: CreatePage,
@@ -55,6 +55,20 @@ function CreatePage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Novo post</h1>
+
+      <Link
+        to="/create/video"
+        className="flex items-center gap-3 rounded-2xl p-4 bg-gradient-brand text-white shadow-lg active:scale-[0.99] transition"
+      >
+        <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/15">
+          <Video className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold">Estúdio de vídeo</div>
+          <div className="text-xs opacity-90">Grave com filtros, ajuste o trim e publique</div>
+        </div>
+      </Link>
+
 
       <form onSubmit={submit} className="space-y-4">
         {preview ? (

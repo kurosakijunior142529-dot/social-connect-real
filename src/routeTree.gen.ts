@@ -31,6 +31,7 @@ import { Route as AuthenticatedMessagesConversationIdRouteImport } from './route
 import { Route as AuthenticatedMarketplaceNewRouteImport } from './routes/_authenticated/marketplace.new'
 import { Route as AuthenticatedMarketplaceIdRouteImport } from './routes/_authenticated/marketplace.$id'
 import { Route as AuthenticatedGamesIdRouteImport } from './routes/_authenticated/games.$id'
+import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create.video'
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 
@@ -150,6 +151,12 @@ const AuthenticatedGamesIdRoute = AuthenticatedGamesIdRouteImport.update({
   path: '/games/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCreateVideoRoute =
+  AuthenticatedCreateVideoRouteImport.update({
+    id: '/video',
+    path: '/video',
+    getParentRoute: () => AuthenticatedCreateRoute,
+  } as any)
 const AuthenticatedChatsNewRoute = AuthenticatedChatsNewRouteImport.update({
   id: '/chats/new',
   path: '/chats/new',
@@ -163,7 +170,7 @@ const AuthenticatedChatsIdRoute = AuthenticatedChatsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
-  '/create': typeof AuthenticatedCreateRoute
+  '/create': typeof AuthenticatedCreateRouteWithChildren
   '/explore': typeof AuthenticatedExploreRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/reels': typeof AuthenticatedReelsRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AuthIndexRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
+  '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
@@ -187,7 +195,7 @@ export interface FileRoutesByFullPath {
   '/watch/': typeof AuthenticatedWatchIndexRoute
 }
 export interface FileRoutesByTo {
-  '/create': typeof AuthenticatedCreateRoute
+  '/create': typeof AuthenticatedCreateRouteWithChildren
   '/explore': typeof AuthenticatedExploreRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/reels': typeof AuthenticatedReelsRoute
@@ -198,6 +206,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthIndexRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
+  '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
@@ -214,7 +223,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/_authenticated/create': typeof AuthenticatedCreateRoute
+  '/_authenticated/create': typeof AuthenticatedCreateRouteWithChildren
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/reels': typeof AuthenticatedReelsRoute
@@ -225,6 +234,7 @@ export interface FileRoutesById {
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
   '/_authenticated/chats/new': typeof AuthenticatedChatsNewRoute
+  '/_authenticated/create/video': typeof AuthenticatedCreateVideoRoute
   '/_authenticated/games/$id': typeof AuthenticatedGamesIdRoute
   '/_authenticated/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/_authenticated/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/chats/$id'
     | '/chats/new'
+    | '/create/video'
     | '/games/$id'
     | '/marketplace/$id'
     | '/marketplace/new'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chats/$id'
     | '/chats/new'
+    | '/create/video'
     | '/games/$id'
     | '/marketplace/$id'
     | '/marketplace/new'
@@ -303,6 +315,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/_authenticated/chats/$id'
     | '/_authenticated/chats/new'
+    | '/_authenticated/create/video'
     | '/_authenticated/games/$id'
     | '/_authenticated/marketplace/$id'
     | '/_authenticated/marketplace/new'
@@ -479,6 +492,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGamesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/create/video': {
+      id: '/_authenticated/create/video'
+      path: '/video'
+      fullPath: '/create/video'
+      preLoaderRoute: typeof AuthenticatedCreateVideoRouteImport
+      parentRoute: typeof AuthenticatedCreateRoute
+    }
     '/_authenticated/chats/new': {
       id: '/_authenticated/chats/new'
       path: '/chats/new'
@@ -496,8 +516,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedCreateRouteChildren {
+  AuthenticatedCreateVideoRoute: typeof AuthenticatedCreateVideoRoute
+}
+
+const AuthenticatedCreateRouteChildren: AuthenticatedCreateRouteChildren = {
+  AuthenticatedCreateVideoRoute: AuthenticatedCreateVideoRoute,
+}
+
+const AuthenticatedCreateRouteWithChildren =
+  AuthenticatedCreateRoute._addFileChildren(AuthenticatedCreateRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedCreateRoute: typeof AuthenticatedCreateRoute
+  AuthenticatedCreateRoute: typeof AuthenticatedCreateRouteWithChildren
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedReelsRoute: typeof AuthenticatedReelsRoute
@@ -521,7 +552,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedCreateRoute: AuthenticatedCreateRoute,
+  AuthenticatedCreateRoute: AuthenticatedCreateRouteWithChildren,
   AuthenticatedExploreRoute: AuthenticatedExploreRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedReelsRoute: AuthenticatedReelsRoute,

@@ -96,11 +96,28 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentMs, setCurrentMs] = useState(0);
+  const [fallback, setFallback] = useState(false);
   const totalMs = msg.media_duration_ms ?? 0;
   const bars = useMemo(
     () => Array.from({ length: 28 }, (_, i) => 28 + ((msg.id.charCodeAt(i % msg.id.length) + i * 17) % 46)),
     [msg.id],
   );
+
+  // WebAudio fallback for browsers that can't play the container natively (Safari + webm/opus)
+  const ctxRef = useRef<AudioContext | null>(null);
+  const bufRef = useRef<AudioBuffer | null>(null);
+  const nodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const startedAtRef = useRef(0);
+  const offsetRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      try { nodeRef.current?.stop(); } catch { /* noop */ }
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      void ctxRef.current?.close().catch(() => {});
+    };
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -111,11 +128,7 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
       setCurrentMs(current * 1000);
       setProgress(duration ? Math.min(1, current / duration) : 0);
     };
-    const ended = () => {
-      setPlaying(false);
-      setProgress(0);
-      setCurrentMs(0);
-    };
+    const ended = () => { setPlaying(false); setProgress(0); setCurrentMs(0); };
     audio.addEventListener("timeupdate", update);
     audio.addEventListener("loadedmetadata", update);
     audio.addEventListener("ended", ended);
@@ -128,25 +141,111 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
     };
   }, [totalMs]);
 
-  function toggle() {
+  async function loadBuffer(): Promise<AudioBuffer | null> {
+    if (bufRef.current || !src) return bufRef.current;
+    try {
+      const AC: typeof AudioContext =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AC) return null;
+      ctxRef.current ??= new AC();
+      const res = await fetch(src);
+      const ab = await res.arrayBuffer();
+      const buf = await ctxRef.current.decodeAudioData(ab.slice(0));
+      bufRef.current = buf;
+      return buf;
+    } catch (e) {
+      console.warn("audio decode failed", e);
+      return null;
+    }
+  }
+
+  function tick() {
+    const ctx = ctxRef.current;
+    const buf = bufRef.current;
+    if (!ctx || !buf) return;
+    const elapsed = ctx.currentTime - startedAtRef.current + offsetRef.current;
+    const p = Math.min(1, elapsed / buf.duration);
+    setProgress(p);
+    setCurrentMs(elapsed * 1000);
+    if (p < 1) rafRef.current = requestAnimationFrame(tick);
+  }
+
+  async function playFallback(fromRatio = 0) {
+    const buf = await loadBuffer();
+    const ctx = ctxRef.current;
+    if (!buf || !ctx) return;
+    if (ctx.state === "suspended") await ctx.resume();
+    try { nodeRef.current?.stop(); } catch { /* noop */ }
+    const node = ctx.createBufferSource();
+    node.buffer = buf;
+    node.connect(ctx.destination);
+    const offset = buf.duration * fromRatio;
+    offsetRef.current = offset;
+    startedAtRef.current = ctx.currentTime;
+    node.onended = () => {
+      const finished = (ctx.currentTime - startedAtRef.current + offset) >= buf.duration - 0.05;
+      if (finished) { setPlaying(false); setProgress(0); setCurrentMs(0); offsetRef.current = 0; }
+    };
+    node.start(0, offset);
+    nodeRef.current = node;
+    setPlaying(true);
+    rafRef.current = requestAnimationFrame(tick);
+  }
+
+  function stopFallback() {
+    try { nodeRef.current?.stop(); } catch { /* noop */ }
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    setPlaying(false);
+  }
+
+  async function toggle() {
+    if (!src) return;
+    if (fallback) {
+      if (playing) stopFallback();
+      else await playFallback(progress >= 0.99 ? 0 : progress);
+      return;
+    }
     const audio = audioRef.current;
-    if (!audio || !src) return;
-    if (audio.paused) void audio.play();
-    else audio.pause();
+    if (!audio) return;
+    if (audio.paused) {
+      try {
+        await audio.play();
+      } catch {
+        setFallback(true);
+        await playFallback(0);
+      }
+    } else {
+      audio.pause();
+    }
   }
 
   function seek(e: MouseEvent<HTMLButtonElement>) {
-    const audio = audioRef.current;
-    if (!audio) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    if (fallback) {
+      const wasPlaying = playing;
+      stopFallback();
+      setProgress(pct);
+      if (wasPlaying) void playFallback(pct);
+      else offsetRef.current = (bufRef.current?.duration ?? 0) * pct;
+      return;
+    }
+    const audio = audioRef.current;
+    if (!audio) return;
     const duration = audio.duration || totalMs / 1000 || 0;
     if (duration) audio.currentTime = duration * pct;
   }
 
   return (
     <div className="min-w-[240px] max-w-[290px] py-1">
-      {src ? <audio ref={audioRef} src={src} preload="metadata" /> : null}
+      {src && !fallback ? (
+        <audio
+          ref={audioRef}
+          src={src}
+          preload="metadata"
+          onError={() => setFallback(true)}
+        />
+      ) : null}
       <div className="flex items-center gap-3">
         <button
           type="button"

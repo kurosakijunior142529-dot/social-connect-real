@@ -41,11 +41,16 @@ export function AudioRecorder({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       stream.current = s;
-      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : "";
+      // Prefer mp4/AAC when available — Safari/iOS can't play webm/opus.
+      // Chrome desktop supports mp4 recording since v138; Safari uses mp4 natively.
+      const candidates = [
+        "audio/mp4;codecs=mp4a.40.2",
+        "audio/mp4",
+        "audio/aac",
+        "audio/webm;codecs=opus",
+        "audio/webm",
+      ];
+      const mime = candidates.find((c) => MediaRecorder.isTypeSupported(c)) ?? "";
       const recorder = mime ? new MediaRecorder(s, { mimeType: mime }) : new MediaRecorder(s);
       mr.current = recorder;
       chunks.current = [];
@@ -61,7 +66,8 @@ export function AudioRecorder({
         if (blob.size < 500) return; // ignore accidental taps
         setBusy(true);
         try {
-          const ext = (recorder.mimeType || "audio/webm").includes("mp4") ? "m4a" : "webm";
+          const mt = (recorder.mimeType || "audio/webm").toLowerCase();
+          const ext = mt.includes("mp4") || mt.includes("aac") ? "m4a" : "webm";
           const file = new File([blob], `audio-${Date.now()}.${ext}`, { type: blob.type });
           await onSend(file, duration);
         } finally {

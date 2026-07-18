@@ -1,53 +1,51 @@
-# Plano em 4 rodadas
+Escopo enxuto e ordenado por impacto. Não vou empilhar 10 features novas — vou destravar o que está quebrado e refinar a UI que você reclamou.
 
-Você marcou **todas** as opções. Cada uma é uma rodada por si só — se eu tentar tudo junto, nada sai bem feito e o build quebra. Vou executar em fases, começando agora pela Fase 1.
+## Fase A — Destravar (nesta rodada)
 
-## Fase 1 — AGORA (esta rodada)
-Correções + redesigns + jogos MVP. Base 100% funcional.
+**1. Editor de vídeo `/create/video` — câmera não abre**
+- Causa provável: no preview do Lovable o app roda dentro de um `<iframe>` sem `allow="camera; microphone; display-capture"`, então `getUserMedia` é bloqueado antes de pedir permissão. Também não há mensagem de erro clara pro usuário.
+- Ações:
+  - Antes de chamar `getUserMedia`, checar `navigator.permissions.query({name:'camera'})` e mostrar tela explicando o motivo (`NotAllowedError`, `NotFoundError`, iframe sem permission-policy, contexto não-HTTPS).
+  - Botão explícito "Ativar câmera" (gesto do usuário) em vez de auto-start no mount — evita o silêncio quando o browser bloqueia por falta de gesto.
+  - Fallback: se câmera falhar, botão "Enviar do dispositivo" já em destaque.
+  - Testar no app publicado (fora do iframe do preview) — é lá que a câmera realmente funciona. Deixar aviso na UI quando detectar `window.self !== window.top`.
 
-- **GIFs Tenor**: verificar `TENOR_API_KEY`, testar chamada real via server function logs, corrigir causa raiz (não só mensagem de erro)
-- **Redesign feed**: cards com melhor hierarquia, avatar+nome/hora mais elegantes, ações (like/comment/save) redesenhadas, media com cantos e ratio consistentes, skeleton mais suave
-- **Redesign player de vídeos/Reels**: overlays com gradient mais suave, controles maiores/mais tocáveis, barra de progresso visível, contador de views, transição entre reels mais fluida
-- **Melhorias no chat**: bolhas com melhor spacing, timestamps agrupados, avatars em grupo, entrada de mensagem redesenhada, header mais limpo
-- **Aba Jogos (MVP com ranking)**:
-  - Nova rota `/games` no shell + item no nav
-  - 4 jogos: 2048, Snake, Memória, Reação (todos canvas/DOM, sem lib externa pesada)
-  - Tabela `game_scores` (user_id, game, score, created_at) + RLS
-  - Página de leaderboard global por jogo (top 20)
-- Build TypeScript limpo ao final
+**2. Aba Jogos não aparece no mobile**
+- Hoje `/games` só existe no sidebar desktop. Bottom nav mobile tem 7 itens e não cabe mais um.
+- Ação: mover **Explorar** e **Alertas** para dentro do header do Feed (ícones), e liberar 2 slots no bottom nav → **Feed · Reels · Criar · Jogos · Perfil**. Notificação vira sino no header com badge (já existe hook).
 
-## Fase 2 — próxima rodada
-**Spotify OAuth + música no perfil**
-- Registro do app Spotify em developer.spotify.com (você faz, eu guio)
-- Secrets `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET`
-- Rota `/auth/spotify/callback` + troca de code por token
-- Tabela `user_spotify_connections` (token cifrado)
-- Componente seletor de faixa no editor de perfil
-- Embed do player oficial no perfil público
-- Fallback: cola link Spotify → embed simples (sem OAuth) para quem não conectar
+**3. GIFs com erro**
+- Investigar `src/lib/gifs.functions.ts` (68 linhas) — verificar chave Tenor/Giphy, tratar 401/429 e mostrar estado de erro no `GifPicker` em vez de ficar em branco.
 
-## Fase 3 — rodada dedicada
-**Editor de vídeo estilo TikTok (parte 1: gravação + filtros + trim)**
-- Gravação MediaRecorder multi-clip
-- Preview com filtros CSS/WebGL (glow, vintage, bw, warm, cold, vhs, blur)
-- Trim de início/fim visual
-- Texto animado sobreposto (posição, cor, tamanho, entrada)
-- Stickers básicos
-- Upload direto para bucket `posts`
+**4. Streaming Amigo**
+- Reproduzir o fluxo criar sala → copiar link → abrir em aba anônima. Corrigir o que quebrar (provável: `code` não sendo carregado quando entra por deep link já autenticado, ou realtime channel).
 
-## Fase 4 — rodada dedicada
-**Editor TikTok (parte 2: música + export)**
-- ffmpeg.wasm carregado sob demanda (grande, ~30MB)
-- Biblioteca de músicas via Jamendo API (licença livre) — Spotify não permite mixar áudio deles legalmente
-- Mix de áudio + vídeo no cliente
-- Export final MP4 para o feed
+**5. Áudio das chamadas**
+- Já apliquei TURN + MediaStream persistente antes. Se ainda mudo, o próximo passo é logar `iceConnectionState` e `getStats()` no `call-provider`, e forçar `RTCRtpTransceiver` com `direction: 'sendrecv'` explícito nos dois lados. Precisa de log real de uma tentativa entre 2 usuários — vou instrumentar e você me manda o console.
 
-## Tecnicamente
-- Nova tabela `game_scores` com RLS: user_id ref auth.users, game TEXT, score INT, created_at. SELECT liberado para authenticated, INSERT só próprio user, sem update/delete.
-- Nova rota `/games` (índice com grid dos jogos) e `/games/$id` para cada jogo.
-- Jogos escritos em canvas/DOM puro para não pesar o bundle.
-- Redesigns só mexem em CSS/JSX (sem tocar lógica de negócio).
-- GIF fix: verificar logs, testar a chave, corrigir tratamento.
+## Fase B — Redesign (próxima rodada, dedicada)
 
-## Confirme
-Digite **"vai fase 1"** para eu começar. Fases 2-4 são rodadas separadas depois.
+Não misturo com Fase A pra não quebrar nada de novo. Só faço depois que A estiver validado por você.
+
+**Player de vídeo (feed + reels)**
+- Controles minimalistas estilo TikTok/Instagram: barra de progresso fina no rodapé, tap = pause com ícone play grande, double-tap = curtir com heart animation, hold = 2x speed.
+- Coluna de ações à direita com avatares empilhados de quem curtiu.
+- Legenda com "…mais" expansível e hashtags/menções clicáveis.
+- Loop suave sem flash preto (preload="auto" + segundo `<video>` invisível pra buffer).
+
+**Feed**
+- Header com logo + sino (notificações) + busca (Explorar).
+- Cards sem borda, media edge-to-edge, ações em linha só com ícones.
+- Skeletons com shimmer.
+
+## Fora do escopo agora (peça em rodada dedicada)
+- Editor com músicas/Spotify, filtros AR faciais, exportação com ffmpeg.wasm — cada um é 1 rodada inteira sozinho.
+
+## Como valido antes de fechar
+- Editor: rodar Playwright no preview publicado, tirar screenshot da tela de erro amigável e do botão "Ativar câmera".
+- Bottom nav: screenshot mobile 384px mostrando Jogos acessível.
+- GIFs: abrir picker, buscar "cat", ver resultado ou mensagem de erro.
+- Streaming: criar sala, entrar pelo link, ver player YouTube carregando.
+- Chamadas: adicionar logs de `iceConnectionState` — te peço 1 teste real depois.
+
+Confirma que ataco Fase A agora nessa ordem?

@@ -61,18 +61,40 @@ function VideoStudio() {
   const [caption, setCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const busy = stage === "publishing" || exporting;
 
   const filter = filterById(filterId);
 
+  const isEmbeddedPreview = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.self !== window.top;
+    } catch {
+      return true;
+    }
+  }, []);
+
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    setCameraReady(false);
   }, []);
 
   const startCamera = useCallback(async () => {
+    if (starting) return;
+    setStarting(true);
+    setCameraError(null);
     stopCamera();
     try {
+      if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Este navegador não suporta captura de câmera.");
+      }
+      if (typeof window !== "undefined" && !window.isSecureContext) {
+        throw new Error("Câmera requer HTTPS. Abra o app publicado (não o preview http).");
+      }
       const s = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1080 },
@@ -93,16 +115,36 @@ function VideoStudio() {
         el.muted = true;
         await el.play().catch(() => {});
       }
+      setCameraReady(true);
     } catch (err: any) {
-      toast.error(err?.message ?? "Não foi possível acessar a câmera");
+      const name = err?.name ?? "";
+      let msg = err?.message ?? "Não foi possível acessar a câmera.";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        msg = isEmbeddedPreview
+          ? "Permissão de câmera bloqueada no preview. Abra o app publicado (botão Publicar) e conceda acesso à câmera."
+          : "Você bloqueou o acesso à câmera. Toque no cadeado do navegador e libere Câmera + Microfone para este site.";
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        msg = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada ou tente enviar do dispositivo.";
+      } else if (name === "NotReadableError") {
+        msg = "Outra aplicação está usando a câmera. Feche outros apps e tente novamente.";
+      }
+      setCameraError(msg);
+      toast.error(msg);
+    } finally {
+      setStarting(false);
     }
-  }, [facing, stopCamera]);
+  }, [facing, stopCamera, isEmbeddedPreview, starting]);
 
+  // Restart when the user flips cameras (only if already active)
   useEffect(() => {
-    if (stage === "camera") void startCamera();
-    return () => stopCamera();
+    if (stage === "camera" && cameraReady) void startCamera();
+    return () => {
+      if (stage !== "camera") stopCamera();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, facing]);
+  }, [facing]);
+
+  useEffect(() => () => stopCamera(), [stopCamera]);
 
   useEffect(() => {
     return () => {
@@ -239,6 +281,11 @@ function VideoStudio() {
           filterId={filterId}
           onFilter={setFilterId}
           onPick={pickFromLibrary}
+          cameraReady={cameraReady}
+          cameraError={cameraError}
+          starting={starting}
+          isEmbeddedPreview={isEmbeddedPreview}
+          onStart={startCamera}
         />
       ) : (
         <ReviewStage
@@ -275,6 +322,11 @@ function CameraStage(props: {
   filterId: string;
   onFilter: (id: string) => void;
   onPick: (f: File) => void;
+  cameraReady: boolean;
+  cameraError: string | null;
+  starting: boolean;
+  isEmbeddedPreview: boolean;
+  onStart: () => void | Promise<void>;
 }) {
   const pct = Math.min(1, props.elapsed / MAX_RECORD_MS);
   return (
@@ -288,6 +340,50 @@ function CameraStage(props: {
           style={{ filter: props.filterCss, WebkitFilter: props.filterCss as any }}
         />
       </div>
+
+      {!props.cameraReady ? (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/85 px-8 text-center text-white">
+          <div className="grid h-16 w-16 place-items-center rounded-full bg-white/10">
+            <CameraIcon className="h-7 w-7" />
+          </div>
+          <div className="max-w-xs space-y-2">
+            <h2 className="text-lg font-semibold">
+              {props.cameraError ? "Câmera indisponível" : "Ativar câmera"}
+            </h2>
+            <p className="text-sm text-white/70">
+              {props.cameraError
+                ? props.cameraError
+                : "Toque abaixo para conceder acesso à câmera e ao microfone."}
+            </p>
+            {props.isEmbeddedPreview ? (
+              <p className="text-[11px] text-amber-300/90">
+                Você está no preview embutido. Se der erro de permissão, abra o app publicado.
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-2 w-full max-w-xs">
+            <Button
+              type="button"
+              onClick={() => void props.onStart()}
+              disabled={props.starting}
+              className="h-12 w-full rounded-2xl"
+            >
+              {props.starting ? "Solicitando…" : props.cameraError ? "Tentar novamente" : "Ativar câmera"}
+            </Button>
+            <label className="grid h-12 w-full place-items-center rounded-2xl bg-white/10 backdrop-blur cursor-pointer text-sm font-medium">
+              <span className="inline-flex items-center gap-2">
+                <Upload className="h-4 w-4" /> Enviar do dispositivo
+              </span>
+              <input
+                type="file"
+                accept="video/*"
+                hidden
+                onChange={(e) => e.target.files?.[0] && props.onPick(e.target.files[0])}
+              />
+            </label>
+          </div>
+        </div>
+      ) : null}
 
       {props.recording ? (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold shadow-lg">

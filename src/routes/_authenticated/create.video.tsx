@@ -341,6 +341,50 @@ function CameraStage(props: {
         />
       </div>
 
+      {!props.cameraReady ? (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/85 px-8 text-center text-white">
+          <div className="grid h-16 w-16 place-items-center rounded-full bg-white/10">
+            <CameraIcon className="h-7 w-7" />
+          </div>
+          <div className="max-w-xs space-y-2">
+            <h2 className="text-lg font-semibold">
+              {props.cameraError ? "Câmera indisponível" : "Ativar câmera"}
+            </h2>
+            <p className="text-sm text-white/70">
+              {props.cameraError
+                ? props.cameraError
+                : "Toque abaixo para conceder acesso à câmera e ao microfone."}
+            </p>
+            {props.isEmbeddedPreview ? (
+              <p className="text-[11px] text-amber-300/90">
+                Você está no preview embutido. Se der erro de permissão, abra o app publicado.
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-2 w-full max-w-xs">
+            <Button
+              type="button"
+              onClick={() => void props.onStart()}
+              disabled={props.starting}
+              className="h-12 w-full rounded-2xl"
+            >
+              {props.starting ? "Solicitando…" : props.cameraError ? "Tentar novamente" : "Ativar câmera"}
+            </Button>
+            <label className="grid h-12 w-full place-items-center rounded-2xl bg-white/10 backdrop-blur cursor-pointer text-sm font-medium">
+              <span className="inline-flex items-center gap-2">
+                <Upload className="h-4 w-4" /> Enviar do dispositivo
+              </span>
+              <input
+                type="file"
+                accept="video/*"
+                hidden
+                onChange={(e) => e.target.files?.[0] && props.onPick(e.target.files[0])}
+              />
+            </label>
+          </div>
+        </div>
+      ) : null}
+
       {props.recording ? (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-full bg-red-500/90 px-3 py-1 text-xs font-semibold shadow-lg">
           <span className="h-2 w-2 rounded-full bg-white animate-pulse" />

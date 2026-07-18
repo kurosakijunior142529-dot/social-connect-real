@@ -61,18 +61,40 @@ function VideoStudio() {
   const [caption, setCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const busy = stage === "publishing" || exporting;
 
   const filter = filterById(filterId);
 
+  const isEmbeddedPreview = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.self !== window.top;
+    } catch {
+      return true;
+    }
+  }, []);
+
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    setCameraReady(false);
   }, []);
 
   const startCamera = useCallback(async () => {
+    if (starting) return;
+    setStarting(true);
+    setCameraError(null);
     stopCamera();
     try {
+      if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Este navegador não suporta captura de câmera.");
+      }
+      if (typeof window !== "undefined" && !window.isSecureContext) {
+        throw new Error("Câmera requer HTTPS. Abra o app publicado (não o preview http).");
+      }
       const s = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1080 },
@@ -93,16 +115,36 @@ function VideoStudio() {
         el.muted = true;
         await el.play().catch(() => {});
       }
+      setCameraReady(true);
     } catch (err: any) {
-      toast.error(err?.message ?? "Não foi possível acessar a câmera");
+      const name = err?.name ?? "";
+      let msg = err?.message ?? "Não foi possível acessar a câmera.";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        msg = isEmbeddedPreview
+          ? "Permissão de câmera bloqueada no preview. Abra o app publicado (botão Publicar) e conceda acesso à câmera."
+          : "Você bloqueou o acesso à câmera. Toque no cadeado do navegador e libere Câmera + Microfone para este site.";
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        msg = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada ou tente enviar do dispositivo.";
+      } else if (name === "NotReadableError") {
+        msg = "Outra aplicação está usando a câmera. Feche outros apps e tente novamente.";
+      }
+      setCameraError(msg);
+      toast.error(msg);
+    } finally {
+      setStarting(false);
     }
-  }, [facing, stopCamera]);
+  }, [facing, stopCamera, isEmbeddedPreview, starting]);
 
+  // Restart when the user flips cameras (only if already active)
   useEffect(() => {
-    if (stage === "camera") void startCamera();
-    return () => stopCamera();
+    if (stage === "camera" && cameraReady) void startCamera();
+    return () => {
+      if (stage !== "camera") stopCamera();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, facing]);
+  }, [facing]);
+
+  useEffect(() => () => stopCamera(), [stopCamera]);
 
   useEffect(() => {
     return () => {

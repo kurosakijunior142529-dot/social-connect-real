@@ -281,6 +281,11 @@ function VideoStudio() {
           filterId={filterId}
           onFilter={setFilterId}
           onPick={pickFromLibrary}
+          cameraReady={cameraReady}
+          cameraError={cameraError}
+          starting={starting}
+          isEmbeddedPreview={isEmbeddedPreview}
+          onStart={startCamera}
         />
       ) : (
         <ReviewStage

@@ -176,7 +176,7 @@ export function AppShell({
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none">
         <div className="mx-4 mb-3 pointer-events-auto glass-heavy rounded-full">
           <div className="flex items-center justify-between px-2 py-1.5">
-            {items.map(({ to, label, Icon }) => {
+            {mobileItems.map(({ to, label, Icon }) => {
               const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
               const isCreate = to === "/create";
               const isNotif = to === "/notifications";

@@ -322,6 +322,11 @@ function CameraStage(props: {
   filterId: string;
   onFilter: (id: string) => void;
   onPick: (f: File) => void;
+  cameraReady: boolean;
+  cameraError: string | null;
+  starting: boolean;
+  isEmbeddedPreview: boolean;
+  onStart: () => void | Promise<void>;
 }) {
   const pct = Math.min(1, props.elapsed / MAX_RECORD_MS);
   return (

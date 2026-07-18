@@ -68,6 +68,7 @@ export function AppShell({
     pathname === "/notifications" ||
     pathname === "/create" ||
     pathname === "/settings" ||
+    pathname === "/games" ||
     pathname === "/saved";
 
   const Badge = () =>

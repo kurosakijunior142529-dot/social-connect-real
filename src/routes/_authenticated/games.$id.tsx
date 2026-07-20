@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Trophy, Medal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Game2048, GameSnake, GameMemory, GameReaction } from "@/components/games/games";
+import { GameTicTacToe } from "@/components/games/tictactoe";
+import { GameMinesweeper } from "@/components/games/minesweeper";
+import { GameSudoku } from "@/components/games/sudoku";
+import { GameChess } from "@/components/games/chess";
 import { UserAvatar } from "@/components/user-avatar";
 
 const GAME_META: Record<string, { name: string; scoreLabel: string }> = {
@@ -10,6 +14,10 @@ const GAME_META: Record<string, { name: string; scoreLabel: string }> = {
   "snake": { name: "Snake", scoreLabel: "frutas" },
   "memory": { name: "Memória", scoreLabel: "pts" },
   "reaction": { name: "Reação", scoreLabel: "pts" },
+  "tictactoe": { name: "Jogo da Velha", scoreLabel: "pts" },
+  "minesweeper": { name: "Campo Minado", scoreLabel: "pts" },
+  "sudoku": { name: "Sudoku", scoreLabel: "pts" },
+  "chess": { name: "Xadrez", scoreLabel: "pts" },
 };
 
 export const Route = createFileRoute("/_authenticated/games/$id")({
@@ -85,6 +93,10 @@ function GamePage() {
         {id === "snake" ? <GameSnake onGameOver={onGameOver} /> : null}
         {id === "memory" ? <GameMemory onGameOver={onGameOver} /> : null}
         {id === "reaction" ? <GameReaction onGameOver={onGameOver} /> : null}
+        {id === "tictactoe" ? <GameTicTacToe onGameOver={onGameOver} /> : null}
+        {id === "minesweeper" ? <GameMinesweeper onGameOver={onGameOver} /> : null}
+        {id === "sudoku" ? <GameSudoku onGameOver={onGameOver} /> : null}
+        {id === "chess" ? <GameChess onGameOver={onGameOver} /> : null}
       </div>
 
       <section className="px-4 pt-8">

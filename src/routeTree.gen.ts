@@ -23,6 +23,7 @@ import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_authenticated/marketplace.index'
 import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authenticated/games.index'
+import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
@@ -34,6 +35,7 @@ import { Route as AuthenticatedGamesIdRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create.video'
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
+import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authenticated/ai.$threadId'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -107,6 +109,11 @@ const AuthenticatedGamesIndexRoute = AuthenticatedGamesIndexRouteImport.update({
   path: '/games/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAiIndexRoute = AuthenticatedAiIndexRouteImport.update({
+  id: '/ai/',
+  path: '/ai/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedWatchRoomIdRoute =
   AuthenticatedWatchRoomIdRouteImport.update({
     id: '/watch/$roomId',
@@ -167,6 +174,11 @@ const AuthenticatedChatsIdRoute = AuthenticatedChatsIdRouteImport.update({
   path: '/chats/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAiThreadIdRoute = AuthenticatedAiThreadIdRouteImport.update({
+  id: '/ai/$threadId',
+  path: '/ai/$threadId',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -178,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/': typeof AuthIndexRoute
+  '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
@@ -189,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/ai/': typeof AuthenticatedAiIndexRoute
   '/games/': typeof AuthenticatedGamesIndexRoute
   '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -204,6 +218,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
+  '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
@@ -215,6 +230,7 @@ export interface FileRoutesByTo {
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/ai': typeof AuthenticatedAiIndexRoute
   '/games': typeof AuthenticatedGamesIndexRoute
   '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
@@ -232,6 +248,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
+  '/_authenticated/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
   '/_authenticated/chats/new': typeof AuthenticatedChatsNewRoute
   '/_authenticated/create/video': typeof AuthenticatedCreateVideoRoute
@@ -243,6 +260,7 @@ export interface FileRoutesById {
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRoute
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/games/': typeof AuthenticatedGamesIndexRoute
   '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -260,6 +278,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/auth/'
+    | '/ai/$threadId'
     | '/chats/$id'
     | '/chats/new'
     | '/create/video'
@@ -271,6 +290,7 @@ export interface FileRouteTypes {
     | '/stories/new'
     | '/u/$username'
     | '/watch/$roomId'
+    | '/ai/'
     | '/games/'
     | '/marketplace/'
     | '/messages/'
@@ -286,6 +306,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/'
     | '/auth'
+    | '/ai/$threadId'
     | '/chats/$id'
     | '/chats/new'
     | '/create/video'
@@ -297,6 +318,7 @@ export interface FileRouteTypes {
     | '/stories/new'
     | '/u/$username'
     | '/watch/$roomId'
+    | '/ai'
     | '/games'
     | '/marketplace'
     | '/messages'
@@ -313,6 +335,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/_authenticated/'
     | '/auth/'
+    | '/_authenticated/ai/$threadId'
     | '/_authenticated/chats/$id'
     | '/_authenticated/chats/new'
     | '/_authenticated/create/video'
@@ -324,6 +347,7 @@ export interface FileRouteTypes {
     | '/_authenticated/stories/new'
     | '/_authenticated/u/$username'
     | '/_authenticated/watch/$roomId'
+    | '/_authenticated/ai/'
     | '/_authenticated/games/'
     | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
@@ -436,6 +460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGamesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ai/': {
+      id: '/_authenticated/ai/'
+      path: '/ai'
+      fullPath: '/ai/'
+      preLoaderRoute: typeof AuthenticatedAiIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/watch/$roomId': {
       id: '/_authenticated/watch/$roomId'
       path: '/watch/$roomId'
@@ -513,6 +544,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ai/$threadId': {
+      id: '/_authenticated/ai/$threadId'
+      path: '/ai/$threadId'
+      fullPath: '/ai/$threadId'
+      preLoaderRoute: typeof AuthenticatedAiThreadIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -535,6 +573,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAiThreadIdRoute: typeof AuthenticatedAiThreadIdRoute
   AuthenticatedChatsIdRoute: typeof AuthenticatedChatsIdRoute
   AuthenticatedChatsNewRoute: typeof AuthenticatedChatsNewRoute
   AuthenticatedGamesIdRoute: typeof AuthenticatedGamesIdRoute
@@ -545,6 +584,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRoute
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
+  AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
   AuthenticatedGamesIndexRoute: typeof AuthenticatedGamesIndexRoute
   AuthenticatedMarketplaceIndexRoute: typeof AuthenticatedMarketplaceIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
@@ -559,6 +599,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSavedRoute: AuthenticatedSavedRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAiThreadIdRoute: AuthenticatedAiThreadIdRoute,
   AuthenticatedChatsIdRoute: AuthenticatedChatsIdRoute,
   AuthenticatedChatsNewRoute: AuthenticatedChatsNewRoute,
   AuthenticatedGamesIdRoute: AuthenticatedGamesIdRoute,
@@ -570,6 +611,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRoute,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
+  AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
   AuthenticatedGamesIndexRoute: AuthenticatedGamesIndexRoute,
   AuthenticatedMarketplaceIndexRoute: AuthenticatedMarketplaceIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,

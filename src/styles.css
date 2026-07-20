@@ -65,9 +65,9 @@
   --popover: #17171A;
   --popover-foreground: #F5F5F7;
 
-  /* Neon lime accent — used sparingly */
-  --primary: #D7FF3A;
-  --primary-foreground: #0A0A0B;
+  /* Emerald green 💚 */
+  --primary: #22E06A;
+  --primary-foreground: #06170D;
 
   --secondary: #17171A;
   --secondary-foreground: #F5F5F7;
@@ -84,16 +84,16 @@
   --hairline: rgba(255, 255, 255, 0.06);
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.10);
-  --ring: #D7FF3A;
+  --ring: #22E06A;
 
   --sidebar: #0F0F11;
   --sidebar-foreground: #F5F5F7;
-  --sidebar-primary: #D7FF3A;
-  --sidebar-primary-foreground: #0A0A0B;
+  --sidebar-primary: #22E06A;
+  --sidebar-primary-foreground: #06170D;
   --sidebar-accent: #17171A;
   --sidebar-accent-foreground: #F5F5F7;
   --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-ring: #D7FF3A;
+  --sidebar-ring: #22E06A;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }

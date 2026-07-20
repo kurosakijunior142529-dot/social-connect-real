@@ -1,51 +1,67 @@
-Escopo enxuto e ordenado por impacto. Não vou empilhar 10 features novas — vou destravar o que está quebrado e refinar a UI que você reclamou.
+Você marcou 4 prioridades. Realisticamente cabem 2-3 nesta rodada sem quebrar o resto. Multiplayer online (xadrez/UNO com Realtime) é uma rodada inteira sozinha — sincronização de estado, salas, matchmaking, reconexão, anti-cheat básico. Se eu tentar tudo junto vai sair meia-boca.
 
-## Fase A — Destravar (nesta rodada)
+## Rodada 1 — AGORA (esta atualização)
 
-**1. Editor de vídeo `/create/video` — câmera não abre**
-- Causa provável: no preview do Lovable o app roda dentro de um `<iframe>` sem `allow="camera; microphone; display-capture"`, então `getUserMedia` é bloqueado antes de pedir permissão. Também não há mensagem de erro clara pro usuário.
-- Ações:
-  - Antes de chamar `getUserMedia`, checar `navigator.permissions.query({name:'camera'})` e mostrar tela explicando o motivo (`NotAllowedError`, `NotFoundError`, iframe sem permission-policy, contexto não-HTTPS).
-  - Botão explícito "Ativar câmera" (gesto do usuário) em vez de auto-start no mount — evita o silêncio quando o browser bloqueia por falta de gesto.
-  - Fallback: se câmera falhar, botão "Enviar do dispositivo" já em destaque.
-  - Testar no app publicado (fora do iframe do preview) — é lá que a câmera realmente funciona. Deixar aviso na UI quando detectar `window.self !== window.top`.
+**1. Cor verde 💚 mais brilhante**
+- Trocar `--primary` de `#D7FF3A` (lima) para verde vibrante estilo emoji 💚 (algo como `#22C55E` ou `#00E676`).
+- Ajustar `--ring`, `--sidebar-primary` no mesmo tom.
 
-**2. Aba Jogos não aparece no mobile**
-- Hoje `/games` só existe no sidebar desktop. Bottom nav mobile tem 7 itens e não cabe mais um.
-- Ação: mover **Explorar** e **Alertas** para dentro do header do Feed (ícones), e liberar 2 slots no bottom nav → **Feed · Reels · Criar · Jogos · Perfil**. Notificação vira sino no header com badge (já existe hook).
+**2. Câmera do feed 100% funcional**
+- Reforçar o fluxo em `/create/video`: botão explícito "Ativar câmera", tratar `NotAllowedError`/`NotFoundError`/iframe com mensagens claras.
+- Adicionar captura de FOTO (não só vídeo) com botão dedicado, publicar direto no feed via bucket `posts`.
+- Detectar preview iframe e mostrar CTA "Abrir no app publicado" (link para social-connect-real.lovable.app).
 
-**3. GIFs com erro**
-- Investigar `src/lib/gifs.functions.ts` (68 linhas) — verificar chave Tenor/Giphy, tratar 401/429 e mostrar estado de erro no `GifPicker` em vez de ficar em branco.
+**3. GIFs estáveis**
+- Auditar server function `searchGifs`: já trata 401/429, mas `GifPicker` chama a cada 250ms mesmo com query vazia. Adicionar debounce real + cache de resultados por query + retry uma vez em falha de rede.
+- Testar com Playwright: abrir picker, buscar "gato", confirmar imagens carregando.
 
-**4. Streaming Amigo**
-- Reproduzir o fluxo criar sala → copiar link → abrir em aba anônima. Corrigir o que quebrar (provável: `code` não sendo carregado quando entra por deep link já autenticado, ou realtime channel).
+**4. Aba Jogos dedicada + 4 jogos solo novos**
+Já existe `/games` com 2048, Snake, Memória, Reação. Adiciono:
+- **Xadrez (vs CPU)** — engine minimax simples, 3 níveis
+- **Jogo da Velha (vs CPU)** — minimax perfeito
+- **Campo Minado** — 3 dificuldades, ranking por tempo
+- **Sudoku** — gerador + validador, 3 dificuldades
 
-**5. Áudio das chamadas**
-- Já apliquei TURN + MediaStream persistente antes. Se ainda mudo, o próximo passo é logar `iceConnectionState` e `getStats()` no `call-provider`, e forçar `RTCRtpTransceiver` com `direction: 'sendrecv'` explícito nos dois lados. Precisa de log real de uma tentativa entre 2 usuários — vou instrumentar e você me manda o console.
+Reorganizar `/games` em categorias: "Solo", "Puzzle", "Reflexo". Ranking global via `game_scores` (já existe).
 
-## Fase B — Redesign (próxima rodada, dedicada)
+**5. Chat IA Gemini dedicado (`/ai`)**
+- Nova rota `/ai` e `/ai/$threadId` (conversas persistentes com threads).
+- Tabelas novas: `ai_threads` (id, user_id, title, updated_at) + `ai_messages` (id, thread_id, role, content, image_url, created_at). RLS por dono.
+- UI: sidebar de threads + área de chat com markdown, streaming, avatar Gemini.
+- Streaming via server route `/api/ai/chat` usando `google/gemini-3.1-pro-preview` (rápido e capaz).
+- Geração de imagem: comando `/imagem <prompt>` ou botão dedicado → `google/gemini-3.1-flash-image`, salva no bucket e exibe inline.
+- Sem tool-calling complexo nesta rodada (evita bugs).
 
-Não misturo com Fase A pra não quebrar nada de novo. Só faço depois que A estiver validado por você.
+**6. Limpeza visual do feed**
+- Já movi Explorar/Alertas pra header. Agora: remover badges duplicados, apertar spacing dos cards, cards sem borda dupla.
+- Bottom nav mobile: **Feed · Reels · Criar · Jogos · Perfil** (5 slots, sem apertar).
 
-**Player de vídeo (feed + reels)**
-- Controles minimalistas estilo TikTok/Instagram: barra de progresso fina no rodapé, tap = pause com ícone play grande, double-tap = curtir com heart animation, hold = 2x speed.
-- Coluna de ações à direita com avatares empilhados de quem curtiu.
-- Legenda com "…mais" expansível e hashtags/menções clicáveis.
-- Loop suave sem flash preto (preload="auto" + segundo `<video>` invisível pra buffer).
+## Rodada 2 — próxima (dedicada a multiplayer)
 
-**Feed**
-- Header com logo + sino (notificações) + busca (Explorar).
-- Cards sem borda, media edge-to-edge, ações em linha só com ícones.
-- Skeletons com shimmer.
+Só depois que rodada 1 estiver validada. Faço:
+- **Xadrez online 1v1** — salas, matchmaking simples (fila), sincronização de jogadas via Supabase Realtime, chat na partida, timer.
+- **UNO 4 players** — mais complexo (deck, ordem, cartas especiais). Pode virar rodada 3 sozinho se ficar grande.
+- Reconexão automática se perder conexão em partida ativa.
 
-## Fora do escopo agora (peça em rodada dedicada)
-- Editor com músicas/Spotify, filtros AR faciais, exportação com ffmpeg.wasm — cada um é 1 rodada inteira sozinho.
+## Rodada 3 — se necessário
 
-## Como valido antes de fechar
-- Editor: rodar Playwright no preview publicado, tirar screenshot da tela de erro amigável e do botão "Ativar câmera".
-- Bottom nav: screenshot mobile 384px mostrando Jogos acessível.
-- GIFs: abrir picker, buscar "cat", ver resultado ou mensagem de erro.
-- Streaming: criar sala, entrar pelo link, ver player YouTube carregando.
-- Chamadas: adicionar logs de `iceConnectionState` — te peço 1 teste real depois.
+- Mais jogos (batalha naval, dominó, damas).
+- Torneios/ranking sazonal.
 
-Confirma que ataco Fase A agora nessa ordem?
+## Como valido rodada 1
+
+- Playwright no app publicado: abrir /create/video, clicar "Ativar câmera", tirar screenshot.
+- Buscar GIF "gato", screenshot dos resultados.
+- Abrir /games, screenshot mostrando novos jogos.
+- Criar thread no /ai, mandar "olá" e "/imagem gato astronauta", screenshot do resultado.
+
+## Detalhes técnicos (você não precisa ler)
+
+- Verde novo: `oklch(0.72 0.20 145)` ≈ `#22C55E`. Ajustar contraste do `--primary-foreground` pra `#0A0A0B` continua ok.
+- IA threads: `ai_threads` com FK cascade em delete de usuário; `ai_messages.role` enum `user|assistant|system`; `image_url` nullable aponta pro bucket `posts` (reaproveitar).
+- Streaming Gemini: `streamText` do AI SDK + `toUIMessageStreamResponse`, `useChat` no cliente com transport apontando pra `/api/ai/chat`.
+- Imagens: fluxo `/v1/images/generations` com `stream: true` (ver `ai-image-generation-tanstack`), salva blob final no bucket `posts/ai/{uid}/`.
+- Xadrez engine: biblioteca `chess.js` pra regras + minimax próprio (3-4 plies) pra IA. Evita `stockfish.wasm` (peso alto).
+- Sudoku gerador: algoritmo simples de remoção de células a partir de solução válida.
+
+Confirma que ataco Rodada 1 agora e multiplayer fica pra próxima?

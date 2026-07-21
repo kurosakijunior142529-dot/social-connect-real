@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { SignedImage } from "@/components/signed-image";
@@ -8,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles } from "lucide-react";
+import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2 } from "lucide-react";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
+import { uploadMedia } from "@/lib/media";
 
 export const Route = createFileRoute("/_authenticated/u/$username")({
   component: ProfilePage,
@@ -107,6 +109,7 @@ function ProfilePage() {
           <div className="h-full w-full bg-gradient-to-br from-primary/30 via-secondary to-background" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        {isMe ? <CoverUploader userId={user.id} onDone={() => profileQuery.refetch()} /> : null}
       </div>
 
       {/* Header */}
@@ -237,5 +240,46 @@ function PostGrid({ posts, empty }: { posts: any[]; empty: string }) {
         </Link>
       ))}
     </div>
+  );
+}
+
+function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  async function onPick(f: File) {
+    if (!f.type.startsWith("image/")) return toast.error("Selecione uma imagem");
+    if (f.size > 8 * 1024 * 1024) return toast.error("Imagem maior que 8MB");
+    setBusy(true);
+    try {
+      const path = await uploadMedia("covers", userId, f);
+      const { error } = await supabase.from("profiles").update({ cover_url: path }).eq("id", userId);
+      if (error) throw error;
+      toast.success("Capa atualizada");
+      onDone();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao enviar");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-black/50 backdrop-blur px-3 py-1.5 text-xs text-white hover:bg-black/70 disabled:opacity-60"
+      >
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+        Alterar capa
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
+      />
+    </>
   );
 }

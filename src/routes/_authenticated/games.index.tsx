@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Gamepad2, Zap, Grid3x3, Snowflake, Brain, Crown, Bomb, Hash, Circle } from "lucide-react";
+import { Gamepad2, Zap, Grid3x3, Snowflake, Brain, Crown, Bomb, Hash, Circle, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/games/")({
   component: GamesIndex,
@@ -68,11 +68,19 @@ function GamesIndex() {
         </section>
       ))}
 
-      <div className="mt-4 rounded-2xl bg-[color:var(--surface)] p-4 text-center">
-        <div className="text-2xl mb-1">👥</div>
-        <div className="text-sm font-medium">Multiplayer online em breve</div>
-        <div className="text-xs text-muted-foreground mt-1">Xadrez, UNO, batalha naval e mais</div>
-      </div>
+      <Link
+        to="/games/online"
+        className="mt-4 flex items-center gap-4 rounded-3xl bg-gradient-to-br from-primary/25 via-primary/10 to-transparent border border-primary/30 p-4 shadow-elegant active:scale-[0.99] transition-transform"
+      >
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
+          <Users className="h-6 w-6" />
+        </div>
+        <div className="flex-1">
+          <div className="text-base font-semibold">Jogar com amigo</div>
+          <div className="text-xs text-muted-foreground">Multiplayer online por código de sala</div>
+        </div>
+        <span className="text-[10px] px-2 py-1 rounded-full bg-primary text-primary-foreground font-semibold">Novo</span>
+      </Link>
     </div>
   );
 }

@@ -31,11 +31,13 @@ import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages.$conversationId'
 import { Route as AuthenticatedMarketplaceNewRouteImport } from './routes/_authenticated/marketplace.new'
 import { Route as AuthenticatedMarketplaceIdRouteImport } from './routes/_authenticated/marketplace.$id'
+import { Route as AuthenticatedGamesOnlineRouteImport } from './routes/_authenticated/games.online'
 import { Route as AuthenticatedGamesIdRouteImport } from './routes/_authenticated/games.$id'
 import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create.video'
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authenticated/ai.$threadId'
+import { Route as AuthenticatedGamesOnlineRoomRouteImport } from './routes/_authenticated/games.online.$room'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -153,6 +155,12 @@ const AuthenticatedMarketplaceIdRoute =
     path: '/marketplace/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGamesOnlineRoute =
+  AuthenticatedGamesOnlineRouteImport.update({
+    id: '/games/online',
+    path: '/games/online',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGamesIdRoute = AuthenticatedGamesIdRouteImport.update({
   id: '/games/$id',
   path: '/games/$id',
@@ -179,6 +187,12 @@ const AuthenticatedAiThreadIdRoute = AuthenticatedAiThreadIdRouteImport.update({
   path: '/ai/$threadId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGamesOnlineRoomRoute =
+  AuthenticatedGamesOnlineRoomRouteImport.update({
+    id: '/$room',
+    path: '/$room',
+    getParentRoute: () => AuthenticatedGamesOnlineRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -195,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
+  '/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -207,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
   '/watch/': typeof AuthenticatedWatchIndexRoute
+  '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
 }
 export interface FileRoutesByTo {
   '/create': typeof AuthenticatedCreateRouteWithChildren
@@ -223,6 +239,7 @@ export interface FileRoutesByTo {
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
+  '/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -235,6 +252,7 @@ export interface FileRoutesByTo {
   '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
   '/watch': typeof AuthenticatedWatchIndexRoute
+  '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -253,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/chats/new': typeof AuthenticatedChatsNewRoute
   '/_authenticated/create/video': typeof AuthenticatedCreateVideoRoute
   '/_authenticated/games/$id': typeof AuthenticatedGamesIdRoute
+  '/_authenticated/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
   '/_authenticated/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/_authenticated/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/_authenticated/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -265,6 +284,7 @@ export interface FileRoutesById {
   '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
+  '/_authenticated/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -283,6 +303,7 @@ export interface FileRouteTypes {
     | '/chats/new'
     | '/create/video'
     | '/games/$id'
+    | '/games/online'
     | '/marketplace/$id'
     | '/marketplace/new'
     | '/messages/$conversationId'
@@ -295,6 +316,7 @@ export interface FileRouteTypes {
     | '/marketplace/'
     | '/messages/'
     | '/watch/'
+    | '/games/online/$room'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/create'
@@ -311,6 +333,7 @@ export interface FileRouteTypes {
     | '/chats/new'
     | '/create/video'
     | '/games/$id'
+    | '/games/online'
     | '/marketplace/$id'
     | '/marketplace/new'
     | '/messages/$conversationId'
@@ -323,6 +346,7 @@ export interface FileRouteTypes {
     | '/marketplace'
     | '/messages'
     | '/watch'
+    | '/games/online/$room'
   id:
     | '__root__'
     | '/_authenticated'
@@ -340,6 +364,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chats/new'
     | '/_authenticated/create/video'
     | '/_authenticated/games/$id'
+    | '/_authenticated/games/online'
     | '/_authenticated/marketplace/$id'
     | '/_authenticated/marketplace/new'
     | '/_authenticated/messages/$conversationId'
@@ -352,6 +377,7 @@ export interface FileRouteTypes {
     | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
     | '/_authenticated/watch/'
+    | '/_authenticated/games/online/$room'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -516,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMarketplaceIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/games/online': {
+      id: '/_authenticated/games/online'
+      path: '/games/online'
+      fullPath: '/games/online'
+      preLoaderRoute: typeof AuthenticatedGamesOnlineRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/games/$id': {
       id: '/_authenticated/games/$id'
       path: '/games/$id'
@@ -551,6 +584,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiThreadIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/games/online/$room': {
+      id: '/_authenticated/games/online/$room'
+      path: '/$room'
+      fullPath: '/games/online/$room'
+      preLoaderRoute: typeof AuthenticatedGamesOnlineRoomRouteImport
+      parentRoute: typeof AuthenticatedGamesOnlineRoute
+    }
   }
 }
 
@@ -565,6 +605,20 @@ const AuthenticatedCreateRouteChildren: AuthenticatedCreateRouteChildren = {
 const AuthenticatedCreateRouteWithChildren =
   AuthenticatedCreateRoute._addFileChildren(AuthenticatedCreateRouteChildren)
 
+interface AuthenticatedGamesOnlineRouteChildren {
+  AuthenticatedGamesOnlineRoomRoute: typeof AuthenticatedGamesOnlineRoomRoute
+}
+
+const AuthenticatedGamesOnlineRouteChildren: AuthenticatedGamesOnlineRouteChildren =
+  {
+    AuthenticatedGamesOnlineRoomRoute: AuthenticatedGamesOnlineRoomRoute,
+  }
+
+const AuthenticatedGamesOnlineRouteWithChildren =
+  AuthenticatedGamesOnlineRoute._addFileChildren(
+    AuthenticatedGamesOnlineRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCreateRoute: typeof AuthenticatedCreateRouteWithChildren
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
@@ -577,6 +631,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChatsIdRoute: typeof AuthenticatedChatsIdRoute
   AuthenticatedChatsNewRoute: typeof AuthenticatedChatsNewRoute
   AuthenticatedGamesIdRoute: typeof AuthenticatedGamesIdRoute
+  AuthenticatedGamesOnlineRoute: typeof AuthenticatedGamesOnlineRouteWithChildren
   AuthenticatedMarketplaceIdRoute: typeof AuthenticatedMarketplaceIdRoute
   AuthenticatedMarketplaceNewRoute: typeof AuthenticatedMarketplaceNewRoute
   AuthenticatedMessagesConversationIdRoute: typeof AuthenticatedMessagesConversationIdRoute
@@ -603,6 +658,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChatsIdRoute: AuthenticatedChatsIdRoute,
   AuthenticatedChatsNewRoute: AuthenticatedChatsNewRoute,
   AuthenticatedGamesIdRoute: AuthenticatedGamesIdRoute,
+  AuthenticatedGamesOnlineRoute: AuthenticatedGamesOnlineRouteWithChildren,
   AuthenticatedMarketplaceIdRoute: AuthenticatedMarketplaceIdRoute,
   AuthenticatedMarketplaceNewRoute: AuthenticatedMarketplaceNewRoute,
   AuthenticatedMessagesConversationIdRoute:

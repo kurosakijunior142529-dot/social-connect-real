@@ -141,10 +141,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
           }
         }
         if (added) {
-          setTrackUpdate(v => v + 1);
-          // We still trigger a state change for the UI, but we keep the SAME MediaStream object
-          // so the audio element doesn't reset its srcObject.
-          setRemoteStream(new MediaStream(remote.getTracks()));
+          setTrackUpdate((v) => v + 1);
+          // Keep the SAME MediaStream reference; the audio sink effect will
+          // re-attach it and force play() whenever trackUpdate bumps.
+          setRemoteStream(remote);
         }
       };
 

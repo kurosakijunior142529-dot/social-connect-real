@@ -141,10 +141,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
           }
         }
         if (added) {
-          setTrackUpdate(v => v + 1);
-          // We still trigger a state change for the UI, but we keep the SAME MediaStream object
-          // so the audio element doesn't reset its srcObject.
-          setRemoteStream(new MediaStream(remote.getTracks()));
+          setTrackUpdate((v) => v + 1);
+          // Keep the SAME MediaStream reference; the audio sink effect will
+          // re-attach it and force play() whenever trackUpdate bumps.
+          setRemoteStream(remote);
         }
       };
 
@@ -465,30 +465,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
     await acceptIncoming();
   }, [acceptIncoming, unlockAudioSink]);
 
-  // Audio Playback Management
+  // Audio Playback Management — re-attach the persistent stream and force
+  // play() whenever new remote tracks arrive (trackUpdate bumps).
   useEffect(() => {
     const el = audioSinkRef.current;
     if (!el) return;
-    
     const stream = remoteStream;
-    if (stream && stream.getTracks().length > 0) {
-      // Avoid resetting srcObject if it's essentially the same stream
-      // We check the ID of the first track as a heuristic
-      const currentStream = el.srcObject as MediaStream | null;
-      const currentTrackId = currentStream?.getTracks()[0]?.id;
-      const newTrackId = stream.getTracks()[0]?.id;
-      
-      if (el.srcObject !== stream && currentTrackId !== newTrackId) {
-        el.srcObject = stream;
-      }
-      
+    if (stream && stream.getAudioTracks().length > 0) {
+      if (el.srcObject !== stream) el.srcObject = stream;
       el.muted = false;
+      el.volume = 1;
       const p = el.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
     } else if (!stream) {
       el.srcObject = null;
     }
-  }, [remoteStream]);
+  }, [remoteStream, trackUpdate]);
 
   const value = useMemo<Ctx>(
     () => ({ startCall: startCallWithAudioUnlock, activeCall: active }),

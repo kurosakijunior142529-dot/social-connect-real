@@ -22,18 +22,24 @@ function pickFormat(gif: TenorGif) {
 
 async function tenor(path: string, params: Record<string, string>) {
   const key = process.env.TENOR_API_KEY;
-  if (!key) throw new Error("Serviço de GIFs não configurado");
+  if (!key) throw new Error("GIFs indisponíveis no momento");
   const q = new URLSearchParams({ key, client_key: "vibely", ...params });
   const url = `https://tenor.googleapis.com/v2/${path}?${q}`;
   let r: Response;
   try {
     r = await fetch(url);
-  } catch (e: any) {
-    throw new Error(`Falha de rede ao contatar Tenor: ${e?.message ?? "desconhecido"}`);
+  } catch {
+    throw new Error("Sem conexão com o serviço de GIFs");
   }
   if (!r.ok) {
     const body = await r.text().catch(() => "");
-    throw new Error(`Tenor ${r.status}: ${body.slice(0, 140)}`);
+    // Log detalhado no servidor, mensagem amigável ao usuário
+    console.error(`[tenor] ${r.status} ${path}:`, body.slice(0, 300));
+    if (r.status === 400 || r.status === 401 || r.status === 403) {
+      throw new Error("GIFs indisponíveis no momento");
+    }
+    if (r.status === 429) throw new Error("Muitas buscas — tente em instantes");
+    throw new Error("GIFs indisponíveis no momento");
   }
   return (await r.json()) as { results: TenorGif[]; next?: string };
 }

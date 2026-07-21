@@ -35,15 +35,26 @@ function emptyState(startedBy: "X" | "O" = "X"): GameState {
 
 function OnlineRoom() {
   const { room } = Route.useParams();
-  const { user, profile } = Route.useRouteContext() as any;
+  const { user } = Route.useRouteContext() as any;
+  const [meProfile, setMeProfile] = useState<{ display_name: string | null; username: string | null; avatar_url: string | null } | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("display_name, username, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setMeProfile(data ?? null));
+  }, [user.id]);
+
   const me: Player = useMemo(
     () => ({
       id: user.id,
-      name: profile?.display_name ?? profile?.username ?? "Você",
-      avatar: profile?.avatar_url ?? null,
+      name: meProfile?.display_name ?? meProfile?.username ?? "Você",
+      avatar: meProfile?.avatar_url ?? null,
       symbol: "X",
     }),
-    [user.id, profile?.display_name, profile?.username, profile?.avatar_url],
+    [user.id, meProfile],
   );
 
   const [connected, setConnected] = useState(false);

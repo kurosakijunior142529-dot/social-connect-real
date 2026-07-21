@@ -1,8 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Copy, Users, Wifi, WifiOff, RefreshCcw } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -11,15 +9,8 @@ export const Route = createFileRoute("/_authenticated/games/online")({
   head: () => ({ meta: [{ title: "Multiplayer online · vibely" }] }),
 });
 
-type Cell = "X" | "O" | null;
-const LINES = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8],
-  [0, 3, 6], [1, 4, 7], [2, 5, 8],
-  [0, 4, 8], [2, 4, 6],
-];
-function winnerOf(b: Cell[]): Cell | "draw" | null {
-  for (const [a, c, d] of LINES) if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
-  return b.every(Boolean) ? "draw" : null;
+function randomCode() {
+  return Math.random().toString(36).slice(2, 7).toUpperCase();
 }
 function randomCode() {
   return Math.random().toString(36).slice(2, 7).toUpperCase();

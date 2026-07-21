@@ -12,9 +12,6 @@ export const Route = createFileRoute("/_authenticated/games/online")({
 function randomCode() {
   return Math.random().toString(36).slice(2, 7).toUpperCase();
 }
-function randomCode() {
-  return Math.random().toString(36).slice(2, 7).toUpperCase();
-}
 
 function OnlineLobby() {
   const navigate = useNavigate();

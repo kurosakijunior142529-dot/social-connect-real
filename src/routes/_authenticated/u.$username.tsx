@@ -172,12 +172,16 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-2">
         <StatCard label="Posts" value={stats.data?.posts.length ?? 0} />
-        <StatCard label="Seguidores" value={stats.data?.followers ?? 0} />
-        <StatCard label="Seguindo" value={stats.data?.following ?? 0} />
+        <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "followers" }}>
+          <StatCard label="Seguidores" value={stats.data?.followers ?? 0} />
+        </Link>
+        <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "following" }}>
+          <StatCard label="Seguindo" value={stats.data?.following ?? 0} />
+        </Link>
       </div>
+
 
       {isBlockedPair ? (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">

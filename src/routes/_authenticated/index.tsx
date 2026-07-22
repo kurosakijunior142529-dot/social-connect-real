@@ -5,7 +5,7 @@ import { PostCard, usePostsQuery } from "@/components/post-card";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
-import { MessageCircle, PlusSquare, Settings, Tv } from "lucide-react";
+import { MessageCircle, PlusSquare, Settings, Tv, Gamepad2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: FeedPage,
@@ -56,10 +56,12 @@ function FeedPage() {
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <HeaderAction to="/watch" label="Streaming" icon={<Tv className="h-4 w-4" />} />
+            <HeaderAction to="/games" label="Jogos" icon={<Gamepad2 className="h-4 w-4" />} />
             <HeaderAction to="/messages" label="Conversas" icon={<MessageCircle className="h-4 w-4" />} />
             <HeaderAction to="/create" label="Criar" icon={<PlusSquare className="h-4 w-4" />} primary />
             <HeaderAction to="/settings" label="Configurações" icon={<Settings className="h-4 w-4" />} />
           </div>
+
         </div>
       </header>
 
@@ -119,7 +121,7 @@ function HeaderAction({
   label,
   primary,
 }: {
-  to: "/watch" | "/messages" | "/create" | "/settings";
+  to: "/watch" | "/messages" | "/create" | "/settings" | "/games";
   icon: ReactNode;
   label: string;
   primary?: boolean;

@@ -5,7 +5,7 @@ import { PostCard, usePostsQuery } from "@/components/post-card";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
-import { MessageCircle, PlusSquare, Settings, Tv } from "lucide-react";
+import { MessageCircle, PlusSquare, Settings, Tv, Gamepad2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: FeedPage,

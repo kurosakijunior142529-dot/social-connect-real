@@ -43,18 +43,19 @@ export function AppShell({
     },
   ];
 
-  // Mobile bottom nav: 5 items only, includes Games
+  // Mobile bottom nav: 5 items only, includes Messages
   const mobileItems: NavItem[] = [
     { to: "/", label: "Feed", Icon: Home },
     { to: "/reels", label: "Reels", Icon: Play },
     { to: "/create", label: "Criar", Icon: PlusSquare },
-    { to: "/games", label: "Jogos", Icon: Gamepad2 },
+    { to: "/messages", label: "Chat", Icon: MessageCircle },
     {
       to: currentUsername ? `/u/${currentUsername}` : "/settings",
       label: "Perfil",
       Icon: UserIcon,
     },
   ];
+
 
   const handleSignOut = async () => {
     await signOutAndClearSession(queryClient, navigate);

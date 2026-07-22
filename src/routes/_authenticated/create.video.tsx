@@ -84,7 +84,6 @@ function VideoStudio() {
   }, []);
 
   const startCamera = useCallback(async () => {
-    if (starting) return;
     setStarting(true);
     setCameraError(null);
     stopCamera();
@@ -95,7 +94,8 @@ function VideoStudio() {
       if (typeof window !== "undefined" && !window.isSecureContext) {
         throw new Error("Câmera requer HTTPS. Abra o app publicado (não o preview http).");
       }
-      const s = await navigator.mediaDevices.getUserMedia({
+      // Race with a timeout so the button never appears frozen.
+      const gum = navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1080 },
           height: { ideal: 1920 },
@@ -108,6 +108,10 @@ function VideoStudio() {
           autoGainControl: true,
         },
       });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new DOMException("Tempo esgotado ao pedir permissão de câmera.", "TimeoutError")), 15000),
+      );
+      const s = (await Promise.race([gum, timeout])) as MediaStream;
       streamRef.current = s;
       const el = previewRef.current;
       if (el) {
@@ -121,19 +125,25 @@ function VideoStudio() {
       let msg = err?.message ?? "Não foi possível acessar a câmera.";
       if (name === "NotAllowedError" || name === "SecurityError") {
         msg = isEmbeddedPreview
-          ? "Permissão de câmera bloqueada no preview. Abra o app publicado (botão Publicar) e conceda acesso à câmera."
+          ? "Permissão de câmera bloqueada no preview embutido. Abra o app publicado e conceda acesso à câmera."
           : "Você bloqueou o acesso à câmera. Toque no cadeado do navegador e libere Câmera + Microfone para este site.";
       } else if (name === "NotFoundError" || name === "OverconstrainedError") {
         msg = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada ou tente enviar do dispositivo.";
       } else if (name === "NotReadableError") {
         msg = "Outra aplicação está usando a câmera. Feche outros apps e tente novamente.";
+      } else if (name === "TimeoutError") {
+        msg = isEmbeddedPreview
+          ? "O preview embutido não devolveu a permissão. Abra o app publicado para usar a câmera."
+          : "Tempo esgotado esperando a permissão da câmera. Tente de novo.";
       }
+      console.error("[camera]", name, err);
       setCameraError(msg);
       toast.error(msg);
     } finally {
       setStarting(false);
     }
-  }, [facing, stopCamera, isEmbeddedPreview, starting]);
+  }, [facing, stopCamera, isEmbeddedPreview]);
+
 
   // Restart when the user flips cameras (only if already active)
   useEffect(() => {

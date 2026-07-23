@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Sparkles } from "lucide-react";
+import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Sparkles, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
@@ -32,6 +32,7 @@ export function AppShell({
   const items: NavItem[] = [
     { to: "/", label: "Feed", Icon: Home },
     { to: "/reels", label: "Reels", Icon: Play },
+    { to: "/lives", label: "Lives", Icon: Radio },
     { to: "/explore", label: "Explorar", Icon: Search },
     { to: "/create", label: "Criar", Icon: PlusSquare },
     { to: "/notifications", label: "Alertas", Icon: Bell },

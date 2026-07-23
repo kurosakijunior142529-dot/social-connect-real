@@ -168,6 +168,39 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_subscriptions: {
+        Row: {
+          creator_id: string
+          ends_at: string | null
+          id: string
+          started_at: string
+          status: string
+          stripe_subscription_id: string | null
+          subscriber_id: string
+          tier: number
+        }
+        Insert: {
+          creator_id: string
+          ends_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          subscriber_id: string
+          tier?: number
+        }
+        Update: {
+          creator_id?: string
+          ends_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          subscriber_id?: string
+          tier?: number
+        }
+        Relationships: []
+      }
       chat_invites: {
         Row: {
           chat_id: string
@@ -494,6 +527,39 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_catalog: {
+        Row: {
+          active: boolean
+          animation: string | null
+          cost_coins: number
+          created_at: string
+          emoji: string
+          id: string
+          name: string
+          tier: string
+        }
+        Insert: {
+          active?: boolean
+          animation?: string | null
+          cost_coins: number
+          created_at?: string
+          emoji: string
+          id?: string
+          name: string
+          tier?: string
+        }
+        Update: {
+          active?: boolean
+          animation?: string | null
+          cost_coins?: number
+          created_at?: string
+          emoji?: string
+          id?: string
+          name?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string
@@ -677,6 +743,346 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      live_bans: {
+        Row: {
+          banned_by: string
+          created_at: string
+          expires_at: string | null
+          live_id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          banned_by: string
+          created_at?: string
+          expires_at?: string | null
+          live_id: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          banned_by?: string
+          created_at?: string
+          expires_at?: string | null
+          live_id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_bans_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "lives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          deleted: boolean
+          gift_id: string | null
+          id: string
+          is_highlighted: boolean
+          live_id: string
+          pinned: boolean
+          reply_to: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted?: boolean
+          gift_id?: string | null
+          id?: string
+          is_highlighted?: boolean
+          live_id: string
+          pinned?: boolean
+          reply_to?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted?: boolean
+          gift_id?: string | null
+          id?: string
+          is_highlighted?: boolean
+          live_id?: string
+          pinned?: boolean
+          reply_to?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_chat_messages_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "lives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_chat_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "live_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_gifts: {
+        Row: {
+          coins_spent: number
+          created_at: string
+          gift_id: string
+          id: string
+          live_id: string
+          message: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          coins_spent: number
+          created_at?: string
+          gift_id: string
+          id?: string
+          live_id: string
+          message?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          coins_spent?: number
+          created_at?: string
+          gift_id?: string
+          id?: string
+          live_id?: string
+          message?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_gifts_gift_id_fkey"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "gift_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_gifts_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "lives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_moderators: {
+        Row: {
+          added_by: string
+          created_at: string
+          live_id: string
+          user_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          live_id: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          live_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_moderators_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "lives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          live_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          live_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          live_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_reactions_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "lives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_recordings: {
+        Row: {
+          created_at: string
+          duration_sec: number | null
+          external_url: string | null
+          id: string
+          live_id: string
+          size_bytes: number | null
+          status: string
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_sec?: number | null
+          external_url?: string | null
+          id?: string
+          live_id: string
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_sec?: number | null
+          external_url?: string | null
+          id?: string
+          live_id?: string
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_recordings_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "lives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_viewers: {
+        Row: {
+          joined_at: string
+          left_at: string | null
+          live_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          left_at?: string | null
+          live_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          left_at?: string | null
+          live_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_viewers_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "lives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lives: {
+        Row: {
+          age_restricted: boolean
+          allow_guests: boolean
+          audience: string
+          auto_record: boolean
+          category: string | null
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          host_id: string
+          id: string
+          language: string | null
+          like_count: number
+          livekit_room: string
+          peak_viewer_count: number
+          started_at: string | null
+          status: string
+          tags: string[] | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          viewer_count: number
+        }
+        Insert: {
+          age_restricted?: boolean
+          allow_guests?: boolean
+          audience?: string
+          auto_record?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          host_id: string
+          id?: string
+          language?: string | null
+          like_count?: number
+          livekit_room: string
+          peak_viewer_count?: number
+          started_at?: string | null
+          status?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          viewer_count?: number
+        }
+        Update: {
+          age_restricted?: boolean
+          allow_guests?: boolean
+          audience?: string
+          auto_record?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          host_id?: string
+          id?: string
+          language?: string | null
+          like_count?: number
+          livekit_room?: string
+          peak_viewer_count?: number
+          started_at?: string | null
+          status?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          viewer_count?: number
+        }
+        Relationships: []
       }
       message_edits: {
         Row: {
@@ -1211,6 +1617,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          id: string
+          price_id: string
+          product_id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id: string
+          product_id: string
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id?: string
+          product_id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_coins: {
+        Row: {
+          balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

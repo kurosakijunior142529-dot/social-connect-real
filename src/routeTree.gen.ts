@@ -22,6 +22,7 @@ import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_authenticated/marketplace.index'
+import { Route as AuthenticatedLivesIndexRouteImport } from './routes/_authenticated/lives.index'
 import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authenticated/games.index'
 import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
@@ -31,6 +32,8 @@ import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages.$conversationId'
 import { Route as AuthenticatedMarketplaceNewRouteImport } from './routes/_authenticated/marketplace.new'
 import { Route as AuthenticatedMarketplaceIdRouteImport } from './routes/_authenticated/marketplace.$id'
+import { Route as AuthenticatedLivesNewRouteImport } from './routes/_authenticated/lives.new'
+import { Route as AuthenticatedLiveIdRouteImport } from './routes/_authenticated/live.$id'
 import { Route as AuthenticatedGamesOnlineRouteImport } from './routes/_authenticated/games.online'
 import { Route as AuthenticatedGamesIdRouteImport } from './routes/_authenticated/games.$id'
 import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create.video'
@@ -107,6 +110,11 @@ const AuthenticatedMarketplaceIndexRoute =
     path: '/marketplace/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLivesIndexRoute = AuthenticatedLivesIndexRouteImport.update({
+  id: '/lives/',
+  path: '/lives/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedGamesIndexRoute = AuthenticatedGamesIndexRouteImport.update({
   id: '/games/',
   path: '/games/',
@@ -156,6 +164,16 @@ const AuthenticatedMarketplaceIdRoute =
     path: '/marketplace/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLivesNewRoute = AuthenticatedLivesNewRouteImport.update({
+  id: '/lives/new',
+  path: '/lives/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLiveIdRoute = AuthenticatedLiveIdRouteImport.update({
+  id: '/live/$id',
+  path: '/live/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedGamesOnlineRoute =
   AuthenticatedGamesOnlineRouteImport.update({
     id: '/games/online',
@@ -217,6 +235,8 @@ export interface FileRoutesByFullPath {
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
   '/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
+  '/live/$id': typeof AuthenticatedLiveIdRoute
+  '/lives/new': typeof AuthenticatedLivesNewRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -226,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/ai/': typeof AuthenticatedAiIndexRoute
   '/games/': typeof AuthenticatedGamesIndexRoute
+  '/lives/': typeof AuthenticatedLivesIndexRoute
   '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
   '/watch/': typeof AuthenticatedWatchIndexRoute
@@ -248,6 +269,8 @@ export interface FileRoutesByTo {
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
   '/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
+  '/live/$id': typeof AuthenticatedLiveIdRoute
+  '/lives/new': typeof AuthenticatedLivesNewRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -257,6 +280,7 @@ export interface FileRoutesByTo {
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/ai': typeof AuthenticatedAiIndexRoute
   '/games': typeof AuthenticatedGamesIndexRoute
+  '/lives': typeof AuthenticatedLivesIndexRoute
   '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
   '/watch': typeof AuthenticatedWatchIndexRoute
@@ -281,6 +305,8 @@ export interface FileRoutesById {
   '/_authenticated/create/video': typeof AuthenticatedCreateVideoRoute
   '/_authenticated/games/$id': typeof AuthenticatedGamesIdRoute
   '/_authenticated/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
+  '/_authenticated/live/$id': typeof AuthenticatedLiveIdRoute
+  '/_authenticated/lives/new': typeof AuthenticatedLivesNewRoute
   '/_authenticated/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
   '/_authenticated/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/_authenticated/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -290,6 +316,7 @@ export interface FileRoutesById {
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/games/': typeof AuthenticatedGamesIndexRoute
+  '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
   '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
@@ -314,6 +341,8 @@ export interface FileRouteTypes {
     | '/create/video'
     | '/games/$id'
     | '/games/online'
+    | '/live/$id'
+    | '/lives/new'
     | '/marketplace/$id'
     | '/marketplace/new'
     | '/messages/$conversationId'
@@ -323,6 +352,7 @@ export interface FileRouteTypes {
     | '/watch/$roomId'
     | '/ai/'
     | '/games/'
+    | '/lives/'
     | '/marketplace/'
     | '/messages/'
     | '/watch/'
@@ -345,6 +375,8 @@ export interface FileRouteTypes {
     | '/create/video'
     | '/games/$id'
     | '/games/online'
+    | '/live/$id'
+    | '/lives/new'
     | '/marketplace/$id'
     | '/marketplace/new'
     | '/messages/$conversationId'
@@ -354,6 +386,7 @@ export interface FileRouteTypes {
     | '/watch/$roomId'
     | '/ai'
     | '/games'
+    | '/lives'
     | '/marketplace'
     | '/messages'
     | '/watch'
@@ -377,6 +410,8 @@ export interface FileRouteTypes {
     | '/_authenticated/create/video'
     | '/_authenticated/games/$id'
     | '/_authenticated/games/online'
+    | '/_authenticated/live/$id'
+    | '/_authenticated/lives/new'
     | '/_authenticated/marketplace/$id'
     | '/_authenticated/marketplace/new'
     | '/_authenticated/messages/$conversationId'
@@ -386,6 +421,7 @@ export interface FileRouteTypes {
     | '/_authenticated/watch/$roomId'
     | '/_authenticated/ai/'
     | '/_authenticated/games/'
+    | '/_authenticated/lives/'
     | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
     | '/_authenticated/watch/'
@@ -492,6 +528,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMarketplaceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lives/': {
+      id: '/_authenticated/lives/'
+      path: '/lives'
+      fullPath: '/lives/'
+      preLoaderRoute: typeof AuthenticatedLivesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/games/': {
       id: '/_authenticated/games/'
       path: '/games'
@@ -553,6 +596,20 @@ declare module '@tanstack/react-router' {
       path: '/marketplace/$id'
       fullPath: '/marketplace/$id'
       preLoaderRoute: typeof AuthenticatedMarketplaceIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lives/new': {
+      id: '/_authenticated/lives/new'
+      path: '/lives/new'
+      fullPath: '/lives/new'
+      preLoaderRoute: typeof AuthenticatedLivesNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/live/$id': {
+      id: '/_authenticated/live/$id'
+      path: '/live/$id'
+      fullPath: '/live/$id'
+      preLoaderRoute: typeof AuthenticatedLiveIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/games/online': {
@@ -666,6 +723,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChatsNewRoute: typeof AuthenticatedChatsNewRoute
   AuthenticatedGamesIdRoute: typeof AuthenticatedGamesIdRoute
   AuthenticatedGamesOnlineRoute: typeof AuthenticatedGamesOnlineRouteWithChildren
+  AuthenticatedLiveIdRoute: typeof AuthenticatedLiveIdRoute
+  AuthenticatedLivesNewRoute: typeof AuthenticatedLivesNewRoute
   AuthenticatedMarketplaceIdRoute: typeof AuthenticatedMarketplaceIdRoute
   AuthenticatedMarketplaceNewRoute: typeof AuthenticatedMarketplaceNewRoute
   AuthenticatedMessagesConversationIdRoute: typeof AuthenticatedMessagesConversationIdRoute
@@ -675,6 +734,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
   AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
   AuthenticatedGamesIndexRoute: typeof AuthenticatedGamesIndexRoute
+  AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
   AuthenticatedMarketplaceIndexRoute: typeof AuthenticatedMarketplaceIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
   AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
@@ -693,6 +753,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChatsNewRoute: AuthenticatedChatsNewRoute,
   AuthenticatedGamesIdRoute: AuthenticatedGamesIdRoute,
   AuthenticatedGamesOnlineRoute: AuthenticatedGamesOnlineRouteWithChildren,
+  AuthenticatedLiveIdRoute: AuthenticatedLiveIdRoute,
+  AuthenticatedLivesNewRoute: AuthenticatedLivesNewRoute,
   AuthenticatedMarketplaceIdRoute: AuthenticatedMarketplaceIdRoute,
   AuthenticatedMarketplaceNewRoute: AuthenticatedMarketplaceNewRoute,
   AuthenticatedMessagesConversationIdRoute:
@@ -703,6 +765,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
   AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
   AuthenticatedGamesIndexRoute: AuthenticatedGamesIndexRoute,
+  AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,
   AuthenticatedMarketplaceIndexRoute: AuthenticatedMarketplaceIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
   AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
@@ -719,13 +782,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

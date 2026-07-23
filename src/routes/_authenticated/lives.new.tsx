@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Radio, Sparkles, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadImage } from "@/lib/media";
+import { uploadMedia } from "@/lib/media";
 
 export const Route = createFileRoute("/_authenticated/lives/new")({
   head: () => ({
@@ -74,7 +74,7 @@ function NewLive() {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) {
           try {
-            const path = await uploadImage("covers", u.user.id, thumbFile);
+            const path = await uploadMedia("covers", u.user.id, thumbFile);
             const { data: signed } = await supabase.storage.from("covers").createSignedUrl(path, 60 * 60 * 24 * 30);
             thumbnail_url = signed?.signedUrl;
           } catch {

@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/saved'
 import { Route as AuthenticatedReelsRouteImport } from './routes/_authenticated/reels'
+import { Route as AuthenticatedProRouteImport } from './routes/_authenticated/pro'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticated/explore'
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
@@ -40,6 +42,7 @@ import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenti
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authenticated/ai.$threadId'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedUUsernameFollowsRouteImport } from './routes/_authenticated/u.$username.follows'
 import { Route as AuthenticatedGamesOnlineRoomRouteImport } from './routes/_authenticated/games.online.$room'
 
@@ -56,6 +59,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
@@ -75,6 +83,11 @@ const AuthenticatedSavedRoute = AuthenticatedSavedRouteImport.update({
 const AuthenticatedReelsRoute = AuthenticatedReelsRouteImport.update({
   id: '/reels',
   path: '/reels',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProRoute = AuthenticatedProRouteImport.update({
+  id: '/pro',
+  path: '/pro',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNotificationsRoute =
@@ -206,6 +219,12 @@ const AuthenticatedAiThreadIdRoute = AuthenticatedAiThreadIdRouteImport.update({
   path: '/ai/$threadId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedUUsernameFollowsRoute =
   AuthenticatedUUsernameFollowsRouteImport.update({
     id: '/follows',
@@ -224,10 +243,12 @@ export interface FileRoutesByFullPath {
   '/create': typeof AuthenticatedCreateRouteWithChildren
   '/explore': typeof AuthenticatedExploreRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/pro': typeof AuthenticatedProRoute
   '/reels': typeof AuthenticatedReelsRoute
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/auth/': typeof AuthIndexRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
@@ -252,15 +273,18 @@ export interface FileRoutesByFullPath {
   '/watch/': typeof AuthenticatedWatchIndexRoute
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/create': typeof AuthenticatedCreateRouteWithChildren
   '/explore': typeof AuthenticatedExploreRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/pro': typeof AuthenticatedProRoute
   '/reels': typeof AuthenticatedReelsRoute
   '/saved': typeof AuthenticatedSavedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
@@ -286,6 +310,7 @@ export interface FileRoutesByTo {
   '/watch': typeof AuthenticatedWatchIndexRoute
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -293,10 +318,12 @@ export interface FileRoutesById {
   '/_authenticated/create': typeof AuthenticatedCreateRouteWithChildren
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/pro': typeof AuthenticatedProRoute
   '/_authenticated/reels': typeof AuthenticatedReelsRoute
   '/_authenticated/saved': typeof AuthenticatedSavedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
@@ -322,6 +349,7 @@ export interface FileRoutesById {
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
   '/_authenticated/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/_authenticated/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -330,10 +358,12 @@ export interface FileRouteTypes {
     | '/create'
     | '/explore'
     | '/notifications'
+    | '/pro'
     | '/reels'
     | '/saved'
     | '/settings'
     | '/auth/callback'
+    | '/checkout/return'
     | '/auth/'
     | '/ai/$threadId'
     | '/chats/$id'
@@ -358,15 +388,18 @@ export interface FileRouteTypes {
     | '/watch/'
     | '/games/online/$room'
     | '/u/$username/follows'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/create'
     | '/explore'
     | '/notifications'
+    | '/pro'
     | '/reels'
     | '/saved'
     | '/settings'
     | '/auth/callback'
+    | '/checkout/return'
     | '/'
     | '/auth'
     | '/ai/$threadId'
@@ -392,16 +425,19 @@ export interface FileRouteTypes {
     | '/watch'
     | '/games/online/$room'
     | '/u/$username/follows'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/_authenticated'
     | '/_authenticated/create'
     | '/_authenticated/explore'
     | '/_authenticated/notifications'
+    | '/_authenticated/pro'
     | '/_authenticated/reels'
     | '/_authenticated/saved'
     | '/_authenticated/settings'
     | '/auth/callback'
+    | '/checkout/return'
     | '/_authenticated/'
     | '/auth/'
     | '/_authenticated/ai/$threadId'
@@ -427,12 +463,15 @@ export interface FileRouteTypes {
     | '/_authenticated/watch/'
     | '/_authenticated/games/online/$room'
     | '/_authenticated/u/$username/follows'
+    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthCallbackRoute: typeof AuthCallbackRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -457,6 +496,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -484,6 +530,13 @@ declare module '@tanstack/react-router' {
       path: '/reels'
       fullPath: '/reels'
       preLoaderRoute: typeof AuthenticatedReelsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pro': {
+      id: '/_authenticated/pro'
+      path: '/pro'
+      fullPath: '/pro'
+      preLoaderRoute: typeof AuthenticatedProRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/notifications': {
@@ -654,6 +707,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiThreadIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/u/$username/follows': {
       id: '/_authenticated/u/$username/follows'
       path: '/follows'
@@ -714,6 +774,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCreateRoute: typeof AuthenticatedCreateRouteWithChildren
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedProRoute: typeof AuthenticatedProRoute
   AuthenticatedReelsRoute: typeof AuthenticatedReelsRoute
   AuthenticatedSavedRoute: typeof AuthenticatedSavedRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -744,6 +805,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCreateRoute: AuthenticatedCreateRouteWithChildren,
   AuthenticatedExploreRoute: AuthenticatedExploreRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedProRoute: AuthenticatedProRoute,
   AuthenticatedReelsRoute: AuthenticatedReelsRoute,
   AuthenticatedSavedRoute: AuthenticatedSavedRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
@@ -777,7 +839,9 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthCallbackRoute: AuthCallbackRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
   AuthIndexRoute: AuthIndexRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

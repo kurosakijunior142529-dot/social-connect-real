@@ -122,7 +122,7 @@ function HeaderAction({
   label,
   primary,
 }: {
-  to: "/watch" | "/messages" | "/create" | "/settings" | "/games";
+  to: "/watch" | "/messages" | "/create" | "/settings" | "/games" | "/lives";
   icon: ReactNode;
   label: string;
   primary?: boolean;

@@ -391,6 +391,42 @@ export type Database = {
         }
         Relationships: []
       }
+      coin_purchases: {
+        Row: {
+          amount_paid: number
+          coins: number
+          created_at: string
+          currency: string
+          environment: string
+          id: string
+          price_id: string
+          stripe_session_id: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          coins: number
+          created_at?: string
+          currency: string
+          environment?: string
+          id?: string
+          price_id: string
+          stripe_session_id: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          coins?: number
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          price_id?: string
+          stripe_session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comments: {
         Row: {
           author_id: string
@@ -1843,6 +1879,10 @@ export type Database = {
     }
     Functions: {
       chat_role: { Args: { _chat: string; _user: string }; Returns: string }
+      credit_coins: {
+        Args: { _amount: number; _user: string }
+        Returns: number
+      }
       deliver_scheduled_messages: { Args: never; Returns: number }
       get_or_create_conversation: {
         Args: { _other_user: string }
@@ -1853,6 +1893,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_vibely_pro: {
+        Args: { _env?: string; _user: string }
         Returns: boolean
       }
       is_blocked_pair: { Args: { _a: string; _b: string }; Returns: boolean }

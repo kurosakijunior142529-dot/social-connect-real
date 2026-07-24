@@ -161,6 +161,16 @@ export function AppShell({
             <Sparkles className="h-[18px] w-[18px]" strokeWidth={1.6} />
             Vibely AI
           </Link>
+          <Link
+            to="/pro"
+            className={cn(
+              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              pathname.startsWith("/pro") ? "bg-[color:var(--surface-2)] text-foreground" : "text-primary hover:bg-[color:var(--surface)]",
+            )}
+          >
+            <Crown className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            Vibely Pro
+          </Link>
         </nav>
         <div className="p-3 hairline-t space-y-0.5">
           <Link

@@ -76,6 +76,78 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          coin_to_brl_rate: number
+          id: boolean
+          min_withdrawal_brl: number
+          updated_at: string
+        }
+        Insert: {
+          coin_to_brl_rate?: number
+          id?: boolean
+          min_withdrawal_brl?: number
+          updated_at?: string
+        }
+        Update: {
+          coin_to_brl_rate?: number
+          id?: boolean
+          min_withdrawal_brl?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bank_accounts: {
+        Row: {
+          bank_account: string | null
+          bank_account_type: string | null
+          bank_agency: string | null
+          bank_name: string | null
+          created_at: string
+          holder_document: string
+          holder_name: string
+          id: string
+          is_active: boolean
+          method: string
+          pix_key: string | null
+          pix_key_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_account?: string | null
+          bank_account_type?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
+          created_at?: string
+          holder_document: string
+          holder_name: string
+          id?: string
+          is_active?: boolean
+          method: string
+          pix_key?: string | null
+          pix_key_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_account?: string | null
+          bank_account_type?: string | null
+          bank_agency?: string | null
+          bank_name?: string | null
+          created_at?: string
+          holder_document?: string
+          holder_name?: string
+          id?: string
+          is_active?: boolean
+          method?: string
+          pix_key?: string | null
+          pix_key_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -1407,6 +1479,8 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          is_creator: boolean
+          is_verified: boolean
           location: string | null
           pronouns: string | null
           read_receipts: boolean
@@ -1422,6 +1496,8 @@ export type Database = {
           created_at?: string
           display_name: string
           id: string
+          is_creator?: boolean
+          is_verified?: boolean
           location?: string | null
           pronouns?: string | null
           read_receipts?: boolean
@@ -1437,6 +1513,8 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          is_creator?: boolean
+          is_verified?: boolean
           location?: string | null
           pronouns?: string | null
           read_receipts?: boolean
@@ -1873,12 +1951,70 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawals: {
+        Row: {
+          admin_note: string | null
+          amount_brl: number
+          amount_coins: number
+          bank_account_id: string | null
+          bank_snapshot: Json
+          created_at: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_brl: number
+          amount_coins: number
+          bank_account_id?: string | null
+          bank_snapshot: Json
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_brl?: number
+          amount_coins?: number
+          bank_account_id?: string | null
+          bank_snapshot?: Json
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_update_withdrawal: {
+        Args: { _new_status: string; _note?: string; _withdrawal_id: string }
+        Returns: undefined
+      }
       chat_role: { Args: { _chat: string; _user: string }; Returns: string }
+      coins_to_brl: { Args: { _coins: number }; Returns: number }
       credit_coins: {
         Args: { _amount: number; _user: string }
         Returns: number
@@ -1928,6 +2064,10 @@ export type Database = {
           _user: string
         }
         Returns: undefined
+      }
+      request_withdrawal: {
+        Args: { _amount_coins: number; _bank_account_id: string }
+        Returns: string
       }
       set_conversation_wallpaper: {
         Args: { _conversation: string; _type: string; _value?: string }

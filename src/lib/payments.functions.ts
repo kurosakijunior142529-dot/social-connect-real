@@ -84,12 +84,21 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       const meta: Record<string, string> = { userId };
       if (data.creatorId) meta.creatorId = data.creatorId;
 
+      // Pix é suportado para pagamentos únicos em BRL; assinaturas ficam com cartão.
+      const isBRL = (stripePrice.currency ?? "").toLowerCase() === "brl";
+      const paymentMethodTypes: string[] = isRecurring
+        ? ["card"]
+        : isBRL
+          ? ["card", "pix"]
+          : ["card"];
+
       const session = await stripe.checkout.sessions.create({
         line_items: [{ price: stripePrice.id, quantity: 1 }],
         mode: isRecurring ? "subscription" : "payment",
         ui_mode: "embedded_page",
         return_url: data.returnUrl,
         customer: customerId,
+        payment_method_types: paymentMethodTypes as any,
         metadata: meta,
         ...(!isRecurring && {
           payment_intent_data: { description: productDescription, metadata: meta },

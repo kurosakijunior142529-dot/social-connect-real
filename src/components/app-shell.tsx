@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Sparkles, Radio, Crown } from "lucide-react";
+import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Sparkles, Radio, Crown, Wallet, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
@@ -11,6 +11,30 @@ import { SwipeBack } from "@/components/gestures/swipe-back";
 import { signOutAndClearSession } from "@/lib/auth-session";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
+
+function AdminLink({ pathname }: { pathname: string }) {
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: r } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "admin").maybeSingle();
+      setIsAdmin(!!r);
+    });
+  }, []);
+  if (!isAdmin) return null;
+  return (
+    <Link
+      to="/admin/withdrawals"
+      className={cn(
+        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+        pathname.startsWith("/admin") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
+      )}
+    >
+      <Shield className="h-[18px] w-[18px]" strokeWidth={1.6} />
+      Admin · Saques
+    </Link>
+  );
+}
 
 export function AppShell({
   children,
@@ -162,6 +186,16 @@ export function AppShell({
             Vibely AI
           </Link>
           <Link
+            to="/wallet"
+            className={cn(
+              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              pathname.startsWith("/wallet") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
+            )}
+          >
+            <Wallet className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            Carteira
+          </Link>
+          <Link
             to="/pro"
             className={cn(
               "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
@@ -171,6 +205,7 @@ export function AppShell({
             <Crown className="h-[18px] w-[18px]" strokeWidth={1.6} />
             Vibely Pro
           </Link>
+          <AdminLink pathname={pathname} />
         </nav>
         <div className="p-3 hairline-t space-y-0.5">
           <Link

@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2 } from "lucide-react";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
 import { uploadMedia } from "@/lib/media";
@@ -154,6 +155,12 @@ function ProfilePage() {
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl font-display font-black tracking-tight">{profile.display_name}</h1>
+          {profile.is_verified ? <VerifiedBadge size={20} /> : null}
+          {profile.is_creator ? (
+            <span className="text-[10px] uppercase tracking-wider rounded-full bg-primary/15 text-primary px-2 py-0.5 font-semibold">
+              Criador
+            </span>
+          ) : null}
           {profile.pronouns ? (
             <span className="text-xs rounded-full bg-white/5 px-2 py-0.5 text-muted-foreground">{profile.pronouns}</span>
           ) : null}

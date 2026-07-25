@@ -12,6 +12,30 @@ import { signOutAndClearSession } from "@/lib/auth-session";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
+function AdminLink({ pathname }: { pathname: string }) {
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: r } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "admin").maybeSingle();
+      setIsAdmin(!!r);
+    });
+  }, []);
+  if (!isAdmin) return null;
+  return (
+    <Link
+      to="/admin/withdrawals"
+      className={cn(
+        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+        pathname.startsWith("/admin") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
+      )}
+    >
+      <Shield className="h-[18px] w-[18px]" strokeWidth={1.6} />
+      Admin · Saques
+    </Link>
+  );
+}
+
 export function AppShell({
   children,
   currentUsername,

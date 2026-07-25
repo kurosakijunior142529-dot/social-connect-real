@@ -59,7 +59,7 @@ function AdminWithdrawals() {
       const { error } = await supabase.rpc("admin_update_withdrawal", {
         _withdrawal_id: id,
         _new_status: status,
-        _note: note ?? null,
+        _note: note ?? undefined,
       });
       if (error) throw error;
     },

@@ -176,13 +176,11 @@ function LiveRoom() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "live_gifts", filter: `live_id=eq.${liveId}` }, (payload: any) => {
         const gift = giftCatalogQ.data?.find((g: any) => g.id === payload.new?.gift_id);
         if (gift) {
-          for (let i = 0; i < 6; i++) {
-            setTimeout(() => {
-              const id = reactionCounter.current++;
-              setReactions((r) => [...r, { id, emoji: gift.emoji, x: 20 + Math.random() * 60 }]);
-              setTimeout(() => setReactions((r) => r.filter((x) => x.id !== id)), 3200);
-            }, i * 120);
-          }
+          setGiftQueue((q) => [...q, {
+            id: reactionCounter.current++,
+            name: gift.name,
+            emoji: gift.emoji,
+          }]);
         }
       })
       .subscribe();

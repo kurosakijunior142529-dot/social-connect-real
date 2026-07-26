@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag, Palette } from "lucide-react";
+import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag, Palette, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ export function ConversationMenu({
   onOpenSearch,
   onOpenPinned,
   onOpenWallpaper,
+  onOpenCustomize,
   onReport,
 }: {
   scope: "dm" | "chat";
@@ -28,6 +29,7 @@ export function ConversationMenu({
   onOpenSearch: () => void;
   onOpenPinned: () => void;
   onOpenWallpaper?: () => void;
+  onOpenCustomize?: () => void;
   onReport?: () => void;
 }) {
   const qc = useQueryClient();
@@ -88,6 +90,11 @@ export function ConversationMenu({
         <DropdownMenuItem onSelect={onOpenPinned}>
           <Pin className="h-4 w-4 mr-2" /> Mensagens fixadas
         </DropdownMenuItem>
+        {onOpenCustomize ? (
+          <DropdownMenuItem onSelect={onOpenCustomize}>
+            <Sparkles className="h-4 w-4 mr-2" /> Personalizar conversa
+          </DropdownMenuItem>
+        ) : null}
         {scope === "dm" && onOpenWallpaper ? (
           <DropdownMenuItem onSelect={onOpenWallpaper}>
             <Palette className="h-4 w-4 mr-2" /> Papel de parede

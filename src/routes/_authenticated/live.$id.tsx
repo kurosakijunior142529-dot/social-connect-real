@@ -27,6 +27,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatElapsed, formatViewers } from "@/lib/live-utils";
+import { GiftAnimation, type GiftEvent } from "@/components/gifts/gift-animation";
+import { getGiftMeta, RARITY_STYLE } from "@/lib/gifts/catalog";
 
 export const Route = createFileRoute("/_authenticated/live/$id")({
   validateSearch: (s: Record<string, unknown>) => ({ host: s.host === 1 || s.host === "1" ? 1 : undefined }),
@@ -70,6 +72,8 @@ function LiveRoom() {
   const [tab, setTab] = useState<"chat" | "people" | "gifts">("chat");
   const [chatInput, setChatInput] = useState("");
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
+  const [giftQueue, setGiftQueue] = useState<GiftEvent[]>([]);
+  const [activeGift, setActiveGift] = useState<GiftEvent | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -172,13 +176,11 @@ function LiveRoom() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "live_gifts", filter: `live_id=eq.${liveId}` }, (payload: any) => {
         const gift = giftCatalogQ.data?.find((g: any) => g.id === payload.new?.gift_id);
         if (gift) {
-          for (let i = 0; i < 6; i++) {
-            setTimeout(() => {
-              const id = reactionCounter.current++;
-              setReactions((r) => [...r, { id, emoji: gift.emoji, x: 20 + Math.random() * 60 }]);
-              setTimeout(() => setReactions((r) => r.filter((x) => x.id !== id)), 3200);
-            }, i * 120);
-          }
+          setGiftQueue((q) => [...q, {
+            id: reactionCounter.current++,
+            name: gift.name,
+            emoji: gift.emoji,
+          }]);
         }
       })
       .subscribe();
@@ -186,6 +188,14 @@ function LiveRoom() {
       supabase.removeChannel(ch);
     };
   }, [liveId, qc, giftCatalogQ.data]);
+
+  // Drain gift queue one at a time so back-to-back gifts play sequentially.
+  useEffect(() => {
+    if (activeGift || giftQueue.length === 0) return;
+    setActiveGift(giftQueue[0]);
+    setGiftQueue((q) => q.slice(1));
+  }, [giftQueue, activeGift]);
+
 
   // Elapsed timer
   useEffect(() => {
@@ -422,6 +432,8 @@ function LiveRoom() {
           ))}
         </div>
 
+        <GiftAnimation event={activeGift} onDone={() => setActiveGift(null)} />
+
         {/* TOP overlay */}
         <div className="absolute top-0 inset-x-0 p-3 flex items-start justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent">
           <div className="flex items-center gap-2 min-w-0">
@@ -542,20 +554,33 @@ function LiveRoom() {
 
         {tab === "gifts" && (
           <div className="flex-1 overflow-y-auto p-3 grid grid-cols-3 gap-2">
-            {giftCatalogQ.data?.map((g) => (
-              <button
-                key={g.id}
-                onClick={() => sendGift(g)}
-                disabled={user.id === live.host_id}
-                className="rounded-2xl border border-[color:var(--hairline)] p-3 hover:border-primary/60 hover:bg-primary/5 transition text-center disabled:opacity-40"
-              >
-                <div className="text-3xl">{g.emoji}</div>
-                <div className="text-[11px] font-semibold mt-1">{g.name}</div>
-                <div className="text-[10px] text-primary">{g.cost_coins} 🪙</div>
-              </button>
-            ))}
+            {giftCatalogQ.data?.map((g) => {
+              const meta = getGiftMeta(g.name);
+              const r = RARITY_STYLE[meta.rarity];
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => sendGift(g)}
+                  disabled={user.id === live.host_id}
+                  className={cn(
+                    "relative rounded-2xl border p-3 transition text-center disabled:opacity-40 overflow-hidden",
+                    r.ring,
+                    "hover:-translate-y-0.5",
+                  )}
+                  style={{
+                    background: `linear-gradient(160deg, ${meta.color}18, transparent 70%)`,
+                    boxShadow: r.glow,
+                  }}
+                >
+                  <div className="text-3xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{g.emoji}</div>
+                  <div className="text-[11px] font-semibold mt-1 truncate">{g.name}</div>
+                  <div className={cn("text-[9px] uppercase tracking-widest font-bold", r.text)}>{r.label}</div>
+                  <div className="text-[10px] text-primary mt-0.5">{g.cost_coins} 🪙</div>
+                </button>
+              );
+            })}
             <p className="col-span-3 text-[11px] text-muted-foreground text-center mt-2">
-              Presentes são visuais por enquanto. Recarga de moedas em breve.
+              Envie presentes épicos para apoiar o criador ✨
             </p>
           </div>
         )}

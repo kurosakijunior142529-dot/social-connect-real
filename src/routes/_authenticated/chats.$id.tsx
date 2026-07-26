@@ -21,6 +21,8 @@ import { MessageActions, ReactionsBar, ReplyQuote } from "@/components/message-a
 import { ScheduleButton } from "@/components/schedule-message";
 import { SummarizeButton, SmartReplyBar, MuteToggle, useMessageReactions, toggleReaction } from "@/components/chat-extras";
 import { useAiActions } from "@/hooks/use-ai-actions";
+import { useBubbleTheme } from "@/lib/bubble-themes";
+import { BubbleThemePicker } from "@/components/chat/bubble-theme-picker";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -39,6 +41,7 @@ function ChatPage() {
   const [editing, setEditing] = useState<{ id: string; content: string | null } | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const ai = useAiActions();
+  const { themeId, theme: bubbleTheme, setTheme: setBubbleTheme } = useBubbleTheme(id);
 
   const chat = useQuery({
     queryKey: ["chat", id],
@@ -192,6 +195,7 @@ function ChatPage() {
           </div>
         </button>
         <SummarizeButton scope="chat" id={id} />
+        <BubbleThemePicker currentId={themeId} onSelect={setBubbleTheme} />
         <MuteToggle table="muted_chats" keyCol="chat_id" keyVal={id} userId={user.id} />
         {isMember ? (
           <button onClick={leave} className="p-2 rounded-full active:bg-[color:var(--surface-2)]" aria-label="Sair">
@@ -221,9 +225,7 @@ function ChatPage() {
                   <div className="text-[11px] text-muted-foreground px-3">{m.sender?.display_name}</div>
                 ) : null}
                 <div className={cn("rounded-[20px] px-3.5 py-2 text-[14px] leading-snug break-words",
-                  mine
-                    ? "bg-primary text-primary-foreground rounded-br-[6px]"
-                    : "bg-[color:var(--surface-2)] text-foreground rounded-bl-[6px]")}>
+                  mine ? bubbleTheme.mine : bubbleTheme.theirs)}>
                   {replied ? <ReplyQuote text={replied.content} /> : null}
                   {m.content}
                   {m.edited_at ? <span className={cn("ml-2 text-[10px]", mine ? "opacity-70" : "text-muted-foreground")}>editado</span> : null}

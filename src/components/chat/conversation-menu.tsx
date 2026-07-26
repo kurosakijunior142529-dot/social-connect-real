@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag, Palette } from "lucide-react";
+import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag, Palette, Sparkles } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ export function ConversationMenu({
   onOpenSearch,
   onOpenPinned,
   onOpenWallpaper,
+  onOpenCustomize,
   onReport,
 }: {
   scope: "dm" | "chat";
@@ -28,6 +29,7 @@ export function ConversationMenu({
   onOpenSearch: () => void;
   onOpenPinned: () => void;
   onOpenWallpaper?: () => void;
+  onOpenCustomize?: () => void;
   onReport?: () => void;
 }) {
   const qc = useQueryClient();

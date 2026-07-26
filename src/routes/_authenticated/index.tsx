@@ -5,7 +5,7 @@ import { PostCard, usePostsQuery } from "@/components/post-card";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
-import { MessageCircle, PlusSquare, Settings, Tv, Gamepad2, Radio, Crown } from "lucide-react";
+import { PlusSquare, Settings, Tv, Gamepad2, Radio, Crown, Play, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: FeedPage,
@@ -55,14 +55,15 @@ function FeedPage() {
             <span className="block truncate text-[11px] text-muted-foreground tabular">@{meProfile.data?.username ?? "…"}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <HeaderAction to="/pro" label="Pro" icon={<Crown className="h-4 w-4" />} />
+            <HeaderAction to="/pro" label="Pro" icon={<Crown className="h-4 w-4" />} primary />
             <HeaderAction to="/lives" label="Lives" icon={<Radio className="h-4 w-4" />} />
+            <HeaderAction to="/reels" label="Reels" icon={<Play className="h-4 w-4" />} />
             <HeaderAction to="/watch" label="Streaming" icon={<Tv className="h-4 w-4" />} />
             <HeaderAction to="/games" label="Jogos" icon={<Gamepad2 className="h-4 w-4" />} />
-            <HeaderAction to="/messages" label="Conversas" icon={<MessageCircle className="h-4 w-4" />} />
-            <HeaderAction to="/create" label="Criar" icon={<PlusSquare className="h-4 w-4" />} primary />
+            <HeaderAction to="/notifications" label="Notificações" icon={<Bell className="h-4 w-4" />} />
             <HeaderAction to="/settings" label="Configurações" icon={<Settings className="h-4 w-4" />} />
           </div>
+
 
         </div>
       </header>
@@ -123,7 +124,7 @@ function HeaderAction({
   label,
   primary,
 }: {
-  to: "/watch" | "/messages" | "/create" | "/settings" | "/games" | "/lives" | "/pro";
+  to: "/watch" | "/create" | "/settings" | "/games" | "/lives" | "/pro" | "/reels" | "/notifications";
   icon: ReactNode;
   label: string;
   primary?: boolean;

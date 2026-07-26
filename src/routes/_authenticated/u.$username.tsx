@@ -73,7 +73,7 @@ function ProfilePage() {
     queryKey: ["profile-stats", profile?.id, user.id],
     enabled: !!profile?.id,
     queryFn: async () => {
-      const [posts, followers, following, mine, likesTotal, likedIds, savedIds] = await Promise.all([
+      const [posts, followers, following, mine] = await Promise.all([
         supabase
           .from("posts")
           .select("id, media_url, media_type, view_count")
@@ -82,9 +82,7 @@ function ProfilePage() {
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profile!.id),
         supabase.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", profile!.id),
         supabase.from("follows").select("*").match({ follower_id: user.id, following_id: profile!.id }).maybeSingle(),
-        // Total curtidas recebidas nos posts do dono do perfil
-        supabase.rpc as any, // placeholder to keep positions
-      ]).then(async (r) => r);
+      ]);
 
       // curtidas recebidas: contamos likes onde post pertence a este autor
       const authorPostIds = (posts.data ?? []).map((p: any) => p.id);

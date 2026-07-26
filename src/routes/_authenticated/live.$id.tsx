@@ -27,6 +27,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatElapsed, formatViewers } from "@/lib/live-utils";
+import { GiftAnimation, type GiftEvent } from "@/components/gifts/gift-animation";
+import { getGiftMeta, RARITY_STYLE } from "@/lib/gifts/catalog";
 
 export const Route = createFileRoute("/_authenticated/live/$id")({
   validateSearch: (s: Record<string, unknown>) => ({ host: s.host === 1 || s.host === "1" ? 1 : undefined }),
@@ -70,6 +72,8 @@ function LiveRoom() {
   const [tab, setTab] = useState<"chat" | "people" | "gifts">("chat");
   const [chatInput, setChatInput] = useState("");
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
+  const [giftQueue, setGiftQueue] = useState<GiftEvent[]>([]);
+  const [activeGift, setActiveGift] = useState<GiftEvent | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);

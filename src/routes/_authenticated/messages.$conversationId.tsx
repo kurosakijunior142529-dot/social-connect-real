@@ -382,7 +382,9 @@ function ConversationPage() {
               onOpenSearch={() => setSearchOpen(true)}
               onOpenPinned={() => setPinnedOpen(true)}
               onOpenWallpaper={() => setWallpaperOpen(true)}
+              onOpenCustomize={() => setWallpaperOpen(true)}
             />
+
           </>
         ) : null}
       </header>

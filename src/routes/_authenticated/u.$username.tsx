@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2, Wallet as WalletIcon, ChevronRight } from "lucide-react";
+import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2, Wallet as WalletIcon, ChevronRight, Crown, CreditCard, Landmark, ArrowDownToLine, ReceiptText, Bell, ShieldCheck, Lock, HelpCircle, LogOut } from "lucide-react";
+import { useNavigate as useNav2 } from "@tanstack/react-router";
+import { useQueryClient as useQC2 } from "@tanstack/react-query";
+import { signOutAndClearSession } from "@/lib/auth-session";
+
 import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";

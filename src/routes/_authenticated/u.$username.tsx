@@ -9,9 +9,22 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2, Wallet as WalletIcon, ChevronRight, Crown, CreditCard, Landmark, ArrowDownToLine, ReceiptText, Bell, ShieldCheck, Lock, HelpCircle, LogOut } from "lucide-react";
-import { signOutAndClearSession } from "@/lib/auth-session";
-
+import {
+  MessageCircle,
+  Share2,
+  Ban,
+  MapPin,
+  LinkIcon,
+  Grid3x3,
+  Bookmark,
+  Heart,
+  Sparkles,
+  Play,
+  Camera,
+  Loader2,
+  Menu,
+  Pencil,
+} from "lucide-react";
 
 import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";
@@ -21,6 +34,12 @@ import { uploadMedia } from "@/lib/media";
 export const Route = createFileRoute("/_authenticated/u/$username")({
   component: ProfilePage,
 });
+
+function formatCount(n: number): string {
+  if (n < 1000) return n.toString();
+  if (n < 1_000_000) return (n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "") + "k";
+  return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+}
 
 function ProfilePage() {
   const { username } = Route.useParams();
@@ -51,30 +70,63 @@ function ProfilePage() {
   const { data: coverUrl } = useSignedUrl("covers", profile?.cover_url ?? null);
 
   const stats = useQuery({
-    queryKey: ["profile-stats", profile?.id],
+    queryKey: ["profile-stats", profile?.id, user.id],
     enabled: !!profile?.id,
     queryFn: async () => {
-      const [posts, followers, following, mine, liked] = await Promise.all([
-        supabase.from("posts").select("id, media_url, media_type").eq("author_id", profile!.id).order("created_at", { ascending: false }),
+      const [posts, followers, following, mine, likesTotal, likedIds, savedIds] = await Promise.all([
+        supabase
+          .from("posts")
+          .select("id, media_url, media_type, view_count")
+          .eq("author_id", profile!.id)
+          .order("created_at", { ascending: false }),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profile!.id),
         supabase.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", profile!.id),
         supabase.from("follows").select("*").match({ follower_id: user.id, following_id: profile!.id }).maybeSingle(),
-        profile!.id === user.id
-          ? supabase.from("likes").select("post_id").eq("user_id", user.id).limit(60)
-          : Promise.resolve({ data: [] as any[] }),
-      ]);
-      let likedPosts: any[] = [];
-      if (profile!.id === user.id && liked.data && liked.data.length) {
-        const ids = liked.data.map((l: any) => l.post_id);
-        const { data } = await supabase.from("posts").select("id, media_url, media_type").in("id", ids);
-        likedPosts = data ?? [];
+        // Total curtidas recebidas nos posts do dono do perfil
+        supabase.rpc as any, // placeholder to keep positions
+      ]).then(async (r) => r);
+
+      // curtidas recebidas: contamos likes onde post pertence a este autor
+      const authorPostIds = (posts.data ?? []).map((p: any) => p.id);
+      let likesReceived = 0;
+      if (authorPostIds.length) {
+        const { count } = await supabase
+          .from("likes")
+          .select("post_id", { count: "exact", head: true })
+          .in("post_id", authorPostIds);
+        likesReceived = count ?? 0;
       }
+      const viewsTotal = (posts.data ?? []).reduce((acc: number, p: any) => acc + (p.view_count ?? 0), 0);
+
+      // Curtidos e Salvos só para o dono
+      let likedPosts: any[] = [];
+      let savedPosts: any[] = [];
+      if (profile!.id === user.id) {
+        const [likedRes, savedRes] = await Promise.all([
+          supabase.from("likes").select("post_id").eq("user_id", user.id).limit(120),
+          supabase.from("saved_posts").select("post_id").eq("user_id", user.id).limit(120),
+        ]);
+        const lids = (likedRes.data ?? []).map((l: any) => l.post_id);
+        const sids = (savedRes.data ?? []).map((s: any) => s.post_id);
+        if (lids.length) {
+          const { data } = await supabase.from("posts").select("id, media_url, media_type").in("id", lids);
+          likedPosts = data ?? [];
+        }
+        if (sids.length) {
+          const { data } = await supabase.from("posts").select("id, media_url, media_type").in("id", sids);
+          savedPosts = data ?? [];
+        }
+      }
+
       return {
         posts: posts.data ?? [],
         followers: followers.count ?? 0,
         following: following.count ?? 0,
         isFollowing: !!mine.data,
+        likesReceived,
+        viewsTotal,
         likedPosts,
+        savedPosts,
       };
     },
   });
@@ -88,7 +140,7 @@ function ProfilePage() {
         await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile-stats", profile?.id] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile-stats", profile?.id, user.id] }),
   });
 
   async function openChat() {
@@ -100,12 +152,30 @@ function ProfilePage() {
     navigate({ to: "/messages/$conversationId", params: { conversationId: data as string } });
   }
 
+  async function share() {
+    if (!profile) return;
+    const url = `${window.location.origin}/u/${profile.username}`;
+    try {
+      if (navigator.share) await navigator.share({ title: profile.display_name, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copiado");
+      }
+    } catch {
+      // user cancelled share sheet
+    }
+  }
+
   if (profileQuery.isLoading) return <Skeleton className="h-64 rounded-3xl" />;
   if (!profile) return <div className="text-center py-12">Usuário não encontrado.</div>;
 
+  const posts = (stats.data?.posts ?? []) as any[];
+  const videoPosts = posts.filter((p) => p.media_type === "video");
+  const mediaPosts = posts.filter((p) => !!p.media_url);
+
   return (
-    <div className="-mt-4 md:-mt-10 space-y-6">
-      {/* Cover */}
+    <div className="-mt-4 md:-mt-10 space-y-5">
+      {/* 1. CAPA */}
       <div className="relative -mx-4 h-44 md:h-56 md:rounded-3xl overflow-hidden">
         {coverUrl ? (
           <img src={coverUrl} alt="" className="h-full w-full object-cover" />
@@ -114,47 +184,31 @@ function ProfilePage() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
         {isMe ? <CoverUploader userId={user.id} onDone={() => profileQuery.refetch()} /> : null}
+
+        {/* Menu ⚙️ / ☰ no canto superior direito — só do dono */}
+        {isMe ? (
+          <Link
+            to="/account"
+            className="absolute top-3 right-3 grid h-10 w-10 place-items-center rounded-full bg-black/40 backdrop-blur text-white hover:bg-black/60 transition"
+            aria-label="Abrir menu da conta"
+          >
+            <Menu className="h-5 w-5" />
+          </Link>
+        ) : null}
       </div>
 
-      {/* Header */}
-      <div className="relative -mt-16 px-1 flex items-end justify-between gap-3">
-        <div className="rounded-full ring-4 ring-background bg-background">
+      {/* 2. FOTO DE PERFIL */}
+      <div className="relative -mt-16 px-1">
+        <div className="inline-block rounded-full ring-4 ring-background bg-background">
           <UserAvatar
             avatarPath={profile.avatar_url}
             displayName={profile.display_name}
             className="h-24 w-24"
           />
         </div>
-        <div className="flex gap-2 pb-1">
-          {isMe ? (
-            <Link to="/settings">
-              <Button variant="outline" className="rounded-full gap-2">
-                <Settings className="h-4 w-4" /> Editar
-              </Button>
-            </Link>
-          ) : (
-            <>
-              <Button
-                onClick={() => toggleFollow.mutate()}
-                className={
-                  stats.data?.isFollowing
-                    ? "rounded-full"
-                    : "rounded-full bg-gradient-brand hover:opacity-90 shadow-elegant"
-                }
-                variant={stats.data?.isFollowing ? "outline" : "default"}
-              >
-                {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
-              </Button>
-              <Button onClick={openChat} variant="outline" size="icon" className="rounded-full">
-                <MessageCircle className="h-4 w-4" />
-              </Button>
-              <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} />
-            </>
-          )}
-        </div>
       </div>
 
-      {/* Identity */}
+      {/* 3-6. NOME, @, BIO, LINKS, LOCALIZAÇÃO, SELOS */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl font-display font-black tracking-tight">{profile.display_name}</h1>
@@ -172,200 +226,138 @@ function ProfilePage() {
         {profile.bio ? <p className="text-sm whitespace-pre-wrap">{profile.bio}</p> : null}
         <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground pt-1">
           {profile.location ? (
-            <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {profile.location}</span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5" /> {profile.location}
+            </span>
           ) : null}
           {profile.website ? (
-            <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+            <a
+              href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
               <LinkIcon className="h-3.5 w-3.5" /> {profile.website.replace(/^https?:\/\//, "")}
             </a>
           ) : null}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <StatCard label="Posts" value={stats.data?.posts.length ?? 0} />
+      {/* 7. STATS: Seguidores · Seguindo · Curtidas · Views */}
+      <div className="grid grid-cols-4 gap-2">
         <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "followers" }}>
           <StatCard label="Seguidores" value={stats.data?.followers ?? 0} />
         </Link>
         <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "following" }}>
           <StatCard label="Seguindo" value={stats.data?.following ?? 0} />
         </Link>
+        <StatCard label="Curtidas" value={stats.data?.likesReceived ?? 0} />
+        <StatCard label="Views" value={stats.data?.viewsTotal ?? 0} />
       </div>
 
-      {isMe ? <WalletCard /> : null}
-      {isMe ? <AccountSection onSignOut={() => signOutAndClearSession(queryClient, navigate)} /> : null}
+      {/* 8. BOTÕES: Seguir · Mensagem · Compartilhar · Editar */}
+      <div className="flex gap-2">
+        {isMe ? (
+          <>
+            <Link to="/settings" className="flex-1">
+              <Button variant="outline" className="w-full rounded-full gap-2">
+                <Pencil className="h-4 w-4" /> Editar perfil
+              </Button>
+            </Link>
+            <Button onClick={share} variant="outline" size="icon" className="rounded-full" aria-label="Compartilhar">
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              onClick={() => toggleFollow.mutate()}
+              disabled={toggleFollow.isPending}
+              className={
+                stats.data?.isFollowing
+                  ? "flex-1 rounded-full"
+                  : "flex-1 rounded-full bg-gradient-brand hover:opacity-90 shadow-elegant"
+              }
+              variant={stats.data?.isFollowing ? "outline" : "default"}
+            >
+              {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
+            </Button>
+            <Button onClick={openChat} variant="outline" className="rounded-full gap-2" aria-label="Mensagem">
+              <MessageCircle className="h-4 w-4" /> Mensagem
+            </Button>
+            <Button onClick={share} variant="outline" size="icon" className="rounded-full" aria-label="Compartilhar">
+              <Share2 className="h-4 w-4" />
+            </Button>
+            <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} />
+          </>
+        )}
+      </div>
 
-
-
-
-
+      {/* 9. ABAS + GRADE */}
       {isBlockedPair ? (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">
           <Ban className="h-4 w-4 shrink-0" />
-          <span>
-            {iBlocked ? "Você bloqueou este usuário." : "Este perfil não está disponível."}
-          </span>
+          <span>{iBlocked ? "Você bloqueou este usuário." : "Este perfil não está disponível."}</span>
         </div>
       ) : (
         <Tabs defaultValue="posts">
-          <TabsList className="w-full grid grid-cols-3 rounded-full glass p-1">
-            <TabsTrigger value="posts" className="rounded-full gap-1.5">
-              <Grid3x3 className="h-4 w-4" /> Posts
+          <TabsList className={`w-full grid ${isMe ? "grid-cols-5" : "grid-cols-3"} rounded-full glass p-1`}>
+            <TabsTrigger value="posts" className="rounded-full gap-1.5" aria-label="Posts">
+              <Grid3x3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Posts</span>
             </TabsTrigger>
-            <TabsTrigger value="media" className="rounded-full gap-1.5">
-              <Sparkles className="h-4 w-4" /> Mídia
+            <TabsTrigger value="videos" className="rounded-full gap-1.5" aria-label="Vídeos">
+              <Play className="h-4 w-4" />
+              <span className="hidden sm:inline">Vídeos</span>
             </TabsTrigger>
-            <TabsTrigger value="likes" disabled={!isMe} className="rounded-full gap-1.5">
-              {isMe ? <Heart className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-              {isMe ? "Curtidos" : "Priv."}
+            <TabsTrigger value="media" className="rounded-full gap-1.5" aria-label="Mídia">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Mídia</span>
             </TabsTrigger>
+            {isMe ? (
+              <>
+                <TabsTrigger value="likes" className="rounded-full gap-1.5" aria-label="Curtidos">
+                  <Heart className="h-4 w-4" />
+                  <span className="hidden sm:inline">Curtidos</span>
+                </TabsTrigger>
+                <TabsTrigger value="saved" className="rounded-full gap-1.5" aria-label="Salvos">
+                  <Bookmark className="h-4 w-4" />
+                  <span className="hidden sm:inline">Salvos</span>
+                </TabsTrigger>
+              </>
+            ) : null}
           </TabsList>
 
           <TabsContent value="posts" className="mt-4">
-            <PostGrid posts={stats.data?.posts ?? []} empty="Nenhum post ainda." />
+            <PostGrid posts={posts} empty="Nenhum post ainda." />
+          </TabsContent>
+          <TabsContent value="videos" className="mt-4">
+            <PostGrid posts={videoPosts} empty="Nenhum vídeo publicado." />
           </TabsContent>
           <TabsContent value="media" className="mt-4">
-            <PostGrid posts={(stats.data?.posts ?? []).filter((p: any) => p.media_url)} empty="Sem mídia." />
+            <PostGrid posts={mediaPosts} empty="Sem mídia." />
           </TabsContent>
-          <TabsContent value="likes" className="mt-4">
-            {isMe ? <PostGrid posts={stats.data?.likedPosts ?? []} empty="Você ainda não curtiu nada." /> : null}
-          </TabsContent>
+          {isMe ? (
+            <>
+              <TabsContent value="likes" className="mt-4">
+                <PostGrid posts={stats.data?.likedPosts ?? []} empty="Você ainda não curtiu nada." />
+              </TabsContent>
+              <TabsContent value="saved" className="mt-4">
+                <PostGrid posts={stats.data?.savedPosts ?? []} empty="Você não salvou publicações." />
+              </TabsContent>
+            </>
+          ) : null}
         </Tabs>
       )}
     </div>
   );
 }
 
-function WalletCard() {
-  const wallet = useQuery({
-    queryKey: ["profile-wallet-card"],
-    queryFn: async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
-      if (!uid) return { coins: 0, rate: 0.0645, pending: 0 };
-      const [coinsRes, settingsRes, wdRes] = await Promise.all([
-        supabase.from("user_coins").select("balance").eq("user_id", uid).maybeSingle(),
-        supabase.from("app_settings").select("coin_to_brl_rate").maybeSingle(),
-        supabase.from("withdrawals").select("id").eq("user_id", uid).eq("status", "pending"),
-      ]);
-      return {
-        coins: coinsRes.data?.balance ?? 0,
-        rate: Number(settingsRes.data?.coin_to_brl_rate ?? 0.0645),
-        pending: wdRes.data?.length ?? 0,
-      };
-    },
-    staleTime: 60_000,
-  });
-
-  const coins = wallet.data?.coins ?? 0;
-  const brl = coins * (wallet.data?.rate ?? 0.0645);
-
-  return (
-    <Link
-      to="/wallet"
-      className="block rounded-3xl border border-[color:var(--hairline)] bg-gradient-to-br from-primary/15 via-[color:var(--surface)] to-[color:var(--surface)] p-4"
-    >
-      <div className="flex items-center gap-3">
-        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground">
-          <WalletIcon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold">Carteira</div>
-          <div className="text-[11px] text-muted-foreground">Saldo, ganhos, saques, Pix e conta bancária</div>
-        </div>
-        <div className="text-right">
-          <div className="text-base font-bold tabular">{coins.toLocaleString("pt-BR")}</div>
-          <div className="text-[11px] text-primary tabular">
-            {brl.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-          </div>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </div>
-      {wallet.data?.pending ? (
-        <div className="mt-3 rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-[11px] text-muted-foreground">
-          {wallet.data.pending} saque(s) em análise
-        </div>
-      ) : null}
-    </Link>
-  );
-}
-
-
-type AccountRow = { to?: string; href?: string; icon: any; label: string; hint?: string; danger?: boolean; onClick?: () => void; accent?: boolean };
-
-function AccountSection({ onSignOut }: { onSignOut: () => void }) {
-  const groups: { title: string; rows: AccountRow[] }[] = [
-    {
-      title: "Premium & Financeiro",
-      rows: [
-        { to: "/pro", icon: Crown, label: "Assinaturas & Premium", hint: "Vibely Pro, benefícios e recargas", accent: true },
-        { to: "/wallet", icon: WalletIcon, label: "Carteira", hint: "Saldo e movimentações" },
-        { to: "/wallet", icon: CreditCard, label: "Pagamentos", hint: "Métodos e histórico de cobranças" },
-        { to: "/wallet", icon: Landmark, label: "Conta bancária & Pix", hint: "Cadastro para recebimentos" },
-        { to: "/wallet", icon: ArrowDownToLine, label: "Solicitar saque", hint: "Retire seus ganhos" },
-        { to: "/wallet", icon: ReceiptText, label: "Histórico financeiro", hint: "Entradas, saídas e saques" },
-      ],
-    },
-    {
-      title: "Preferências",
-      rows: [
-        { to: "/notifications", icon: Bell, label: "Notificações" },
-        { to: "/settings", icon: Settings, label: "Configurações" },
-        { to: "/settings", icon: Lock, label: "Privacidade" },
-        { to: "/settings", icon: ShieldCheck, label: "Segurança" },
-        { to: "/settings", icon: HelpCircle, label: "Ajuda e suporte" },
-      ],
-    },
-  ];
-
-  return (
-    <div className="space-y-4">
-      {groups.map((g) => (
-        <div key={g.title} className="space-y-2">
-          <div className="px-1 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{g.title}</div>
-          <div className="rounded-3xl border border-[color:var(--hairline)] bg-[color:var(--surface)] overflow-hidden divide-y divide-[color:var(--hairline)]">
-            {g.rows.map((r, i) => (
-              <AccountRowItem key={i} row={r} />
-            ))}
-          </div>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={onSignOut}
-        className="w-full flex items-center gap-3 rounded-3xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 px-4 py-3.5 text-sm font-medium text-destructive transition"
-      >
-        <LogOut className="h-4 w-4" />
-        Sair da conta
-      </button>
-    </div>
-  );
-}
-
-function AccountRowItem({ row }: { row: AccountRow }) {
-  const Icon = row.icon;
-  const content = (
-    <div className="flex items-center gap-3 px-4 py-3.5">
-      <div className={`grid h-9 w-9 place-items-center rounded-xl ${row.accent ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface-2)] text-foreground/80"}`}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium">{row.label}</div>
-        {row.hint ? <div className="text-[11px] text-muted-foreground truncate">{row.hint}</div> : null}
-      </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-    </div>
-  );
-  if (row.to) return <Link to={row.to as any}>{content}</Link>;
-  return <button type="button" onClick={row.onClick} className="w-full text-left">{content}</button>;
-}
-
 function StatCard({ label, value }: { label: string; value: number }) {
-
   return (
-    <div className="glass rounded-2xl px-3 py-3 text-center">
-      <div className="text-xl font-display font-bold">{value}</div>
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    <div className="glass rounded-2xl px-2 py-3 text-center">
+      <div className="text-lg font-display font-bold tabular">{formatCount(value)}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -419,17 +411,21 @@ function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void 
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
-        className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-black/50 backdrop-blur px-3 py-1.5 text-xs text-white hover:bg-black/70 disabled:opacity-60"
+        className="absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-full bg-black/40 backdrop-blur text-white hover:bg-black/60 transition disabled:opacity-60"
+        aria-label="Trocar capa"
       >
-        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-        Alterar capa
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
       </button>
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        hidden
-        onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onPick(f);
+          e.target.value = "";
+        }}
       />
     </>
   );

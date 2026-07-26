@@ -245,9 +245,15 @@ function PostGrid({ posts, empty }: { posts: any[]; empty: string }) {
           key={p.id}
           to="/p/$id"
           params={{ id: p.id }}
-          className="aspect-square overflow-hidden rounded-xl bg-muted"
+          className="aspect-square overflow-hidden rounded-xl bg-[color:var(--surface-2)]"
         >
-          <SignedImage bucket="posts" path={p.media_url} alt="" className="w-full h-full object-cover" />
+          <SignedMediaThumb
+            bucket="posts"
+            path={p.media_url}
+            mediaType={p.media_type}
+            alt=""
+            className="w-full h-full object-cover"
+          />
         </Link>
       ))}
     </div>

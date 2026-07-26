@@ -1453,6 +1453,7 @@ export type Database = {
           media_type: Database["public"]["Enums"]["media_type"]
           media_url: string
           thumbnail_url: string | null
+          view_count: number
         }
         Insert: {
           author_id: string
@@ -1462,6 +1463,7 @@ export type Database = {
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url: string
           thumbnail_url?: string | null
+          view_count?: number
         }
         Update: {
           author_id?: string
@@ -1471,6 +1473,7 @@ export type Database = {
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url?: string
           thumbnail_url?: string | null
+          view_count?: number
         }
         Relationships: []
       }

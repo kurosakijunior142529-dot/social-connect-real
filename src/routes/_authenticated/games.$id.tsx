@@ -1,4 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Trophy, Medal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,21 +36,36 @@ export const Route = createFileRoute("/_authenticated/games/$id")({
   ),
 });
 
+type Period = "global" | "weekly" | "monthly";
+
+const PERIOD_LABEL: Record<Period, string> = {
+  global: "Global",
+  weekly: "Semanal",
+  monthly: "Mensal",
+};
+
 function GamePage() {
   const { id } = Route.useParams();
   const { user } = Route.useRouteContext();
   const meta = GAME_META[id];
   const qc = useQueryClient();
+  const [period, setPeriod] = useState<Period>("global");
 
   const leaderboard = useQuery({
-    queryKey: ["leaderboard", id],
+    queryKey: ["leaderboard", id, period],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("game_scores")
-        .select("id, score, user_id, created_at")
+        .select("id, score, user_id, created_at, updated_at")
         .eq("game", id)
         .order("score", { ascending: false })
-        .limit(20);
+        .limit(100);
+      if (period !== "global") {
+        const days = period === "weekly" ? 7 : 30;
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+        q = q.gte("updated_at", since);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       const rows = data ?? [];
       if (!rows.length) return [] as any[];
@@ -61,21 +77,40 @@ function GamePage() {
       const map = new Map((profiles ?? []).map((p) => [p.id, p]));
       return rows.map((r) => ({ ...r, profile: map.get(r.user_id) }));
     },
+    staleTime: 30_000,
+  });
+
+  const myBest = useQuery({
+    queryKey: ["my-best", id, user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("game_scores")
+        .select("score")
+        .eq("game", id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data?.score ?? 0;
+    },
   });
 
   const saveScore = useMutation({
     mutationFn: async (score: number) => {
-      const { error } = await supabase
-        .from("game_scores")
-        .insert({ user_id: user.id, game: id, score });
+      // Only the personal best is kept — the function never lowers an existing record.
+      const { error } = await supabase.rpc("submit_game_score", { _game: id, _score: score });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["leaderboard", id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leaderboard", id] });
+      qc.invalidateQueries({ queryKey: ["my-best", id, user.id] });
+    },
   });
 
   const onGameOver = (score: number) => {
     if (score > 0) saveScore.mutate(score);
   };
+
+  const rows = leaderboard.data ?? [];
+  const myIndex = rows.findIndex((r: any) => r.user_id === user.id);
 
   return (
     <div className="pb-8">
@@ -85,6 +120,10 @@ function GamePage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-lg font-display font-semibold">{meta.name}</h1>
+          <div className="ml-auto text-right">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Meu recorde</div>
+            <div className="text-sm font-bold tabular">{(myBest.data ?? 0).toLocaleString("pt-BR")}</div>
+          </div>
         </div>
       </header>
 
@@ -102,15 +141,35 @@ function GamePage() {
       <section className="px-4 pt-8">
         <div className="mb-3 flex items-center gap-2">
           <Trophy className="h-5 w-5 text-primary" />
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Ranking global</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Ranking</h2>
+          {myIndex >= 0 ? (
+            <span className="ml-auto rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-semibold text-primary">
+              Minha posição: #{myIndex + 1}
+            </span>
+          ) : null}
         </div>
+
+        <div className="mb-3 inline-flex w-full rounded-full bg-[color:var(--surface-2)] p-1 text-xs">
+          {(["global", "weekly", "monthly"] as Period[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`flex-1 rounded-full px-3 py-1.5 font-medium transition ${
+                period === p ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {PERIOD_LABEL[p]}
+            </button>
+          ))}
+        </div>
+
         {leaderboard.isLoading ? (
           <p className="text-sm text-muted-foreground py-6 text-center">Carregando…</p>
-        ) : (leaderboard.data?.length ?? 0) === 0 ? (
+        ) : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">Seja o primeiro a pontuar!</p>
         ) : (
           <ol className="space-y-1.5">
-            {leaderboard.data!.map((r, i) => (
+            {rows.slice(0, 20).map((r: any, i: number) => (
               <li
                 key={r.id}
                 className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 ${
@@ -133,6 +192,11 @@ function GamePage() {
             ))}
           </ol>
         )}
+        {myIndex >= 20 ? (
+          <p className="pt-3 text-center text-[11px] text-muted-foreground">
+            Você está em #{myIndex + 1} com {rows[myIndex].score} {meta.scoreLabel}
+          </p>
+        ) : null}
       </section>
     </div>
   );

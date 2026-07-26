@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
-import { SignedImage } from "@/components/signed-image";
+import { SignedMediaThumb } from "@/components/signed-image";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -188,6 +188,10 @@ function ProfilePage() {
           <StatCard label="Seguindo" value={stats.data?.following ?? 0} />
         </Link>
       </div>
+
+      {isMe ? <WalletCard /> : null}
+
+
 
 
       {isBlockedPair ? (

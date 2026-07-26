@@ -32,11 +32,11 @@ export function GiftAnimation({ event, onDone }: Props) {
 
   const rarity = RARITY_STYLE[meta.rarity];
   const parts = meta.particles ?? [event.emoji];
-  const count = meta.rarity === "mythic" ? 44
-    : meta.rarity === "legendary" ? 32
-    : meta.rarity === "epic" ? 22
-    : meta.rarity === "rare" ? 14
-    : 8;
+  const count = meta.rarity === "mythic" ? 90
+    : meta.rarity === "legendary" ? 64
+    : meta.rarity === "epic" ? 42
+    : meta.rarity === "rare" ? 26
+    : 16;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden">

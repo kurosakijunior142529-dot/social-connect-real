@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2 } from "lucide-react";
+import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2, Wallet as WalletIcon, ChevronRight } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
@@ -230,6 +230,61 @@ function ProfilePage() {
     </div>
   );
 }
+
+function WalletCard() {
+  const wallet = useQuery({
+    queryKey: ["profile-wallet-card"],
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) return { coins: 0, rate: 0.0645, pending: 0 };
+      const [coinsRes, settingsRes, wdRes] = await Promise.all([
+        supabase.from("user_coins").select("balance").eq("user_id", uid).maybeSingle(),
+        supabase.from("app_settings").select("coin_to_brl_rate").maybeSingle(),
+        supabase.from("withdrawals").select("id").eq("user_id", uid).eq("status", "pending"),
+      ]);
+      return {
+        coins: coinsRes.data?.balance ?? 0,
+        rate: Number(settingsRes.data?.coin_to_brl_rate ?? 0.0645),
+        pending: wdRes.data?.length ?? 0,
+      };
+    },
+    staleTime: 60_000,
+  });
+
+  const coins = wallet.data?.coins ?? 0;
+  const brl = coins * (wallet.data?.rate ?? 0.0645);
+
+  return (
+    <Link
+      to="/wallet"
+      className="block rounded-3xl border border-[color:var(--hairline)] bg-gradient-to-br from-primary/15 via-[color:var(--surface)] to-[color:var(--surface)] p-4"
+    >
+      <div className="flex items-center gap-3">
+        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-primary-foreground">
+          <WalletIcon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold">Carteira</div>
+          <div className="text-[11px] text-muted-foreground">Saldo, ganhos, saques, Pix e conta bancária</div>
+        </div>
+        <div className="text-right">
+          <div className="text-base font-bold tabular">{coins.toLocaleString("pt-BR")}</div>
+          <div className="text-[11px] text-primary tabular">
+            {brl.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </div>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </div>
+      {wallet.data?.pending ? (
+        <div className="mt-3 rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-[11px] text-muted-foreground">
+          {wallet.data.pending} saque(s) em análise
+        </div>
+      ) : null}
+    </Link>
+  );
+}
+
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (

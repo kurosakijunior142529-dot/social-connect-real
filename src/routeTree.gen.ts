@@ -28,6 +28,7 @@ import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedLivesIndexRouteImport } from './routes/_authenticated/lives.index'
 import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authenticated/games.index'
 import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
+import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
@@ -145,6 +146,12 @@ const AuthenticatedAiIndexRoute = AuthenticatedAiIndexRouteImport.update({
   path: '/ai/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAccountIndexRoute =
+  AuthenticatedAccountIndexRouteImport.update({
+    id: '/account/',
+    path: '/account/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWatchRoomIdRoute =
   AuthenticatedWatchRoomIdRouteImport.update({
     id: '/watch/$roomId',
@@ -280,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/account/': typeof AuthenticatedAccountIndexRoute
   '/ai/': typeof AuthenticatedAiIndexRoute
   '/games/': typeof AuthenticatedGamesIndexRoute
   '/lives/': typeof AuthenticatedLivesIndexRoute
@@ -319,6 +327,7 @@ export interface FileRoutesByTo {
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/account': typeof AuthenticatedAccountIndexRoute
   '/ai': typeof AuthenticatedAiIndexRoute
   '/games': typeof AuthenticatedGamesIndexRoute
   '/lives': typeof AuthenticatedLivesIndexRoute
@@ -360,6 +369,7 @@ export interface FileRoutesById {
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
   '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/games/': typeof AuthenticatedGamesIndexRoute
   '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
@@ -401,6 +411,7 @@ export interface FileRouteTypes {
     | '/stories/new'
     | '/u/$username'
     | '/watch/$roomId'
+    | '/account/'
     | '/ai/'
     | '/games/'
     | '/lives/'
@@ -440,6 +451,7 @@ export interface FileRouteTypes {
     | '/stories/new'
     | '/u/$username'
     | '/watch/$roomId'
+    | '/account'
     | '/ai'
     | '/games'
     | '/lives'
@@ -480,6 +492,7 @@ export interface FileRouteTypes {
     | '/_authenticated/stories/new'
     | '/_authenticated/u/$username'
     | '/_authenticated/watch/$roomId'
+    | '/_authenticated/account/'
     | '/_authenticated/ai/'
     | '/_authenticated/games/'
     | '/_authenticated/lives/'
@@ -632,6 +645,13 @@ declare module '@tanstack/react-router' {
       path: '/ai'
       fullPath: '/ai/'
       preLoaderRoute: typeof AuthenticatedAiIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/account/': {
+      id: '/_authenticated/account/'
+      path: '/account'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AuthenticatedAccountIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/watch/$roomId': {
@@ -834,6 +854,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRouteWithChildren
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
+  AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
   AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
   AuthenticatedGamesIndexRoute: typeof AuthenticatedGamesIndexRoute
   AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
@@ -868,6 +889,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRouteWithChildren,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
+  AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
   AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
   AuthenticatedGamesIndexRoute: AuthenticatedGamesIndexRoute,
   AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,

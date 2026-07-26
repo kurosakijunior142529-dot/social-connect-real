@@ -211,10 +211,10 @@ export function AppShell({
         </nav>
         <div className="p-3 hairline-t space-y-0.5">
           <Link
-            to="/settings"
+            to="/account"
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]"
           >
-            <SettingsIcon className="h-[18px] w-[18px]" strokeWidth={1.6} /> Configurações
+            <SettingsIcon className="h-[18px] w-[18px]" strokeWidth={1.6} /> Conta
           </Link>
           <Button
             variant="ghost"

@@ -1,67 +1,77 @@
-Você marcou 4 prioridades. Realisticamente cabem 2-3 nesta rodada sem quebrar o resto. Multiplayer online (xadrez/UNO com Realtime) é uma rodada inteira sozinha — sincronização de estado, salas, matchmaking, reconexão, anti-cheat básico. Se eu tentar tudo junto vai sair meia-boca.
+## Escopo
 
-## Rodada 1 — AGORA (esta atualização)
+Você pediu 16 blocos ao mesmo tempo (Perfil, Carteira, Bancária, Saque, Histórico, Premium, Pagamentos, Monetização, Notificações, Configurações, Privacidade, Segurança, Ajuda, Banco de dados, etc). Fazer tudo de uma vez em uma única entrega vira código raso, telas quebradas e migrações difíceis de reverter. Vou fatiar em 5 fases entregáveis, cada uma com rotas próprias, tabelas próprias, RLS e UI real — sem remover nada do que já existe.
 
-**1. Cor verde 💚 mais brilhante**
-- Trocar `--primary` de `#D7FF3A` (lima) para verde vibrante estilo emoji 💚 (algo como `#22C55E` ou `#00E676`).
-- Ajustar `--ring`, `--sidebar-primary` no mesmo tom.
+Muita coisa da lista já existe hoje (Carteira em `/wallet`, Pro em `/pro`, Notificações em `/notifications`, Saque + Admin, Configurações em `/settings`, Bank accounts, Withdrawals, Subscriptions, User coins). O trabalho é **reorganizar em rotas dedicadas + preencher os vazios**, não recriar do zero.
 
-**2. Câmera do feed 100% funcional**
-- Reforçar o fluxo em `/create/video`: botão explícito "Ativar câmera", tratar `NotAllowedError`/`NotFoundError`/iframe com mensagens claras.
-- Adicionar captura de FOTO (não só vídeo) com botão dedicado, publicar direto no feed via bucket `posts`.
-- Detectar preview iframe e mostrar CTA "Abrir no app publicado" (link para social-connect-real.lovable.app).
+## Fase 1 — Perfil + Menu + Hub de Conta (esta entrega)
 
-**3. GIFs estáveis**
-- Auditar server function `searchGifs`: já trata 401/429, mas `GifPicker` chama a cada 250ms mesmo com query vazia. Adicionar debounce real + cache de resultados por query + retry uma vez em falha de rede.
-- Testar com Playwright: abrir picker, buscar "gato", confirmar imagens carregando.
+**Perfil (`/u/$username`)** reorganizado na ordem exata pedida:
+Capa → Avatar → Nome → @user → Bio → Links → Localização → Selos → Stats (Seguidores · Seguindo · Curtidas · Views) → Botões (Seguir · Mensagem · Compartilhar · Editar) → Abas (Posts · Vídeos · Mídia · Curtidos · Salvos*) → Grade.
 
-**4. Aba Jogos dedicada + 4 jogos solo novos**
-Já existe `/games` com 2048, Snake, Memória, Reação. Adiciono:
-- **Xadrez (vs CPU)** — engine minimax simples, 3 níveis
-- **Jogo da Velha (vs CPU)** — minimax perfeito
-- **Campo Minado** — 3 dificuldades, ranking por tempo
-- **Sudoku** — gerador + validador, 3 dificuldades
+*Curtidos e Salvos só aparecem para o dono. Curtidas totais e Views agregadas vêm de `likes` e `posts.view_count` (adicionar coluna se faltar).
 
-Reorganizar `/games` em categorias: "Solo", "Puzzle", "Reflexo". Ranking global via `game_scores` (já existe).
+**Remover do perfil**: o card Carteira e a seção "Conta" que coloquei antes. O perfil volta a ser só vitrine.
 
-**5. Chat IA Gemini dedicado (`/ai`)**
-- Nova rota `/ai` e `/ai/$threadId` (conversas persistentes com threads).
-- Tabelas novas: `ai_threads` (id, user_id, title, updated_at) + `ai_messages` (id, thread_id, role, content, image_url, created_at). RLS por dono.
-- UI: sidebar de threads + área de chat com markdown, streaming, avatar Gemini.
-- Streaming via server route `/api/ai/chat` usando `google/gemini-3.1-pro-preview` (rápido e capaz).
-- Geração de imagem: comando `/imagem <prompt>` ou botão dedicado → `google/gemini-3.1-flash-image`, salva no bucket e exibe inline.
-- Sem tool-calling complexo nesta rodada (evita bugs).
+**Menu ⚙️ no canto superior direito do próprio perfil** abre `/account` — hub central com todos os atalhos agrupados:
+- Financeiro: Carteira, Pagamentos, Conta bancária/Pix, Solicitar saque, Histórico financeiro, Monetização
+- Premium: Assinaturas
+- Preferências: Notificações, Configurações, Privacidade, Segurança, Ajuda
 
-**6. Limpeza visual do feed**
-- Já movi Explorar/Alertas pra header. Agora: remover badges duplicados, apertar spacing dos cards, cards sem borda dupla.
-- Bottom nav mobile: **Feed · Reels · Criar · Jogos · Perfil** (5 slots, sem apertar).
+Cada item leva à sua **rota própria** (não abre modal, não redireciona pra mesma tela).
 
-## Rodada 2 — próxima (dedicada a multiplayer)
+## Fase 2 — Financeiro dedicado
 
-Só depois que rodada 1 estiver validada. Faço:
-- **Xadrez online 1v1** — salas, matchmaking simples (fila), sincronização de jogadas via Supabase Realtime, chat na partida, timer.
-- **UNO 4 players** — mais complexo (deck, ordem, cartas especiais). Pode virar rodada 3 sozinho se ficar grande.
-- Reconexão automática se perder conexão em partida ativa.
+Rotas novas (hoje tudo mora dentro de `/wallet` e `/settings`):
+- `/account/wallet` — saldo, moedas, BRL, últimos ganhos, últimos saques, pendentes, gráfico simples (recharts)
+- `/account/bank` — CRUD de contas + Pix, marcar principal, validação
+- `/account/withdraw` — fluxo isolado com seleção de conta, valor, taxas, líquido, cancelar antes de análise
+- `/account/history` — extrato unificado com filtros (entradas/saídas/saques/presentes/assinaturas/lives/compras) + busca + data
+- `/account/payments` — métodos salvos + histórico de cobranças + recibos
 
-## Rodada 3 — se necessário
+Tabela nova: `wallet_transactions` (id, user_id, kind, amount_coins, amount_brl, ref_type, ref_id, metadata, created_at) — hoje isso está espalhado em `coin_purchases`, `withdrawals`, `live_gifts`, `subscriptions`. Cria uma view/tabela que unifica pra alimentar Histórico e Monetização sem duplicar lógica.
 
-- Mais jogos (batalha naval, dominó, damas).
-- Torneios/ranking sazonal.
+## Fase 3 — Premium + Monetização
 
-## Como valido rodada 1
+- `/account/premium` — planos, benefícios, status atual, histórico
+- `/account/monetization` — ganhos por vídeos, lives, assinaturas, presentes, programa de criadores, metas, gráficos
+- Nova tabela `creator_earnings` alimentada por triggers em `live_gifts`, `channel_subscriptions`, `subscriptions`
 
-- Playwright no app publicado: abrir /create/video, clicar "Ativar câmera", tirar screenshot.
-- Buscar GIF "gato", screenshot dos resultados.
-- Abrir /games, screenshot mostrando novos jogos.
-- Criar thread no /ai, mandar "olá" e "/imagem gato astronauta", screenshot do resultado.
+## Fase 4 — Preferências profissionais
 
-## Detalhes técnicos (você não precisa ler)
+- `/account/notifications` — central com filtros, marcar lido, excluir; toggles push por categoria (tabela `notification_preferences`)
+- `/account/settings` — idioma, tema (claro/escuro/sistema), cache, qualidade de vídeo, autoplay, exportar dados, desativar/excluir conta
+- `/account/privacy` — conta privada, quem comenta/mensagem/liga/marca/segue, bloqueados, silenciados, filtro de palavras (tabela `privacy_settings` + `word_filters`)
+- `/account/security` — trocar senha, email, telefone, 2FA, PIN, sessões ativas, dispositivos, histórico de login, encerrar sessões
+- `/account/help` — FAQ + abrir ticket com anexos (tabelas `support_tickets`, `ticket_messages`)
 
-- Verde novo: `oklch(0.72 0.20 145)` ≈ `#22C55E`. Ajustar contraste do `--primary-foreground` pra `#0A0A0B` continua ok.
-- IA threads: `ai_threads` com FK cascade em delete de usuário; `ai_messages.role` enum `user|assistant|system`; `image_url` nullable aponta pro bucket `posts` (reaproveitar).
-- Streaming Gemini: `streamText` do AI SDK + `toUIMessageStreamResponse`, `useChat` no cliente com transport apontando pra `/api/ai/chat`.
-- Imagens: fluxo `/v1/images/generations` com `stream: true` (ver `ai-image-generation-tanstack`), salva blob final no bucket `posts/ai/{uid}/`.
-- Xadrez engine: biblioteca `chess.js` pra regras + minimax próprio (3-4 plies) pra IA. Evita `stockfish.wasm` (peso alto).
-- Sudoku gerador: algoritmo simples de remoção de células a partir de solução válida.
+## Fase 5 — Polimento e integração
 
-Confirma que ataco Rodada 1 agora e multiplayer fica pra próxima?
+- Push notifications reais (Web Push + service worker)
+- Realtime no histórico financeiro
+- Gráficos com dados reais (7d, 30d, 12m)
+- Auditoria de rotas: nenhum botão redireciona pra mesma tela; skeletons; error boundaries; empty states
+
+## Nesta resposta eu entrego a Fase 1 completa
+
+1. Reorganizar `src/routes/_authenticated/u.$username.tsx` na ordem exata + abas novas (Vídeos, Mídia, Curtidos, Salvos)
+2. Remover carteira/seção "Conta" do perfil
+3. Botão ⚙️ no header do perfil (só do dono) → `/account`
+4. Criar `src/routes/_authenticated/account.index.tsx` — hub agrupado
+5. Migração: coluna `view_count` em `posts` se não existir, para a métrica de Visualizações
+6. Adicionar rota `/account` ao sidebar (renomeando "Configurações" pra "Conta")
+
+Depois eu volto e pergunto qual fase seguinte quer priorizar.
+
+## Detalhes técnicos
+
+- Stack: TanStack Start + Supabase, tudo existente reaproveitado
+- Curtidas totais do usuário: `SELECT count(*) FROM likes l JOIN posts p ON p.id=l.post_id WHERE p.author_id=$1`
+- Views totais: soma de `posts.view_count` (adicionar coluna `integer default 0 not null` + GRANT + policy pra incrementar via RPC futura)
+- Abas Vídeos/Mídia: filtrar `posts` por presença de vídeo/mídia (`media_urls`)
+- Curtidos: `likes` do próprio usuário
+- Salvos: `saved_posts` do próprio usuário
+- Selos: usa `has_role(admin)` + `is_verified` já existente
+- Nada é removido: `/wallet`, `/pro`, `/settings`, `/notifications`, `/admin/withdrawals` continuam funcionando; novas rotas `/account/*` são adicionadas nas fases seguintes
+
+Aprova a Fase 1 para eu implementar agora?

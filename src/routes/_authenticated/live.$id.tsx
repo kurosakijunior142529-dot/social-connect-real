@@ -189,6 +189,14 @@ function LiveRoom() {
     };
   }, [liveId, qc, giftCatalogQ.data]);
 
+  // Drain gift queue one at a time so back-to-back gifts play sequentially.
+  useEffect(() => {
+    if (activeGift || giftQueue.length === 0) return;
+    setActiveGift(giftQueue[0]);
+    setGiftQueue((q) => q.slice(1));
+  }, [giftQueue, activeGift]);
+
+
   // Elapsed timer
   useEffect(() => {
     if (!live?.started_at || live.status !== "live") return;

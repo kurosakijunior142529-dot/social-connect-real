@@ -13,6 +13,7 @@ import {
   Settings as SettingsIcon,
   Lock,
   ShieldCheck,
+  ShieldOff,
   HelpCircle,
   LogOut,
   ChevronRight,

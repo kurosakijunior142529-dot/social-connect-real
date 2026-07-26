@@ -554,22 +554,36 @@ function LiveRoom() {
 
         {tab === "gifts" && (
           <div className="flex-1 overflow-y-auto p-3 grid grid-cols-3 gap-2">
-            {giftCatalogQ.data?.map((g) => (
-              <button
-                key={g.id}
-                onClick={() => sendGift(g)}
-                disabled={user.id === live.host_id}
-                className="rounded-2xl border border-[color:var(--hairline)] p-3 hover:border-primary/60 hover:bg-primary/5 transition text-center disabled:opacity-40"
-              >
-                <div className="text-3xl">{g.emoji}</div>
-                <div className="text-[11px] font-semibold mt-1">{g.name}</div>
-                <div className="text-[10px] text-primary">{g.cost_coins} 🪙</div>
-              </button>
-            ))}
+            {giftCatalogQ.data?.map((g) => {
+              const meta = getGiftMeta(g.name);
+              const r = RARITY_STYLE[meta.rarity];
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => sendGift(g)}
+                  disabled={user.id === live.host_id}
+                  className={cn(
+                    "relative rounded-2xl border p-3 transition text-center disabled:opacity-40 overflow-hidden",
+                    r.ring,
+                    "hover:-translate-y-0.5",
+                  )}
+                  style={{
+                    background: `linear-gradient(160deg, ${meta.color}18, transparent 70%)`,
+                    boxShadow: r.glow,
+                  }}
+                >
+                  <div className="text-3xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{g.emoji}</div>
+                  <div className="text-[11px] font-semibold mt-1 truncate">{g.name}</div>
+                  <div className={cn("text-[9px] uppercase tracking-widest font-bold", r.text)}>{r.label}</div>
+                  <div className="text-[10px] text-primary mt-0.5">{g.cost_coins} 🪙</div>
+                </button>
+              );
+            })}
             <p className="col-span-3 text-[11px] text-muted-foreground text-center mt-2">
-              Presentes são visuais por enquanto. Recarga de moedas em breve.
+              Envie presentes épicos para apoiar o criador ✨
             </p>
           </div>
+        )}
         )}
       </aside>
     </div>

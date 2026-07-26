@@ -68,9 +68,10 @@ export function AppShell({
     },
   ];
 
-  // Mobile bottom nav: Home · Pesquisar · Criar · Conversas · Perfil
+  // Mobile bottom nav: Home · Reels · Pesquisar · Criar · Conversas · Perfil
   const mobileItems: NavItem[] = [
     { to: "/", label: "Feed", Icon: Home },
+    { to: "/reels", label: "Reels", Icon: Play },
     { to: "/explore", label: "Pesquisar", Icon: Search },
     { to: "/create", label: "Criar", Icon: PlusSquare },
     { to: "/messages", label: "Conversas", Icon: MessageCircle },
@@ -80,6 +81,7 @@ export function AppShell({
       Icon: UserIcon,
     },
   ];
+
 
 
   const handleSignOut = async () => {

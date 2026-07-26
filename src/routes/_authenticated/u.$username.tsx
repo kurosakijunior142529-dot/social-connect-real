@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2, Wallet as WalletIcon, ChevronRight } from "lucide-react";
+import { MessageCircle, Settings, Ban, MapPin, LinkIcon, Grid3x3, Bookmark, Heart, Sparkles, Camera, Loader2, Wallet as WalletIcon, ChevronRight, Crown, CreditCard, Landmark, ArrowDownToLine, ReceiptText, Bell, ShieldCheck, Lock, HelpCircle, LogOut } from "lucide-react";
+import { signOutAndClearSession } from "@/lib/auth-session";
+
+
 import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
@@ -190,6 +193,8 @@ function ProfilePage() {
       </div>
 
       {isMe ? <WalletCard /> : null}
+      {isMe ? <AccountSection onSignOut={() => signOutAndClearSession(queryClient, navigate)} /> : null}
+
 
 
 
@@ -286,7 +291,77 @@ function WalletCard() {
 }
 
 
+type AccountRow = { to?: string; href?: string; icon: any; label: string; hint?: string; danger?: boolean; onClick?: () => void; accent?: boolean };
+
+function AccountSection({ onSignOut }: { onSignOut: () => void }) {
+  const groups: { title: string; rows: AccountRow[] }[] = [
+    {
+      title: "Premium & Financeiro",
+      rows: [
+        { to: "/pro", icon: Crown, label: "Assinaturas & Premium", hint: "Vibely Pro, benefícios e recargas", accent: true },
+        { to: "/wallet", icon: WalletIcon, label: "Carteira", hint: "Saldo e movimentações" },
+        { to: "/wallet", icon: CreditCard, label: "Pagamentos", hint: "Métodos e histórico de cobranças" },
+        { to: "/wallet", icon: Landmark, label: "Conta bancária & Pix", hint: "Cadastro para recebimentos" },
+        { to: "/wallet", icon: ArrowDownToLine, label: "Solicitar saque", hint: "Retire seus ganhos" },
+        { to: "/wallet", icon: ReceiptText, label: "Histórico financeiro", hint: "Entradas, saídas e saques" },
+      ],
+    },
+    {
+      title: "Preferências",
+      rows: [
+        { to: "/notifications", icon: Bell, label: "Notificações" },
+        { to: "/settings", icon: Settings, label: "Configurações" },
+        { to: "/settings", icon: Lock, label: "Privacidade" },
+        { to: "/settings", icon: ShieldCheck, label: "Segurança" },
+        { to: "/settings", icon: HelpCircle, label: "Ajuda e suporte" },
+      ],
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {groups.map((g) => (
+        <div key={g.title} className="space-y-2">
+          <div className="px-1 text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">{g.title}</div>
+          <div className="rounded-3xl border border-[color:var(--hairline)] bg-[color:var(--surface)] overflow-hidden divide-y divide-[color:var(--hairline)]">
+            {g.rows.map((r, i) => (
+              <AccountRowItem key={i} row={r} />
+            ))}
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={onSignOut}
+        className="w-full flex items-center gap-3 rounded-3xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 px-4 py-3.5 text-sm font-medium text-destructive transition"
+      >
+        <LogOut className="h-4 w-4" />
+        Sair da conta
+      </button>
+    </div>
+  );
+}
+
+function AccountRowItem({ row }: { row: AccountRow }) {
+  const Icon = row.icon;
+  const content = (
+    <div className="flex items-center gap-3 px-4 py-3.5">
+      <div className={`grid h-9 w-9 place-items-center rounded-xl ${row.accent ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface-2)] text-foreground/80"}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium">{row.label}</div>
+        {row.hint ? <div className="text-[11px] text-muted-foreground truncate">{row.hint}</div> : null}
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+    </div>
+  );
+  if (row.to) return <Link to={row.to as any}>{content}</Link>;
+  return <button type="button" onClick={row.onClick} className="w-full text-left">{content}</button>;
+}
+
 function StatCard({ label, value }: { label: string; value: number }) {
+
   return (
     <div className="glass rounded-2xl px-3 py-3 text-center">
       <div className="text-xl font-display font-bold">{value}</div>

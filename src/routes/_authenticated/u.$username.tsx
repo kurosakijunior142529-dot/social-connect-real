@@ -193,6 +193,8 @@ function ProfilePage() {
       </div>
 
       {isMe ? <WalletCard /> : null}
+      {isMe ? <AccountSection onSignOut={() => signOutAndClearSession(queryClient, navigate)} /> : null}
+
 
 
 

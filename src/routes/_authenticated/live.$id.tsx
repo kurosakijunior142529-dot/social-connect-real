@@ -584,7 +584,6 @@ function LiveRoom() {
             </p>
           </div>
         )}
-        )}
       </aside>
     </div>
   );

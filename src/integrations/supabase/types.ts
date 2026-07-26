@@ -2016,6 +2016,10 @@ export type Database = {
         Args: { _new_status: string; _note?: string; _withdrawal_id: string }
         Returns: undefined
       }
+      can_view_live: {
+        Args: { _live: string; _user: string }
+        Returns: boolean
+      }
       chat_role: { Args: { _chat: string; _user: string }; Returns: string }
       coins_to_brl: { Args: { _coins: number }; Returns: number }
       credit_coins: {

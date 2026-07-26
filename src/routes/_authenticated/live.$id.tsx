@@ -432,6 +432,8 @@ function LiveRoom() {
           ))}
         </div>
 
+        <GiftAnimation event={activeGift} onDone={() => setActiveGift(null)} />
+
         {/* TOP overlay */}
         <div className="absolute top-0 inset-x-0 p-3 flex items-start justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent">
           <div className="flex items-center gap-2 min-w-0">

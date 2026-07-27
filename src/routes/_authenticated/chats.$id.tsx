@@ -44,6 +44,7 @@ function ChatPage() {
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const ai = useAiActions();
   const { themeId, theme: bubbleTheme, setTheme: setBubbleTheme } = useBubbleTheme(id);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   const chat = useQuery({
     queryKey: ["chat", id],

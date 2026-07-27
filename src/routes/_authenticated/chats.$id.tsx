@@ -23,6 +23,8 @@ import { SummarizeButton, SmartReplyBar, MuteToggle, useMessageReactions, toggle
 import { useAiActions } from "@/hooks/use-ai-actions";
 import { useBubbleTheme } from "@/lib/bubble-themes";
 import { BubbleThemePicker } from "@/components/chat/bubble-theme-picker";
+import { ConversationMenu } from "@/components/chat/conversation-menu";
+import { BUBBLE_THEMES } from "@/lib/bubble-themes";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,

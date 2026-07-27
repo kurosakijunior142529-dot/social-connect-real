@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { MessageActions, ReactionsBar, ReplyQuote } from "@/components/message-actions";
 import { ScheduleButton } from "@/components/schedule-message";
-import { SummarizeButton, SmartReplyBar, MuteToggle, useMessageReactions, toggleReaction } from "@/components/chat-extras";
+import { SummarizeButton, SmartReplyBar, useMessageReactions, toggleReaction } from "@/components/chat-extras";
 import { useAiActions } from "@/hooks/use-ai-actions";
 import { useBubbleTheme } from "@/lib/bubble-themes";
 import { BubbleThemePicker } from "@/components/chat/bubble-theme-picker";

@@ -293,6 +293,41 @@ function ChatPage() {
         isAdmin={isAdmin}
         currentUserId={user.id}
       />
+
+      <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+        <DialogContent className="glass border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Personalizar conversa
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1">Estilo dos balões</div>
+            <div className="grid grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto">
+              {BUBBLE_THEMES.map((t) => {
+                const active = t.id === themeId;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => { setBubbleTheme(t.id); setCustomizeOpen(false); toast.success(`Tema: ${t.label}`); }}
+                    className={cn(
+                      "rounded-2xl border p-3 text-left transition",
+                      active ? "border-primary ring-2 ring-primary/50" : "border-white/10 hover:border-white/25",
+                    )}
+                  >
+                    <div className="flex items-end gap-2 h-14 mb-2">
+                      <div className={cn("px-3 py-1.5 text-[11px] rounded-[14px]", t.theirs)}>Oi 👋</div>
+                      <div className="flex-1" />
+                      <div className={cn("px-3 py-1.5 text-[11px] rounded-[14px]", t.mine)}>Tudo bem?</div>
+                    </div>
+                    <div className="text-[12px] font-semibold">{t.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

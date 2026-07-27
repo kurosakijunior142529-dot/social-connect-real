@@ -19,10 +19,12 @@ import {
 } from "@/components/ui/dialog";
 import { MessageActions, ReactionsBar, ReplyQuote } from "@/components/message-actions";
 import { ScheduleButton } from "@/components/schedule-message";
-import { SummarizeButton, SmartReplyBar, MuteToggle, useMessageReactions, toggleReaction } from "@/components/chat-extras";
+import { SummarizeButton, SmartReplyBar, useMessageReactions, toggleReaction } from "@/components/chat-extras";
 import { useAiActions } from "@/hooks/use-ai-actions";
 import { useBubbleTheme } from "@/lib/bubble-themes";
 import { BubbleThemePicker } from "@/components/chat/bubble-theme-picker";
+import { ConversationMenu } from "@/components/chat/conversation-menu";
+import { BUBBLE_THEMES } from "@/lib/bubble-themes";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -42,6 +44,7 @@ function ChatPage() {
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const ai = useAiActions();
   const { themeId, theme: bubbleTheme, setTheme: setBubbleTheme } = useBubbleTheme(id);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   const chat = useQuery({
     queryKey: ["chat", id],
@@ -196,7 +199,14 @@ function ChatPage() {
         </button>
         <SummarizeButton scope="chat" id={id} />
         <BubbleThemePicker currentId={themeId} onSelect={setBubbleTheme} />
-        <MuteToggle table="muted_chats" keyCol="chat_id" keyVal={id} userId={user.id} />
+        <ConversationMenu
+          scope="chat"
+          parentId={id}
+          currentUserId={user.id}
+          onOpenSearch={() => toast.info("Use o campo de busca no cabeçalho.")}
+          onOpenPinned={() => toast.info("Fixe mensagens pelo menu de ações.")}
+          onOpenCustomize={() => setCustomizeOpen(true)}
+        />
         {isMember ? (
           <button onClick={leave} className="p-2 rounded-full active:bg-[color:var(--surface-2)]" aria-label="Sair">
             <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
@@ -283,6 +293,41 @@ function ChatPage() {
         isAdmin={isAdmin}
         currentUserId={user.id}
       />
+
+      <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+        <DialogContent className="glass border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Personalizar conversa
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1">Estilo dos balões</div>
+            <div className="grid grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto">
+              {BUBBLE_THEMES.map((t) => {
+                const active = t.id === themeId;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => { setBubbleTheme(t.id); setCustomizeOpen(false); toast.success(`Tema: ${t.label}`); }}
+                    className={cn(
+                      "rounded-2xl border p-3 text-left transition",
+                      active ? "border-primary ring-2 ring-primary/50" : "border-white/10 hover:border-white/25",
+                    )}
+                  >
+                    <div className="flex items-end gap-2 h-14 mb-2">
+                      <div className={cn("px-3 py-1.5 text-[11px] rounded-[14px]", t.theirs)}>Oi 👋</div>
+                      <div className="flex-1" />
+                      <div className={cn("px-3 py-1.5 text-[11px] rounded-[14px]", t.mine)}>Tudo bem?</div>
+                    </div>
+                    <div className="text-[12px] font-semibold">{t.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

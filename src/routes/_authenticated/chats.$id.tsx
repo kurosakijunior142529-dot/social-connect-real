@@ -199,7 +199,14 @@ function ChatPage() {
         </button>
         <SummarizeButton scope="chat" id={id} />
         <BubbleThemePicker currentId={themeId} onSelect={setBubbleTheme} />
-        <MuteToggle table="muted_chats" keyCol="chat_id" keyVal={id} userId={user.id} />
+        <ConversationMenu
+          scope="chat"
+          parentId={id}
+          currentUserId={user.id}
+          onOpenSearch={() => toast.info("Use o campo de busca no cabeçalho.")}
+          onOpenPinned={() => toast.info("Fixe mensagens pelo menu de ações.")}
+          onOpenCustomize={() => setCustomizeOpen(true)}
+        />
         {isMember ? (
           <button onClick={leave} className="p-2 rounded-full active:bg-[color:var(--surface-2)]" aria-label="Sair">
             <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />

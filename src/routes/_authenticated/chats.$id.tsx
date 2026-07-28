@@ -212,7 +212,7 @@ function ChatPage() {
         ) : null}
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <div className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-2", chatFont.className)}>
         {messages.data?.map((m: any) => {
           const mine = m.sender_id === user.id;
           const replied = m.reply_to ? (byId.get(m.reply_to) as any) : null;

@@ -55,6 +55,8 @@ function ConversationPage() {
   const [wallpaperOpen, setWallpaperOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const { prefs, theme: bubbleTheme, font: chatFont } = useChatPrefs(`dm-${conversationId}`);
   const blocks = useBlocks();
   const { startCall } = useCall();
   const ai = useAiActions();

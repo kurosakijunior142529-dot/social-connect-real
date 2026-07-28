@@ -197,7 +197,6 @@ function ChatPage() {
           </div>
         </button>
         <SummarizeButton scope="chat" id={id} />
-        <BubbleThemePicker currentId={themeId} onSelect={setBubbleTheme} />
         <ConversationMenu
           scope="chat"
           parentId={id}

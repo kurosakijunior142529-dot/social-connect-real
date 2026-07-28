@@ -640,6 +640,14 @@ function ConversationPage() {
         open={wallpaperOpen}
         onOpenChange={setWallpaperOpen}
       />
+      <ChatCustomizeSheet
+        open={customizeOpen}
+        onOpenChange={setCustomizeOpen}
+        chatId={`dm-${conversationId}`}
+        dmConversationId={conversationId}
+        currentWallpaper={(conv.data as any)?.wallpaper_type}
+        currentWallpaperValue={(conv.data as any)?.wallpaper_value}
+      />
     </div>
   );
 }

@@ -474,11 +474,10 @@ function ConversationPage() {
               ) : null}
               <div className="max-w-[78%]">
                 <div
+                  style={{ borderRadius: prefs.radius, ...(mine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }) }}
                   className={cn(
-                    "rounded-[20px] px-3.5 py-2 text-[14px] leading-snug break-words",
-                    mine
-                      ? "bg-primary text-primary-foreground rounded-br-[6px]"
-                      : "bg-[color:var(--surface-2)] text-foreground rounded-bl-[6px]",
+                    "px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
+                    mine ? bubbleTheme.mine : bubbleTheme.theirs,
                   )}
                 >
                   {replied ? <ReplyQuote text={replied.content} /> : null}

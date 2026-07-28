@@ -32,6 +32,8 @@ import { GifPicker } from "@/components/chat/gif-picker";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
 import { Sticker } from "lucide-react";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
+import { useChatPrefs } from "@/lib/bubble-themes";
+import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,
@@ -53,6 +55,8 @@ function ConversationPage() {
   const [wallpaperOpen, setWallpaperOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const { prefs, theme: bubbleTheme, font: chatFont } = useChatPrefs(`dm-${conversationId}`);
   const blocks = useBlocks();
   const { startCall } = useCall();
   const ai = useAiActions();
@@ -382,7 +386,7 @@ function ConversationPage() {
               onOpenSearch={() => setSearchOpen(true)}
               onOpenPinned={() => setPinnedOpen(true)}
               onOpenWallpaper={() => setWallpaperOpen(true)}
-              onOpenCustomize={() => setWallpaperOpen(true)}
+              onOpenCustomize={() => setCustomizeOpen(true)}
             />
 
           </>
@@ -426,6 +430,7 @@ function ConversationPage() {
       <div
         className={cn(
           "relative flex-1 overflow-y-auto px-4 py-4 space-y-1.5",
+          chatFont.className,
           (conv.data as any)?.wallpaper_type === "custom"
             ? "bg-background"
             : wallpaperClass((conv.data as any)?.wallpaper_type),
@@ -469,11 +474,10 @@ function ConversationPage() {
               ) : null}
               <div className="max-w-[78%]">
                 <div
+                  style={{ borderRadius: prefs.radius, ...(mine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }) }}
                   className={cn(
-                    "rounded-[20px] px-3.5 py-2 text-[14px] leading-snug break-words",
-                    mine
-                      ? "bg-primary text-primary-foreground rounded-br-[6px]"
-                      : "bg-[color:var(--surface-2)] text-foreground rounded-bl-[6px]",
+                    "px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
+                    mine ? bubbleTheme.mine : bubbleTheme.theirs,
                   )}
                 >
                   {replied ? <ReplyQuote text={replied.content} /> : null}
@@ -635,6 +639,14 @@ function ConversationPage() {
         currentValue={(conv.data as any)?.wallpaper_value}
         open={wallpaperOpen}
         onOpenChange={setWallpaperOpen}
+      />
+      <ChatCustomizeSheet
+        open={customizeOpen}
+        onOpenChange={setCustomizeOpen}
+        chatId={`dm-${conversationId}`}
+        dmConversationId={conversationId}
+        currentWallpaper={(conv.data as any)?.wallpaper_type}
+        currentWallpaperValue={(conv.data as any)?.wallpaper_value}
       />
     </div>
   );

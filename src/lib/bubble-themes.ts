@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export type BubbleThemeId =
   | "classic"
@@ -93,33 +93,96 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
   },
 ];
 
-const STORAGE_KEY = "vibely.bubbleTheme";
+export type ChatFontId = "system" | "serif" | "mono" | "rounded";
+export const CHAT_FONTS: { id: ChatFontId; label: string; className: string }[] = [
+  { id: "system", label: "Padrão", className: "font-sans" },
+  { id: "serif", label: "Serifada", className: "font-serif" },
+  { id: "mono", label: "Mono", className: "font-mono" },
+  { id: "rounded", label: "Arredondada", className: "[font-family:ui-rounded,'SF_Pro_Rounded','Nunito',system-ui,sans-serif]" },
+];
 
-export function getStoredBubbleTheme(chatId: string): BubbleThemeId {
-  if (typeof window === "undefined") return "classic";
+export type ChatPrefs = {
+  themeId: BubbleThemeId;
+  font: ChatFontId;
+  radius: number; // 8-28 px
+  animations: boolean;
+};
+
+const DEFAULTS: ChatPrefs = {
+  themeId: "classic",
+  font: "system",
+  radius: 20,
+  animations: true,
+};
+
+const STORAGE_KEY = "vibely.chatPrefs";
+
+function readPrefs(chatId: string): ChatPrefs {
+  if (typeof window === "undefined") return DEFAULTS;
   try {
-    const raw = window.localStorage.getItem(`${STORAGE_KEY}.${chatId}`)
-      ?? window.localStorage.getItem(STORAGE_KEY);
-    if (raw && BUBBLE_THEMES.some((t) => t.id === raw)) return raw as BubbleThemeId;
+    const raw = window.localStorage.getItem(`${STORAGE_KEY}.${chatId}`);
+    if (raw) {
+      const p = JSON.parse(raw);
+      return { ...DEFAULTS, ...p };
+    }
+    // legacy: bubble theme only
+    const legacyKey = window.localStorage.getItem(`vibely.bubbleTheme.${chatId}`)
+      ?? window.localStorage.getItem("vibely.bubbleTheme");
+    if (legacyKey && BUBBLE_THEMES.some((t) => t.id === legacyKey)) {
+      return { ...DEFAULTS, themeId: legacyKey as BubbleThemeId };
+    }
   } catch { /* noop */ }
-  return "classic";
+  return DEFAULTS;
 }
 
-export function useBubbleTheme(chatId: string) {
-  const [themeId, setThemeId] = useState<BubbleThemeId>("classic");
+function writePrefs(chatId: string, prefs: ChatPrefs) {
+  try {
+    window.localStorage.setItem(`${STORAGE_KEY}.${chatId}`, JSON.stringify(prefs));
+    // notify same-tab listeners (storage event only fires cross-tab)
+    window.dispatchEvent(new CustomEvent("vibely:chatPrefs", { detail: { chatId } }));
+  } catch { /* noop */ }
+}
+
+export function getStoredBubbleTheme(chatId: string): BubbleThemeId {
+  return readPrefs(chatId).themeId;
+}
+
+export function useChatPrefs(chatId: string) {
+  const [prefs, setPrefs] = useState<ChatPrefs>(DEFAULTS);
 
   useEffect(() => {
-    setThemeId(getStoredBubbleTheme(chatId));
+    setPrefs(readPrefs(chatId));
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail || detail.chatId === chatId) setPrefs(readPrefs(chatId));
+    };
+    window.addEventListener("vibely:chatPrefs", onChange as EventListener);
+    window.addEventListener("storage", onChange);
+    return () => {
+      window.removeEventListener("vibely:chatPrefs", onChange as EventListener);
+      window.removeEventListener("storage", onChange);
+    };
   }, [chatId]);
 
-  const set = (id: BubbleThemeId) => {
-    setThemeId(id);
-    try {
-      window.localStorage.setItem(`${STORAGE_KEY}.${chatId}`, id);
-      window.localStorage.setItem(STORAGE_KEY, id);
-    } catch { /* noop */ }
-  };
+  const update = useCallback((patch: Partial<ChatPrefs>) => {
+    setPrefs((prev) => {
+      const next = { ...prev, ...patch };
+      writePrefs(chatId, next);
+      return next;
+    });
+  }, [chatId]);
 
-  const theme = BUBBLE_THEMES.find((t) => t.id === themeId) ?? BUBBLE_THEMES[0];
-  return { themeId, theme, setTheme: set };
+  const theme = BUBBLE_THEMES.find((t) => t.id === prefs.themeId) ?? BUBBLE_THEMES[0];
+  const font = CHAT_FONTS.find((f) => f.id === prefs.font) ?? CHAT_FONTS[0];
+  return { prefs, update, theme, font };
+}
+
+// Back-compat wrapper for existing callers
+export function useBubbleTheme(chatId: string) {
+  const { prefs, update, theme } = useChatPrefs(chatId);
+  return {
+    themeId: prefs.themeId,
+    theme,
+    setTheme: (id: BubbleThemeId) => update({ themeId: id }),
+  };
 }

@@ -21,10 +21,9 @@ import { MessageActions, ReactionsBar, ReplyQuote } from "@/components/message-a
 import { ScheduleButton } from "@/components/schedule-message";
 import { SummarizeButton, SmartReplyBar, useMessageReactions, toggleReaction } from "@/components/chat-extras";
 import { useAiActions } from "@/hooks/use-ai-actions";
-import { useBubbleTheme } from "@/lib/bubble-themes";
-import { BubbleThemePicker } from "@/components/chat/bubble-theme-picker";
+import { useChatPrefs } from "@/lib/bubble-themes";
 import { ConversationMenu } from "@/components/chat/conversation-menu";
-import { BUBBLE_THEMES } from "@/lib/bubble-themes";
+import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -43,7 +42,7 @@ function ChatPage() {
   const [editing, setEditing] = useState<{ id: string; content: string | null } | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const ai = useAiActions();
-  const { themeId, theme: bubbleTheme, setTheme: setBubbleTheme } = useBubbleTheme(id);
+  const { prefs, theme: bubbleTheme, font: chatFont } = useChatPrefs(id);
   const [customizeOpen, setCustomizeOpen] = useState(false);
 
   const chat = useQuery({
@@ -198,7 +197,6 @@ function ChatPage() {
           </div>
         </button>
         <SummarizeButton scope="chat" id={id} />
-        <BubbleThemePicker currentId={themeId} onSelect={setBubbleTheme} />
         <ConversationMenu
           scope="chat"
           parentId={id}
@@ -214,7 +212,7 @@ function ChatPage() {
         ) : null}
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <div className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-2", chatFont.className)}>
         {messages.data?.map((m: any) => {
           const mine = m.sender_id === user.id;
           const replied = m.reply_to ? (byId.get(m.reply_to) as any) : null;
@@ -234,7 +232,9 @@ function ChatPage() {
                 {!mine && !isChannel ? (
                   <div className="text-[11px] text-muted-foreground px-3">{m.sender?.display_name}</div>
                 ) : null}
-                <div className={cn("rounded-[20px] px-3.5 py-2 text-[14px] leading-snug break-words",
+                <div
+                  style={{ borderRadius: prefs.radius, ...(mine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }) }}
+                  className={cn("px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
                   mine ? bubbleTheme.mine : bubbleTheme.theirs)}>
                   {replied ? <ReplyQuote text={replied.content} /> : null}
                   {m.content}
@@ -294,40 +294,7 @@ function ChatPage() {
         currentUserId={user.id}
       />
 
-      <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
-        <DialogContent className="glass border-white/10 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> Personalizar conversa
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1">Estilo dos balões</div>
-            <div className="grid grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto">
-              {BUBBLE_THEMES.map((t) => {
-                const active = t.id === themeId;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => { setBubbleTheme(t.id); setCustomizeOpen(false); toast.success(`Tema: ${t.label}`); }}
-                    className={cn(
-                      "rounded-2xl border p-3 text-left transition",
-                      active ? "border-primary ring-2 ring-primary/50" : "border-white/10 hover:border-white/25",
-                    )}
-                  >
-                    <div className="flex items-end gap-2 h-14 mb-2">
-                      <div className={cn("px-3 py-1.5 text-[11px] rounded-[14px]", t.theirs)}>Oi 👋</div>
-                      <div className="flex-1" />
-                      <div className={cn("px-3 py-1.5 text-[11px] rounded-[14px]", t.mine)}>Tudo bem?</div>
-                    </div>
-                    <div className="text-[12px] font-semibold">{t.label}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ChatCustomizeSheet open={customizeOpen} onOpenChange={setCustomizeOpen} chatId={id} />
     </div>
   );
 }

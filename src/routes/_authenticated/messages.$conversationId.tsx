@@ -32,6 +32,8 @@ import { GifPicker } from "@/components/chat/gif-picker";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
 import { Sticker } from "lucide-react";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
+import { useChatPrefs } from "@/lib/bubble-themes";
+import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,

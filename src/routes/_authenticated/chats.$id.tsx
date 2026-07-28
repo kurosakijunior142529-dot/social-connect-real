@@ -21,10 +21,9 @@ import { MessageActions, ReactionsBar, ReplyQuote } from "@/components/message-a
 import { ScheduleButton } from "@/components/schedule-message";
 import { SummarizeButton, SmartReplyBar, useMessageReactions, toggleReaction } from "@/components/chat-extras";
 import { useAiActions } from "@/hooks/use-ai-actions";
-import { useBubbleTheme } from "@/lib/bubble-themes";
-import { BubbleThemePicker } from "@/components/chat/bubble-theme-picker";
+import { useChatPrefs } from "@/lib/bubble-themes";
 import { ConversationMenu } from "@/components/chat/conversation-menu";
-import { BUBBLE_THEMES } from "@/lib/bubble-themes";
+import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,

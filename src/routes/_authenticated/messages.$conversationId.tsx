@@ -430,6 +430,7 @@ function ConversationPage() {
       <div
         className={cn(
           "relative flex-1 overflow-y-auto px-4 py-4 space-y-1.5",
+          chatFont.className,
           (conv.data as any)?.wallpaper_type === "custom"
             ? "bg-background"
             : wallpaperClass((conv.data as any)?.wallpaper_type),

@@ -47,6 +47,7 @@ import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminWithdrawalsRouteImport } from './routes/_authenticated/admin.withdrawals'
 import { Route as AuthenticatedAccountSecurityRouteImport } from './routes/_authenticated/account.security'
 import { Route as AuthenticatedAccountPrivacyRouteImport } from './routes/_authenticated/account.privacy'
+import { Route as AuthenticatedAccountMonetizationRouteImport } from './routes/_authenticated/account.monetization'
 import { Route as AuthenticatedAccountBlockedRouteImport } from './routes/_authenticated/account.blocked'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedUUsernameFollowsRouteImport } from './routes/_authenticated/u.$username.follows'
@@ -254,6 +255,12 @@ const AuthenticatedAccountPrivacyRoute =
     path: '/account/privacy',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAccountMonetizationRoute =
+  AuthenticatedAccountMonetizationRouteImport.update({
+    id: '/account/monetization',
+    path: '/account/monetization',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccountBlockedRoute =
   AuthenticatedAccountBlockedRouteImport.update({
     id: '/account/blocked',
@@ -293,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/checkout/return': typeof CheckoutReturnRoute
   '/auth/': typeof AuthIndexRoute
   '/account/blocked': typeof AuthenticatedAccountBlockedRoute
+  '/account/monetization': typeof AuthenticatedAccountMonetizationRoute
   '/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/account/security': typeof AuthenticatedAccountSecurityRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
@@ -336,6 +344,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
   '/account/blocked': typeof AuthenticatedAccountBlockedRoute
+  '/account/monetization': typeof AuthenticatedAccountMonetizationRoute
   '/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/account/security': typeof AuthenticatedAccountSecurityRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
@@ -381,6 +390,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/account/blocked': typeof AuthenticatedAccountBlockedRoute
+  '/_authenticated/account/monetization': typeof AuthenticatedAccountMonetizationRoute
   '/_authenticated/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/_authenticated/account/security': typeof AuthenticatedAccountSecurityRoute
   '/_authenticated/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/auth/'
     | '/account/blocked'
+    | '/account/monetization'
     | '/account/privacy'
     | '/account/security'
     | '/admin/withdrawals'
@@ -469,6 +480,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/account/blocked'
+    | '/account/monetization'
     | '/account/privacy'
     | '/account/security'
     | '/admin/withdrawals'
@@ -513,6 +525,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/auth/'
     | '/_authenticated/account/blocked'
+    | '/_authenticated/account/monetization'
     | '/_authenticated/account/privacy'
     | '/_authenticated/account/security'
     | '/_authenticated/admin/withdrawals'
@@ -819,6 +832,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountPrivacyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/account/monetization': {
+      id: '/_authenticated/account/monetization'
+      path: '/account/monetization'
+      fullPath: '/account/monetization'
+      preLoaderRoute: typeof AuthenticatedAccountMonetizationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/account/blocked': {
       id: '/_authenticated/account/blocked'
       path: '/account/blocked'
@@ -900,6 +920,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAccountBlockedRoute: typeof AuthenticatedAccountBlockedRoute
+  AuthenticatedAccountMonetizationRoute: typeof AuthenticatedAccountMonetizationRoute
   AuthenticatedAccountPrivacyRoute: typeof AuthenticatedAccountPrivacyRoute
   AuthenticatedAccountSecurityRoute: typeof AuthenticatedAccountSecurityRoute
   AuthenticatedAdminWithdrawalsRoute: typeof AuthenticatedAdminWithdrawalsRoute
@@ -937,6 +958,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWalletRoute: AuthenticatedWalletRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAccountBlockedRoute: AuthenticatedAccountBlockedRoute,
+  AuthenticatedAccountMonetizationRoute: AuthenticatedAccountMonetizationRoute,
   AuthenticatedAccountPrivacyRoute: AuthenticatedAccountPrivacyRoute,
   AuthenticatedAccountSecurityRoute: AuthenticatedAccountSecurityRoute,
   AuthenticatedAdminWithdrawalsRoute: AuthenticatedAdminWithdrawalsRoute,

@@ -70,6 +70,9 @@ function FeedPage() {
         <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
       </div>
 
+      <OnboardingSuggestions currentUserId={user.id} />
+
+
       {query.isLoading ? (
         <div className="space-y-4 px-4 pt-2">
           {[0, 1].map((i) => (

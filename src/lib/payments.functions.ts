@@ -81,7 +81,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         productDescription = product.name;
       }
 
-      const meta: Record<string, string> = { userId };
+      const meta: Record<string, string> = { userId, priceId: data.priceId };
       if (data.creatorId) meta.creatorId = data.creatorId;
 
       // Pix é suportado para pagamentos únicos em BRL; assinaturas ficam com cartão.

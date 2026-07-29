@@ -45,6 +45,7 @@ import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authenticated/ai.$threadId'
 import { Route as AuthenticatedAdminWithdrawalsRouteImport } from './routes/_authenticated/admin.withdrawals'
+import { Route as AuthenticatedAccountPrivacyRouteImport } from './routes/_authenticated/account.privacy'
 import { Route as AuthenticatedAccountBlockedRouteImport } from './routes/_authenticated/account.blocked'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedUUsernameFollowsRouteImport } from './routes/_authenticated/u.$username.follows'
@@ -240,6 +241,12 @@ const AuthenticatedAdminWithdrawalsRoute =
     path: '/admin/withdrawals',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAccountPrivacyRoute =
+  AuthenticatedAccountPrivacyRouteImport.update({
+    id: '/account/privacy',
+    path: '/account/privacy',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccountBlockedRoute =
   AuthenticatedAccountBlockedRouteImport.update({
     id: '/account/blocked',
@@ -279,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/checkout/return': typeof CheckoutReturnRoute
   '/auth/': typeof AuthIndexRoute
   '/account/blocked': typeof AuthenticatedAccountBlockedRoute
+  '/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
@@ -320,6 +328,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
   '/account/blocked': typeof AuthenticatedAccountBlockedRoute
+  '/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
@@ -363,6 +372,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/account/blocked': typeof AuthenticatedAccountBlockedRoute
+  '/_authenticated/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/_authenticated/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/_authenticated/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/auth/'
     | '/account/blocked'
+    | '/account/privacy'
     | '/admin/withdrawals'
     | '/ai/$threadId'
     | '/chats/$id'
@@ -447,6 +458,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/account/blocked'
+    | '/account/privacy'
     | '/admin/withdrawals'
     | '/ai/$threadId'
     | '/chats/$id'
@@ -489,6 +501,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/auth/'
     | '/_authenticated/account/blocked'
+    | '/_authenticated/account/privacy'
     | '/_authenticated/admin/withdrawals'
     | '/_authenticated/ai/$threadId'
     | '/_authenticated/chats/$id'
@@ -779,6 +792,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminWithdrawalsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/account/privacy': {
+      id: '/_authenticated/account/privacy'
+      path: '/account/privacy'
+      fullPath: '/account/privacy'
+      preLoaderRoute: typeof AuthenticatedAccountPrivacyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/account/blocked': {
       id: '/_authenticated/account/blocked'
       path: '/account/blocked'
@@ -860,6 +880,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAccountBlockedRoute: typeof AuthenticatedAccountBlockedRoute
+  AuthenticatedAccountPrivacyRoute: typeof AuthenticatedAccountPrivacyRoute
   AuthenticatedAdminWithdrawalsRoute: typeof AuthenticatedAdminWithdrawalsRoute
   AuthenticatedAiThreadIdRoute: typeof AuthenticatedAiThreadIdRoute
   AuthenticatedChatsIdRoute: typeof AuthenticatedChatsIdRoute
@@ -895,6 +916,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWalletRoute: AuthenticatedWalletRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAccountBlockedRoute: AuthenticatedAccountBlockedRoute,
+  AuthenticatedAccountPrivacyRoute: AuthenticatedAccountPrivacyRoute,
   AuthenticatedAdminWithdrawalsRoute: AuthenticatedAdminWithdrawalsRoute,
   AuthenticatedAiThreadIdRoute: AuthenticatedAiThreadIdRoute,
   AuthenticatedChatsIdRoute: AuthenticatedChatsIdRoute,

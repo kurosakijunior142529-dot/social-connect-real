@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
+import { type StripeEnv, verifyWebhook, createStripeClient } from "@/lib/stripe.server";
 
 let _supabase: SupabaseClient | null = null;
 function getSupabase(): SupabaseClient {
@@ -151,29 +151,44 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   const userId = session.metadata?.userId;
   if (!userId) return;
 
-  // Busca line items para descobrir o priceId
-  const lineItems = session.line_items?.data ?? [];
-  // Se não vier expandido, ignora — para one-time coin packs metadata cobre
-  for (const li of lineItems) {
-    const priceId = li.price?.lookup_key || li.price?.metadata?.lovable_external_id;
-    const coins = priceId ? COIN_MAP[priceId] : undefined;
-    if (coins) {
-      // Idempotência via unique constraint no stripe_session_id
-      const { error: insertError } = await getSupabase().from("coin_purchases").insert({
-        user_id: userId,
-        stripe_session_id: session.id,
-        price_id: priceId,
-        coins,
-        amount_paid: session.amount_total ?? 0,
-        currency: session.currency ?? "brl",
-        environment: env,
-      });
-      if (!insertError) {
-        await getSupabase().rpc("credit_coins", { _user: userId, _amount: coins });
+  // 1) priceId vem do metadata da sessão (definido em createCheckoutSession)
+  const candidates: string[] = [];
+  if (session.metadata?.priceId) candidates.push(session.metadata.priceId);
+
+  // 2) fallback: line_items nunca vêm expandidos no evento — buscar na API
+  if (!candidates.length) {
+    try {
+      const stripe = createStripeClient(env);
+      const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 });
+      for (const li of items.data) {
+        const p: any = li.price;
+        const id = p?.lookup_key || p?.metadata?.lovable_external_id || p?.id;
+        if (id) candidates.push(id);
       }
+    } catch (e) {
+      console.error("listLineItems failed:", e);
+    }
+  }
+
+  for (const priceId of candidates) {
+    const coins = COIN_MAP[priceId];
+    if (!coins) continue;
+    // Idempotência via unique constraint no stripe_session_id
+    const { error: insertError } = await getSupabase().from("coin_purchases").insert({
+      user_id: userId,
+      stripe_session_id: session.id,
+      price_id: priceId,
+      coins,
+      amount_paid: session.amount_total ?? 0,
+      currency: session.currency ?? "brl",
+      environment: env,
+    });
+    if (!insertError) {
+      await getSupabase().rpc("credit_coins", { _user: userId, _amount: coins });
     }
   }
 }
+
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {

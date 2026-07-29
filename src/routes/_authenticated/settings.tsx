@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Bell, Bookmark, Camera, ImagePlus, LogOut, Shield, Store, Tv } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
+import { AvatarEditor } from "@/components/user/avatar-editor";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,

@@ -5,6 +5,7 @@ import { PostCard, usePostsQuery } from "@/components/post-card";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
+import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { PlusSquare, Tv, Gamepad2, Radio, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({

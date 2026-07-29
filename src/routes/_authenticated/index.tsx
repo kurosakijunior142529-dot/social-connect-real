@@ -5,6 +5,7 @@ import { PostCard, usePostsQuery } from "@/components/post-card";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
+import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { PlusSquare, Tv, Gamepad2, Radio, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -69,6 +70,9 @@ function FeedPage() {
       <div className="pt-4 pb-2">
         <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
       </div>
+
+      <OnboardingSuggestions currentUserId={user.id} />
+
 
       {query.isLoading ? (
         <div className="space-y-4 px-4 pt-2">

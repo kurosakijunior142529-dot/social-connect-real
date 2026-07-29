@@ -71,7 +71,7 @@ function AccountHubPage() {
         { to: "/wallet", icon: Landmark, label: "Conta bancária & Pix", hint: "Cadastro para recebimentos" },
         { to: "/wallet", icon: ArrowDownToLine, label: "Solicitar saque", hint: "Retire seus ganhos" },
         { to: "/wallet", icon: ReceiptText, label: "Histórico financeiro", hint: "Entradas, saídas e saques" },
-        { to: "/wallet", icon: TrendingUp, label: "Monetização", hint: "Ganhos por vídeos, lives, presentes" },
+        { to: "/account/monetization", icon: TrendingUp, label: "Monetização", hint: "Ganhos por lives, presentes e inscritos" },
       ],
     },
     {
@@ -79,13 +79,14 @@ function AccountHubPage() {
       rows: [
         { to: "/notifications", icon: Bell, label: "Notificações", hint: "Central de alertas" },
         { to: "/settings", icon: SettingsIcon, label: "Configurações", hint: "Perfil, idioma, tema" },
-        { to: "/settings", icon: Lock, label: "Privacidade", hint: "Quem pode interagir com você" },
+        { to: "/account/privacy", icon: Lock, label: "Privacidade", hint: "Status online e recibos de leitura" },
         { to: "/account/blocked", icon: ShieldOff, label: "Usuários bloqueados", hint: "Gerenciar bloqueios" },
-        { to: "/settings", icon: ShieldCheck, label: "Segurança", hint: "Senha, sessões, 2FA" },
-        { to: "/settings", icon: HelpCircle, label: "Ajuda e suporte", hint: "FAQ e tickets" },
+        { to: "/account/security", icon: ShieldCheck, label: "Segurança", hint: "Senha e sessões ativas" },
+        { to: "/account/support", icon: HelpCircle, label: "Ajuda e suporte", hint: "FAQ e contato" },
       ],
     },
   ];
+
 
   return (
     <div className="space-y-6 pb-6">

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Bell, Bookmark, Camera, ImagePlus, LogOut, Shield, Store, Tv } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
+import { AvatarEditor } from "@/components/user/avatar-editor";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -38,6 +39,8 @@ function SettingsPage() {
   const [pronouns, setPronouns] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const { data: coverUrl } = useSignedUrl("covers", profile.data?.cover_url ?? null);
 
@@ -76,6 +79,15 @@ function SettingsPage() {
   async function onPick(kind: "avatar" | "cover", file: File | null) {
     if (!file) return;
     if (file.size > 8 * 1024 * 1024) return toast.error("Imagem maior que 8MB");
+    if (kind === "avatar") {
+      setAvatarFile(file);
+      setEditorOpen(true);
+      return;
+    }
+    await upload("cover", file);
+  }
+
+  async function upload(kind: "avatar" | "cover", file: File) {
     setUploading(kind);
     try {
       const bucket = kind === "avatar" ? "avatars" : "covers";
@@ -93,6 +105,7 @@ function SettingsPage() {
       setUploading(null);
     }
   }
+
 
   return (
     <div className="space-y-6 max-w-lg">
@@ -195,7 +208,23 @@ function SettingsPage() {
           <LogOut className="h-4 w-4" /> Sair da conta
         </Button>
       </section>
+
+      <AvatarEditor
+        file={avatarFile}
+        open={editorOpen}
+        onOpenChange={(o) => {
+          setEditorOpen(o);
+          if (!o) setAvatarFile(null);
+        }}
+        busy={uploading === "avatar"}
+        onConfirm={async (cropped) => {
+          await upload("avatar", cropped);
+          setEditorOpen(false);
+          setAvatarFile(null);
+        }}
+      />
     </div>
+
   );
 }
 

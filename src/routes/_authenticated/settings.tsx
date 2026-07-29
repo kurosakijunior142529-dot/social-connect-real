@@ -207,7 +207,23 @@ function SettingsPage() {
           <LogOut className="h-4 w-4" /> Sair da conta
         </Button>
       </section>
+
+      <AvatarEditor
+        file={avatarFile}
+        open={editorOpen}
+        onOpenChange={(o) => {
+          setEditorOpen(o);
+          if (!o) setAvatarFile(null);
+        }}
+        busy={uploading === "avatar"}
+        onConfirm={async (cropped) => {
+          await upload("avatar", cropped);
+          setEditorOpen(false);
+          setAvatarFile(null);
+        }}
+      />
     </div>
+
   );
 }
 

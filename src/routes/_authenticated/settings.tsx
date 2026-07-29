@@ -76,6 +76,15 @@ function SettingsPage() {
   async function onPick(kind: "avatar" | "cover", file: File | null) {
     if (!file) return;
     if (file.size > 8 * 1024 * 1024) return toast.error("Imagem maior que 8MB");
+    if (kind === "avatar") {
+      setAvatarFile(file);
+      setEditorOpen(true);
+      return;
+    }
+    await upload("cover", file);
+  }
+
+  async function upload(kind: "avatar" | "cover", file: File) {
     setUploading(kind);
     try {
       const bucket = kind === "avatar" ? "avatars" : "covers";
@@ -93,6 +102,7 @@ function SettingsPage() {
       setUploading(null);
     }
   }
+
 
   return (
     <div className="space-y-6 max-w-lg">

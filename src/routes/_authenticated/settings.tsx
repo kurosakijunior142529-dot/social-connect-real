@@ -38,6 +38,8 @@ function SettingsPage() {
   const [pronouns, setPronouns] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const { data: coverUrl } = useSignedUrl("covers", profile.data?.cover_url ?? null);
 

@@ -14,6 +14,9 @@ import { CallScreen } from "@/components/call-screen";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
 import { createPeerConnection, getCameraTrack, getLocalMedia, stopStream } from "@/lib/webrtc";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { translateText } from "@/lib/ai.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 
 export type CallType = "audio" | "video";
 export type CallRole = "caller" | "callee";
@@ -51,6 +54,13 @@ type Ctx = {
   activeCall: ActiveCall | null;
 };
 
+export type CallCaption = {
+  id: string;
+  speaker: "me" | "other";
+  original: string;
+  translated?: string;
+};
+
 const CallContext = createContext<Ctx | null>(null);
 
 export function useCall() {
@@ -61,6 +71,7 @@ export function useCall() {
 
 export function CallProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const translate = useServerFn(translateText);
   const [active, setActive] = useState<ActiveCall | null>(null);
   const [incoming, setIncoming] = useState<IncomingCall | null>(null);
 
@@ -80,6 +91,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteDescSetRef = useRef(false);
   const processedSignalsRef = useRef<Set<string>>(new Set());
   const callerReadyRef = useRef(false);
+  const negotiationIdRef = useRef<string | null>(null);
+  const sendSignalRef = useRef<((kind: "offer" | "answer" | "ice" | "bye" | "caption", payload: Record<string, unknown>) => Promise<void>) | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const translationEnabledRef = useRef(false);
+  const translationLanguageRef = useRef("pt-BR");
+  const [translationEnabled, setTranslationEnabled] = useState(false);
+  const [translationLanguage, setTranslationLanguage] = useState("pt-BR");
+  const [captions, setCaptions] = useState<CallCaption[]>([]);
   const [connectionLabel, setConnectionLabel] = useState("Conectando");
 
   const teardown = useCallback(() => {
@@ -109,6 +128,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     remoteDescSetRef.current = false;
     processedSignalsRef.current.clear();
     callerReadyRef.current = false;
+    negotiationIdRef.current = null;
+    sendSignalRef.current = null;
+    recognitionRef.current?.abort?.();
+    recognitionRef.current = null;
+    translationEnabledRef.current = false;
+    setTranslationEnabled(false);
+    setCaptions([]);
     setConnectionLabel("Conectando");
   }, []);
 
@@ -164,7 +190,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      const sendSignal = async (kind: "offer" | "answer" | "ice" | "bye", payload: Record<string, unknown>) => {
+      const sendSignal = async (kind: "offer" | "answer" | "ice" | "bye" | "caption", payload: Record<string, unknown>) => {
         const { error } = await (supabase as any).from("call_signals").insert({
           call_id: callId,
           sender_id: selfId,
@@ -173,14 +199,29 @@ export function CallProvider({ children }: { children: ReactNode }) {
         });
         if (error) console.warn("call signal insert failed", error);
       };
+      sendSignalRef.current = sendSignal;
 
       const handleSignal = async (row: any) => {
         if (!row || row.sender_id === selfId || processedSignalsRef.current.has(row.id)) return;
         processedSignalsRef.current.add(row.id);
         const payload = row.payload ?? {};
         try {
-          if (row.kind === "offer" && role === "callee") {
-            if (pc.signalingState !== "stable") return;
+          const signalNegotiationId = typeof payload.negotiationId === "string" ? payload.negotiationId : null;
+          if (row.kind === "caption") {
+            const original = typeof payload.text === "string" ? payload.text.trim() : "";
+            if (!original || !translationEnabledRef.current) return;
+            const id = String(row.id);
+            setCaptions((current) => [...current.slice(-3), { id, speaker: "other", original }]);
+            try {
+              const result = await translate({ data: { text: original, target: translationLanguageRef.current } });
+              setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: result.text } : item));
+            } catch {
+              setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: original } : item));
+            }
+          } else if (row.kind === "offer" && role === "callee") {
+            if (!signalNegotiationId) return;
+            negotiationIdRef.current = signalNegotiationId;
+            if (pc.signalingState !== "stable") await pc.setLocalDescription({ type: "rollback" });
             await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             remoteDescSetRef.current = true;
             for (const c of pendingIceRef.current) {
@@ -189,8 +230,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
             pendingIceRef.current = [];
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            await sendSignal("answer", { sdp: answer });
+            await sendSignal("answer", { sdp: answer, negotiationId: signalNegotiationId });
           } else if (row.kind === "answer" && role === "caller") {
+            if (!signalNegotiationId || signalNegotiationId !== negotiationIdRef.current) return;
             if (pc.signalingState === "stable") return;
             await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             remoteDescSetRef.current = true;
@@ -199,6 +241,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             }
             pendingIceRef.current = [];
           } else if (row.kind === "ice") {
+            if (!signalNegotiationId || signalNegotiationId !== negotiationIdRef.current) return;
             const candidate = payload.candidate as RTCIceCandidateInit | undefined;
             if (!candidate) return;
             if (remoteDescSetRef.current) {
@@ -218,8 +261,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       channelRef.current = channel;
 
       pc.onicecandidate = (ev) => {
-        if (ev.candidate) {
-          void sendSignal("ice", { candidate: ev.candidate.toJSON() });
+        const negotiationId = negotiationIdRef.current;
+        if (ev.candidate && negotiationId) {
+          void sendSignal("ice", { candidate: ev.candidate.toJSON(), negotiationId });
         }
       };
 
@@ -243,12 +287,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
       for (const signal of existingSignals ?? []) await handleSignal(signal);
 
       if (role === "caller") {
+        const negotiationId = crypto.randomUUID();
+        negotiationIdRef.current = negotiationId;
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        await sendSignal("offer", { sdp: offer });
+        await sendSignal("offer", { sdp: offer, negotiationId });
       }
     },
-    [],
+    [translate],
   );
 
   const hangupLocalRef = useRef<(() => void) | null>(null);

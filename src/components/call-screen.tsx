@@ -11,9 +11,14 @@ import {
   VideoOff,
   Volume2,
   VolumeX,
+  Languages,
+  Sparkles,
 } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { CallCaption } from "@/components/call-provider";
 
 type Props = {
   call: {
@@ -31,6 +36,11 @@ type Props = {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   connectionLabel: string;
+  captions: CallCaption[];
+  translationEnabled: boolean;
+  translationLanguage: string;
+  onToggleTranslation: () => void;
+  onTranslationLanguageChange: (language: string) => void;
   onSwitchCamera: () => void | Promise<void>;
   onHangup: () => void;
 };
@@ -40,6 +50,11 @@ export function CallScreen({
   localStream,
   remoteStream,
   connectionLabel,
+  captions,
+  translationEnabled,
+  translationLanguage,
+  onToggleTranslation,
+  onTranslationLanguageChange,
   onSwitchCamera,
   onHangup,
 }: Props) {
@@ -103,7 +118,7 @@ export function CallScreen({
   return (
     <div className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col">
       {/* Remote */}
-      <div className="relative flex-1 overflow-hidden bg-[#050506]">
+      <div className="relative flex-1 overflow-hidden bg-background">
         {isVideo ? (
           <video
             ref={remoteRef}
@@ -111,7 +126,7 @@ export function CallScreen({
             playsInline
             muted
             className={cn(
-              "absolute inset-0 h-full w-full object-cover bg-black transition-opacity duration-300",
+              "absolute inset-0 h-full w-full object-cover bg-background transition-opacity duration-300",
               hasRemote ? "opacity-100" : "opacity-0",
             )}
           />
@@ -119,7 +134,7 @@ export function CallScreen({
         {/* Audio playback of the remote stream is handled by the CallProvider's hidden <audio> element. */}
 
         {(!isVideo || call.status !== "accepted" || !hasRemote) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-[radial-gradient(circle_at_50%_20%,rgba(215,255,58,0.12),transparent_38%),linear-gradient(180deg,#111113,#050506)]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-surface">
             <div className="relative">
               <span className="absolute inset-[-18px] rounded-full border border-primary/25 animate-ping" />
               <UserAvatar
@@ -134,6 +149,18 @@ export function CallScreen({
             </div>
           </div>
         )}
+
+        {translationEnabled && captions.length > 0 ? (
+          <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 w-[min(92%,42rem)] -translate-x-1/2 space-y-2" aria-live="polite">
+            {captions.slice(-2).map((caption) => (
+              <div key={caption.id} className="glass-heavy rounded-lg px-4 py-3 text-center shadow-elegant">
+                <div className="mb-1 text-[10px] font-semibold uppercase text-primary">{caption.speaker === "me" ? "Você" : displayName}</div>
+                <p className="text-sm font-medium">{caption.translated ?? caption.original}</p>
+                {caption.translated && caption.translated !== caption.original ? <p className="mt-1 text-xs text-muted-foreground">{caption.original}</p> : null}
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-3 pt-[env(safe-area-inset-top)]">
           <div className="flex items-center gap-2 rounded-full bg-black/45 px-3 py-1.5 text-xs text-white backdrop-blur-md">
@@ -181,6 +208,20 @@ export function CallScreen({
 
       {/* Controls */}
       <div className="hairline-t bg-[color:var(--surface)]/95 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="mx-auto mb-3 flex max-w-sm items-center gap-2">
+          <Button type="button" variant={translationEnabled ? "default" : "secondary"} className="h-10 flex-1 rounded-lg" onClick={onToggleTranslation}>
+            {translationEnabled ? <Sparkles /> : <Languages />}
+            {translationEnabled ? "Traduzindo" : "Traduzir conversa"}
+          </Button>
+          <Select value={translationLanguage} onValueChange={onTranslationLanguageChange}>
+            <SelectTrigger className="h-10 w-32 bg-secondary" aria-label="Idioma da tradução"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pt-BR">Português</SelectItem><SelectItem value="en">English</SelectItem>
+              <SelectItem value="es">Español</SelectItem><SelectItem value="fr">Français</SelectItem>
+              <SelectItem value="de">Deutsch</SelectItem><SelectItem value="it">Italiano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="mx-auto mb-4 flex max-w-sm items-center gap-3 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
           <VolumeX className="h-4 w-4 text-muted-foreground" />
           <input

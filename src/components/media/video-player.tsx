@@ -1,0 +1,232 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+function fmt(s: number) {
+  if (!Number.isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60);
+  const r = Math.floor(s % 60);
+  return `${m}:${String(r).padStart(2, "0")}`;
+}
+
+type Props = {
+  src: string;
+  className?: string;
+  poster?: string;
+  /** Called on double tap. Return false to skip the heart animation. */
+  onDoubleTapLike?: () => void;
+};
+
+/**
+ * Premium, immersive video player (TikTok / Reels style).
+ * Everything is contained inside the video container — no external layout impact.
+ */
+export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTap = useRef(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showControls, setShowControls] = useState(false);
+  const [pulse, setPulse] = useState(0);
+  const [heart, setHeart] = useState(0);
+
+  const armAutoHide = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setShowControls(false), 2600);
+  }, []);
+
+  const reveal = useCallback(() => {
+    setShowControls(true);
+    armAutoHide();
+  }, [armAutoHide]);
+
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+  }, []);
+
+  // Autoplay (muted) when scrolled into view, pause when out.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+          el.play().catch(() => {});
+        } else {
+          el.pause();
+        }
+      },
+      { threshold: [0, 0.6, 1] },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [src]);
+
+  const togglePlay = useCallback(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    setPulse((p) => p + 1);
+    if (el.paused) el.play().catch(() => {});
+    else el.pause();
+    reveal();
+  }, [reveal]);
+
+  const handleTap = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - lastTap.current < 280) {
+        lastTap.current = 0;
+        if (tapTimer.current) clearTimeout(tapTimer.current);
+        if (onDoubleTapLike) {
+          onDoubleTapLike();
+          setHeart((h) => h + 1);
+        }
+        return;
+      }
+      lastTap.current = now;
+      if (tapTimer.current) clearTimeout(tapTimer.current);
+      tapTimer.current = setTimeout(() => {
+        if (showControls) togglePlay();
+        else reveal();
+      }, 280);
+    },
+    [onDoubleTapLike, reveal, showControls, togglePlay],
+  );
+
+  const progress = duration > 0 ? (current / duration) * 100 : 0;
+
+  return (
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-2xl bg-black select-none",
+        "shadow-[inset_0_0_60px_rgba(0,0,0,0.6)]",
+        className,
+      )}
+      onClick={handleTap}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        playsInline
+        loop
+        muted={muted}
+        preload="metadata"
+        className="h-full w-full object-cover transition-transform duration-500 ease-out will-change-transform"
+        onLoadedMetadata={(e) => {
+          setDuration(e.currentTarget.duration || 0);
+          setLoading(false);
+        }}
+        onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+        onWaiting={() => setLoading(true)}
+        onPlaying={() => setLoading(false)}
+        onCanPlay={() => setLoading(false)}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+      />
+
+      {/* Depth gradient at the edges */}
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.35),transparent_22%,transparent_70%,rgba(0,0,0,0.55))]" />
+
+      {/* Elegant loader */}
+      {loading ? (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center">
+          <span className="h-9 w-9 rounded-full border-2 border-white/20 border-t-primary animate-spin" />
+        </div>
+      ) : null}
+
+      {/* Center play/pause */}
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 grid place-items-center transition-opacity duration-300 ease-out",
+          showControls || !playing ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <span
+          key={pulse}
+          className="grid h-16 w-16 place-items-center rounded-full bg-black/35 text-white backdrop-blur-md ring-1 ring-white/15 animate-scale-in"
+        >
+          {playing ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7 translate-x-[2px]" />}
+        </span>
+      </div>
+
+      {/* Double-tap heart */}
+      {heart > 0 ? (
+        <div key={heart} className="pointer-events-none absolute inset-0 grid place-items-center">
+          <Heart className="h-24 w-24 fill-primary text-primary drop-shadow-2xl animate-heart-pop" />
+        </div>
+      ) : null}
+
+      {/* Bottom overlay controls */}
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 p-2.5 transition-all duration-300 ease-out",
+          showControls ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
+        )}
+      >
+        <div className="flex items-center gap-2.5 rounded-full bg-black/35 px-3 py-2 backdrop-blur-xl ring-1 ring-white/10">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              togglePlay();
+            }}
+            className="grid h-7 w-7 place-items-center rounded-full text-white/90 transition hover:scale-110 active:scale-95"
+            aria-label={playing ? "Pausar" : "Reproduzir"}
+          >
+            {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </button>
+
+          <div
+            className="relative h-1 flex-1 cursor-pointer rounded-full bg-white/20"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+              if (videoRef.current && duration) videoRef.current.currentTime = ratio * duration;
+              reveal();
+            }}
+          >
+            <span
+              className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-150 ease-linear"
+              style={{ width: `${progress}%` }}
+            />
+            <span
+              className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 -translate-x-1/2 rounded-full bg-primary shadow-[0_0_10px_rgba(34,224,106,0.7)] transition-[left] duration-150 ease-linear"
+              style={{ left: `${progress}%` }}
+            />
+          </div>
+
+          <span className="text-[10px] font-medium tabular-nums text-white/70">
+            {fmt(current)} / {fmt(duration)}
+          </span>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMuted((m) => !m);
+              reveal();
+            }}
+            className="grid h-7 w-7 place-items-center rounded-full text-white/90 transition hover:scale-110 active:scale-95"
+            aria-label={muted ? "Ativar som" : "Silenciar"}
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

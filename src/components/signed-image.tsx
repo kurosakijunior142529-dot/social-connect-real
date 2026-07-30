@@ -61,21 +61,16 @@ export function SignedImage({ bucket, path, alt, className, fallback }: Props) {
   );
 }
 
-export function SignedVideo({ bucket, path, className }: Omit<Props, "alt" | "fallback">) {
+export function SignedVideo({
+  bucket,
+  path,
+  className,
+  onDoubleTapLike,
+}: Omit<Props, "alt" | "fallback"> & { onDoubleTapLike?: () => void }) {
   const { data: url, isLoading } = useSignedUrl(bucket, path);
   if (!path) return null;
-  if (isLoading || !url) return <Placeholder className={className} />;
-  return (
-    <video
-      src={url}
-      className={cn("bg-black", className)}
-      controls
-      playsInline
-      preload="metadata"
-      controlsList="nodownload noremoteplayback"
-      onError={() => console.error(`[media] failed to load video ${bucket}/${path}`)}
-    />
-  );
+  if (isLoading || !url) return <Placeholder className={cn("rounded-2xl", className)} />;
+  return <VideoPlayer src={url} className={className} onDoubleTapLike={onDoubleTapLike} />;
 }
 
 /**

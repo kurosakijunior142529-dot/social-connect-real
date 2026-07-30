@@ -506,14 +506,28 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (!el) return;
     const stream = remoteStream;
     if (stream && stream.getAudioTracks().length > 0) {
+      stream.getAudioTracks().forEach((t) => (t.enabled = true));
       if (el.srcObject !== stream) el.srcObject = stream;
       el.muted = false;
       el.volume = 1;
-      const p = el.play();
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    } else if (!stream) {
-      el.srcObject = null;
+      const tryPlay = () => {
+        const p = el.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      };
+      tryPlay();
+      // Autoplay can still be blocked (no prior gesture on this document):
+      // retry on the next user interaction and shortly after negotiation.
+      const retry = () => tryPlay();
+      document.addEventListener("pointerdown", retry);
+      document.addEventListener("touchstart", retry);
+      const t = setTimeout(tryPlay, 800);
+      return () => {
+        document.removeEventListener("pointerdown", retry);
+        document.removeEventListener("touchstart", retry);
+        clearTimeout(t);
+      };
     }
+    if (!stream) el.srcObject = null;
   }, [remoteStream, trackUpdate]);
 
   const value = useMemo<Ctx>(

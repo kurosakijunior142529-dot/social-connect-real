@@ -16,6 +16,7 @@ import {
   ShieldOff,
   HelpCircle,
   LogOut,
+  Users,
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";

@@ -100,6 +100,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [translationLanguage, setTranslationLanguage] = useState("pt-BR");
   const [captions, setCaptions] = useState<CallCaption[]>([]);
   const [connectionLabel, setConnectionLabel] = useState("Conectando");
+  const previousUserIdRef = useRef<string | null>(null);
 
   const teardown = useCallback(() => {
     if (channelRef.current) {
@@ -137,6 +138,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setCaptions([]);
     setConnectionLabel("Conectando");
   }, []);
+
+  useEffect(() => {
+    const previousUserId = previousUserIdRef.current;
+    const nextUserId = user?.id ?? null;
+    if (previousUserId && previousUserId !== nextUserId) {
+      teardown();
+      setActive(null);
+      setIncoming(null);
+    }
+    previousUserIdRef.current = nextUserId;
+  }, [user?.id, teardown]);
 
   const setupPeer = useCallback(
     async (callId: string, type: CallType, role: CallRole, selfId: string) => {

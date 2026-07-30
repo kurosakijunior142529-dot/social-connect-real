@@ -152,14 +152,25 @@ function AccountHubPage() {
         </section>
       ))}
 
-      <button
-        type="button"
-        onClick={() => signOutAndClearSession(queryClient, navigate)}
-        className="w-full flex items-center justify-center gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 px-4 py-3.5 text-sm font-semibold text-destructive transition"
-      >
-        <LogOut className="h-4 w-4" />
-        Sair da conta
-      </button>
+      <div className="grid gap-2">
+        <button
+          type="button"
+          onClick={() => signOutAndClearSession(queryClient, navigate)}
+          className="w-full flex items-center justify-center gap-2 rounded-3xl border border-border bg-[color:var(--surface)] hover:bg-accent px-4 py-3.5 text-sm font-semibold transition"
+        >
+          <Users className="h-4 w-4" />
+          Trocar de conta
+        </button>
+
+        <button
+          type="button"
+          onClick={() => signOutAndClearSession(queryClient, navigate)}
+          className="w-full flex items-center justify-center gap-2 rounded-3xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 px-4 py-3.5 text-sm font-semibold text-destructive transition"
+        >
+          <LogOut className="h-4 w-4" />
+          Sair da conta
+        </button>
+      </div>
 
       <div className="text-center text-[11px] text-muted-foreground pt-2">
         Vibely · {new Date().getFullYear()}

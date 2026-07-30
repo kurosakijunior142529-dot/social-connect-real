@@ -433,6 +433,49 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
   }, [user, active, setupPeer, teardown]);
 
+  // Recover the current user's call after refresh, re-entry, or an account switch.
+  useEffect(() => {
+    if (!user || active || incoming) return;
+    let cancelled = false;
+    void supabase
+      .from("calls")
+      .select("id, caller_id, callee_id, call_type, status")
+      .or(`caller_id.eq.${user.id},callee_id.eq.${user.id}`)
+      .in("status", ["ringing", "accepted"])
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(async ({ data }) => {
+        if (cancelled || !data) return;
+        const isCaller = data.caller_id === user.id;
+        const otherId = isCaller ? data.callee_id : data.caller_id;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, username, display_name, avatar_url")
+          .eq("id", otherId)
+          .maybeSingle();
+        if (cancelled) return;
+        const other = profile ?? { id: otherId };
+        if (data.status === "ringing" && !isCaller) {
+          setIncoming({ id: data.id, type: data.call_type as CallType, other });
+          return;
+        }
+        setActive({
+          id: data.id,
+          type: data.call_type as CallType,
+          role: isCaller ? "caller" : "callee",
+          other,
+          status: data.status as CallStatus,
+        });
+        if (data.status === "accepted") {
+          if (isCaller) callerReadyRef.current = true;
+          await setupPeer(data.id, data.call_type as CallType, isCaller ? "caller" : "callee", user.id);
+        }
+      })
+      .catch((error) => console.warn("call recovery failed", error));
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   const startCall = useCallback(
     async (other: OtherParty, type: CallType) => {
       if (!user || active) return;
@@ -545,6 +588,61 @@ export function CallProvider({ children }: { children: ReactNode }) {
     await acceptIncoming();
   }, [acceptIncoming, unlockAudioSink]);
 
+  const stopTranslation = useCallback(() => {
+    translationEnabledRef.current = false;
+    recognitionRef.current?.stop?.();
+    recognitionRef.current = null;
+    setTranslationEnabled(false);
+  }, []);
+
+  const startTranslation = useCallback(() => {
+    const browserWindow = window as unknown as {
+      SpeechRecognition?: new () => any;
+      webkitSpeechRecognition?: new () => any;
+    };
+    const Recognition = browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition;
+    if (!Recognition) {
+      toast.error("A tradução ao vivo requer Chrome, Edge ou Safari recente.");
+      return;
+    }
+    const recognition = new Recognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = navigator.language || "pt-BR";
+    recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        if (!event.results[i].isFinal) continue;
+        const text = String(event.results[i][0]?.transcript ?? "").trim();
+        if (!text) continue;
+        const id = crypto.randomUUID();
+        setCaptions((current) => [...current.slice(-3), { id, speaker: "me", original: text }]);
+        void sendSignalRef.current?.("caption", { text, language: recognition.lang });
+      }
+    };
+    recognition.onerror = (event: any) => {
+      if (event.error !== "no-speech" && event.error !== "aborted") toast.error("A assistente não conseguiu ouvir sua voz.");
+    };
+    recognition.onend = () => {
+      if (translationEnabledRef.current) {
+        try { recognition.start(); } catch { /* already restarting */ }
+      }
+    };
+    translationEnabledRef.current = true;
+    recognitionRef.current = recognition;
+    setTranslationEnabled(true);
+    try { recognition.start(); } catch { stopTranslation(); }
+  }, [stopTranslation]);
+
+  const toggleTranslation = useCallback(() => {
+    if (translationEnabledRef.current) stopTranslation();
+    else startTranslation();
+  }, [startTranslation, stopTranslation]);
+
+  const changeTranslationLanguage = useCallback((language: string) => {
+    translationLanguageRef.current = language;
+    setTranslationLanguage(language);
+  }, []);
+
   // Audio Playback Management — re-attach the persistent stream and force
   // play() whenever new remote tracks arrive (trackUpdate bumps).
   useEffect(() => {
@@ -594,6 +692,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
           localStream={localStream}
           remoteStream={remoteStream}
           connectionLabel={connectionLabel}
+          captions={captions}
+          translationEnabled={translationEnabled}
+          translationLanguage={translationLanguage}
+          onToggleTranslation={toggleTranslation}
+          onTranslationLanguageChange={changeTranslationLanguage}
           onSwitchCamera={switchCamera}
           onHangup={hangupLocal}
         />

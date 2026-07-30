@@ -3,6 +3,7 @@ import { useSignedUrl } from "@/hooks/use-signed-url";
 import { cn } from "@/lib/utils";
 import type { MediaBucket } from "@/lib/media";
 import { Play, ImageOff } from "lucide-react";
+import { VideoPlayer } from "@/components/media/video-player";
 
 type Props = {
   bucket: MediaBucket;

@@ -14,6 +14,9 @@ import { CallScreen } from "@/components/call-screen";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
 import { createPeerConnection, getCameraTrack, getLocalMedia, stopStream } from "@/lib/webrtc";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { translateText } from "@/lib/ai.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 
 export type CallType = "audio" | "video";
 export type CallRole = "caller" | "callee";
@@ -51,6 +54,13 @@ type Ctx = {
   activeCall: ActiveCall | null;
 };
 
+export type CallCaption = {
+  id: string;
+  speaker: "me" | "other";
+  original: string;
+  translated?: string;
+};
+
 const CallContext = createContext<Ctx | null>(null);
 
 export function useCall() {
@@ -61,6 +71,7 @@ export function useCall() {
 
 export function CallProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const translate = useServerFn(translateText);
   const [active, setActive] = useState<ActiveCall | null>(null);
   const [incoming, setIncoming] = useState<IncomingCall | null>(null);
 
@@ -80,7 +91,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const remoteDescSetRef = useRef(false);
   const processedSignalsRef = useRef<Set<string>>(new Set());
   const callerReadyRef = useRef(false);
+  const negotiationIdRef = useRef<string | null>(null);
+  const sendSignalRef = useRef<((kind: "offer" | "answer" | "ice" | "bye" | "caption", payload: Record<string, unknown>) => Promise<void>) | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const translationEnabledRef = useRef(false);
+  const translationLanguageRef = useRef("pt-BR");
+  const [translationEnabled, setTranslationEnabled] = useState(false);
+  const [translationLanguage, setTranslationLanguage] = useState("pt-BR");
+  const [captions, setCaptions] = useState<CallCaption[]>([]);
   const [connectionLabel, setConnectionLabel] = useState("Conectando");
+  const previousUserIdRef = useRef<string | null>(null);
 
   const teardown = useCallback(() => {
     if (channelRef.current) {
@@ -109,8 +129,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
     remoteDescSetRef.current = false;
     processedSignalsRef.current.clear();
     callerReadyRef.current = false;
+    negotiationIdRef.current = null;
+    sendSignalRef.current = null;
+    recognitionRef.current?.abort?.();
+    recognitionRef.current = null;
+    translationEnabledRef.current = false;
+    setTranslationEnabled(false);
+    setCaptions([]);
     setConnectionLabel("Conectando");
   }, []);
+
+  useEffect(() => {
+    const previousUserId = previousUserIdRef.current;
+    const nextUserId = user?.id ?? null;
+    if (previousUserId && previousUserId !== nextUserId) {
+      teardown();
+      setActive(null);
+      setIncoming(null);
+    }
+    previousUserIdRef.current = nextUserId;
+  }, [user?.id, teardown]);
 
   const setupPeer = useCallback(
     async (callId: string, type: CallType, role: CallRole, selfId: string) => {
@@ -164,7 +202,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         }
       };
 
-      const sendSignal = async (kind: "offer" | "answer" | "ice" | "bye", payload: Record<string, unknown>) => {
+      const sendSignal = async (kind: "offer" | "answer" | "ice" | "bye" | "caption", payload: Record<string, unknown>) => {
         const { error } = await (supabase as any).from("call_signals").insert({
           call_id: callId,
           sender_id: selfId,
@@ -173,14 +211,29 @@ export function CallProvider({ children }: { children: ReactNode }) {
         });
         if (error) console.warn("call signal insert failed", error);
       };
+      sendSignalRef.current = sendSignal;
 
       const handleSignal = async (row: any) => {
         if (!row || row.sender_id === selfId || processedSignalsRef.current.has(row.id)) return;
         processedSignalsRef.current.add(row.id);
         const payload = row.payload ?? {};
         try {
-          if (row.kind === "offer" && role === "callee") {
-            if (pc.signalingState !== "stable") return;
+          const signalNegotiationId = typeof payload.negotiationId === "string" ? payload.negotiationId : null;
+          if (row.kind === "caption") {
+            const original = typeof payload.text === "string" ? payload.text.trim() : "";
+            if (!original || !translationEnabledRef.current) return;
+            const id = String(row.id);
+            setCaptions((current) => [...current.slice(-3), { id, speaker: "other", original }]);
+            try {
+              const result = await translate({ data: { text: original, target: translationLanguageRef.current } });
+              setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: result.text } : item));
+            } catch {
+              setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: original } : item));
+            }
+          } else if (row.kind === "offer" && role === "callee") {
+            if (!signalNegotiationId) return;
+            negotiationIdRef.current = signalNegotiationId;
+            if (pc.signalingState !== "stable") await pc.setLocalDescription({ type: "rollback" });
             await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             remoteDescSetRef.current = true;
             for (const c of pendingIceRef.current) {
@@ -189,8 +242,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
             pendingIceRef.current = [];
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            await sendSignal("answer", { sdp: answer });
+            await sendSignal("answer", { sdp: answer, negotiationId: signalNegotiationId });
           } else if (row.kind === "answer" && role === "caller") {
+            if (!signalNegotiationId || signalNegotiationId !== negotiationIdRef.current) return;
             if (pc.signalingState === "stable") return;
             await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             remoteDescSetRef.current = true;
@@ -199,6 +253,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             }
             pendingIceRef.current = [];
           } else if (row.kind === "ice") {
+            if (!signalNegotiationId || signalNegotiationId !== negotiationIdRef.current) return;
             const candidate = payload.candidate as RTCIceCandidateInit | undefined;
             if (!candidate) return;
             if (remoteDescSetRef.current) {
@@ -218,8 +273,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
       channelRef.current = channel;
 
       pc.onicecandidate = (ev) => {
-        if (ev.candidate) {
-          void sendSignal("ice", { candidate: ev.candidate.toJSON() });
+        const negotiationId = negotiationIdRef.current;
+        if (ev.candidate && negotiationId) {
+          void sendSignal("ice", { candidate: ev.candidate.toJSON(), negotiationId });
         }
       };
 
@@ -243,12 +299,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
       for (const signal of existingSignals ?? []) await handleSignal(signal);
 
       if (role === "caller") {
+        const negotiationId = crypto.randomUUID();
+        negotiationIdRef.current = negotiationId;
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        await sendSignal("offer", { sdp: offer });
+        await sendSignal("offer", { sdp: offer, negotiationId });
       }
     },
-    [],
+    [translate],
   );
 
   const hangupLocalRef = useRef<(() => void) | null>(null);
@@ -387,6 +445,49 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
   }, [user, active, setupPeer, teardown]);
 
+  // Recover the current user's call after refresh, re-entry, or an account switch.
+  useEffect(() => {
+    if (!user || active || incoming) return;
+    let cancelled = false;
+    void supabase
+      .from("calls")
+      .select("id, caller_id, callee_id, call_type, status")
+      .or(`caller_id.eq.${user.id},callee_id.eq.${user.id}`)
+      .in("status", ["ringing", "accepted"])
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(async ({ data }) => {
+        if (cancelled || !data) return;
+        const isCaller = data.caller_id === user.id;
+        const otherId = isCaller ? data.callee_id : data.caller_id;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, username, display_name, avatar_url")
+          .eq("id", otherId)
+          .maybeSingle();
+        if (cancelled) return;
+        const other = profile ?? { id: otherId };
+        if (data.status === "ringing" && !isCaller) {
+          setIncoming({ id: data.id, type: data.call_type as CallType, other });
+          return;
+        }
+        setActive({
+          id: data.id,
+          type: data.call_type as CallType,
+          role: isCaller ? "caller" : "callee",
+          other,
+          status: data.status as CallStatus,
+        });
+        if (data.status === "accepted") {
+          if (isCaller) callerReadyRef.current = true;
+          await setupPeer(data.id, data.call_type as CallType, isCaller ? "caller" : "callee", user.id);
+        }
+      })
+      .then(undefined, (error: unknown) => console.warn("call recovery failed", error));
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   const startCall = useCallback(
     async (other: OtherParty, type: CallType) => {
       if (!user || active) return;
@@ -499,6 +600,61 @@ export function CallProvider({ children }: { children: ReactNode }) {
     await acceptIncoming();
   }, [acceptIncoming, unlockAudioSink]);
 
+  const stopTranslation = useCallback(() => {
+    translationEnabledRef.current = false;
+    recognitionRef.current?.stop?.();
+    recognitionRef.current = null;
+    setTranslationEnabled(false);
+  }, []);
+
+  const startTranslation = useCallback(() => {
+    const browserWindow = window as unknown as {
+      SpeechRecognition?: new () => any;
+      webkitSpeechRecognition?: new () => any;
+    };
+    const Recognition = browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition;
+    if (!Recognition) {
+      toast.error("A tradução ao vivo requer Chrome, Edge ou Safari recente.");
+      return;
+    }
+    const recognition = new Recognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = navigator.language || "pt-BR";
+    recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        if (!event.results[i].isFinal) continue;
+        const text = String(event.results[i][0]?.transcript ?? "").trim();
+        if (!text) continue;
+        const id = crypto.randomUUID();
+        setCaptions((current) => [...current.slice(-3), { id, speaker: "me", original: text }]);
+        void sendSignalRef.current?.("caption", { text, language: recognition.lang });
+      }
+    };
+    recognition.onerror = (event: any) => {
+      if (event.error !== "no-speech" && event.error !== "aborted") toast.error("A assistente não conseguiu ouvir sua voz.");
+    };
+    recognition.onend = () => {
+      if (translationEnabledRef.current) {
+        try { recognition.start(); } catch { /* already restarting */ }
+      }
+    };
+    translationEnabledRef.current = true;
+    recognitionRef.current = recognition;
+    setTranslationEnabled(true);
+    try { recognition.start(); } catch { stopTranslation(); }
+  }, [stopTranslation]);
+
+  const toggleTranslation = useCallback(() => {
+    if (translationEnabledRef.current) stopTranslation();
+    else startTranslation();
+  }, [startTranslation, stopTranslation]);
+
+  const changeTranslationLanguage = useCallback((language: string) => {
+    translationLanguageRef.current = language;
+    setTranslationLanguage(language);
+  }, []);
+
   // Audio Playback Management — re-attach the persistent stream and force
   // play() whenever new remote tracks arrive (trackUpdate bumps).
   useEffect(() => {
@@ -548,6 +704,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
           localStream={localStream}
           remoteStream={remoteStream}
           connectionLabel={connectionLabel}
+          captions={captions}
+          translationEnabled={translationEnabled}
+          translationLanguage={translationLanguage}
+          onToggleTranslation={toggleTranslation}
+          onTranslationLanguageChange={changeTranslationLanguage}
           onSwitchCamera={switchCamera}
           onHangup={hangupLocal}
         />

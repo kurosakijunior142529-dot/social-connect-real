@@ -353,6 +353,40 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return () => { supabase.removeChannel(ch); };
   }, [user, setupPeer, teardown]);
 
+  // Fallback: Realtime UPDATE events can be missed (tab throttling, dropped
+  // socket). Poll the call row while the caller is ringing so the peer
+  // connection — and therefore the audio — always gets established.
+  useEffect(() => {
+    if (!user || !active || active.role !== "caller" || active.status !== "ringing") return;
+    let cancelled = false;
+    const id = setInterval(async () => {
+      const { data } = await supabase
+        .from("calls")
+        .select("status")
+        .eq("id", active.id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const status = data.status as CallStatus;
+      if (status === "accepted") {
+        setActive((prev) => (prev && prev.id === active.id ? { ...prev, status: "accepted" } : prev));
+        if (!callerReadyRef.current) {
+          callerReadyRef.current = true;
+          setupPeer(active.id, active.type, "caller", user.id).catch((e) => {
+            console.error(e);
+            hangupLocalRef.current?.();
+          });
+        }
+      } else if (status === "ended" || status === "rejected" || status === "canceled") {
+        teardown();
+        setActive(null);
+      }
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [user, active, setupPeer, teardown]);
+
   const startCall = useCallback(
     async (other: OtherParty, type: CallType) => {
       if (!user || active) return;
@@ -472,14 +506,28 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (!el) return;
     const stream = remoteStream;
     if (stream && stream.getAudioTracks().length > 0) {
+      stream.getAudioTracks().forEach((t) => (t.enabled = true));
       if (el.srcObject !== stream) el.srcObject = stream;
       el.muted = false;
       el.volume = 1;
-      const p = el.play();
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    } else if (!stream) {
-      el.srcObject = null;
+      const tryPlay = () => {
+        const p = el.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      };
+      tryPlay();
+      // Autoplay can still be blocked (no prior gesture on this document):
+      // retry on the next user interaction and shortly after negotiation.
+      const retry = () => tryPlay();
+      document.addEventListener("pointerdown", retry);
+      document.addEventListener("touchstart", retry);
+      const t = setTimeout(tryPlay, 800);
+      return () => {
+        document.removeEventListener("pointerdown", retry);
+        document.removeEventListener("touchstart", retry);
+        clearTimeout(t);
+      };
     }
+    if (!stream) el.srcObject = null;
   }, [remoteStream, trackUpdate]);
 
   const value = useMemo<Ctx>(

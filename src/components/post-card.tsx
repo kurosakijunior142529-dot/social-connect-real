@@ -101,22 +101,31 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
         ) : null}
       </header>
 
-      <Link
-        to="/p/$id"
-        params={{ id: post.id }}
-        className="block overflow-hidden rounded-2xl bg-[color:var(--surface)]"
-      >
-        {post.media_type === "video" ? (
-          <SignedVideo bucket="posts" path={post.media_url} className="w-full aspect-square object-cover" />
-        ) : (
+      {post.media_type === "video" ? (
+        <div className="overflow-hidden rounded-2xl bg-black">
+          <SignedVideo
+            bucket="posts"
+            path={post.media_url}
+            className="w-full aspect-square object-cover"
+            onDoubleTapLike={() => {
+              if (!post.liked_by_me) toggleLike.mutate();
+            }}
+          />
+        </div>
+      ) : (
+        <Link
+          to="/p/$id"
+          params={{ id: post.id }}
+          className="block overflow-hidden rounded-2xl bg-[color:var(--surface)]"
+        >
           <SignedImage
             bucket="posts"
             path={post.media_url}
             alt={post.caption ?? "post"}
             className="w-full aspect-square object-cover"
           />
-        )}
-      </Link>
+        </Link>
+      )}
 
       <div className="pt-3 space-y-2">
         <div className="flex items-center gap-5">

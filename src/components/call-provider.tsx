@@ -353,6 +353,40 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return () => { supabase.removeChannel(ch); };
   }, [user, setupPeer, teardown]);
 
+  // Fallback: Realtime UPDATE events can be missed (tab throttling, dropped
+  // socket). Poll the call row while the caller is ringing so the peer
+  // connection — and therefore the audio — always gets established.
+  useEffect(() => {
+    if (!user || !active || active.role !== "caller" || active.status !== "ringing") return;
+    let cancelled = false;
+    const id = setInterval(async () => {
+      const { data } = await supabase
+        .from("calls")
+        .select("status")
+        .eq("id", active.id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const status = data.status as CallStatus;
+      if (status === "accepted") {
+        setActive((prev) => (prev && prev.id === active.id ? { ...prev, status: "accepted" } : prev));
+        if (!callerReadyRef.current) {
+          callerReadyRef.current = true;
+          setupPeer(active.id, active.type, "caller", user.id).catch((e) => {
+            console.error(e);
+            hangupLocalRef.current?.();
+          });
+        }
+      } else if (status === "ended" || status === "rejected" || status === "canceled") {
+        teardown();
+        setActive(null);
+      }
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [user, active, setupPeer, teardown]);
+
   const startCall = useCallback(
     async (other: OtherParty, type: CallType) => {
       if (!user || active) return;

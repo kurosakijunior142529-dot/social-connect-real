@@ -472,7 +472,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           await setupPeer(data.id, data.call_type as CallType, isCaller ? "caller" : "callee", user.id);
         }
       })
-      .catch((error) => console.warn("call recovery failed", error));
+      .then(undefined, (error: unknown) => console.warn("call recovery failed", error));
     return () => { cancelled = true; };
   }, [user?.id]);
 

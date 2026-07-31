@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const getCallAccess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ callId: z.string().uuid() }).parse(data))
+  .validator((data: unknown) => z.object({ callId: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     const { data: call, error } = await context.supabase
       .from("calls")

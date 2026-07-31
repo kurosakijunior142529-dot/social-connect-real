@@ -17,6 +17,17 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { translateText } from "@/lib/ai.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { getCallAccess } from "@/lib/calls.functions";
+import {
+  LocalAudioTrack,
+  LocalVideoTrack,
+  Room,
+  RoomEvent,
+  Track,
+  type RemoteTrack,
+  type RemoteTrackPublication,
+  type RemoteParticipant,
+} from "livekit-client";
 
 export type CallType = "audio" | "video";
 export type CallRole = "caller" | "callee";
@@ -72,6 +83,7 @@ export function useCall() {
 export function CallProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const translate = useServerFn(translateText);
+  const getCallAccessToken = useServerFn(getCallAccess);
   const [active, setActive] = useState<ActiveCall | null>(null);
   const [incoming, setIncoming] = useState<IncomingCall | null>(null);
 
@@ -85,6 +97,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [trackUpdate, setTrackUpdate] = useState(0);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const roomRef = useRef<Room | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const videoSenderRef = useRef<RTCRtpSender | null>(null);
   const facingModeRef = useRef<"user" | "environment">("user");
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
@@ -112,6 +126,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
       pcRef.current.ontrack = null;
       pcRef.current.close();
       pcRef.current = null;
+    }
+    if (roomRef.current) {
+      void roomRef.current.disconnect();
+      roomRef.current = null;
+    }
+    if (audioContextRef.current) {
+      void audioContextRef.current.close();
+      audioContextRef.current = null;
     }
     stopStream(localStreamRef.current);
     localStreamRef.current = null;
@@ -156,51 +178,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
       localStreamRef.current = stream;
       setLocalStream(stream);
 
-      const pc = createPeerConnection();
-      pcRef.current = pc;
-      videoSenderRef.current = null;
-      stream.getTracks().forEach((t) => {
-        const transceiver = pc.addTransceiver(t, { direction: "sendrecv", streams: [stream] });
-        const sender = transceiver.sender;
-        if (t.kind === "video") videoSenderRef.current = sender;
-      });
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack || audioTrack.readyState !== "live") {
+        throw new Error("O microfone não está gerando uma faixa de áudio ativa");
+      }
+      audioTrack.enabled = true;
+      setConnectionLabel("Microfone ativo");
+
+      try {
+        const AudioContextCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextCtor) {
+          const context = new AudioContextCtor();
+          audioContextRef.current = context;
+          const analyser = context.createAnalyser();
+          analyser.fftSize = 256;
+          context.createMediaStreamSource(new MediaStream([audioTrack])).connect(analyser);
+          const samples = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(samples);
+        }
+      } catch (error) {
+        console.warn("microphone analyser unavailable", error);
+      }
 
       const remote = persistentRemoteStreamRef.current;
       setRemoteStream(remote);
-      
-      pc.ontrack = (ev) => {
-        const src = ev.streams[0];
-        const incomingTracks = src ? src.getTracks() : ev.track ? [ev.track] : [];
-        let added = false;
-        for (const t of incomingTracks) {
-          if (!remote.getTracks().find((rt) => rt.id === t.id)) {
-            remote.addTrack(t);
-            added = true;
-          }
-        }
-        if (added) {
-          setTrackUpdate((v) => v + 1);
-          // Keep the SAME MediaStream reference; the audio sink effect will
-          // re-attach it and force play() whenever trackUpdate bumps.
-          setRemoteStream(remote);
-        }
-      };
-
-      pc.oniceconnectionstatechange = () => {
-        const state = pc.iceConnectionState;
-        setConnectionLabel(
-          state === "connected" || state === "completed"
-            ? "Conectado"
-            : state === "checking"
-              ? "Estabilizando"
-              : state === "failed" || state === "disconnected"
-                ? "Reconectando"
-                : "Conectando",
-        );
-        if (state === "failed" || state === "disconnected") {
-          try { pc.restartIce(); } catch (e) { console.warn("restartIce failed", e); }
-        }
-      };
 
       const sendSignal = async (kind: "offer" | "answer" | "ice" | "bye" | "caption", payload: Record<string, unknown>) => {
         const { error } = await (supabase as any).from("call_signals").insert({
@@ -218,7 +219,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
         processedSignalsRef.current.add(row.id);
         const payload = row.payload ?? {};
         try {
-          const signalNegotiationId = typeof payload.negotiationId === "string" ? payload.negotiationId : null;
           if (row.kind === "caption") {
             const original = typeof payload.text === "string" ? payload.text.trim() : "";
             if (!original || !translationEnabledRef.current) return;
@@ -230,37 +230,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
             } catch {
               setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: original } : item));
             }
-          } else if (row.kind === "offer" && role === "callee") {
-            if (!signalNegotiationId) return;
-            negotiationIdRef.current = signalNegotiationId;
-            if (pc.signalingState !== "stable") await pc.setLocalDescription({ type: "rollback" });
-            await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-            remoteDescSetRef.current = true;
-            for (const c of pendingIceRef.current) {
-              try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.warn(e); }
-            }
-            pendingIceRef.current = [];
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            await sendSignal("answer", { sdp: answer, negotiationId: signalNegotiationId });
-          } else if (row.kind === "answer" && role === "caller") {
-            if (!signalNegotiationId || signalNegotiationId !== negotiationIdRef.current) return;
-            if (pc.signalingState === "stable") return;
-            await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-            remoteDescSetRef.current = true;
-            for (const c of pendingIceRef.current) {
-              try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.warn(e); }
-            }
-            pendingIceRef.current = [];
-          } else if (row.kind === "ice") {
-            if (!signalNegotiationId || signalNegotiationId !== negotiationIdRef.current) return;
-            const candidate = payload.candidate as RTCIceCandidateInit | undefined;
-            if (!candidate) return;
-            if (remoteDescSetRef.current) {
-              try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.warn(e); }
-            } else {
-              pendingIceRef.current.push(candidate);
-            }
           } else if (row.kind === "bye") {
             hangupLocalRef.current?.();
           }
@@ -271,13 +240,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
       const channel = supabase.channel(`call-signals-${callId}`);
       channelRef.current = channel;
-
-      pc.onicecandidate = (ev) => {
-        const negotiationId = negotiationIdRef.current;
-        if (ev.candidate && negotiationId) {
-          void sendSignal("ice", { candidate: ev.candidate.toJSON(), negotiationId });
-        }
-      };
 
       channel.on(
         "postgres_changes",
@@ -298,15 +260,43 @@ export function CallProvider({ children }: { children: ReactNode }) {
         .order("created_at", { ascending: true });
       for (const signal of existingSignals ?? []) await handleSignal(signal);
 
-      if (role === "caller") {
-        const negotiationId = crypto.randomUUID();
-        negotiationIdRef.current = negotiationId;
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await sendSignal("offer", { sdp: offer, negotiationId });
+      setConnectionLabel("Conectando mídia");
+      const access = await getCallAccessToken({ data: { callId } });
+      const room = new Room({ adaptiveStream: true, dynacast: true });
+      roomRef.current = room;
+      room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, _publication: RemoteTrackPublication, _participant: RemoteParticipant) => {
+        const mediaTrack = track.mediaStreamTrack;
+        if (!remote.getTracks().some((current) => current.id === mediaTrack.id)) remote.addTrack(mediaTrack);
+        setRemoteStream(remote);
+        setTrackUpdate((value) => value + 1);
+        if (track.kind === Track.Kind.Audio) setConnectionLabel("Áudio recebido");
+      });
+      room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+        remote.removeTrack(track.mediaStreamTrack);
+        setTrackUpdate((value) => value + 1);
+      });
+      room.on(RoomEvent.Reconnecting, () => setConnectionLabel("Reconectando"));
+      room.on(RoomEvent.Reconnected, () => setConnectionLabel("Conectado"));
+      room.on(RoomEvent.Disconnected, () => setConnectionLabel("Desconectado"));
+
+      await room.connect(access.wsUrl, access.token);
+      setConnectionLabel("Enviando áudio");
+      await room.localParticipant.publishTrack(new LocalAudioTrack(audioTrack), {
+        source: Track.Source.Microphone,
+        dtx: true,
+        red: true,
+      });
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        const publication = await room.localParticipant.publishTrack(new LocalVideoTrack(videoTrack), {
+          source: Track.Source.Camera,
+          simulcast: true,
+        });
+        videoSenderRef.current = publication.track?.sender ?? null;
       }
+      setConnectionLabel("Áudio enviado");
     },
-    [translate],
+    [getCallAccessToken, translate],
   );
 
   const hangupLocalRef = useRef<(() => void) | null>(null);

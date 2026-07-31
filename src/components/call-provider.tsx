@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CallScreen } from "@/components/call-screen";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
-import { createPeerConnection, getCameraTrack, getLocalMedia, stopStream } from "@/lib/webrtc";
+import { getCameraTrack, getLocalMedia, stopStream } from "@/lib/webrtc";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { translateText } from "@/lib/ai.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -173,7 +173,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [user?.id, teardown]);
 
   const setupPeer = useCallback(
-    async (callId: string, type: CallType, role: CallRole, selfId: string) => {
+    async (callId: string, type: CallType, _role: CallRole, selfId: string) => {
       const stream = localStreamRef.current ?? (await getLocalMedia(type === "video", facingModeRef.current));
       localStreamRef.current = stream;
       setLocalStream(stream);

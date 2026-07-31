@@ -9,6 +9,7 @@ import { GameMinesweeper } from "@/components/games/minesweeper";
 import { GameSudoku } from "@/components/games/sudoku";
 import { GameChess } from "@/components/games/chess";
 import { UserAvatar } from "@/components/user-avatar";
+import { GameConnectFour, GamePong } from "@/components/games/arcade";
 
 const GAME_META: Record<string, { name: string; scoreLabel: string }> = {
   "2048": { name: "2048", scoreLabel: "pts" },
@@ -19,6 +20,8 @@ const GAME_META: Record<string, { name: string; scoreLabel: string }> = {
   "minesweeper": { name: "Campo Minado", scoreLabel: "pts" },
   "sudoku": { name: "Sudoku", scoreLabel: "pts" },
   "chess": { name: "Xadrez", scoreLabel: "pts" },
+  "connect-four": { name: "Lig 4", scoreLabel: "vitórias" },
+  "pong": { name: "Pong", scoreLabel: "rebates" },
 };
 
 export const Route = createFileRoute("/_authenticated/games/$id")({
@@ -136,6 +139,8 @@ function GamePage() {
         {id === "minesweeper" ? <GameMinesweeper onGameOver={onGameOver} /> : null}
         {id === "sudoku" ? <GameSudoku onGameOver={onGameOver} /> : null}
         {id === "chess" ? <GameChess onGameOver={onGameOver} /> : null}
+        {id === "connect-four" ? <GameConnectFour onGameOver={onGameOver} /> : null}
+        {id === "pong" ? <GamePong onGameOver={onGameOver} /> : null}
       </div>
 
       <section className="px-4 pt-8">

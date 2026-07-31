@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Gamepad2, Zap, Grid3x3, Snowflake, Brain, Crown, Bomb, Hash, Circle, Users } from "lucide-react";
+import { Gamepad2, Zap, Grid3x3, Snowflake, Brain, Crown, Bomb, Hash, CircleDot, Users, Disc3 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/games/")({
   component: GamesIndex,
@@ -16,6 +16,8 @@ const GAMES: { id: string; name: string; desc: string; icon: any; gradient: stri
   { id: "memory", name: "Memória", desc: "Encontre os pares", icon: Brain, gradient: "from-purple-400 to-indigo-600", cat: "puzzle" },
   { id: "snake", name: "Snake", desc: "Cresça sem morrer", icon: Snowflake, gradient: "from-green-400 to-emerald-600", cat: "reflex" },
   { id: "reaction", name: "Reação", desc: "Reflexos rápidos", icon: Zap, gradient: "from-yellow-400 to-orange-500", cat: "reflex" },
+  { id: "connect-four", name: "Lig 4", desc: "Conecte quatro peças", icon: CircleDot, gradient: "from-red-500 to-yellow-400", cat: "classic", badge: "Novo" },
+  { id: "pong", name: "Pong", desc: "Arcade de precisão", icon: Disc3, gradient: "from-emerald-400 to-zinc-800", cat: "reflex", badge: "Novo" },
 ];
 
 const CAT_LABEL: Record<Cat, string> = { classic: "Clássicos", puzzle: "Puzzles", reflex: "Reflexos" };
@@ -32,7 +34,7 @@ function GamesIndex() {
         </div>
         <div>
           <h1 className="text-2xl font-display font-semibold tracking-tight">Jogos</h1>
-          <p className="text-xs text-muted-foreground">8 jogos · ranking global · em breve multiplayer</p>
+          <p className="text-xs text-muted-foreground">10 jogos · ranking global · multiplayer online</p>
         </div>
       </header>
 

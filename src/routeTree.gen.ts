@@ -50,6 +50,7 @@ import { Route as AuthenticatedAccountSecurityRouteImport } from './routes/_auth
 import { Route as AuthenticatedAccountPrivacyRouteImport } from './routes/_authenticated/account.privacy'
 import { Route as AuthenticatedAccountMonetizationRouteImport } from './routes/_authenticated/account.monetization'
 import { Route as AuthenticatedAccountBlockedRouteImport } from './routes/_authenticated/account.blocked'
+import { Route as AuthenticatedGamesOnlineIndexRouteImport } from './routes/_authenticated/games.online.index'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedUUsernameFollowsRouteImport } from './routes/_authenticated/u.$username.follows'
 import { Route as AuthenticatedGamesOnlineRoomRouteImport } from './routes/_authenticated/games.online.$room'
@@ -274,6 +275,12 @@ const AuthenticatedAccountBlockedRoute =
     path: '/account/blocked',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGamesOnlineIndexRoute =
+  AuthenticatedGamesOnlineIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedGamesOnlineRoute,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -337,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/games/online/': typeof AuthenticatedGamesOnlineIndexRoute
 }
 export interface FileRoutesByTo {
   '/create': typeof AuthenticatedCreateRouteWithChildren
@@ -362,7 +370,6 @@ export interface FileRoutesByTo {
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
-  '/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
   '/live/$id': typeof AuthenticatedLiveIdRoute
   '/lives/new': typeof AuthenticatedLivesNewRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByTo {
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/games/online': typeof AuthenticatedGamesOnlineIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -429,6 +437,7 @@ export interface FileRoutesById {
   '/_authenticated/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/_authenticated/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/_authenticated/games/online/': typeof AuthenticatedGamesOnlineIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -476,6 +485,7 @@ export interface FileRouteTypes {
     | '/games/online/$room'
     | '/u/$username/follows'
     | '/api/public/payments/webhook'
+    | '/games/online/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/create'
@@ -501,7 +511,6 @@ export interface FileRouteTypes {
     | '/chats/new'
     | '/create/video'
     | '/games/$id'
-    | '/games/online'
     | '/live/$id'
     | '/lives/new'
     | '/marketplace/$id'
@@ -521,6 +530,7 @@ export interface FileRouteTypes {
     | '/games/online/$room'
     | '/u/$username/follows'
     | '/api/public/payments/webhook'
+    | '/games/online'
   id:
     | '__root__'
     | '/_authenticated'
@@ -567,6 +577,7 @@ export interface FileRouteTypes {
     | '/_authenticated/games/online/$room'
     | '/_authenticated/u/$username/follows'
     | '/api/public/payments/webhook'
+    | '/_authenticated/games/online/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -866,6 +877,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountBlockedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/games/online/': {
+      id: '/_authenticated/games/online/'
+      path: '/'
+      fullPath: '/games/online/'
+      preLoaderRoute: typeof AuthenticatedGamesOnlineIndexRouteImport
+      parentRoute: typeof AuthenticatedGamesOnlineRoute
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -903,11 +921,13 @@ const AuthenticatedCreateRouteWithChildren =
 
 interface AuthenticatedGamesOnlineRouteChildren {
   AuthenticatedGamesOnlineRoomRoute: typeof AuthenticatedGamesOnlineRoomRoute
+  AuthenticatedGamesOnlineIndexRoute: typeof AuthenticatedGamesOnlineIndexRoute
 }
 
 const AuthenticatedGamesOnlineRouteChildren: AuthenticatedGamesOnlineRouteChildren =
   {
     AuthenticatedGamesOnlineRoomRoute: AuthenticatedGamesOnlineRoomRoute,
+    AuthenticatedGamesOnlineIndexRoute: AuthenticatedGamesOnlineIndexRoute,
   }
 
 const AuthenticatedGamesOnlineRouteWithChildren =

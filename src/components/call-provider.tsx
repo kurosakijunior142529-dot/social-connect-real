@@ -280,6 +280,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       room.on(RoomEvent.Disconnected, () => setConnectionLabel("Desconectado"));
 
       await room.connect(access.wsUrl, access.token);
+      await room.startAudio().catch(() => setConnectionLabel("Toque na tela para liberar o áudio"));
       setConnectionLabel("Enviando áudio");
       await room.localParticipant.publishTrack(new LocalAudioTrack(audioTrack), {
         source: Track.Source.Microphone,
@@ -519,11 +520,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setIncoming(null);
     setActive({ id: inc.id, type: inc.type, role: "callee", other: inc.other, status: "accepted" });
     try {
-      await setupPeer(inc.id, inc.type, "callee", user.id);
-      await supabase
+      const { error } = await supabase
         .from("calls")
         .update({ status: "accepted", accepted_at: new Date().toISOString() })
         .eq("id", inc.id);
+      if (error) throw error;
+      await setupPeer(inc.id, inc.type, "callee", user.id);
     } catch (e) {
       console.error(e);
       alert("Não foi possível acessar câmera/microfone.");
@@ -571,6 +573,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const unlockAudioSink = useCallback(() => {
     const el = audioSinkRef.current;
     if (!el) return;
+    const AudioContextCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (AudioContextCtor) {
+      const context = audioContextRef.current ?? new AudioContextCtor();
+      audioContextRef.current = context;
+      void context.resume();
+    }
     el.muted = false;
     el.volume = 1;
     // Attempting a tiny playback to unlock audio context on some browsers
@@ -656,9 +664,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
       if (el.srcObject !== stream) el.srcObject = stream;
       el.muted = false;
       el.volume = 1;
-      const tryPlay = () => {
+        const tryPlay = () => {
         const p = el.play();
-        if (p && typeof p.catch === "function") p.catch(() => {});
+          if (p && typeof p.catch === "function") {
+            p.then(() => setConnectionLabel("Áudio reproduzindo"), () => setConnectionLabel("Toque na tela para liberar o áudio"));
+          }
       };
       tryPlay();
       // Autoplay can still be blocked (no prior gesture on this document):

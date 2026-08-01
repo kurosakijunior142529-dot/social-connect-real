@@ -691,6 +691,42 @@ export function CallProvider({ children }: { children: ReactNode }) {
     if (!stream) el.srcObject = null;
   }, [remoteStream, trackUpdate]);
 
+  // Track when the call became active (used by the floating mini bar timer).
+  useEffect(() => {
+    if (active?.status === "accepted") setCallStartedAt((prev) => prev ?? Date.now());
+    else if (!active) setCallStartedAt(null);
+  }, [active?.status, active?.id]);
+
+  // Keep the call alive in the background: expose media session controls and
+  // resume playback when the app returns to the foreground. This never changes
+  // the audio pipeline itself.
+  useEffect(() => {
+    if (!active) return;
+    const name = active.other.display_name ?? active.other.username ?? "Chamada";
+    const mediaSession = (navigator as Navigator & { mediaSession?: any }).mediaSession;
+    if (mediaSession && "MediaMetadata" in window) {
+      try {
+        mediaSession.metadata = new (window as any).MediaMetadata({ title: name, artist: "Chamada em andamento" });
+        mediaSession.playbackState = "playing";
+        mediaSession.setActionHandler?.("pause", () => {});
+        mediaSession.setActionHandler?.("play", () => {});
+      } catch { /* ignore */ }
+    }
+    const resume = () => {
+      const el = audioSinkRef.current;
+      if (!el) return;
+      void audioContextRef.current?.resume?.();
+      if (el.paused) void el.play().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("focus", resume);
+    return () => {
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("focus", resume);
+      if (mediaSession) mediaSession.playbackState = "none";
+    };
+  }, [active?.id]);
+
   const value = useMemo<Ctx>(
     () => ({ startCall: startCallWithAudioUnlock, activeCall: active }),
     [startCallWithAudioUnlock, active],

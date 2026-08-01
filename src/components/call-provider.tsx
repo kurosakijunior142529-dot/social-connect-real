@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CallScreen } from "@/components/call-screen";
+import { CallMiniBar } from "@/components/call-mini-bar";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
 import { getCameraTrack, getLocalMedia, stopStream } from "@/lib/webrtc";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -86,6 +87,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const getCallAccessToken = useServerFn(getCallAccess);
   const [active, setActive] = useState<ActiveCall | null>(null);
   const [incoming, setIncoming] = useState<IncomingCall | null>(null);
+  const [minimized, setMinimized] = useState(false);
+  const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -159,6 +162,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setTranslationEnabled(false);
     setCaptions([]);
     setConnectionLabel("Conectando");
+    setMinimized(false);
+    setCallStartedAt(null);
   }, []);
 
   useEffect(() => {
@@ -223,7 +228,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             const original = typeof payload.text === "string" ? payload.text.trim() : "";
             if (!original || !translationEnabledRef.current) return;
             const id = String(row.id);
-            setCaptions((current) => [...current.slice(-3), { id, speaker: "other", original }]);
+            setCaptions((current) => [...current.slice(-60), { id, speaker: "other", original }]);
             try {
               const result = await translate({ data: { text: original, target: translationLanguageRef.current } });
               setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: result.text } : item));
@@ -625,7 +630,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         const text = String(event.results[i][0]?.transcript ?? "").trim();
         if (!text) continue;
         const id = crypto.randomUUID();
-        setCaptions((current) => [...current.slice(-3), { id, speaker: "me", original: text }]);
+        setCaptions((current) => [...current.slice(-60), { id, speaker: "me", original: text }]);
         void sendSignalRef.current?.("caption", { text, language: recognition.lang });
       }
     };
@@ -698,7 +703,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
       {incoming ? (
         <IncomingCallDialog incoming={incoming} onAccept={acceptIncomingWithAudioUnlock} onReject={rejectIncoming} />
       ) : null}
-      {active ? (
+      {active && minimized ? (
+        <CallMiniBar
+          name={active.other.display_name ?? active.other.username ?? "Usuário"}
+          avatarUrl={active.other.avatar_url}
+          status={active.status === "ringing" ? "Chamando…" : connectionLabel}
+          startedAt={active.status === "accepted" ? callStartedAt : null}
+          onExpand={() => setMinimized(false)}
+          onHangup={hangupLocal}
+        />
+      ) : null}
+      {active && !minimized ? (
         <CallScreen
           call={active}
           localStream={localStream}
@@ -710,6 +725,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           onToggleTranslation={toggleTranslation}
           onTranslationLanguageChange={changeTranslationLanguage}
           onSwitchCamera={switchCamera}
+          onMinimize={() => setMinimized(true)}
           onHangup={hangupLocal}
         />
       ) : null}

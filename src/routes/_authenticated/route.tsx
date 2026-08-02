@@ -31,9 +31,12 @@ function AuthenticatedLayout() {
 
   return (
     <CallProvider>
-      <AppShell currentUsername={username}>
-        <Outlet />
-      </AppShell>
+      <VoiceProvider>
+        <AppShell currentUsername={username}>
+          <Outlet />
+        </AppShell>
+        <VoiceDock />
+      </VoiceProvider>
     </CallProvider>
   );
 }

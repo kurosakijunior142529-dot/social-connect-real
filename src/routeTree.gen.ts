@@ -23,6 +23,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticated/explore'
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
 import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
+import { Route as AuthenticatedVoiceIndexRouteImport } from './routes/_authenticated/voice.index'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_authenticated/marketplace.index'
 import { Route as AuthenticatedLivesIndexRouteImport } from './routes/_authenticated/lives.index'
@@ -30,6 +31,7 @@ import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
+import { Route as AuthenticatedVoiceIdRouteImport } from './routes/_authenticated/voice.$id'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
 import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.$id'
@@ -125,6 +127,11 @@ const AuthenticatedWatchIndexRoute = AuthenticatedWatchIndexRouteImport.update({
   path: '/watch/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedVoiceIndexRoute = AuthenticatedVoiceIndexRouteImport.update({
+  id: '/voice/',
+  path: '/voice/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMessagesIndexRoute =
   AuthenticatedMessagesIndexRouteImport.update({
     id: '/messages/',
@@ -164,6 +171,11 @@ const AuthenticatedWatchRoomIdRoute =
     path: '/watch/$roomId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedVoiceIdRoute = AuthenticatedVoiceIdRouteImport.update({
+  id: '/voice/$id',
+  path: '/voice/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedUUsernameRoute = AuthenticatedUUsernameRouteImport.update({
   id: '/u/$username',
   path: '/u/$username',
@@ -333,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
+  '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
   '/ai/': typeof AuthenticatedAiIndexRoute
@@ -340,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/lives/': typeof AuthenticatedLivesIndexRoute
   '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/voice/': typeof AuthenticatedVoiceIndexRoute
   '/watch/': typeof AuthenticatedWatchIndexRoute
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -378,6 +392,7 @@ export interface FileRoutesByTo {
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
+  '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/account': typeof AuthenticatedAccountIndexRoute
   '/ai': typeof AuthenticatedAiIndexRoute
@@ -385,6 +400,7 @@ export interface FileRoutesByTo {
   '/lives': typeof AuthenticatedLivesIndexRoute
   '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
+  '/voice': typeof AuthenticatedVoiceIndexRoute
   '/watch': typeof AuthenticatedWatchIndexRoute
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -426,6 +442,7 @@ export interface FileRoutesById {
   '/_authenticated/p/$id': typeof AuthenticatedPIdRoute
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
+  '/_authenticated/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
   '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
@@ -433,6 +450,7 @@ export interface FileRoutesById {
   '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
   '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/_authenticated/voice/': typeof AuthenticatedVoiceIndexRoute
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
   '/_authenticated/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/_authenticated/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -474,6 +492,7 @@ export interface FileRouteTypes {
     | '/p/$id'
     | '/stories/new'
     | '/u/$username'
+    | '/voice/$id'
     | '/watch/$roomId'
     | '/account/'
     | '/ai/'
@@ -481,6 +500,7 @@ export interface FileRouteTypes {
     | '/lives/'
     | '/marketplace/'
     | '/messages/'
+    | '/voice/'
     | '/watch/'
     | '/games/online/$room'
     | '/u/$username/follows'
@@ -519,6 +539,7 @@ export interface FileRouteTypes {
     | '/p/$id'
     | '/stories/new'
     | '/u/$username'
+    | '/voice/$id'
     | '/watch/$roomId'
     | '/account'
     | '/ai'
@@ -526,6 +547,7 @@ export interface FileRouteTypes {
     | '/lives'
     | '/marketplace'
     | '/messages'
+    | '/voice'
     | '/watch'
     | '/games/online/$room'
     | '/u/$username/follows'
@@ -566,6 +588,7 @@ export interface FileRouteTypes {
     | '/_authenticated/p/$id'
     | '/_authenticated/stories/new'
     | '/_authenticated/u/$username'
+    | '/_authenticated/voice/$id'
     | '/_authenticated/watch/$roomId'
     | '/_authenticated/account/'
     | '/_authenticated/ai/'
@@ -573,6 +596,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lives/'
     | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
+    | '/_authenticated/voice/'
     | '/_authenticated/watch/'
     | '/_authenticated/games/online/$room'
     | '/_authenticated/u/$username/follows'
@@ -688,6 +712,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWatchIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/voice/': {
+      id: '/_authenticated/voice/'
+      path: '/voice'
+      fullPath: '/voice/'
+      preLoaderRoute: typeof AuthenticatedVoiceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/messages/': {
       id: '/_authenticated/messages/'
       path: '/messages'
@@ -735,6 +766,13 @@ declare module '@tanstack/react-router' {
       path: '/watch/$roomId'
       fullPath: '/watch/$roomId'
       preLoaderRoute: typeof AuthenticatedWatchRoomIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/voice/$id': {
+      id: '/_authenticated/voice/$id'
+      path: '/voice/$id'
+      fullPath: '/voice/$id'
+      preLoaderRoute: typeof AuthenticatedVoiceIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/u/$username': {
@@ -978,6 +1016,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPIdRoute: typeof AuthenticatedPIdRoute
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRouteWithChildren
+  AuthenticatedVoiceIdRoute: typeof AuthenticatedVoiceIdRoute
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
   AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
   AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
@@ -985,6 +1024,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
   AuthenticatedMarketplaceIndexRoute: typeof AuthenticatedMarketplaceIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
+  AuthenticatedVoiceIndexRoute: typeof AuthenticatedVoiceIndexRoute
   AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
 }
 
@@ -1018,6 +1058,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPIdRoute: AuthenticatedPIdRoute,
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRouteWithChildren,
+  AuthenticatedVoiceIdRoute: AuthenticatedVoiceIdRoute,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
   AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
   AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
@@ -1025,6 +1066,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,
   AuthenticatedMarketplaceIndexRoute: AuthenticatedMarketplaceIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
+  AuthenticatedVoiceIndexRoute: AuthenticatedVoiceIndexRoute,
   AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
 }
 

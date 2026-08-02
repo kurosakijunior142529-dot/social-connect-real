@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { CallProvider } from "@/components/call-provider";
+import { VoiceProvider } from "@/components/voice/voice-provider";
+import { VoiceDock } from "@/components/voice/voice-dock";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -29,9 +31,12 @@ function AuthenticatedLayout() {
 
   return (
     <CallProvider>
-      <AppShell currentUsername={username}>
-        <Outlet />
-      </AppShell>
+      <VoiceProvider>
+        <AppShell currentUsername={username}>
+          <Outlet />
+        </AppShell>
+        <VoiceDock />
+      </VoiceProvider>
     </CallProvider>
   );
 }

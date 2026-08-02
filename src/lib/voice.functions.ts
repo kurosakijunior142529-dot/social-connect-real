@@ -7,7 +7,7 @@ import { z } from "zod";
  * Audio pipeline is identical to the (already working) 1:1 call path.
  */
 export const getVoiceChannelAccess = createServerFn({ method: "POST" })
-  .validator((data: unknown) =>
+  .inputValidator((data: unknown) =>
     z
       .object({
         channelId: z.string().uuid(),
@@ -17,7 +17,7 @@ export const getVoiceChannelAccess = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
-    const ctx = context!;
+    const ctx = context;
     const { data: channel, error } = await ctx.supabase
       .from("voice_channels")
       .select("id, name, is_public, created_by")

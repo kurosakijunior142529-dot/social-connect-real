@@ -17,22 +17,23 @@ export const getVoiceChannelAccess = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
-    const { data: channel, error } = await context.supabase
+    const ctx = context!;
+    const { data: channel, error } = await ctx.supabase
       .from("voice_channels")
       .select("id, name, is_public, created_by")
       .eq("id", data.channelId)
       .maybeSingle();
 
     if (error || !channel) throw new Error("Canal de voz não encontrado");
-    if (!channel.is_public && channel.created_by !== context.userId) {
+    if (!channel.is_public && channel.created_by !== ctx.userId) {
       throw new Error("Você não tem acesso a este canal");
     }
 
     const { issueToken, livekitUrl } = await import("@/lib/livekit.server");
     const room = `voice_${channel.id.replaceAll("-", "")}`;
     const token = await issueToken({
-      identity: context.userId,
-      name: data.displayName ?? context.userId,
+      identity: ctx.userId,
+      name: data.displayName ?? ctx.userId,
       room,
       canPublish: true,
       canPublishData: true,

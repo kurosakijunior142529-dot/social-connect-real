@@ -31,6 +31,7 @@ import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
+import { Route as AuthenticatedVoiceIdRouteImport } from './routes/_authenticated/voice.$id'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
 import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.$id'
@@ -170,6 +171,11 @@ const AuthenticatedWatchRoomIdRoute =
     path: '/watch/$roomId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedVoiceIdRoute = AuthenticatedVoiceIdRouteImport.update({
+  id: '/voice/$id',
+  path: '/voice/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedUUsernameRoute = AuthenticatedUUsernameRouteImport.update({
   id: '/u/$username',
   path: '/u/$username',
@@ -339,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
+  '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
   '/ai/': typeof AuthenticatedAiIndexRoute
@@ -385,6 +392,7 @@ export interface FileRoutesByTo {
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
+  '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/account': typeof AuthenticatedAccountIndexRoute
   '/ai': typeof AuthenticatedAiIndexRoute
@@ -434,6 +442,7 @@ export interface FileRoutesById {
   '/_authenticated/p/$id': typeof AuthenticatedPIdRoute
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
+  '/_authenticated/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
   '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
@@ -483,6 +492,7 @@ export interface FileRouteTypes {
     | '/p/$id'
     | '/stories/new'
     | '/u/$username'
+    | '/voice/$id'
     | '/watch/$roomId'
     | '/account/'
     | '/ai/'
@@ -529,6 +539,7 @@ export interface FileRouteTypes {
     | '/p/$id'
     | '/stories/new'
     | '/u/$username'
+    | '/voice/$id'
     | '/watch/$roomId'
     | '/account'
     | '/ai'
@@ -577,6 +588,7 @@ export interface FileRouteTypes {
     | '/_authenticated/p/$id'
     | '/_authenticated/stories/new'
     | '/_authenticated/u/$username'
+    | '/_authenticated/voice/$id'
     | '/_authenticated/watch/$roomId'
     | '/_authenticated/account/'
     | '/_authenticated/ai/'
@@ -754,6 +766,13 @@ declare module '@tanstack/react-router' {
       path: '/watch/$roomId'
       fullPath: '/watch/$roomId'
       preLoaderRoute: typeof AuthenticatedWatchRoomIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/voice/$id': {
+      id: '/_authenticated/voice/$id'
+      path: '/voice/$id'
+      fullPath: '/voice/$id'
+      preLoaderRoute: typeof AuthenticatedVoiceIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/u/$username': {
@@ -997,6 +1016,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPIdRoute: typeof AuthenticatedPIdRoute
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRouteWithChildren
+  AuthenticatedVoiceIdRoute: typeof AuthenticatedVoiceIdRoute
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
   AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
   AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
@@ -1038,6 +1058,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPIdRoute: AuthenticatedPIdRoute,
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRouteWithChildren,
+  AuthenticatedVoiceIdRoute: AuthenticatedVoiceIdRoute,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
   AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
   AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,

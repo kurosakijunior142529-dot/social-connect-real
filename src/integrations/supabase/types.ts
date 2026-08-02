@@ -1822,6 +1822,39 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_channels: {
+        Row: {
+          created_at: string
+          created_by: string
+          emoji: string | null
+          id: string
+          is_public: boolean
+          max_members: number
+          name: string
+          topic: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          emoji?: string | null
+          id?: string
+          is_public?: boolean
+          max_members?: number
+          name: string
+          topic?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          emoji?: string | null
+          id?: string
+          is_public?: boolean
+          max_members?: number
+          name?: string
+          topic?: string | null
+        }
+        Relationships: []
+      }
       watch_room_members: {
         Row: {
           joined_at: string

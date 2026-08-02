@@ -23,6 +23,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticated/explore'
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
 import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
+import { Route as AuthenticatedVoiceIndexRouteImport } from './routes/_authenticated/voice.index'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_authenticated/marketplace.index'
 import { Route as AuthenticatedLivesIndexRouteImport } from './routes/_authenticated/lives.index'
@@ -123,6 +124,11 @@ const AuthenticatedCreateRoute = AuthenticatedCreateRouteImport.update({
 const AuthenticatedWatchIndexRoute = AuthenticatedWatchIndexRouteImport.update({
   id: '/watch/',
   path: '/watch/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedVoiceIndexRoute = AuthenticatedVoiceIndexRouteImport.update({
+  id: '/voice/',
+  path: '/voice/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMessagesIndexRoute =
@@ -340,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/lives/': typeof AuthenticatedLivesIndexRoute
   '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/voice/': typeof AuthenticatedVoiceIndexRoute
   '/watch/': typeof AuthenticatedWatchIndexRoute
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -385,6 +392,7 @@ export interface FileRoutesByTo {
   '/lives': typeof AuthenticatedLivesIndexRoute
   '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
+  '/voice': typeof AuthenticatedVoiceIndexRoute
   '/watch': typeof AuthenticatedWatchIndexRoute
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -433,6 +441,7 @@ export interface FileRoutesById {
   '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
   '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/_authenticated/voice/': typeof AuthenticatedVoiceIndexRoute
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
   '/_authenticated/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
   '/_authenticated/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -481,6 +490,7 @@ export interface FileRouteTypes {
     | '/lives/'
     | '/marketplace/'
     | '/messages/'
+    | '/voice/'
     | '/watch/'
     | '/games/online/$room'
     | '/u/$username/follows'
@@ -526,6 +536,7 @@ export interface FileRouteTypes {
     | '/lives'
     | '/marketplace'
     | '/messages'
+    | '/voice'
     | '/watch'
     | '/games/online/$room'
     | '/u/$username/follows'
@@ -573,6 +584,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lives/'
     | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
+    | '/_authenticated/voice/'
     | '/_authenticated/watch/'
     | '/_authenticated/games/online/$room'
     | '/_authenticated/u/$username/follows'
@@ -686,6 +698,13 @@ declare module '@tanstack/react-router' {
       path: '/watch'
       fullPath: '/watch/'
       preLoaderRoute: typeof AuthenticatedWatchIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/voice/': {
+      id: '/_authenticated/voice/'
+      path: '/voice'
+      fullPath: '/voice/'
+      preLoaderRoute: typeof AuthenticatedVoiceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/messages/': {
@@ -985,6 +1004,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
   AuthenticatedMarketplaceIndexRoute: typeof AuthenticatedMarketplaceIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
+  AuthenticatedVoiceIndexRoute: typeof AuthenticatedVoiceIndexRoute
   AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
 }
 
@@ -1025,6 +1045,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,
   AuthenticatedMarketplaceIndexRoute: AuthenticatedMarketplaceIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
+  AuthenticatedVoiceIndexRoute: AuthenticatedVoiceIndexRoute,
   AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
 }
 

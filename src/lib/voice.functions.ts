@@ -17,7 +17,7 @@ export const getVoiceChannelAccess = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
-    const ctx = context;
+    const ctx = context as NonNullable<typeof context>;
     const { data: channel, error } = await ctx.supabase
       .from("voice_channels")
       .select("id, name, is_public, created_by")

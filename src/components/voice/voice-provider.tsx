@@ -255,7 +255,23 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setStatus("connected");
         setJoinedAt(Date.now());
         refreshMembers();
+
+        // Mantém a sessão de áudio viva em segundo plano (tela bloqueada, jogo aberto).
+        keepAliveRef.current?.stop();
+        keepAliveRef.current = startVoiceKeepAlive(() => audioElsRef.current.values());
+        setVoiceMediaSession({
+          title: target.name,
+          artist: "Canal de voz · vibely",
+          onHangUp: () => leave(),
+          onToggleMic: () => {
+            const r = roomRef.current;
+            if (!r) return;
+            void r.localParticipant.setMicrophoneEnabled(!r.localParticipant.isMicrophoneEnabled);
+          },
+        });
+
         toast.success(`Conectado em ${target.name}`);
+
       } catch (err) {
         console.error("[voice] join failed", err);
         toast.error(err instanceof Error ? err.message : "Não foi possível entrar no canal");

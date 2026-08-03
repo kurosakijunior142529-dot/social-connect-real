@@ -93,22 +93,49 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [pttHeld, setPttHeldState] = useState(false);
   const [joinedAt, setJoinedAt] = useState<number | null>(null);
 
+  // Coalescido em um frame + diff: evita re-render da UI a cada evento do LiveKit
+  // (ActiveSpeakersChanged dispara dezenas de vezes por segundo).
+  const rafRef = useRef<number | null>(null);
   const refreshMembers = useCallback(() => {
-    const room = roomRef.current;
-    if (!room) return setMembers([]);
-    const all: Participant[] = [room.localParticipant, ...Array.from(room.remoteParticipants.values())];
-    setMembers(
-      all.map((p) => ({
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const room = roomRef.current;
+      if (!room) return setMembers((prev) => (prev.length ? [] : prev));
+      const all: Participant[] = [room.localParticipant, ...Array.from(room.remoteParticipants.values())];
+      const next: VoiceMember[] = all.map((p) => ({
         identity: p.identity,
         name: p.name || "Usuário",
         avatarUrl: parseAvatar(p),
         isLocal: p.isLocal,
         speaking: p.isSpeaking,
-        muted: p.isLocal ? !room.localParticipant.isMicrophoneEnabled : !!p.audioTrackPublications.values().next().value?.isMuted,
+        muted: p.isLocal
+          ? !room.localParticipant.isMicrophoneEnabled
+          : !!p.audioTrackPublications.values().next().value?.isMuted,
         volume: volumesRef.current.get(p.identity) ?? 1,
-      })),
-    );
+      }));
+      setMembers((prev) => {
+        if (
+          prev.length === next.length &&
+          prev.every((m, i) => {
+            const n = next[i]!;
+            return (
+              m.identity === n.identity &&
+              m.speaking === n.speaking &&
+              m.muted === n.muted &&
+              m.volume === n.volume &&
+              m.name === n.name &&
+              m.avatarUrl === n.avatarUrl
+            );
+          })
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    });
   }, []);
+
 
   const attachTrack = useCallback(
     (track: RemoteTrack, _pub: RemoteTrackPublication, participant: RemoteParticipant) => {

@@ -14,11 +14,13 @@ import {
   Room,
   RoomEvent,
   Track,
+  AudioPresets,
   type RemoteTrack,
   type RemoteTrackPublication,
   type RemoteParticipant,
   type Participant,
 } from "livekit-client";
+import { startVoiceKeepAlive, setVoiceMediaSession } from "@/lib/voice-keepalive";
 import { getVoiceChannelAccess } from "@/lib/voice.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";

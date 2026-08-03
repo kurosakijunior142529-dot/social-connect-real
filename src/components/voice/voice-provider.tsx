@@ -14,11 +14,13 @@ import {
   Room,
   RoomEvent,
   Track,
+  AudioPresets,
   type RemoteTrack,
   type RemoteTrackPublication,
   type RemoteParticipant,
   type Participant,
 } from "livekit-client";
+import { startVoiceKeepAlive, setVoiceMediaSession } from "@/lib/voice-keepalive";
 import { getVoiceChannelAccess } from "@/lib/voice.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -80,6 +82,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const roomRef = useRef<Room | null>(null);
   const audioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const volumesRef = useRef<Map<string, number>>(new Map());
+  const keepAliveRef = useRef<{ stop: () => void } | null>(null);
 
   const [channel, setChannel] = useState<VoiceChannelInfo | null>(null);
   const [status, setStatus] = useState<"idle" | "connecting" | "connected">("idle");
@@ -91,22 +94,49 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [pttHeld, setPttHeldState] = useState(false);
   const [joinedAt, setJoinedAt] = useState<number | null>(null);
 
+  // Coalescido em um frame + diff: evita re-render da UI a cada evento do LiveKit
+  // (ActiveSpeakersChanged dispara dezenas de vezes por segundo).
+  const rafRef = useRef<number | null>(null);
   const refreshMembers = useCallback(() => {
-    const room = roomRef.current;
-    if (!room) return setMembers([]);
-    const all: Participant[] = [room.localParticipant, ...Array.from(room.remoteParticipants.values())];
-    setMembers(
-      all.map((p) => ({
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const room = roomRef.current;
+      if (!room) return setMembers((prev) => (prev.length ? [] : prev));
+      const all: Participant[] = [room.localParticipant, ...Array.from(room.remoteParticipants.values())];
+      const next: VoiceMember[] = all.map((p) => ({
         identity: p.identity,
         name: p.name || "Usuário",
         avatarUrl: parseAvatar(p),
         isLocal: p.isLocal,
         speaking: p.isSpeaking,
-        muted: p.isLocal ? !room.localParticipant.isMicrophoneEnabled : !!p.audioTrackPublications.values().next().value?.isMuted,
+        muted: p.isLocal
+          ? !room.localParticipant.isMicrophoneEnabled
+          : !!p.audioTrackPublications.values().next().value?.isMuted,
         volume: volumesRef.current.get(p.identity) ?? 1,
-      })),
-    );
+      }));
+      setMembers((prev) => {
+        if (
+          prev.length === next.length &&
+          prev.every((m, i) => {
+            const n = next[i]!;
+            return (
+              m.identity === n.identity &&
+              m.speaking === n.speaking &&
+              m.muted === n.muted &&
+              m.volume === n.volume &&
+              m.name === n.name &&
+              m.avatarUrl === n.avatarUrl
+            );
+          })
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    });
   }, []);
+
 
   const attachTrack = useCallback(
     (track: RemoteTrack, _pub: RemoteTrackPublication, participant: RemoteParticipant) => {
@@ -138,6 +168,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     roomRef.current = null;
     if (room) void room.disconnect();
     cleanupAudio();
+    keepAliveRef.current?.stop();
+    keepAliveRef.current = null;
     setChannel(null);
     setStatus("idle");
     setMembers([]);
@@ -169,7 +201,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         const room = new Room({
           adaptiveStream: true,
           dynacast: true,
-          publishDefaults: { dtx: true, red: true },
+          // Captura leve: mono, 24 kHz, com supressão de ruído/eco do próprio SO.
+          audioCaptureDefaults: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          // Opus com DTX (não transmite silêncio) + RED (resiste a perda de pacote).
+          publishDefaults: { dtx: true, red: true, audioPreset: AudioPresets.speech },
         });
         roomRef.current = room;
 
@@ -189,12 +229,25 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
           .on(RoomEvent.TrackMuted, refreshMembers)
           .on(RoomEvent.TrackUnmuted, refreshMembers)
           .on(RoomEvent.LocalTrackPublished, refreshMembers)
+          .on(RoomEvent.Reconnecting, () => setStatus("connecting"))
+          .on(RoomEvent.Reconnected, () => {
+            setStatus("connected");
+            // Reanexa e volta a tocar todo áudio remoto após a reconexão.
+            audioElsRef.current.forEach((el) => void el.play().catch(() => undefined));
+            refreshMembers();
+          })
+          .on(RoomEvent.MediaDevicesError, () => {
+            toast.error("O microfone foi tomado por outro app (jogo). Use um headset ou libere o microfone.");
+          })
           .on(RoomEvent.Disconnected, () => {
             cleanupAudio();
+            keepAliveRef.current?.stop();
+            keepAliveRef.current = null;
             setStatus("idle");
             setChannel(null);
             setMembers([]);
           });
+
 
         await room.connect(access.wsUrl, access.token);
         await room.localParticipant.setMicrophoneEnabled(mode === "open");
@@ -202,7 +255,23 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setStatus("connected");
         setJoinedAt(Date.now());
         refreshMembers();
+
+        // Mantém a sessão de áudio viva em segundo plano (tela bloqueada, jogo aberto).
+        keepAliveRef.current?.stop();
+        keepAliveRef.current = startVoiceKeepAlive(() => audioElsRef.current.values());
+        setVoiceMediaSession({
+          title: target.name,
+          artist: "Canal de voz · vibely",
+          onHangUp: () => leave(),
+          onToggleMic: () => {
+            const r = roomRef.current;
+            if (!r) return;
+            void r.localParticipant.setMicrophoneEnabled(!r.localParticipant.isMicrophoneEnabled);
+          },
+        });
+
         toast.success(`Conectado em ${target.name}`);
+
       } catch (err) {
         console.error("[voice] join failed", err);
         toast.error(err instanceof Error ? err.message : "Não foi possível entrar no canal");
@@ -290,17 +359,37 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     };
   }, [mode, status, pttKey, setPttHeld]);
 
-  // Keep the session alive when the tab is hidden / screen is locked
+  // Monitor de saúde do microfone: detecta quando o SO/jogo toma o microfone
+  // (track "muted" ou "ended") e republica automaticamente.
   useEffect(() => {
     if (status !== "connected") return;
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        audioElsRef.current.forEach((el) => void el.play().catch(() => undefined));
+    let warned = false;
+    const id = window.setInterval(async () => {
+      const room = roomRef.current;
+      if (!room) return;
+      const shouldBeOn = mode === "ptt" ? pttHeld : micEnabled;
+      if (!shouldBeOn) return;
+      const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+      const mst = pub?.track?.mediaStreamTrack;
+      const broken = !pub || !mst || mst.readyState === "ended" || mst.muted;
+      if (!broken) {
+        warned = false;
+        return;
       }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [status]);
+      try {
+        await room.localParticipant.setMicrophoneEnabled(false);
+        await room.localParticipant.setMicrophoneEnabled(true);
+        refreshMembers();
+      } catch {
+        if (!warned) {
+          warned = true;
+          toast.error("Microfone indisponível — outro app pode estar usando. Um headset resolve.");
+        }
+      }
+    }, 4000);
+    return () => window.clearInterval(id);
+  }, [status, mode, pttHeld, micEnabled, refreshMembers]);
+
 
   useEffect(() => () => leave(), [leave]);
 

@@ -167,6 +167,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     roomRef.current = null;
     if (room) void room.disconnect();
     cleanupAudio();
+    keepAliveRef.current?.stop();
+    keepAliveRef.current = null;
     setChannel(null);
     setStatus("idle");
     setMembers([]);
@@ -198,7 +200,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         const room = new Room({
           adaptiveStream: true,
           dynacast: true,
-          publishDefaults: { dtx: true, red: true },
+          // Captura leve: mono, 24 kHz, com supressão de ruído/eco do próprio SO.
+          audioCaptureDefaults: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          // Opus com DTX (não transmite silêncio) + RED (resiste a perda de pacote).
+          publishDefaults: { dtx: true, red: true, audioPreset: AudioPresets.speech },
         });
         roomRef.current = room;
 
@@ -218,12 +228,25 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
           .on(RoomEvent.TrackMuted, refreshMembers)
           .on(RoomEvent.TrackUnmuted, refreshMembers)
           .on(RoomEvent.LocalTrackPublished, refreshMembers)
+          .on(RoomEvent.Reconnecting, () => setStatus("connecting"))
+          .on(RoomEvent.Reconnected, () => {
+            setStatus("connected");
+            // Reanexa e volta a tocar todo áudio remoto após a reconexão.
+            audioElsRef.current.forEach((el) => void el.play().catch(() => undefined));
+            refreshMembers();
+          })
+          .on(RoomEvent.MediaDevicesError, () => {
+            toast.error("O microfone foi tomado por outro app (jogo). Use um headset ou libere o microfone.");
+          })
           .on(RoomEvent.Disconnected, () => {
             cleanupAudio();
+            keepAliveRef.current?.stop();
+            keepAliveRef.current = null;
             setStatus("idle");
             setChannel(null);
             setMembers([]);
           });
+
 
         await room.connect(access.wsUrl, access.token);
         await room.localParticipant.setMicrophoneEnabled(mode === "open");

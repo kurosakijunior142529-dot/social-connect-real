@@ -359,17 +359,37 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     };
   }, [mode, status, pttKey, setPttHeld]);
 
-  // Keep the session alive when the tab is hidden / screen is locked
+  // Monitor de saúde do microfone: detecta quando o SO/jogo toma o microfone
+  // (track "muted" ou "ended") e republica automaticamente.
   useEffect(() => {
     if (status !== "connected") return;
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        audioElsRef.current.forEach((el) => void el.play().catch(() => undefined));
+    let warned = false;
+    const id = window.setInterval(async () => {
+      const room = roomRef.current;
+      if (!room) return;
+      const shouldBeOn = mode === "ptt" ? pttHeld : micEnabled;
+      if (!shouldBeOn) return;
+      const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+      const mst = pub?.track?.mediaStreamTrack;
+      const broken = !pub || !mst || mst.readyState === "ended" || mst.muted;
+      if (!broken) {
+        warned = false;
+        return;
       }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [status]);
+      try {
+        await room.localParticipant.setMicrophoneEnabled(false);
+        await room.localParticipant.setMicrophoneEnabled(true);
+        refreshMembers();
+      } catch {
+        if (!warned) {
+          warned = true;
+          toast.error("Microfone indisponível — outro app pode estar usando. Um headset resolve.");
+        }
+      }
+    }, 4000);
+    return () => window.clearInterval(id);
+  }, [status, mode, pttHeld, micEnabled, refreshMembers]);
+
 
   useEffect(() => () => leave(), [leave]);
 

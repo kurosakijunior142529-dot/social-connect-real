@@ -82,6 +82,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const roomRef = useRef<Room | null>(null);
   const audioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const volumesRef = useRef<Map<string, number>>(new Map());
+  const keepAliveRef = useRef<{ stop: () => void } | null>(null);
 
   const [channel, setChannel] = useState<VoiceChannelInfo | null>(null);
   const [status, setStatus] = useState<"idle" | "connecting" | "connected">("idle");

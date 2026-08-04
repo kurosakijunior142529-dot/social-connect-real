@@ -21,6 +21,8 @@ import {
   type Participant,
 } from "livekit-client";
 import { startVoiceKeepAlive, setVoiceMediaSession } from "@/lib/voice-keepalive";
+import { onForeground } from "@/lib/app-lifecycle";
+
 import { getVoiceChannelAccess } from "@/lib/voice.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -391,7 +393,27 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, [status, mode, pttHeld, micEnabled, refreshMembers]);
 
 
+  // Ao voltar do segundo plano: se a sala caiu silenciosamente, reconecta sozinho.
+  const channelRef = useRef<VoiceChannelInfo | null>(null);
+  channelRef.current = channel;
+  useEffect(() => {
+    if (status === "idle") return;
+    return onForeground(() => {
+      const room = roomRef.current;
+      const target = channelRef.current;
+      if (!target) return;
+      if (!room || room.state === "disconnected") {
+        void join(target);
+        return;
+      }
+      // Sala viva: garante que todo áudio remoto voltou a tocar.
+      audioElsRef.current.forEach((el) => void el.play().catch(() => undefined));
+      refreshMembers();
+    });
+  }, [status, join, refreshMembers]);
+
   useEffect(() => () => leave(), [leave]);
+
 
   const value = useMemo<Ctx>(
     () => ({

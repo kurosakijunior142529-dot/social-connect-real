@@ -210,7 +210,14 @@ function ProfilePage() {
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl font-display font-black tracking-tight">{profile.display_name}</h1>
-          {profile.is_verified ? <VerifiedBadge size={20} /> : null}
+          {profile.is_verified || profile.badge_variant ? (
+            <VerifiedBadge size={20} variant={profile.badge_variant ?? "verified"} />
+          ) : null}
+          {profile.badge_variant === "founder" ? (
+            <span className="text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 font-bold text-black bg-[linear-gradient(135deg,#FFF3B0,#22E06A)] shadow-[0_0_12px_rgba(34,224,106,0.45)]">
+              Pioneira #1
+            </span>
+          ) : null}
           {profile.is_creator ? (
             <span className="text-[10px] uppercase tracking-wider rounded-full bg-primary/15 text-primary px-2 py-0.5 font-semibold">
               Criador

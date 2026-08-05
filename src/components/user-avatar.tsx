@@ -1,6 +1,6 @@
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { VerifiedBadge } from "@/components/verified-badge";
+import { VerifiedBadge, type BadgeVariant } from "@/components/verified-badge";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -9,9 +9,10 @@ type Props = {
   className?: string;
   ring?: boolean | "story" | "viewed";
   verified?: boolean;
+  badgeVariant?: BadgeVariant | null;
 };
 
-export function UserAvatar({ avatarPath, displayName, className, ring, verified }: Props) {
+export function UserAvatar({ avatarPath, displayName, className, ring, verified, badgeVariant }: Props) {
   const { data: url } = useSignedUrl("avatars", avatarPath);
   const initials = displayName
     .split(" ")
@@ -41,8 +42,12 @@ export function UserAvatar({ avatarPath, displayName, className, ring, verified 
   const withBadge = (child: React.ReactNode) => (
     <span className="relative inline-block">
       {child}
-      {verified ? (
-        <VerifiedBadge className="absolute -bottom-0.5 -right-0.5 ring-2 ring-background" size={14} />
+      {verified || badgeVariant ? (
+        <VerifiedBadge
+          variant={badgeVariant ?? "verified"}
+          className="absolute -bottom-0.5 -right-0.5 ring-2 ring-background"
+          size={14}
+        />
       ) : null}
     </span>
   );

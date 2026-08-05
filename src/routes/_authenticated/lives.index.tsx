@@ -133,6 +133,7 @@ function LiveCard({ r, live = false }: { r: any; live?: boolean }) {
     <Link
       to="/live/$id"
       params={{ id: r.id }}
+      search={{ host: undefined }}
       className="group block rounded-2xl overflow-hidden bg-[color:var(--surface)] border border-[color:var(--hairline)] hover:border-primary/40 hover:shadow-elegant transition"
     >
       <div className="relative aspect-video bg-black overflow-hidden">

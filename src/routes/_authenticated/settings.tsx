@@ -144,9 +144,35 @@ function SettingsPage() {
 
       <form onSubmit={save} className="space-y-4">
         <div className="space-y-2">
-          <Label>Usuário</Label>
-          <Input value={profile.data?.username ?? ""} disabled className="rounded-xl" />
+          <Label htmlFor="un">Usuário (@)</Label>
+          <div className="flex gap-2">
+            <Input
+              id="un"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+              maxLength={20}
+              className="rounded-xl"
+              placeholder="seu_usuario"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl shrink-0"
+              disabled={
+                changingUsername ||
+                !usernameInput ||
+                usernameInput === (profile.data?.username ?? "")
+              }
+              onClick={changeUsername}
+            >
+              {changingUsername ? "Salvando…" : "Alterar"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            3 a 20 caracteres (letras, números, ponto ou _). Pode ser alterado a cada 14 dias.
+          </p>
         </div>
+
         <div className="space-y-2">
           <Label htmlFor="dn">Nome</Label>
           <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={50} className="rounded-xl" />

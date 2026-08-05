@@ -1,6 +1,6 @@
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { VerifiedBadge } from "@/components/verified-badge";
+import { VerifiedBadge, type BadgeVariant } from "@/components/verified-badge";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -9,9 +9,10 @@ type Props = {
   className?: string;
   ring?: boolean | "story" | "viewed";
   verified?: boolean;
+  badgeVariant?: BadgeVariant | null;
 };
 
-export function UserAvatar({ avatarPath, displayName, className, ring, verified }: Props) {
+export function UserAvatar({ avatarPath, displayName, className, ring, verified, badgeVariant }: Props) {
   const { data: url } = useSignedUrl("avatars", avatarPath);
   const initials = displayName
     .split(" ")

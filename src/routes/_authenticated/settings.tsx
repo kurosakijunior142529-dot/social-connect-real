@@ -41,6 +41,8 @@ function SettingsPage() {
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [usernameInput, setUsernameInput] = useState("");
+  const [changingUsername, setChangingUsername] = useState(false);
 
   const { data: coverUrl } = useSignedUrl("covers", profile.data?.cover_url ?? null);
 
@@ -51,8 +53,21 @@ function SettingsPage() {
       setWebsite(profile.data.website ?? "");
       setLocation(profile.data.location ?? "");
       setPronouns(profile.data.pronouns ?? "");
+      setUsernameInput(profile.data.username ?? "");
     }
   }, [profile.data]);
+
+  async function changeUsername() {
+    const next = usernameInput.trim().toLowerCase();
+    if (!/^[a-z0-9_.]{3,20}$/.test(next)) return toast.error("Use 3 a 20 caracteres: letras, números, ponto ou _");
+    setChangingUsername(true);
+    const { data, error } = await supabase.rpc("change_username", { _new_username: next } as any);
+    setChangingUsername(false);
+    if (error) return toast.error(error.message);
+    toast.success(`@ atualizado para @${data}`);
+    queryClient.invalidateQueries({ queryKey: ["me-profile", user.id] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();

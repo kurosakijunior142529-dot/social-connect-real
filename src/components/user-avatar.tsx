@@ -42,13 +42,17 @@ export function UserAvatar({ avatarPath, displayName, className, ring, verified,
   const withBadge = (child: React.ReactNode) => (
     <span className="relative inline-block">
       {child}
-      {verified ? (
-        <VerifiedBadge className="absolute -bottom-0.5 -right-0.5 ring-2 ring-background" size={14} />
+      {verified || badgeVariant ? (
+        <VerifiedBadge
+          variant={badgeVariant ?? "verified"}
+          className="absolute -bottom-0.5 -right-0.5 ring-2 ring-background"
+          size={14}
+        />
       ) : null}
     </span>
   );
 
-  if (!ring) return withBadge(inner);
+  if (!ring && !badgeVariant) return withBadge(inner);
 
   return withBadge(
     <div className={cn("rounded-full p-[2px]", ringClass)}>

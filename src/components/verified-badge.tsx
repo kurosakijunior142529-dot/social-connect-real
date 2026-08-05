@@ -1,4 +1,4 @@
-import { Check, Crown, Code2, Handshake, Star, Sparkles } from "lucide-react";
+import { Check, Crown, Code2, Handshake, Star, Sparkles, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type BadgeVariant =
@@ -7,7 +7,8 @@ export type BadgeVariant =
   | "developer"
   | "partner"
   | "creator"
-  | "star";
+  | "star"
+  | "founder";
 
 type Props = {
   className?: string;

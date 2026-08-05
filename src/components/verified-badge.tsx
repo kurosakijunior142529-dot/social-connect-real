@@ -67,6 +67,13 @@ const CONFIG: Record<BadgeVariant, {
     glow: "0 0 14px rgba(34,184,242,0.55)",
     Icon: Star,
   },
+  founder: {
+    label: "Pioneira • Primeira usuária da Vibely",
+    gradient: "linear-gradient(135deg,#FFF3B0 0%,#22E06A 45%,#0B7A45 100%)",
+    ring: "rgba(255,220,120,0.75)",
+    glow: "0 0 18px rgba(34,224,106,0.7)",
+    Icon: Rocket,
+  },
 };
 
 export function VerifiedBadge({

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type TenorGif = {
   id: string;
@@ -45,6 +46,7 @@ async function tenor(path: string, params: Record<string, string>) {
 }
 
 export const searchGifs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
     z.object({ q: z.string().max(120).default(""), pos: z.string().optional() }).parse(i),
   )

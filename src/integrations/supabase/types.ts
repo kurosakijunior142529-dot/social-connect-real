@@ -1480,6 +1480,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          badge_variant: string | null
           bio: string | null
           cover_url: string | null
           created_at: string
@@ -1493,10 +1494,12 @@ export type Database = {
           show_online: boolean
           updated_at: string
           username: string
+          username_changed_at: string | null
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          badge_variant?: string | null
           bio?: string | null
           cover_url?: string | null
           created_at?: string
@@ -1510,10 +1513,12 @@ export type Database = {
           show_online?: boolean
           updated_at?: string
           username: string
+          username_changed_at?: string | null
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          badge_variant?: string | null
           bio?: string | null
           cover_url?: string | null
           created_at?: string
@@ -1527,6 +1532,7 @@ export type Database = {
           show_online?: boolean
           updated_at?: string
           username?: string
+          username_changed_at?: string | null
           website?: string | null
         }
         Relationships: []
@@ -2056,6 +2062,7 @@ export type Database = {
         Args: { _live: string; _user: string }
         Returns: boolean
       }
+      change_username: { Args: { _new_username: string }; Returns: string }
       chat_role: { Args: { _chat: string; _user: string }; Returns: string }
       coins_to_brl: { Args: { _coins: number }; Returns: number }
       credit_coins: {

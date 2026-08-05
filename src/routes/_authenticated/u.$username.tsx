@@ -201,6 +201,7 @@ function ProfilePage() {
           <UserAvatar
             avatarPath={profile.avatar_url}
             displayName={profile.display_name}
+            badgeVariant={profile.badge_variant ?? (profile.is_verified ? "verified" : null)}
             className="h-24 w-24"
           />
         </div>

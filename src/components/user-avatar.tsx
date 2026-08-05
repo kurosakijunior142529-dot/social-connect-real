@@ -52,7 +52,7 @@ export function UserAvatar({ avatarPath, displayName, className, ring, verified,
     </span>
   );
 
-  if (!ring && !badgeVariant) return withBadge(inner);
+  if (!ring) return withBadge(inner);
 
   return withBadge(
     <div className={cn("rounded-full p-[2px]", ringClass)}>

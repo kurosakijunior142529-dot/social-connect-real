@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Heart, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
@@ -25,7 +25,7 @@ export type FeedPost = {
   liked_by_me: boolean;
 };
 
-export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserId: string | null }) {
+function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: string | null }) {
   const queryClient = useQueryClient();
   const [popKey, setPopKey] = useState(0);
 
@@ -170,6 +170,16 @@ export function PostCard({ post, currentUserId }: { post: FeedPost; currentUserI
     </article>
   );
 }
+
+export const PostCard = memo(PostCardBase, (a, b) =>
+  a.currentUserId === b.currentUserId &&
+  a.post.id === b.post.id &&
+  a.post.liked_by_me === b.post.liked_by_me &&
+  a.post.likes_count === b.post.likes_count &&
+  a.post.comments_count === b.post.comments_count &&
+  a.post.caption === b.post.caption &&
+  a.post.author?.avatar_url === b.post.author?.avatar_url,
+);
 
 // Query helper — normalizes rows into FeedPost[]
 export function usePostsQuery(opts: {

@@ -16,12 +16,9 @@ export const getRouter = () => {
           Math.round(Math.min(15_000, 400 * 2 ** attempt) * (0.7 + Math.random() * 0.6)),
       },
       mutations: {
-        retry: (failureCount, error) => {
-          const status = (error as { status?: number } | null)?.status;
-          if (status && status >= 400 && status < 500) return false;
-          return failureCount < 2;
-        },
-        retryDelay: (attempt) => Math.min(8_000, 500 * 2 ** attempt),
+        // Writes are not idempotent (saques, likes, RPCs). Never auto-retry:
+        // a timeout after the server already applied the change would duplicate it.
+        retry: 0,
       },
     },
   });

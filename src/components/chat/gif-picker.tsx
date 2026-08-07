@@ -67,6 +67,12 @@ export function GifPicker({
       try {
         const res = await search({ data: { q: key } });
         if (my !== reqId.current) return;
+        if (!res.ok) {
+          lastErr = new Error(res.detail ? `${res.message} — ${res.detail}` : res.message);
+          if (res.code === "invalid_key" || res.code === "api_disabled" || res.code === "missing_key") break;
+          await new Promise((r) => setTimeout(r, 400));
+          continue;
+        }
         cache.set(key, res.items);
         persist(key, res.items);
         setItems(res.items);

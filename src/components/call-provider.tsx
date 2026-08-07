@@ -205,21 +205,6 @@ export function CallProvider({ children }: { children: ReactNode }) {
       audioTrack.enabled = true;
       setConnectionLabel("Microfone ativo");
 
-      try {
-        const AudioContextCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        if (AudioContextCtor) {
-          const context = new AudioContextCtor();
-          audioContextRef.current = context;
-          const analyser = context.createAnalyser();
-          analyser.fftSize = 256;
-          context.createMediaStreamSource(new MediaStream([audioTrack])).connect(analyser);
-          const samples = new Uint8Array(analyser.frequencyBinCount);
-          analyser.getByteFrequencyData(samples);
-        }
-      } catch (error) {
-        console.warn("microphone analyser unavailable", error);
-      }
-
       const remote = persistentRemoteStreamRef.current;
       setRemoteStream(remote);
 
@@ -698,12 +683,19 @@ export function CallProvider({ children }: { children: ReactNode }) {
       onClip: async (audio) => {
         if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
         try {
+          let timeoutId: ReturnType<typeof setTimeout> | undefined;
+          const timeout = new Promise<never>((_, reject) => {
+            timeoutId = window.setTimeout(
+              () => reject(new Error("Tempo limite da transcrição excedido.")),
+              15_000,
+            );
+          });
           const result = await Promise.race([
             transcribe({ data: { audio, language: spokenLangRef.current } }),
-            new Promise<never>((_, reject) => {
-              window.setTimeout(() => reject(new Error("Tempo limite da transcrição excedido.")), 15_000);
-            }),
-          ]);
+            timeout,
+          ]).finally(() => {
+            if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+          });
           if (translationEnabledRef.current && session === translationSessionRef.current && result.text) {
             pushMyCaption(result.text, spokenLangRef.current);
           }

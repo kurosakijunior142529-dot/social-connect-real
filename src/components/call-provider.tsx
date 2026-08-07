@@ -164,6 +164,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     sendSignalRef.current = null;
     recognitionRef.current?.abort?.();
     recognitionRef.current = null;
+    sttFallbackRef.current?.stop();
+    sttFallbackRef.current = null;
     translationEnabledRef.current = false;
     setTranslationEnabled(false);
     setCaptions([]);

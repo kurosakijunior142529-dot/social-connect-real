@@ -24,20 +24,23 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthenticatedLayout() {
   const { user } = Route.useRouteContext();
+  const navigate = useNavigate();
   const [username, setUsername] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      navigate({ to: "/auth", replace: true });
+      return;
+    }
     supabase
       .from("profiles")
       .select("username")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => setUsername(data?.username));
-  }, [user?.id]);
+  }, [user?.id, navigate]);
 
-  // Client-side auth gate: if SSR returned a null user, the client beforeLoad
-  // will redirect once the session is known. Avoid rendering private UI briefly.
+  // Client-side auth gate: don't render private UI until we know the user.
   if (!user?.id) return null;
 
   return (

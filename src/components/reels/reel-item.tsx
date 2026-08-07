@@ -15,11 +15,13 @@ type Props = {
   muted: boolean;
   onToggleMute: () => void;
   onOpenComments: (postId: string) => void;
+  /** URL of the next reel to preload. */
+  nextSrc?: string;
 };
 
 type Burst = { id: number; x: number; y: number };
 
-export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments }: Props) {
+export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, nextSrc }: Props) {
   const qc = useQueryClient();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -227,6 +229,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           <div className="h-10 w-10 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
         </div>
       )}
+      {nextSrc ? <link rel="preload" as="video" href={nextSrc} /> : null}
 
       {/* Top + bottom gradients */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/55 via-black/10 to-transparent" />

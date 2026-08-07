@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { PostCard, usePostsQuery } from "@/components/post-card";
+import { LazyPostCard, usePostsQuery } from "@/components/post-card";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
@@ -9,6 +9,7 @@ import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { PlusSquare, Tv, Gamepad2, Radio, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
+  ssr: false,
   component: FeedPage,
 });
 
@@ -91,8 +92,8 @@ function FeedPage() {
         </div>
       ) : query.data && query.data.length > 0 ? (
         <div className="divide-y divide-[color:var(--hairline)]">
-          {query.data.map((p) => (
-            <PostCard key={p.id} post={p} currentUserId={user.id} />
+          {query.data.map((p, i) => (
+            <LazyPostCard key={p.id} post={p} currentUserId={user.id} eager={i < 2} />
           ))}
         </div>
       ) : (

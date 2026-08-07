@@ -123,6 +123,24 @@
     font-weight: 600;
     letter-spacing: -0.03em;
   }
+
+  /* Premium tactile feedback on every interactive element */
+  button, a, [role="button"], input[type="submit"], input[type="button"], label[for] {
+    transition: transform 120ms var(--ease-out-quart), opacity 120ms var(--ease-out-quart);
+  }
+  button:active, a:active, [role="button"]:active,
+  input[type="submit"]:active, input[type="button"]:active, label[for]:active {
+    transform: scale(0.96);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button, a, [role="button"], input[type="submit"], input[type="button"], label[for] {
+      transition: none;
+    }
+    button:active, a:active, [role="button"]:active,
+    input[type="submit"]:active, input[type="button"]:active, label[for]:active {
+      transform: none;
+    }
+  }
   ::selection { background: var(--primary); color: var(--primary-foreground); }
 }
 

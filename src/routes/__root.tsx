@@ -12,6 +12,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { ConnectionIndicator } from "@/components/connection-indicator";
 
 
+
+
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerPWA } from "@/lib/pwa-register";
@@ -179,5 +181,4 @@ function RootComponent() {
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
-
 }

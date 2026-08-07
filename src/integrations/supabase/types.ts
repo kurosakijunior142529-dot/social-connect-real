@@ -434,6 +434,7 @@ export type Database = {
           description: string | null
           id: string
           last_message_at: string
+          meta: Json | null
           owner_id: string
           title: string
           type: string
@@ -445,6 +446,7 @@ export type Database = {
           description?: string | null
           id?: string
           last_message_at?: string
+          meta?: Json | null
           owner_id: string
           title: string
           type: string
@@ -456,6 +458,7 @@ export type Database = {
           description?: string | null
           id?: string
           last_message_at?: string
+          meta?: Json | null
           owner_id?: string
           title?: string
           type?: string
@@ -536,6 +539,7 @@ export type Database = {
           created_at: string
           id: string
           last_message_at: string
+          meta: Json | null
           user_a: string
           user_b: string
           wallpaper_type: string
@@ -545,6 +549,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_message_at?: string
+          meta?: Json | null
           user_a: string
           user_b: string
           wallpaper_type?: string
@@ -554,6 +559,7 @@ export type Database = {
           created_at?: string
           id?: string
           last_message_at?: string
+          meta?: Json | null
           user_a?: string
           user_b?: string
           wallpaper_type?: string
@@ -2118,6 +2124,14 @@ export type Database = {
       request_withdrawal: {
         Args: { _amount_coins: number; _bank_account_id: string }
         Returns: string
+      }
+      set_chat_meta: {
+        Args: { _chat: string; _meta: Json }
+        Returns: undefined
+      }
+      set_conversation_meta: {
+        Args: { _conversation: string; _meta: Json }
+        Returns: undefined
       }
       set_conversation_wallpaper: {
         Args: { _conversation: string; _type: string; _value?: string }

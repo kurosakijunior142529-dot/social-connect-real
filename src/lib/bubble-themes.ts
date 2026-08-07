@@ -1,4 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getConversationMeta, setConversationMeta, getChatMeta, setChatMeta } from "@/lib/chat-prefs.functions";
 
 export type BubbleThemeId =
   | "classic"
@@ -149,28 +151,70 @@ export function getStoredBubbleTheme(chatId: string): BubbleThemeId {
 
 export function useChatPrefs(chatId: string) {
   const [prefs, setPrefs] = useState<ChatPrefs>(DEFAULTS);
+  const fetchConversationMeta = useServerFn(getConversationMeta);
+  const saveConversationMeta = useServerFn(setConversationMeta);
+  const fetchChatMeta = useServerFn(getChatMeta);
+  const saveChatMeta = useServerFn(setChatMeta);
 
+  const { storageKey, isDm, realId } = useMemo(() => {
+    const isDm = chatId.startsWith("dm-");
+    const realId = isDm ? chatId.slice(3) : chatId;
+    const storageKey = isDm ? `dm-${realId}` : realId;
+    return { storageKey, isDm, realId };
+  }, [chatId]);
+
+  // 1) Load: localStorage first (instant), then merge server meta in background.
   useEffect(() => {
-    setPrefs(readPrefs(chatId));
+    let cancelled = false;
+    setPrefs(readPrefs(storageKey));
+
+    const fetcher = isDm
+      ? fetchConversationMeta({ data: { conversationId: realId } })
+      : fetchChatMeta({ data: { chatId: realId } });
+
+    fetcher
+      .then((server) => {
+        if (cancelled) return;
+        if (server && Object.keys(server).length > 0) {
+          setPrefs((prev) => {
+            const merged = { ...prev, ...server };
+            writePrefs(storageKey, merged);
+            return merged;
+          });
+        }
+      })
+      .catch(() => {
+        // offline / unauthenticated — localStorage remains authoritative
+      });
+
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (!detail || detail.chatId === chatId) setPrefs(readPrefs(chatId));
+      if (!detail || detail.chatId === storageKey) setPrefs(readPrefs(storageKey));
     };
     window.addEventListener("vibely:chatPrefs", onChange as EventListener);
     window.addEventListener("storage", onChange);
     return () => {
+      cancelled = true;
       window.removeEventListener("vibely:chatPrefs", onChange as EventListener);
       window.removeEventListener("storage", onChange);
     };
-  }, [chatId]);
+  }, [storageKey, isDm, realId, fetchConversationMeta, fetchChatMeta]);
 
-  const update = useCallback((patch: Partial<ChatPrefs>) => {
-    setPrefs((prev) => {
-      const next = { ...prev, ...patch };
-      writePrefs(chatId, next);
-      return next;
-    });
-  }, [chatId]);
+  const update = useCallback(
+    (patch: Partial<ChatPrefs>) => {
+      setPrefs((prev) => {
+        const next = { ...prev, ...patch };
+        writePrefs(storageKey, next);
+        // Sync to server in background; do not block UI on failures.
+        const saver = isDm
+          ? saveConversationMeta({ data: { conversationId: realId, patch } })
+          : saveChatMeta({ data: { chatId: realId, patch } });
+        saver.catch(() => {});
+        return next;
+      });
+    },
+    [storageKey, isDm, realId, saveConversationMeta, saveChatMeta],
+  );
 
   const theme = BUBBLE_THEMES.find((t) => t.id === prefs.themeId) ?? BUBBLE_THEMES[0];
   const font = CHAT_FONTS.find((f) => f.id === prefs.font) ?? CHAT_FONTS[0];

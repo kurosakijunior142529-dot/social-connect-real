@@ -130,8 +130,7 @@ function SettingsPage() {
       const { error } = await supabase.from("profiles").update({ [column]: path } as any).eq("id", user.id);
       if (error) throw error;
       toast.success(kind === "avatar" ? "Avatar atualizado!" : "Capa atualizada!");
-      queryClient.invalidateQueries({ queryKey: ["me-profile", user.id] });
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      invalidateProfileEverywhere();
       queryClient.invalidateQueries({ queryKey: ["signed-url"] });
     } catch (err: any) {
       toast.error(err.message ?? "Falha ao enviar");

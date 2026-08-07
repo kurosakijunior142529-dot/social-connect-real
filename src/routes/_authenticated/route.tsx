@@ -9,6 +9,12 @@ import { VoiceDock } from "@/components/voice/voice-dock";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    // SSR: skip the redirect to avoid hydration mismatches. The layout is
+    // already ssr:false, but during dev/prerender the server may still evaluate
+    // beforeLoad. Returning a null user lets the client gate take over.
+    if (typeof document === "undefined") {
+      return { user: null as any };
+    }
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
     return { user: data.user };

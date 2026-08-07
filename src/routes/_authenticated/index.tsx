@@ -9,6 +9,7 @@ import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { PlusSquare, Tv, Gamepad2, Radio, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
+  ssr: false,
   component: FeedPage,
 });
 

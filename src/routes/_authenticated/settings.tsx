@@ -57,6 +57,27 @@ function SettingsPage() {
     }
   }, [profile.data]);
 
+  /**
+   * Perfil aparece embutido em várias listas (feed, salvos, explorar, reels…),
+   * então qualquer alteração de @/nome/avatar precisa invalidar todas elas —
+   * não só as queries de perfil.
+   */
+  function invalidateProfileEverywhere() {
+    const keys = [
+      ["me-profile", user.id],
+      ["profile"],
+      ["profile-stats"],
+      ["feed"],
+      ["saved"],
+      ["explore"],
+      ["reels"],
+      ["user-posts"],
+      ["post"],
+      ["comments"],
+    ];
+    for (const key of keys) queryClient.invalidateQueries({ queryKey: key });
+  }
+
   async function changeUsername() {
     const next = usernameInput.trim().toLowerCase();
     if (!/^[a-z0-9_.]{3,20}$/.test(next)) return toast.error("Use 3 a 20 caracteres: letras, números, ponto ou _");
@@ -65,8 +86,7 @@ function SettingsPage() {
     setChangingUsername(false);
     if (error) return toast.error(error.message);
     toast.success(`@ atualizado para @${data}`);
-    queryClient.invalidateQueries({ queryKey: ["me-profile", user.id] });
-    queryClient.invalidateQueries({ queryKey: ["profile"] });
+    invalidateProfileEverywhere();
   }
 
   async function save(e: FormEvent) {
@@ -87,8 +107,7 @@ function SettingsPage() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Perfil atualizado!");
-    queryClient.invalidateQueries({ queryKey: ["me-profile", user.id] });
-    queryClient.invalidateQueries({ queryKey: ["profile"] });
+    invalidateProfileEverywhere();
   }
 
   async function onPick(kind: "avatar" | "cover", file: File | null) {

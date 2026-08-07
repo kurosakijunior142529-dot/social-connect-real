@@ -1,0 +1,189 @@
+/**
+ * AI speech-to-text fallback for live call translation.
+ *
+ * Browsers without the Web Speech API (Android WebView, Firefox) can still get
+ * captions: we tap the *existing* local MediaStream (never re-request the mic,
+ * never modify the tracks), encode short complete WAV clips and send them to the
+ * server for transcription.
+ */
+
+const TARGET_RATE = 16000;
+const MAX_WINDOW_MS = 4500;
+const MIN_WINDOW_MS = 1200;
+const SILENCE_MS = 550;
+const SILENCE_RMS = 0.012;
+
+export type SttFallbackHandle = { stop: () => void };
+
+function downsample(input: Float32Array, from: number, to: number): Float32Array {
+  if (to >= from) return input;
+  const ratio = from / to;
+  const length = Math.floor(input.length / ratio);
+  const out = new Float32Array(length);
+  for (let i = 0; i < length; i += 1) {
+    const start = Math.floor(i * ratio);
+    const end = Math.min(input.length, Math.floor((i + 1) * ratio));
+    let sum = 0;
+    for (let j = start; j < end; j += 1) sum += input[j] ?? 0;
+    out[i] = sum / Math.max(1, end - start);
+  }
+  return out;
+}
+
+function encodeWav(chunks: Float32Array[], sampleRate: number): Blob {
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const buffer = new ArrayBuffer(44 + total * 2);
+  const view = new DataView(buffer);
+  const writeStr = (offset: number, text: string) => {
+    for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i));
+  };
+  writeStr(0, "RIFF");
+  view.setUint32(4, 36 + total * 2, true);
+  writeStr(8, "WAVE");
+  writeStr(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, "data");
+  view.setUint32(40, total * 2, true);
+
+  let offset = 44;
+  for (const chunk of chunks) {
+    for (let i = 0; i < chunk.length; i += 1) {
+      const s = Math.max(-1, Math.min(1, chunk[i] ?? 0));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      offset += 2;
+    }
+  }
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  const step = 0x8000;
+  for (let i = 0; i < bytes.length; i += step) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + step));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Starts windowed transcription over an existing stream.
+ * `onClip` receives a base64 WAV; it should resolve with the transcript (or null).
+ */
+export function startSttFallback(
+  stream: MediaStream,
+  handlers: {
+    onClip: (base64Wav: string) => Promise<void>;
+    onError?: (error: unknown) => void;
+  },
+): SttFallbackHandle | null {
+  const audioTracks = stream.getAudioTracks();
+  if (audioTracks.length === 0) return null;
+
+  const AudioCtor =
+    window.AudioContext ??
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioCtor) return null;
+
+  let ctx: AudioContext;
+  let source: MediaStreamAudioSourceNode;
+  let processor: ScriptProcessorNode;
+  let sink: GainNode;
+  try {
+    ctx = new AudioCtor();
+    source = ctx.createMediaStreamSource(new MediaStream(audioTracks));
+    processor = ctx.createScriptProcessor(4096, 1, 1);
+    // Muted sink keeps the processor pumping without echoing into the speakers.
+    sink = ctx.createGain();
+    sink.gain.value = 0;
+    source.connect(processor);
+    processor.connect(sink);
+    sink.connect(ctx.destination);
+  } catch (error) {
+    handlers.onError?.(error);
+    return null;
+  }
+
+  let stopped = false;
+  let pcm: Float32Array[] = [];
+  let samples = 0;
+  let voicedSamples = 0;
+  let silentSamples = 0;
+  let sending = false;
+
+  const reset = () => {
+    pcm = [];
+    samples = 0;
+    voicedSamples = 0;
+    silentSamples = 0;
+  };
+
+  const flush = async () => {
+    if (sending || pcm.length === 0) return;
+    const chunks = pcm;
+    const voiced = voicedSamples;
+    reset();
+    if (voiced < (TARGET_RATE * MIN_WINDOW_MS) / 1000 / 3) return; // basically silence
+    sending = true;
+    try {
+      const base64 = await blobToBase64(encodeWav(chunks, TARGET_RATE));
+      await handlers.onClip(base64);
+    } catch (error) {
+      handlers.onError?.(error);
+    } finally {
+      sending = false;
+    }
+  };
+
+  processor.onaudioprocess = (event) => {
+    if (stopped) return;
+    const input = event.inputBuffer.getChannelData(0);
+    const chunk = downsample(new Float32Array(input), ctx.sampleRate, TARGET_RATE);
+
+    let sum = 0;
+    for (let i = 0; i < chunk.length; i += 1) sum += (chunk[i] ?? 0) ** 2;
+    const rms = Math.sqrt(sum / Math.max(1, chunk.length));
+
+    pcm.push(chunk);
+    samples += chunk.length;
+    if (rms > SILENCE_RMS) {
+      voicedSamples += chunk.length;
+      silentSamples = 0;
+    } else {
+      silentSamples += chunk.length;
+    }
+
+    const ms = (samples / TARGET_RATE) * 1000;
+    const silenceMs = (silentSamples / TARGET_RATE) * 1000;
+    const voicedMs = (voicedSamples / TARGET_RATE) * 1000;
+
+    if (ms >= MAX_WINDOW_MS || (voicedMs >= MIN_WINDOW_MS / 2 && silenceMs >= SILENCE_MS)) {
+      void flush();
+    } else if (ms >= MAX_WINDOW_MS && voicedMs === 0) {
+      reset();
+    }
+  };
+
+  void ctx.resume?.().catch(() => {});
+
+  return {
+    stop() {
+      stopped = true;
+      processor.onaudioprocess = null;
+      try {
+        processor.disconnect();
+        source.disconnect();
+        sink.disconnect();
+      } catch {
+        /* already torn down */
+      }
+      void ctx.close().catch(() => {});
+    },
+  };
+}

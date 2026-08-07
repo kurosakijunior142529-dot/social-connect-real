@@ -24,6 +24,32 @@ export const translateText = createServerFn({ method: "POST" })
     return { text: out.trim() };
   });
 
+// Translate several snippets at once (used when the live-caption language changes)
+export const translateBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        items: z.array(z.object({ id: z.string().min(1), text: z.string().min(1).max(1000) })).min(1).max(20),
+        target: z.string().min(2).max(10),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data }) => {
+    const numbered = data.items.map((item, index) => `${index + 1}. ${item.text.replace(/\n/g, " ")}`).join("\n");
+    const { text } = await generateText({
+      model: gateway()(MODEL),
+      prompt: `Translate each numbered line to language code "${data.target}". Return exactly ${data.items.length} lines, same numbering, translation only, no notes.\n\n${numbered}`,
+    });
+    const lines = text
+      .split("\n")
+      .map((line) => line.replace(/^\s*\d+[.)]\s*/, "").trim())
+      .filter(Boolean);
+    return {
+      results: data.items.map((item, index) => ({ id: item.id, text: lines[index] ?? item.text })),
+    };
+  });
+
 // Summarize the last N messages of a chat or DM
 export const summarizeConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

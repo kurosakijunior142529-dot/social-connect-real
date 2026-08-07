@@ -778,13 +778,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
           void translateMany({
             data: { items: visible.map((v) => ({ id: v.id, text: v.original })), target: language },
           })
-            .then(({ results }) => {
-              const map = new Map(results.map((r) => [r.id, r.text]));
+            .then(({ results }: { results: { id: string; text: string }[] }) => {
+              const map = new Map<string, string>(results.map((r) => [r.id, r.text]));
               setCaptions((rows) =>
-                rows.map((row) => (map.has(row.id) ? { ...row, translated: map.get(row.id) } : row)),
+                rows.map((row) => {
+                  const next = map.get(row.id);
+                  return next ? { ...row, translated: next } : row;
+                }),
               );
             })
-            .catch((error) => console.error("[call-translation] batch translate failed", error));
+            .catch((error: unknown) => console.error("[call-translation] batch translate failed", error));
         }
         return current.map((item) =>
           visible.some((v) => v.id === item.id) ? { ...item, translated: undefined } : item,

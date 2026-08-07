@@ -41,3 +41,33 @@ export const setConversationMeta = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+export const getChatMeta = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ chatId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("chats")
+      .select("meta")
+      .eq("id", data.chatId)
+      .maybeSingle();
+    if (error) throw error;
+    return (row?.meta ?? {}) as Partial<ChatPrefs>;
+  });
+
+export const setChatMeta = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z.object({
+      chatId: z.string().uuid(),
+      patch: chatPrefsSchema.partial(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("set_chat_meta", {
+      _chat: data.chatId,
+      _meta: data.patch,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });

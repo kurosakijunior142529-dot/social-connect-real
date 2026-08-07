@@ -1,64 +1,54 @@
-O escopo é grande. Proponho fatiar em fases para entregar com qualidade — cada fase é funcional de ponta a ponta, sem placeholder.
+Com base nas suas respostas, o caminho para o Vibely superar as redes sociais existentes é: primeiro tornar tudo o que já construímos realmente sólido e fluido, depois virar uma plataforma de criadores com monetização clara. Proponho 5 fases executadas nessa ordem.
 
-## Fase 0 — Correção rápida (agora)
-- **Bug do menu ⋮ do chat**: "Personalizar conversa" já foi adicionado no `ConversationMenu`, mas provavelmente não aparece porque a prop `onOpenCustomize` não foi passada em uma das telas (chat de grupo `chats.$id.tsx` ou DM `messages.$conversationId.tsx`). Vou auditar e ligar em ambas, garantindo abertura do sheet unificado (Balões + Papel de parede + Fonte + Bordas + Animações).
+## Fase 1 — Fundação: tudo deve funcionar perfeitamente
+Antes de adicionar qualquer grande feature, eliminar os pontos de frustração que você já mencionou e que aparecem no histórico do app.
 
-## Fase 1 — Player de vídeo imersivo (TikTok-like)
-Escopo restrito à **área do vídeo** no Reels e no Feed:
-- Player fullscreen sem chrome, overlay flutuante com gradientes topo/rodapé
-- Autoplay + loop + pré-carregamento do próximo (IntersectionObserver + `<link rel=preload>`/`preload=auto`)
-- Gestos: 1 toque = pause/play · 2 toques = like com coração animado (scale 0.8→1.2→1, fade) · long-press = 2× speed · swipe vertical suave com snap · swipe cancelado com efeito elástico
-- Barra de progresso ultra-fina (2px) só na base, sem thumb — aparece só ao toque
-- Botão de som discreto animado, inicia com áudio ligado (respeitando policy do browser: fallback muted → primeiro toque libera)
-- Vibração leve (`navigator.vibrate`) no like
-- Animações 60fps via `transform`/`opacity` (nada de layout thrash)
-- Skeleton só no primeiro frame; próximos vídeos entram sem loading visível
+- **Chamadas de voz**: garantir áudio bidirecional estável em todos os fluxos (chamada direta, aceite, reconexão, background, voz estilo Discord). Substituição por WebRTC manual já foi tentada várias vezes; manter LiveKit e adicionar fallback de diagnóstico + reconexão automática.
+- **Câmera e editor de vídeo**: corrigir permissões, estabilizar getUserMedia, garantir que gravação, filtros e trim funcionem no mobile PWA.
+- **Player de vídeo**: finalizar o player imersivo (autoplay, loop, double-tap like, long-press 2×, som, progresso) tanto no Feed quanto nos Reels.
+- **Chat**: garantir que "Personalizar conversa" aparece no menu ⋮ de todas as conversas, áudio do chat reproduzível, GIFs funcionando com chave Tenor válida, recibos de leitura e mensagens fixadas.
+- **Áudio em background**: PWA keep-alive, foreground service hints e MediaSession para chamadas/voz.
 
-## Fase 2 — Chat: personalização completa
-Sheet "Personalizar conversa" unificado com abas:
-- Balões (10 temas já existentes)
-- Cor customizada (color picker) para tema Personalizado
-- Papel de parede (já existe, integrar)
-- Fonte da conversa (system/serif/mono/rounded)
-- Raio de borda (slider)
-- Animações on/off
-- Persistência por conversa em `localStorage` + sincronização opcional em `conversations.meta` (DM)
+## Fase 2 — Performance e algoritmo de feed
+Deixar o app rápido e o feed relevante.
 
-## Fase 3 — Onboarding + sugestões
-- Detectar `first_login` (ausência de follows do usuário)
-- Tela `/onboarding/follow` mostrando Anny + Vibely (junior) com botão Seguir/Seguindo, "Seguir todos" e "Pular"
-- Bloco "Sugestões para você" no feed quando o usuário não segue ninguém
-- Flag persistida em `profiles.meta` ou tabela `user_preferences`
+- **Virtualização**: lista virtualizada no Feed e Reels para não renderizar posts fora da tela.
+- **Imagens/vídeos otimizados**: lazy loading, placeholders, formatos modernos (WebP/AVIF), pré-carregamento inteligente do próximo vídeo.
+- **Skeletons e estados de erro consistentes** em todas as telas.
+- **Algoritmo de feed**: além do cronológico, adicionar aba "Para você" com ranking por engajamento, recência, interesses e perfis seguidos.
+- **Busca e descoberta**: melhorar Explorar com busca por usuário, hashtag, trends e sugestões personalizadas.
 
-## Fase 4 — Foto de perfil com editor (Instagram-like)
-- Modal com `react-easy-crop` (arrastar, pinça/zoom, máscara circular, preview)
-- Compressão via Canvas antes do upload para bucket `avatars`
-- Botões Cancelar/Confirmar, obrigatório aplicar ajuste
+## Fase 3 — Plataforma para criadores e monetização
+Transformar o Vibely em lugar onde criadores ganham dinheiro de verdade.
 
-## Fase 5 — Menu de Conta funcional (financeiro + preferências)
-Cada rota real, sem placeholder:
-- **Carteira**: saldo disponível/pendente/sacado com contagem animada + Sacar + Histórico
-- **Pagamentos**: métodos, adicionar, principal, status
-- **Conta bancária & Pix**: CRUD com validação
-- **Solicitar saque**: fluxo com mínimo R$10, valida saldo, cria pendente (já existe `request_withdrawal`, faltam validações UI)
-- **Histórico financeiro**: lista + filtros entrada/saída
-- **Monetização**: ganhos por vídeos/lives/presentes + gráfico + ranking
-- **Notificações**: toggles persistentes (mensagens, curtidas, ganhos, lives)
-- **Configurações**: editar nome/bio, tema, idioma
-- **Privacidade**: conta pública/privada, comentários, mensagens
-- **Segurança**: alterar senha, 2FA, sessões ativas
-- **Ajuda**: FAQ + abrir chamado
+- **Painel do criador**: analytics de views, curtidas, seguidores, ganhos por conteúdo, audiência e horários de pico.
+- **Monetização completa**:
+  - Assinaturas/Vibely Pro já existem — garantir que benefícios funcionem (selos, destaques, ferramentas exclusivas).
+  - Presentes digitais em lives e posts com animações premium e repasse ao criador.
+  - Programa de parceria: meta de views/seguidores para liberar monetização.
+  - Saques via Pix com validação, antifraude e histórico claro.
+- **Lives profissionais**: melhorar estabilidade, layouts variados, moderação de chat ao vivo, destaque de inscritos e presentes.
+- **Selos e verificação**: sistema claro de verificação (criador verificado, pioneiro, parceiro) com critérios transparentes.
 
-## Fase 6 — Polimento global
-- Transições fade+slide entre rotas (respeitando `prefers-reduced-motion`)
-- Feedback de toque scale 0.95 nos botões
-- Skeletons consistentes em todas as telas
-- Auditoria de performance (React.memo, list virtualization no feed/reels)
+## Fase 4 — Crescimento e retenção
+Mecanismos para trazer e manter usuários.
 
----
+- **Onboarding de novos usuários**: sugestão de perfis para seguir (Anny, Vibely), tour rápido e feed personalizado desde o primeiro dia.
+- **Notificações push**: PWA push para curtidas, comentários, mensagens, lives de criadores seguidos e ganhos.
+- **Convites e viralização**: link de convite com recompensa, compartilhamento de posts/reels/lives.
+- **Stories**: stories com destaque de 24h, reações e respostas rápidas.
+- **Recompensas de engajamento**: moedas por login diário, convite, assistir lives ou interagir.
 
-## Como quero prosseguir
-Executar **Fase 0 + Fase 1 + Fase 2 agora** (correções + player + chat personalização — o núcleo do pedido).  
-Depois seguir Fase 3 → 4 → 5 → 6 em turnos seguintes.
+## Fase 5 — Diferenciais que nenhuma rede tem
+Recursos que consolidam a identidade do Vibely.
 
-Confirma essa ordem? Se preferir outra prioridade (ex.: começar pelo menu de Conta ou Onboarding), me diga.
+- **Assistente IA nativa**: Vibely AI já existe — expandir para legendas automáticas em vídeos, tradução em chamadas, moderação de comentários e sugestão de hashtags/caption.
+- **Comunidades/Canais**: evoluir os canais de voz para comunidades completas (texto, voz, posts, regras, mods).
+- **Jogos e interação**: expandir arcade, torneios, apostas amigáveis com moedas e ranking global.
+- **Marketplace de produtos digitais**: criadores venderem conteúdos exclusivos, templates, cursos ou merchandising.
+- **Acessibilidade e internacionalização**: legendas, tradução da interface, alto contraste e reduced motion.
+
+## Como prosseguir
+Sugiro executar **Fase 1 + início da Fase 2 no próximo turno** (correções críticas + performance do feed/player). Depois seguir Fase 3 → 4 → 5.
+
+Se concordar com a ordem, começo escrevendo o plano detalhado da Fase 1 e executando. Quer ajustar alguma prioridade?

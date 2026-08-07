@@ -683,7 +683,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       onClip: async (audio) => {
         if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
         try {
-          let timeoutId: ReturnType<typeof setTimeout> | undefined;
+          let timeoutId: number | undefined;
           const timeout = new Promise<never>((_, reject) => {
             timeoutId = window.setTimeout(
               () => reject(new Error("Tempo limite da transcrição excedido.")),

@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
@@ -9,14 +9,14 @@ import { VoiceDock } from "@/components/voice/voice-dock";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    // SSR: skip the redirect to avoid hydration mismatches. The layout is
-    // already ssr:false, but during dev/prerender the server may still evaluate
-    // beforeLoad. Returning a null user lets the client gate take over.
+    // SSR: skip auth check to avoid hydration mismatches. The layout is
+    // client-only (ssr:false), but during dev/prerender the server may still
+    // evaluate beforeLoad. Returning a null user lets the client gate redirect.
     if (typeof document === "undefined") {
       return { user: null as any };
     }
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    if (error || !data.user) return { user: null as any };
     return { user: data.user };
   },
   component: AuthenticatedLayout,

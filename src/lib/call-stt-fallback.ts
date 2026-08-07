@@ -143,6 +143,9 @@ export function startSttFallback(
 
   processor.onaudioprocess = (event) => {
     if (stopped) return;
+    // Never queue audio behind a slow network request. Keeping only one clip in
+    // flight prevents unbounded buffers and delayed captions on mobile.
+    if (sending) return;
     const input = event.inputBuffer.getChannelData(0);
     const chunk = downsample(new Float32Array(input), ctx.sampleRate, TARGET_RATE);
 
@@ -165,8 +168,6 @@ export function startSttFallback(
 
     if (ms >= MAX_WINDOW_MS || (voicedMs >= MIN_WINDOW_MS / 2 && silenceMs >= SILENCE_MS)) {
       void flush();
-    } else if (ms >= MAX_WINDOW_MS && voicedMs === 0) {
-      reset();
     }
   };
 

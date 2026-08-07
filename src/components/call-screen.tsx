@@ -39,6 +39,7 @@ type Props = {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   connectionLabel: string;
+  mediaConnected: boolean;
   captions: CallCaption[];
   translationEnabled: boolean;
   translationLanguage: string;
@@ -56,6 +57,7 @@ export function CallScreen({
   localStream,
   remoteStream,
   connectionLabel,
+  mediaConnected,
   captions,
   translationEnabled,
   translationLanguage,
@@ -76,7 +78,13 @@ export function CallScreen({
 
   const localLevel = useAudioLevel(muted ? null : localStream);
   const remoteLevel = useAudioLevel(remoteStream);
-  const speaking = remoteLevel > 0.12 ? "other" : localLevel > 0.12 ? "me" : null;
+  const speaking = mediaConnected
+    ? remoteLevel > 0.12
+      ? "other"
+      : localLevel > 0.12
+        ? "me"
+        : null
+    : null;
   const level = Math.max(localLevel, remoteLevel);
 
   useEffect(() => {
@@ -307,7 +315,11 @@ export function CallScreen({
           >
             {visibleCaptions.length === 0 ? (
               <p className="py-2 text-center text-xs text-white/50">
-                {translationEnabled ? "Ouvindo a conversa…" : "Ative a tradução para ver as falas aqui."}
+                 {!mediaConnected
+                   ? "Aguardando conexão"
+                   : translationEnabled
+                     ? "Ouvindo a conversa…"
+                     : "Ative a tradução para ver as falas aqui."}
               </p>
             ) : (
               visibleCaptions.map((caption) => (

@@ -112,8 +112,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const callerReadyRef = useRef(false);
   const negotiationIdRef = useRef<string | null>(null);
   const sendSignalRef = useRef<((kind: "offer" | "answer" | "ice" | "bye" | "caption", payload: Record<string, unknown>) => Promise<void>) | null>(null);
-  const recognitionRef = useRef<any>(null);
   const sttFallbackRef = useRef<SttFallbackHandle | null>(null);
+  const stopTranslationRef = useRef<(() => void) | null>(null);
+  const mediaConnectedRef = useRef(false);
+  const translationSessionRef = useRef(0);
+  const lastTranscriptRef = useRef({ text: "", at: 0 });
   const spokenLangRef = useRef<string>("pt-BR");
   const transcribe = useServerFn(transcribeCallClip);
   const translateMany = useServerFn(translateBatch);
@@ -122,6 +125,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [translationLanguage, setTranslationLanguage] = useState("pt-BR");
   const [captions, setCaptions] = useState<CallCaption[]>([]);
+  const [mediaConnected, setMediaConnected] = useState(false);
   const [connectionLabel, setConnectionLabel] = useState("Conectando");
   const previousUserIdRef = useRef<string | null>(null);
 
@@ -162,11 +166,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
     callerReadyRef.current = false;
     negotiationIdRef.current = null;
     sendSignalRef.current = null;
-    recognitionRef.current?.abort?.();
-    recognitionRef.current = null;
+    translationSessionRef.current += 1;
     sttFallbackRef.current?.stop();
     sttFallbackRef.current = null;
     translationEnabledRef.current = false;
+    mediaConnectedRef.current = false;
+    setMediaConnected(false);
     setTranslationEnabled(false);
     setCaptions([]);
     setConnectionLabel("Conectando");
@@ -187,6 +192,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const setupPeer = useCallback(
     async (callId: string, type: CallType, _role: CallRole, selfId: string) => {
+      mediaConnectedRef.current = false;
+      setMediaConnected(false);
       const stream = localStreamRef.current ?? (await getLocalMedia(type === "video", facingModeRef.current));
       localStreamRef.current = stream;
       setLocalStream(stream);
@@ -288,9 +295,23 @@ export function CallProvider({ children }: { children: ReactNode }) {
         remote.removeTrack(track.mediaStreamTrack);
         setTrackUpdate((value) => value + 1);
       });
-      room.on(RoomEvent.Reconnecting, () => setConnectionLabel("Reconectando"));
-      room.on(RoomEvent.Reconnected, () => setConnectionLabel("Conectado"));
-      room.on(RoomEvent.Disconnected, () => setConnectionLabel("Desconectado"));
+      room.on(RoomEvent.Reconnecting, () => {
+        mediaConnectedRef.current = false;
+        setMediaConnected(false);
+        stopTranslationRef.current?.();
+        setConnectionLabel("Reconectando");
+      });
+      room.on(RoomEvent.Reconnected, () => {
+        mediaConnectedRef.current = true;
+        setMediaConnected(true);
+        setConnectionLabel("Conectado");
+      });
+      room.on(RoomEvent.Disconnected, () => {
+        mediaConnectedRef.current = false;
+        setMediaConnected(false);
+        stopTranslationRef.current?.();
+        setConnectionLabel("Desconectado");
+      });
 
       await room.connect(access.wsUrl, access.token);
       await room.startAudio().catch(() => setConnectionLabel("Toque na tela para liberar o áudio"));
@@ -300,6 +321,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
         dtx: true,
         red: true,
       });
+      mediaConnectedRef.current = true;
+      setMediaConnected(true);
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
         const publication = await room.localParticipant.publishTrack(new LocalVideoTrack(videoTrack), {
@@ -612,14 +635,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [acceptIncoming, unlockAudioSink]);
 
   // ---- Live translation -------------------------------------------------
-  // Everything I say is transcribed locally (Web Speech API, or AI transcription
-  // as a fallback) and translated into the language I picked, together with the
-  // captions the other side broadcasts.
+  // Everything I say is transcribed from the audio track already acquired for
+  // the call. Translation never requests microphone access of its own.
 
   const pushMyCaption = useCallback(
     (text: string, sourceLang: string) => {
       const clean = text.trim();
       if (!clean) return;
+      const now = Date.now();
+      if (lastTranscriptRef.current.text === clean && now - lastTranscriptRef.current.at < 8_000) return;
+      lastTranscriptRef.current = { text: clean, at: now };
       const id = crypto.randomUUID();
       setCaptions((current) => [...current.slice(-60), { id, speaker: "me", original: clean }]);
       void sendSignalRef.current?.("caption", { text: clean, language: sourceLang });
@@ -633,6 +658,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       }
       void translate({ data: { text: clean, target } })
         .then((result) => {
+          if (!translationEnabledRef.current || translationLanguageRef.current !== target) return;
           setCaptions((current) =>
             current.map((item) => (item.id === id ? { ...item, translated: result.text } : item)),
           );
@@ -649,36 +675,41 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const stopTranslation = useCallback(() => {
     translationEnabledRef.current = false;
-    try {
-      recognitionRef.current?.stop?.();
-    } catch {
-      /* already stopped */
-    }
-    recognitionRef.current = null;
+    translationSessionRef.current += 1;
     sttFallbackRef.current?.stop();
     sttFallbackRef.current = null;
     setTranslationEnabled(false);
   }, []);
+  stopTranslationRef.current = stopTranslation;
 
-  /** Fallback for browsers without the Web Speech API (Android WebView, Firefox). */
-  const startAiTranscription = useCallback(() => {
+  /** Transcribes the existing call track without acquiring the microphone again. */
+  const startCallTranscription = useCallback(() => {
     const stream = localStreamRef.current;
-    if (!stream) {
-      toast.error("Ative o microfone para usar a tradução ao vivo.");
+    const audioTrack = stream?.getAudioTracks()[0];
+    if (!mediaConnectedRef.current || !stream || !audioTrack || audioTrack.readyState !== "live") {
+      toast.info("Aguardando a conexão da chamada.");
       return false;
     }
+    sttFallbackRef.current?.stop();
+    const session = translationSessionRef.current + 1;
+    translationSessionRef.current = session;
     let notified = false;
     const handle = startSttFallback(stream, {
       onClip: async (audio) => {
-        if (!translationEnabledRef.current) return;
+        if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
         try {
-          const result = await transcribe({ data: { audio, language: spokenLangRef.current } });
-          if (translationEnabledRef.current && result.text) {
+          const result = await Promise.race([
+            transcribe({ data: { audio, language: spokenLangRef.current } }),
+            new Promise<never>((_, reject) => {
+              window.setTimeout(() => reject(new Error("Tempo limite da transcrição excedido.")), 15_000);
+            }),
+          ]);
+          if (translationEnabledRef.current && session === translationSessionRef.current && result.text) {
             pushMyCaption(result.text, spokenLangRef.current);
           }
         } catch (error: any) {
           console.error("[call-translation] transcription failed", error);
-          if (!notified) {
+          if (!notified && translationEnabledRef.current && session === translationSessionRef.current) {
             notified = true;
             toast.error(error?.message ?? "Não foi possível transcrever o áudio.");
           }
@@ -695,72 +726,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [pushMyCaption, transcribe]);
 
   const startTranslation = useCallback(() => {
-    const browserWindow = window as unknown as {
-      SpeechRecognition?: new () => any;
-      webkitSpeechRecognition?: new () => any;
-    };
-    spokenLangRef.current = navigator.language || "pt-BR";
-    const Recognition = browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition;
-
-    if (!Recognition) {
-      translationEnabledRef.current = true;
-      if (!startAiTranscription()) {
-        translationEnabledRef.current = false;
-        return;
-      }
-      setTranslationEnabled(true);
+    if (!mediaConnectedRef.current || roomRef.current?.state !== "connected") {
+      toast.info("Aguardando a conexão da chamada.");
       return;
     }
-
-    const recognition = new Recognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = spokenLangRef.current;
-    recognition.onresult = (event: any) => {
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        if (!event.results[i].isFinal) continue;
-        pushMyCaption(String(event.results[i][0]?.transcript ?? ""), recognition.lang);
-      }
-    };
-    recognition.onerror = (event: any) => {
-      if (event.error === "no-speech" || event.error === "aborted") return;
-      console.error("[call-translation] recognition error", event.error);
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        toast.error("Permissão de microfone negada para a tradução.");
-        stopTranslation();
-        return;
-      }
-      // Network/engine failures: fall back to AI transcription instead of dying.
-      if (translationEnabledRef.current && !sttFallbackRef.current) {
-        try {
-          recognition.stop();
-        } catch {
-          /* noop */
-        }
-        recognitionRef.current = null;
-        startAiTranscription();
-      }
-    };
-    recognition.onend = () => {
-      if (translationEnabledRef.current && recognitionRef.current === recognition) {
-        try {
-          recognition.start();
-        } catch {
-          /* already restarting */
-        }
-      }
-    };
+    spokenLangRef.current = navigator.language || "pt-BR";
     translationEnabledRef.current = true;
-    recognitionRef.current = recognition;
-    setTranslationEnabled(true);
-    try {
-      recognition.start();
-    } catch (error) {
-      console.error("[call-translation] could not start recognition", error);
-      recognitionRef.current = null;
-      if (!startAiTranscription()) stopTranslation();
+    if (!startCallTranscription()) {
+      translationEnabledRef.current = false;
+      return;
     }
-  }, [pushMyCaption, startAiTranscription, stopTranslation]);
+    setTranslationEnabled(true);
+  }, [startCallTranscription]);
 
   const toggleTranslation = useCallback(() => {
     if (translationEnabledRef.current) stopTranslation();
@@ -769,6 +746,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const changeTranslationLanguage = useCallback(
     (language: string) => {
+      const allowed = ["pt-BR", "en", "es", "fr", "de", "it", "ja", "ko", "zh", "ar"];
+      if (!allowed.includes(language)) return;
       if (language === translationLanguageRef.current) return;
       translationLanguageRef.current = language;
       setTranslationLanguage(language);
@@ -896,6 +875,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           localStream={localStream}
           remoteStream={remoteStream}
           connectionLabel={connectionLabel}
+          mediaConnected={mediaConnected}
           captions={captions}
           translationEnabled={translationEnabled}
           translationLanguage={translationLanguage}

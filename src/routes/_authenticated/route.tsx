@@ -27,13 +27,18 @@ function AuthenticatedLayout() {
   const [username, setUsername] = useState<string | undefined>();
 
   useEffect(() => {
+    if (!user?.id) return;
     supabase
       .from("profiles")
       .select("username")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => setUsername(data?.username));
-  }, [user.id]);
+  }, [user?.id]);
+
+  // Client-side auth gate: if SSR returned a null user, the client beforeLoad
+  // will redirect once the session is known. Avoid rendering private UI briefly.
+  if (!user?.id) return null;
 
   return (
     <CallProvider>

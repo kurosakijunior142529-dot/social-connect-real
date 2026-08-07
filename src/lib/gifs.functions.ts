@@ -23,27 +23,36 @@ function pickFormat(gif: TenorGif) {
 
 async function tenor(path: string, params: Record<string, string>) {
   const key = process.env.TENOR_API_KEY;
-  if (!key) throw new Error("GIFs indisponíveis no momento");
+  if (!key) throw new Error("GIFs ainda não configurados. Adicione uma chave da API do Tenor.");
   const q = new URLSearchParams({ key, client_key: "vibely", ...params });
   const url = `https://tenor.googleapis.com/v2/${path}?${q}`;
   let r: Response;
   try {
-    r = await fetch(url);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
+    try {
+      r = await fetch(url, { signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
   } catch {
-    throw new Error("Sem conexão com o serviço de GIFs");
+    throw new Error("Sem conexão com o serviço de GIFs. Tente novamente.");
   }
   if (!r.ok) {
     const body = await r.text().catch(() => "");
-    // Log detalhado no servidor, mensagem amigável ao usuário
     console.error(`[tenor] ${r.status} ${path}:`, body.slice(0, 300));
-    if (r.status === 400 || r.status === 401 || r.status === 403) {
-      throw new Error("GIFs indisponíveis no momento");
+    if (r.status === 429) throw new Error("Muitas buscas — tente em instantes.");
+    if (body.includes("API_KEY_INVALID") || body.includes("API key not valid")) {
+      throw new Error("A chave da API de GIFs é inválida. Atualize a TENOR_API_KEY do app.");
     }
-    if (r.status === 429) throw new Error("Muitas buscas — tente em instantes");
-    throw new Error("GIFs indisponíveis no momento");
+    if (r.status === 400 || r.status === 401 || r.status === 403) {
+      throw new Error("Acesso aos GIFs negado pelo provedor. Verifique a chave da API do Tenor.");
+    }
+    throw new Error("GIFs indisponíveis no momento. Tente novamente.");
   }
   return (await r.json()) as { results: TenorGif[]; next?: string };
 }
+
 
 export const searchGifs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

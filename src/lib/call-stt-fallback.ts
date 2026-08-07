@@ -9,11 +9,15 @@
 
 const TARGET_RATE = 16000;
 const MAX_WINDOW_MS = 4500;
-const MIN_WINDOW_MS = 1200;
-const SILENCE_MS = 550;
-const SILENCE_RMS = 0.012;
+const MIN_WINDOW_MS = 900;
+const SILENCE_MS = 650;
+const SILENCE_RMS = 0.006;
 
-export type SttFallbackHandle = { stop: () => void };
+export type SttCaptureState = "starting" | "listening" | "transcribing" | "error";
+export type SttFallbackHandle = {
+  ready: Promise<boolean>;
+  stop: () => void;
+};
 
 function downsample(input: Float32Array, from: number, to: number): Float32Array {
   if (to >= from) return input;
@@ -81,6 +85,7 @@ export function startSttFallback(
   handlers: {
     onClip: (base64Wav: string) => Promise<void>;
     onError?: (error: unknown) => void;
+    onStateChange?: (state: SttCaptureState) => void;
   },
 ): SttFallbackHandle | null {
   const audioTracks = stream.getAudioTracks();
@@ -116,6 +121,7 @@ export function startSttFallback(
   let voicedSamples = 0;
   let silentSamples = 0;
   let sending = false;
+  handlers.onStateChange?.("starting");
 
   const reset = () => {
     pcm = [];
@@ -131,13 +137,16 @@ export function startSttFallback(
     reset();
     if (voiced < (TARGET_RATE * MIN_WINDOW_MS) / 1000 / 3) return; // basically silence
     sending = true;
+    handlers.onStateChange?.("transcribing");
     try {
       const base64 = await blobToBase64(encodeWav(chunks, TARGET_RATE));
       await handlers.onClip(base64);
     } catch (error) {
+      handlers.onStateChange?.("error");
       handlers.onError?.(error);
     } finally {
       sending = false;
+      if (!stopped) handlers.onStateChange?.("listening");
     }
   };
 
@@ -171,9 +180,21 @@ export function startSttFallback(
     }
   };
 
-  void ctx.resume?.().catch(() => {});
+  const ready = ctx
+    .resume()
+    .then(() => {
+      const running = ctx.state === "running";
+      handlers.onStateChange?.(running ? "listening" : "error");
+      return running;
+    })
+    .catch((error) => {
+      handlers.onStateChange?.("error");
+      handlers.onError?.(error);
+      return false;
+    });
 
   return {
+    ready,
     stop() {
       stopped = true;
       processor.onaudioprocess = null;

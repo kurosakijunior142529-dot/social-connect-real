@@ -358,7 +358,7 @@ export function CallScreen({
             <SelectTrigger className="h-11 w-36 rounded-xl border-white/10 bg-white/10 text-white" aria-label="Idioma da tradução">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[120]">
               {CALL_LANGUAGES.map((lang) => (
                 <SelectItem key={lang.value} value={lang.value}>
                   {lang.flag} {lang.label}

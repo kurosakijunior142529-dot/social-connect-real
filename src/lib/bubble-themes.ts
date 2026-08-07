@@ -151,21 +151,34 @@ export function getStoredBubbleTheme(chatId: string): BubbleThemeId {
 
 export function useChatPrefs(chatId: string) {
   const [prefs, setPrefs] = useState<ChatPrefs>(DEFAULTS);
-  const fetchMeta = useServerFn(getConversationMeta);
-  const saveMeta = useServerFn(setConversationMeta);
+  const fetchConversationMeta = useServerFn(getConversationMeta);
+  const saveConversationMeta = useServerFn(setConversationMeta);
+  const fetchChatMeta = useServerFn(getChatMeta);
+  const saveChatMeta = useServerFn(setChatMeta);
+
+  const { storageKey, isDm, realId } = useMemo(() => {
+    const isDm = chatId.startsWith("dm-");
+    const realId = isDm ? chatId.slice(3) : chatId;
+    const storageKey = isDm ? `dm-${realId}` : realId;
+    return { storageKey, isDm, realId };
+  }, [chatId]);
 
   // 1) Load: localStorage first (instant), then merge server meta in background.
   useEffect(() => {
     let cancelled = false;
-    setPrefs(readPrefs(chatId));
+    setPrefs(readPrefs(storageKey));
 
-    fetchMeta({ data: { conversationId: chatId } })
+    const fetcher = isDm
+      ? fetchConversationMeta({ data: { conversationId: realId } })
+      : fetchChatMeta({ data: { chatId: realId } });
+
+    fetcher
       .then((server) => {
         if (cancelled) return;
         if (server && Object.keys(server).length > 0) {
           setPrefs((prev) => {
             const merged = { ...prev, ...server };
-            writePrefs(chatId, merged);
+            writePrefs(storageKey, merged);
             return merged;
           });
         }
@@ -176,7 +189,7 @@ export function useChatPrefs(chatId: string) {
 
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (!detail || detail.chatId === chatId) setPrefs(readPrefs(chatId));
+      if (!detail || detail.chatId === storageKey) setPrefs(readPrefs(storageKey));
     };
     window.addEventListener("vibely:chatPrefs", onChange as EventListener);
     window.addEventListener("storage", onChange);
@@ -185,19 +198,22 @@ export function useChatPrefs(chatId: string) {
       window.removeEventListener("vibely:chatPrefs", onChange as EventListener);
       window.removeEventListener("storage", onChange);
     };
-  }, [chatId, fetchMeta]);
+  }, [storageKey, isDm, realId, fetchConversationMeta, fetchChatMeta]);
 
   const update = useCallback(
     (patch: Partial<ChatPrefs>) => {
       setPrefs((prev) => {
         const next = { ...prev, ...patch };
-        writePrefs(chatId, next);
+        writePrefs(storageKey, next);
         // Sync to server in background; do not block UI on failures.
-        saveMeta({ data: { conversationId: chatId, patch } }).catch(() => {});
+        const saver = isDm
+          ? saveConversationMeta({ data: { conversationId: realId, patch } })
+          : saveChatMeta({ data: { chatId: realId, patch } });
+        saver.catch(() => {});
         return next;
       });
     },
-    [chatId, saveMeta],
+    [storageKey, isDm, realId, saveConversationMeta, saveChatMeta],
   );
 
   const theme = BUBBLE_THEMES.find((t) => t.id === prefs.themeId) ?? BUBBLE_THEMES[0];

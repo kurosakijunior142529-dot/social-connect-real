@@ -12,9 +12,9 @@ function normalizeLang(input?: string | null): string | undefined {
   return base && /^[a-z]{2}$/.test(base) ? base : undefined;
 }
 
-function base64ToBytes(b64: string): Uint8Array {
+function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
   const binary = atob(b64);
-  const out = new Uint8Array(binary.length);
+  const out = new Uint8Array(new ArrayBuffer(binary.length));
   for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i);
   return out;
 }

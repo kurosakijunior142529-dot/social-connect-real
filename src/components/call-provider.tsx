@@ -668,7 +668,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   stopTranslationRef.current = stopTranslation;
 
   /** Transcribes the existing call track without acquiring the microphone again. */
-  const startCallTranscription = useCallback(() => {
+  const startCallTranscription = useCallback(async () => {
     const stream = localStreamRef.current;
     const audioTrack = stream?.getAudioTracks()[0];
     if (!mediaConnectedRef.current || !stream || !audioTrack || audioTrack.readyState !== "live") {
@@ -679,6 +679,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const session = translationSessionRef.current + 1;
     translationSessionRef.current = session;
     let notified = false;
+    let consecutiveFailures = 0;
     const handle = startSttFallback(stream, {
       onClip: async (audio) => {
         if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
@@ -696,17 +697,23 @@ export function CallProvider({ children }: { children: ReactNode }) {
           ]).finally(() => {
             if (timeoutId !== undefined) window.clearTimeout(timeoutId);
           });
+          consecutiveFailures = 0;
           if (translationEnabledRef.current && session === translationSessionRef.current && result.text) {
             pushMyCaption(result.text, spokenLangRef.current);
           }
         } catch (error: any) {
+          consecutiveFailures += 1;
           console.error("[call-translation] transcription failed", error);
           if (!notified && translationEnabledRef.current && session === translationSessionRef.current) {
             notified = true;
             toast.error(error?.message ?? "Não foi possível transcrever o áudio.");
           }
+          if (consecutiveFailures >= 3 && session === translationSessionRef.current) {
+            stopTranslationRef.current?.();
+          }
         }
       },
+      onStateChange: (state) => console.info("[call-translation] capture state", state),
       onError: (error) => console.error("[call-translation] audio capture failed", error),
     });
     if (!handle) {
@@ -714,18 +721,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
       return false;
     }
     sttFallbackRef.current = handle;
+    const ready = await handle.ready;
+    if (!ready || session !== translationSessionRef.current || !mediaConnectedRef.current) {
+      handle.stop();
+      if (sttFallbackRef.current === handle) sttFallbackRef.current = null;
+      toast.error("Não foi possível iniciar a captura de áudio da tradução.");
+      return false;
+    }
     return true;
   }, [pushMyCaption, transcribe]);
 
-  const startTranslation = useCallback(() => {
+  const startTranslation = useCallback(async () => {
     if (!mediaConnectedRef.current || roomRef.current?.state !== "connected") {
       toast.info("Aguardando a conexão da chamada.");
       return;
     }
     spokenLangRef.current = navigator.language || "pt-BR";
     translationEnabledRef.current = true;
-    if (!startCallTranscription()) {
+    if (!(await startCallTranscription())) {
       translationEnabledRef.current = false;
+      setTranslationEnabled(false);
       return;
     }
     setTranslationEnabled(true);
@@ -733,7 +748,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const toggleTranslation = useCallback(() => {
     if (translationEnabledRef.current) stopTranslation();
-    else startTranslation();
+    else void startTranslation();
   }, [startTranslation, stopTranslation]);
 
   const changeTranslationLanguage = useCallback(

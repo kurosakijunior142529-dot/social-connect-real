@@ -113,6 +113,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const negotiationIdRef = useRef<string | null>(null);
   const sendSignalRef = useRef<((kind: "offer" | "answer" | "ice" | "bye" | "caption", payload: Record<string, unknown>) => Promise<void>) | null>(null);
   const recognitionRef = useRef<any>(null);
+  const sttFallbackRef = useRef<SttFallbackHandle | null>(null);
+  const spokenLangRef = useRef<string>("pt-BR");
+  const transcribe = useServerFn(transcribeCallClip);
+  const translateMany = useServerFn(translateBatch);
   const translationEnabledRef = useRef(false);
   const translationLanguageRef = useRef("pt-BR");
   const [translationEnabled, setTranslationEnabled] = useState(false);

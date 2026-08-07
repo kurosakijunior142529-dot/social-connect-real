@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { getConversationMeta, setConversationMeta } from "@/lib/chat-prefs.functions";
+import { getConversationMeta, setConversationMeta, getChatMeta, setChatMeta } from "@/lib/chat-prefs.functions";
 
 export type BubbleThemeId =
   | "classic"

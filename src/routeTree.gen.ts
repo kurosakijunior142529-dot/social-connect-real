@@ -30,6 +30,7 @@ import { Route as AuthenticatedLivesIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authenticated/games.index'
 import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
+import { Route as ApiPublicGifRouteImport } from './routes/api/public/gif'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
 import { Route as AuthenticatedVoiceIdRouteImport } from './routes/_authenticated/voice.$id'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
@@ -165,6 +166,11 @@ const AuthenticatedAccountIndexRoute =
     path: '/account/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicGifRoute = ApiPublicGifRouteImport.update({
+  id: '/api/public/gif',
+  path: '/api/public/gif',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWatchRoomIdRoute =
   AuthenticatedWatchRoomIdRouteImport.update({
     id: '/watch/$roomId',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/api/public/gif': typeof ApiPublicGifRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
   '/ai/': typeof AuthenticatedAiIndexRoute
   '/games/': typeof AuthenticatedGamesIndexRoute
@@ -394,6 +401,7 @@ export interface FileRoutesByTo {
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/api/public/gif': typeof ApiPublicGifRoute
   '/account': typeof AuthenticatedAccountIndexRoute
   '/ai': typeof AuthenticatedAiIndexRoute
   '/games': typeof AuthenticatedGamesIndexRoute
@@ -444,6 +452,7 @@ export interface FileRoutesById {
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/_authenticated/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/api/public/gif': typeof ApiPublicGifRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
   '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/games/': typeof AuthenticatedGamesIndexRoute
@@ -494,6 +503,7 @@ export interface FileRouteTypes {
     | '/u/$username'
     | '/voice/$id'
     | '/watch/$roomId'
+    | '/api/public/gif'
     | '/account/'
     | '/ai/'
     | '/games/'
@@ -541,6 +551,7 @@ export interface FileRouteTypes {
     | '/u/$username'
     | '/voice/$id'
     | '/watch/$roomId'
+    | '/api/public/gif'
     | '/account'
     | '/ai'
     | '/games'
@@ -590,6 +601,7 @@ export interface FileRouteTypes {
     | '/_authenticated/u/$username'
     | '/_authenticated/voice/$id'
     | '/_authenticated/watch/$roomId'
+    | '/api/public/gif'
     | '/_authenticated/account/'
     | '/_authenticated/ai/'
     | '/_authenticated/games/'
@@ -609,6 +621,7 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  ApiPublicGifRoute: typeof ApiPublicGifRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -760,6 +773,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/account/'
       preLoaderRoute: typeof AuthenticatedAccountIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/gif': {
+      id: '/api/public/gif'
+      path: '/api/public/gif'
+      fullPath: '/api/public/gif'
+      preLoaderRoute: typeof ApiPublicGifRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/watch/$roomId': {
       id: '/_authenticated/watch/$roomId'
@@ -1069,18 +1089,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   AuthIndexRoute: AuthIndexRoute,
+  ApiPublicGifRoute: ApiPublicGifRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

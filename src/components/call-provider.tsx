@@ -605,60 +605,190 @@ export function CallProvider({ children }: { children: ReactNode }) {
     await acceptIncoming();
   }, [acceptIncoming, unlockAudioSink]);
 
+  // ---- Live translation -------------------------------------------------
+  // Everything I say is transcribed locally (Web Speech API, or AI transcription
+  // as a fallback) and translated into the language I picked, together with the
+  // captions the other side broadcasts.
+
+  const pushMyCaption = useCallback(
+    (text: string, sourceLang: string) => {
+      const clean = text.trim();
+      if (!clean) return;
+      const id = crypto.randomUUID();
+      setCaptions((current) => [...current.slice(-60), { id, speaker: "me", original: clean }]);
+      void sendSignalRef.current?.("caption", { text: clean, language: sourceLang });
+
+      const target = translationLanguageRef.current;
+      if (sourceLang.split("-")[0] === target.split("-")[0]) {
+        setCaptions((current) =>
+          current.map((item) => (item.id === id ? { ...item, translated: clean } : item)),
+        );
+        return;
+      }
+      void translate({ data: { text: clean, target } })
+        .then((result) => {
+          setCaptions((current) =>
+            current.map((item) => (item.id === id ? { ...item, translated: result.text } : item)),
+          );
+        })
+        .catch((error) => {
+          console.error("[call-translation] translate failed", error);
+          setCaptions((current) =>
+            current.map((item) => (item.id === id ? { ...item, translated: clean } : item)),
+          );
+        });
+    },
+    [translate],
+  );
+
   const stopTranslation = useCallback(() => {
     translationEnabledRef.current = false;
-    recognitionRef.current?.stop?.();
+    try {
+      recognitionRef.current?.stop?.();
+    } catch {
+      /* already stopped */
+    }
     recognitionRef.current = null;
+    sttFallbackRef.current?.stop();
+    sttFallbackRef.current = null;
     setTranslationEnabled(false);
   }, []);
+
+  /** Fallback for browsers without the Web Speech API (Android WebView, Firefox). */
+  const startAiTranscription = useCallback(() => {
+    const stream = localStreamRef.current;
+    if (!stream) {
+      toast.error("Ative o microfone para usar a tradução ao vivo.");
+      return false;
+    }
+    let notified = false;
+    const handle = startSttFallback(stream, {
+      onClip: async (audio) => {
+        if (!translationEnabledRef.current) return;
+        try {
+          const result = await transcribe({ data: { audio, language: spokenLangRef.current } });
+          if (translationEnabledRef.current && result.text) {
+            pushMyCaption(result.text, spokenLangRef.current);
+          }
+        } catch (error: any) {
+          console.error("[call-translation] transcription failed", error);
+          if (!notified) {
+            notified = true;
+            toast.error(error?.message ?? "Não foi possível transcrever o áudio.");
+          }
+        }
+      },
+      onError: (error) => console.error("[call-translation] audio capture failed", error),
+    });
+    if (!handle) {
+      toast.error("Não foi possível capturar o áudio para a tradução.");
+      return false;
+    }
+    sttFallbackRef.current = handle;
+    return true;
+  }, [pushMyCaption, transcribe]);
 
   const startTranslation = useCallback(() => {
     const browserWindow = window as unknown as {
       SpeechRecognition?: new () => any;
       webkitSpeechRecognition?: new () => any;
     };
+    spokenLangRef.current = navigator.language || "pt-BR";
     const Recognition = browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition;
+
     if (!Recognition) {
-      toast.error("A tradução ao vivo requer Chrome, Edge ou Safari recente.");
+      translationEnabledRef.current = true;
+      if (!startAiTranscription()) {
+        translationEnabledRef.current = false;
+        return;
+      }
+      setTranslationEnabled(true);
       return;
     }
+
     const recognition = new Recognition();
     recognition.continuous = true;
     recognition.interimResults = false;
-    recognition.lang = navigator.language || "pt-BR";
+    recognition.lang = spokenLangRef.current;
     recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         if (!event.results[i].isFinal) continue;
-        const text = String(event.results[i][0]?.transcript ?? "").trim();
-        if (!text) continue;
-        const id = crypto.randomUUID();
-        setCaptions((current) => [...current.slice(-60), { id, speaker: "me", original: text }]);
-        void sendSignalRef.current?.("caption", { text, language: recognition.lang });
+        pushMyCaption(String(event.results[i][0]?.transcript ?? ""), recognition.lang);
       }
     };
     recognition.onerror = (event: any) => {
-      if (event.error !== "no-speech" && event.error !== "aborted") toast.error("A assistente não conseguiu ouvir sua voz.");
+      if (event.error === "no-speech" || event.error === "aborted") return;
+      console.error("[call-translation] recognition error", event.error);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        toast.error("Permissão de microfone negada para a tradução.");
+        stopTranslation();
+        return;
+      }
+      // Network/engine failures: fall back to AI transcription instead of dying.
+      if (translationEnabledRef.current && !sttFallbackRef.current) {
+        try {
+          recognition.stop();
+        } catch {
+          /* noop */
+        }
+        recognitionRef.current = null;
+        startAiTranscription();
+      }
     };
     recognition.onend = () => {
-      if (translationEnabledRef.current) {
-        try { recognition.start(); } catch { /* already restarting */ }
+      if (translationEnabledRef.current && recognitionRef.current === recognition) {
+        try {
+          recognition.start();
+        } catch {
+          /* already restarting */
+        }
       }
     };
     translationEnabledRef.current = true;
     recognitionRef.current = recognition;
     setTranslationEnabled(true);
-    try { recognition.start(); } catch { stopTranslation(); }
-  }, [stopTranslation]);
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error("[call-translation] could not start recognition", error);
+      recognitionRef.current = null;
+      if (!startAiTranscription()) stopTranslation();
+    }
+  }, [pushMyCaption, startAiTranscription, stopTranslation]);
 
   const toggleTranslation = useCallback(() => {
     if (translationEnabledRef.current) stopTranslation();
     else startTranslation();
   }, [startTranslation, stopTranslation]);
 
-  const changeTranslationLanguage = useCallback((language: string) => {
-    translationLanguageRef.current = language;
-    setTranslationLanguage(language);
-  }, []);
+  const changeTranslationLanguage = useCallback(
+    (language: string) => {
+      if (language === translationLanguageRef.current) return;
+      translationLanguageRef.current = language;
+      setTranslationLanguage(language);
+
+      // Re-translate what is currently on screen so the change is immediate.
+      setCaptions((current) => {
+        const visible = current.slice(-8).filter((item) => item.original.trim().length > 0);
+        if (visible.length > 0) {
+          void translateMany({
+            data: { items: visible.map((v) => ({ id: v.id, text: v.original })), target: language },
+          })
+            .then(({ results }) => {
+              const map = new Map(results.map((r) => [r.id, r.text]));
+              setCaptions((rows) =>
+                rows.map((row) => (map.has(row.id) ? { ...row, translated: map.get(row.id) } : row)),
+              );
+            })
+            .catch((error) => console.error("[call-translation] batch translate failed", error));
+        }
+        return current.map((item) =>
+          visible.some((v) => v.id === item.id) ? { ...item, translated: undefined } : item,
+        );
+      });
+    },
+    [translateMany],
+  );
 
   // Audio Playback Management — re-attach the persistent stream and force
   // play() whenever new remote tracks arrive (trackUpdate bumps).

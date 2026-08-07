@@ -104,7 +104,7 @@ export function AppShell({
       <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
     ) : null;
 
-  const content = isRoot ? <SwipeableTabs>{children}</SwipeableTabs> : <SwipeBack>{children}</SwipeBack>;
+  const content = children;
 
   return (
     <div className="min-h-screen bg-background">

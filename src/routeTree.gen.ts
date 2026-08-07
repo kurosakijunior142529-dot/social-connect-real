@@ -42,7 +42,7 @@ import { Route as AuthenticatedLivesNewRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedLiveIdRouteImport } from './routes/_authenticated/live.$id'
 import { Route as AuthenticatedGamesOnlineRouteImport } from './routes/_authenticated/games.online'
 import { Route as AuthenticatedGamesIdRouteImport } from './routes/_authenticated/games.$id'
-import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create.video'
+import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create_.video'
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authenticated/ai.$threadId'
@@ -232,9 +232,9 @@ const AuthenticatedGamesIdRoute = AuthenticatedGamesIdRouteImport.update({
 } as any)
 const AuthenticatedCreateVideoRoute =
   AuthenticatedCreateVideoRouteImport.update({
-    id: '/video',
-    path: '/video',
-    getParentRoute: () => AuthenticatedCreateRoute,
+    id: '/create_/video',
+    path: '/create/video',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedChatsNewRoute = AuthenticatedChatsNewRouteImport.update({
   id: '/chats/new',
@@ -314,7 +314,7 @@ const AuthenticatedGamesOnlineRoomRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
-  '/create': typeof AuthenticatedCreateRouteWithChildren
+  '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pro': typeof AuthenticatedProRoute
@@ -361,7 +361,7 @@ export interface FileRoutesByFullPath {
   '/games/online/': typeof AuthenticatedGamesOnlineIndexRoute
 }
 export interface FileRoutesByTo {
-  '/create': typeof AuthenticatedCreateRouteWithChildren
+  '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pro': typeof AuthenticatedProRoute
@@ -410,7 +410,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/_authenticated/create': typeof AuthenticatedCreateRouteWithChildren
+  '/_authenticated/create': typeof AuthenticatedCreateRoute
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pro': typeof AuthenticatedProRoute
@@ -431,7 +431,7 @@ export interface FileRoutesById {
   '/_authenticated/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
   '/_authenticated/chats/new': typeof AuthenticatedChatsNewRoute
-  '/_authenticated/create/video': typeof AuthenticatedCreateVideoRoute
+  '/_authenticated/create_/video': typeof AuthenticatedCreateVideoRoute
   '/_authenticated/games/$id': typeof AuthenticatedGamesIdRoute
   '/_authenticated/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
   '/_authenticated/live/$id': typeof AuthenticatedLiveIdRoute
@@ -577,7 +577,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ai/$threadId'
     | '/_authenticated/chats/$id'
     | '/_authenticated/chats/new'
-    | '/_authenticated/create/video'
+    | '/_authenticated/create_/video'
     | '/_authenticated/games/$id'
     | '/_authenticated/games/online'
     | '/_authenticated/live/$id'
@@ -845,12 +845,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGamesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/create/video': {
-      id: '/_authenticated/create/video'
-      path: '/video'
+    '/_authenticated/create_/video': {
+      id: '/_authenticated/create_/video'
+      path: '/create/video'
       fullPath: '/create/video'
       preLoaderRoute: typeof AuthenticatedCreateVideoRouteImport
-      parentRoute: typeof AuthenticatedCreateRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/chats/new': {
       id: '/_authenticated/chats/new'
@@ -946,17 +946,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedCreateRouteChildren {
-  AuthenticatedCreateVideoRoute: typeof AuthenticatedCreateVideoRoute
-}
-
-const AuthenticatedCreateRouteChildren: AuthenticatedCreateRouteChildren = {
-  AuthenticatedCreateVideoRoute: AuthenticatedCreateVideoRoute,
-}
-
-const AuthenticatedCreateRouteWithChildren =
-  AuthenticatedCreateRoute._addFileChildren(AuthenticatedCreateRouteChildren)
-
 interface AuthenticatedGamesOnlineRouteChildren {
   AuthenticatedGamesOnlineRoomRoute: typeof AuthenticatedGamesOnlineRoomRoute
   AuthenticatedGamesOnlineIndexRoute: typeof AuthenticatedGamesOnlineIndexRoute
@@ -988,7 +977,7 @@ const AuthenticatedUUsernameRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedCreateRoute: typeof AuthenticatedCreateRouteWithChildren
+  AuthenticatedCreateRoute: typeof AuthenticatedCreateRoute
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProRoute: typeof AuthenticatedProRoute
@@ -1006,6 +995,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAiThreadIdRoute: typeof AuthenticatedAiThreadIdRoute
   AuthenticatedChatsIdRoute: typeof AuthenticatedChatsIdRoute
   AuthenticatedChatsNewRoute: typeof AuthenticatedChatsNewRoute
+  AuthenticatedCreateVideoRoute: typeof AuthenticatedCreateVideoRoute
   AuthenticatedGamesIdRoute: typeof AuthenticatedGamesIdRoute
   AuthenticatedGamesOnlineRoute: typeof AuthenticatedGamesOnlineRouteWithChildren
   AuthenticatedLiveIdRoute: typeof AuthenticatedLiveIdRoute
@@ -1029,7 +1019,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedCreateRoute: AuthenticatedCreateRouteWithChildren,
+  AuthenticatedCreateRoute: AuthenticatedCreateRoute,
   AuthenticatedExploreRoute: AuthenticatedExploreRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProRoute: AuthenticatedProRoute,
@@ -1047,6 +1037,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAiThreadIdRoute: AuthenticatedAiThreadIdRoute,
   AuthenticatedChatsIdRoute: AuthenticatedChatsIdRoute,
   AuthenticatedChatsNewRoute: AuthenticatedChatsNewRoute,
+  AuthenticatedCreateVideoRoute: AuthenticatedCreateVideoRoute,
   AuthenticatedGamesIdRoute: AuthenticatedGamesIdRoute,
   AuthenticatedGamesOnlineRoute: AuthenticatedGamesOnlineRouteWithChildren,
   AuthenticatedLiveIdRoute: AuthenticatedLiveIdRoute,

@@ -10,6 +10,29 @@ type Gif = { id: string; url: string; w: number; h: number; alt: string };
 
 const cache = new Map<string, Gif[]>();
 const TRENDING_TERMS = ["feliz", "amor", "haha", "chorando", "wow", "ok"];
+const STORE_KEY = "vibely:gifcache:v1";
+
+function loadStore(): Record<string, Gif[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.sessionStorage.getItem(STORE_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function persist(key: string, items: Gif[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const store = loadStore();
+    store[key] = items.slice(0, 24);
+    const keys = Object.keys(store);
+    if (keys.length > 12) delete store[keys[0]!];
+    window.sessionStorage.setItem(STORE_KEY, JSON.stringify(store));
+  } catch {
+    /* quota — ignore */
+  }
+}
 
 export function GifPicker({
   onPick,
@@ -28,9 +51,12 @@ export function GifPicker({
 
   async function run(query: string) {
     const key = query.trim().toLowerCase();
-    if (cache.has(key)) {
-      setItems(cache.get(key)!);
+    const cached = cache.get(key) ?? loadStore()[key];
+    if (cached?.length) {
+      cache.set(key, cached);
+      setItems(cached);
       setErr(null);
+      setLoading(false);
       return;
     }
     const my = ++reqId.current;
@@ -42,11 +68,13 @@ export function GifPicker({
         const res = await search({ data: { q: key } });
         if (my !== reqId.current) return;
         cache.set(key, res.items);
+        persist(key, res.items);
         setItems(res.items);
         setLoading(false);
         return;
       } catch (e: any) {
         lastErr = e;
+        if (String(e?.message ?? "").includes("inválida")) break;
         await new Promise((r) => setTimeout(r, 400));
       }
     }
@@ -55,6 +83,7 @@ export function GifPicker({
     setItems([]);
     setLoading(false);
   }
+
 
   useEffect(() => {
     if (!open) return;
@@ -87,12 +116,22 @@ export function GifPicker({
             ))}
           </div>
         ) : null}
-        <div className="h-[320px] overflow-y-auto -mx-1 px-1">
+        <div className="h-[320px] overflow-y-auto overscroll-contain -mx-1 px-1 [-webkit-overflow-scrolling:touch]">
           {loading ? (
-            <div className="grid place-items-center h-full text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
+            <div className="columns-2 gap-1">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="mb-1 w-full animate-pulse rounded-md bg-white/10"
+                  style={{ height: 90 + (i % 3) * 40 }}
+                />
+              ))}
+              <div className="col-span-full flex items-center justify-center gap-2 py-2 text-[11px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Carregando GIFs…
+              </div>
             </div>
           ) : err ? (
+
             <div className="flex flex-col items-center justify-center gap-2 h-full text-center">
               <div className="text-xs text-red-400 px-4">{err}</div>
               <Button size="sm" variant="ghost" onClick={() => void run(q)}>

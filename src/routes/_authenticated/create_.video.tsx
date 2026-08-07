@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { VIDEO_FILTERS, filterById } from "@/lib/video-filters";
 
-export const Route = createFileRoute("/_authenticated/create/video")({
+export const Route = createFileRoute("/_authenticated/create_/video")({
   ssr: false,
   component: VideoStudio,
 });

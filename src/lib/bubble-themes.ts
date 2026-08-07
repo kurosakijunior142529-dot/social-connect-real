@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getConversationMeta, setConversationMeta } from "@/lib/chat-prefs.functions";
 
 export type BubbleThemeId =
   | "classic"
@@ -149,9 +151,29 @@ export function getStoredBubbleTheme(chatId: string): BubbleThemeId {
 
 export function useChatPrefs(chatId: string) {
   const [prefs, setPrefs] = useState<ChatPrefs>(DEFAULTS);
+  const fetchMeta = useServerFn(getConversationMeta);
+  const saveMeta = useServerFn(setConversationMeta);
 
+  // 1) Load: localStorage first (instant), then merge server meta in background.
   useEffect(() => {
+    let cancelled = false;
     setPrefs(readPrefs(chatId));
+
+    fetchMeta({ data: { conversationId: chatId } })
+      .then((server) => {
+        if (cancelled) return;
+        if (server && Object.keys(server).length > 0) {
+          setPrefs((prev) => {
+            const merged = { ...prev, ...server };
+            writePrefs(chatId, merged);
+            return merged;
+          });
+        }
+      })
+      .catch(() => {
+        // offline / unauthenticated — localStorage remains authoritative
+      });
+
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (!detail || detail.chatId === chatId) setPrefs(readPrefs(chatId));
@@ -159,18 +181,24 @@ export function useChatPrefs(chatId: string) {
     window.addEventListener("vibely:chatPrefs", onChange as EventListener);
     window.addEventListener("storage", onChange);
     return () => {
+      cancelled = true;
       window.removeEventListener("vibely:chatPrefs", onChange as EventListener);
       window.removeEventListener("storage", onChange);
     };
-  }, [chatId]);
+  }, [chatId, fetchMeta]);
 
-  const update = useCallback((patch: Partial<ChatPrefs>) => {
-    setPrefs((prev) => {
-      const next = { ...prev, ...patch };
-      writePrefs(chatId, next);
-      return next;
-    });
-  }, [chatId]);
+  const update = useCallback(
+    (patch: Partial<ChatPrefs>) => {
+      setPrefs((prev) => {
+        const next = { ...prev, ...patch };
+        writePrefs(chatId, next);
+        // Sync to server in background; do not block UI on failures.
+        saveMeta({ data: { conversationId: chatId, patch } }).catch(() => {});
+        return next;
+      });
+    },
+    [chatId, saveMeta],
+  );
 
   const theme = BUBBLE_THEMES.find((t) => t.id === prefs.themeId) ?? BUBBLE_THEMES[0];
   const font = CHAT_FONTS.find((f) => f.id === prefs.font) ?? CHAT_FONTS[0];

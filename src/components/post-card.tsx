@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Heart, MessageCircle } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
@@ -182,6 +182,59 @@ export const PostCard = memo(PostCardBase, (a, b) =>
   a.post.author?.username === b.post.author?.username &&
   a.post.author?.display_name === b.post.author?.display_name,
 );
+
+/**
+ * Renders a compact placeholder until the post enters (or is about to enter)
+ * the viewport. Keeps the first 2 posts eager so LCP is not delayed.
+ */
+export function LazyPostCard({
+  post,
+  currentUserId,
+  eager,
+}: {
+  post: FeedPost;
+  currentUserId: string | null;
+  eager?: boolean;
+}) {
+  const [visible, setVisible] = useState(eager);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (visible) return;
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
+
+  return (
+    <div ref={ref} className="min-h-[360px]">
+      {visible ? (
+        <PostCard post={post} currentUserId={currentUserId} />
+      ) : (
+        <article className="px-4 pb-2">
+          <div className="flex items-center gap-3 py-3">
+            <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+              <div className="h-3 w-20 rounded bg-muted animate-pulse" />
+            </div>
+          </div>
+          <div className="aspect-square rounded-2xl bg-muted animate-pulse" />
+        </article>
+      )}
+    </div>
+  );
+}
 
 // Query helper — normalizes rows into FeedPost[]
 export function usePostsQuery(opts: {

@@ -13,19 +13,24 @@ type Props = {
   src: string;
   className?: string;
   poster?: string;
+  /** Optional next video URL to preload. */
+  nextSrc?: string;
   /** Called on double tap. Return false to skip the heart animation. */
   onDoubleTapLike?: () => void;
 };
+
+type Burst = { id: number; x: number; y: number };
 
 /**
  * Premium, immersive video player (TikTok / Reels style).
  * Everything is contained inside the video container — no external layout impact.
  */
-export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) {
+export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTap = useRef(0);
-  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
+    last: 0, timer: null, longTimer: null, startY: 0, moved: false,
+  });
 
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
@@ -34,7 +39,9 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(false);
   const [pulse, setPulse] = useState(0);
-  const [heart, setHeart] = useState(0);
+  const [bursts, setBursts] = useState<Burst[]>([]);
+  const [speeding, setSpeeding] = useState(false);
+  const [scrubberActive, setScrubberActive] = useState(false);
 
   const armAutoHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -48,7 +55,8 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
 
   useEffect(() => () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (tapTimer.current) clearTimeout(tapTimer.current);
+    if (tapRef.current.timer) window.clearTimeout(tapRef.current.timer);
+    if (tapRef.current.longTimer) window.clearTimeout(tapRef.current.longTimer);
   }, []);
 
   // Autoplay (muted) when scrolled into view, pause when out.
@@ -78,29 +86,68 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
     reveal();
   }, [reveal]);
 
-  const handleTap = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const now = Date.now();
-      if (now - lastTap.current < 280) {
-        lastTap.current = 0;
-        if (tapTimer.current) clearTimeout(tapTimer.current);
-        if (onDoubleTapLike) {
-          onDoubleTapLike();
-          setHeart((h) => h + 1);
-        }
-        return;
-      }
-      lastTap.current = now;
-      if (tapTimer.current) clearTimeout(tapTimer.current);
-      tapTimer.current = setTimeout(() => {
-        if (showControls) togglePlay();
-        else reveal();
-      }, 280);
-    },
-    [onDoubleTapLike, reveal, showControls, togglePlay],
-  );
+  const spawnBurst = (x: number, y: number) => {
+    const id = Date.now() + Math.random();
+    setBursts((prev) => [...prev, { id, x, y }]);
+    window.setTimeout(() => setBursts((prev) => prev.filter((b) => b.id !== id)), 900);
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    tapRef.current.startY = e.clientY;
+    tapRef.current.moved = false;
+    tapRef.current.longTimer = window.setTimeout(() => {
+      setSpeeding(true);
+      try { navigator.vibrate?.(20); } catch { /* noop */ }
+    }, 380);
+  };
+
+  const clearLong = () => {
+    if (tapRef.current.longTimer) {
+      window.clearTimeout(tapRef.current.longTimer);
+      tapRef.current.longTimer = null;
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (Math.abs(e.clientY - tapRef.current.startY) > 8) {
+      tapRef.current.moved = true;
+      clearLong();
+    }
+  };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const wasSpeeding = speeding;
+    clearLong();
+    if (wasSpeeding) { setSpeeding(false); return; }
+    if (tapRef.current.moved) return;
+
+    const now = Date.now();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (now - tapRef.current.last < 280) {
+      // Double tap → like burst
+      if (tapRef.current.timer) { window.clearTimeout(tapRef.current.timer); tapRef.current.timer = null; }
+      tapRef.current.last = 0;
+      spawnBurst(x, y);
+      if (onDoubleTapLike) onDoubleTapLike();
+      try { navigator.vibrate?.(12); } catch { /* noop */ }
+      return;
+    }
+    tapRef.current.last = now;
+    tapRef.current.timer = window.setTimeout(() => {
+      // Single tap: if controls are visible, toggle play; otherwise reveal controls.
+      if (showControls) togglePlay();
+      else reveal();
+      tapRef.current.timer = null;
+    }, 280);
+  };
+
+  const onPointerCancel = () => {
+    clearLong();
+    if (speeding) setSpeeding(false);
+  };
 
   const progress = duration > 0 ? (current / duration) * 100 : 0;
 
@@ -111,7 +158,10 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
         "shadow-[inset_0_0_60px_rgba(0,0,0,0.6)]",
         className,
       )}
-      onClick={handleTap}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       <video
         ref={videoRef}
@@ -120,7 +170,7 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
         playsInline
         loop
         muted={muted}
-        preload="metadata"
+        preload="auto"
         className="h-full w-full object-cover transition-transform duration-500 ease-out will-change-transform"
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
@@ -134,6 +184,10 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
         onPause={() => setPlaying(false)}
       />
 
+      {nextSrc ? (
+        <link rel="preload" as="video" href={nextSrc} />
+      ) : null}
+
       {/* Depth gradient at the edges */}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.35),transparent_22%,transparent_70%,rgba(0,0,0,0.55))]" />
 
@@ -144,7 +198,7 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
         </div>
       ) : null}
 
-      {/* Center play/pause */}
+      {/* Center play/pause pulse */}
       <div
         className={cn(
           "pointer-events-none absolute inset-0 grid place-items-center transition-opacity duration-300 ease-out",
@@ -159,12 +213,26 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
         </span>
       </div>
 
-      {/* Double-tap heart */}
-      {heart > 0 ? (
-        <div key={heart} className="pointer-events-none absolute inset-0 grid place-items-center">
-          <Heart className="h-24 w-24 fill-primary text-primary drop-shadow-2xl animate-heart-pop" />
-        </div>
-      ) : null}
+      {/* Double-tap heart bursts */}
+      {bursts.map((b) => (
+        <span
+          key={b.id}
+          className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 will-change-transform"
+          style={{ left: b.x, top: b.y, animation: "reel-heart 900ms cubic-bezier(.2,.9,.3,1) forwards" }}
+        >
+          <Heart className="h-24 w-24 fill-primary text-primary drop-shadow-[0_6px_30px_rgba(34,224,106,0.7)]" strokeWidth={0} />
+        </span>
+      ))}
+
+      {/* 2x speed indicator */}
+      <div
+        className={cn(
+          "pointer-events-none absolute top-16 left-1/2 -translate-x-1/2 rounded-full bg-black/55 backdrop-blur px-3 py-1 text-[11px] font-semibold text-white tracking-wider transition-all duration-150",
+          speeding ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2",
+        )}
+      >
+        ▶ ▶  2× SPEED
+      </div>
 
       {/* Bottom overlay controls */}
       <div
@@ -227,6 +295,27 @@ export function VideoPlayer({ src, className, poster, onDoubleTapLike }: Props) 
           </button>
         </div>
       </div>
+
+      {/* Ultra thin progress bar — always visible but expands on interaction */}
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 bg-white/10 transition-all duration-200",
+          scrubberActive ? "h-1" : "h-[2px]",
+        )}
+        onPointerEnter={() => setScrubberActive(true)}
+        onPointerLeave={() => setScrubberActive(false)}
+      >
+        <div className="h-full bg-primary/80" style={{ width: `${progress}%` }} />
+      </div>
+
+      <style>{`
+        @keyframes reel-heart {
+          0%   { transform: translate(-50%,-50%) scale(0.6) rotate(-12deg); opacity: 0; }
+          25%  { transform: translate(-50%,-50%) scale(1.25) rotate(-4deg); opacity: 1; }
+          55%  { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+          100% { transform: translate(-50%,-95%) scale(0.9); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

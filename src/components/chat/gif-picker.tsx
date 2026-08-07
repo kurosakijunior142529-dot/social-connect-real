@@ -10,6 +10,29 @@ type Gif = { id: string; url: string; w: number; h: number; alt: string };
 
 const cache = new Map<string, Gif[]>();
 const TRENDING_TERMS = ["feliz", "amor", "haha", "chorando", "wow", "ok"];
+const STORE_KEY = "vibely:gifcache:v1";
+
+function loadStore(): Record<string, Gif[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.sessionStorage.getItem(STORE_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function persist(key: string, items: Gif[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const store = loadStore();
+    store[key] = items.slice(0, 24);
+    const keys = Object.keys(store);
+    if (keys.length > 12) delete store[keys[0]!];
+    window.sessionStorage.setItem(STORE_KEY, JSON.stringify(store));
+  } catch {
+    /* quota — ignore */
+  }
+}
 
 export function GifPicker({
   onPick,
@@ -28,9 +51,12 @@ export function GifPicker({
 
   async function run(query: string) {
     const key = query.trim().toLowerCase();
-    if (cache.has(key)) {
-      setItems(cache.get(key)!);
+    const cached = cache.get(key) ?? loadStore()[key];
+    if (cached?.length) {
+      cache.set(key, cached);
+      setItems(cached);
       setErr(null);
+      setLoading(false);
       return;
     }
     const my = ++reqId.current;
@@ -42,11 +68,13 @@ export function GifPicker({
         const res = await search({ data: { q: key } });
         if (my !== reqId.current) return;
         cache.set(key, res.items);
+        persist(key, res.items);
         setItems(res.items);
         setLoading(false);
         return;
       } catch (e: any) {
         lastErr = e;
+        if (String(e?.message ?? "").includes("inválida")) break;
         await new Promise((r) => setTimeout(r, 400));
       }
     }
@@ -55,6 +83,7 @@ export function GifPicker({
     setItems([]);
     setLoading(false);
   }
+
 
   useEffect(() => {
     if (!open) return;

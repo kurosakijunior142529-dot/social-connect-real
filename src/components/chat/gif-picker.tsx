@@ -116,12 +116,22 @@ export function GifPicker({
             ))}
           </div>
         ) : null}
-        <div className="h-[320px] overflow-y-auto -mx-1 px-1">
+        <div className="h-[320px] overflow-y-auto overscroll-contain -mx-1 px-1 [-webkit-overflow-scrolling:touch]">
           {loading ? (
-            <div className="grid place-items-center h-full text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
+            <div className="columns-2 gap-1">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="mb-1 w-full animate-pulse rounded-md bg-white/10"
+                  style={{ height: 90 + (i % 3) * 40 }}
+                />
+              ))}
+              <div className="col-span-full flex items-center justify-center gap-2 py-2 text-[11px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Carregando GIFs…
+              </div>
             </div>
           ) : err ? (
+
             <div className="flex flex-col items-center justify-center gap-2 h-full text-center">
               <div className="text-xs text-red-400 px-4">{err}</div>
               <Button size="sm" variant="ghost" onClick={() => void run(q)}>

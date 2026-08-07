@@ -178,7 +178,9 @@ export const PostCard = memo(PostCardBase, (a, b) =>
   a.post.likes_count === b.post.likes_count &&
   a.post.comments_count === b.post.comments_count &&
   a.post.caption === b.post.caption &&
-  a.post.author?.avatar_url === b.post.author?.avatar_url,
+  a.post.author?.avatar_url === b.post.author?.avatar_url &&
+  a.post.author?.username === b.post.author?.username &&
+  a.post.author?.display_name === b.post.author?.display_name,
 );
 
 // Query helper — normalizes rows into FeedPost[]

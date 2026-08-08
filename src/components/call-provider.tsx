@@ -121,7 +121,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const mediaConnectedRef = useRef(false);
   const translationSessionRef = useRef(0);
   const lastTranscriptRef = useRef({ text: "", at: 0 });
+  const lastRemoteCaptionRef = useRef({ text: "", at: 0 });
+  const translateCaptionRef = useRef<((id: string, original: string) => Promise<void>) | null>(null);
+  const captionsMirrorRef = useRef<CallCaption[]>([]);
   const spokenLangRef = useRef<string>("pt-BR");
+
   const transcribe = useServerFn(transcribeCallClip);
   const translateMany = useServerFn(translateBatch);
   const translationEnabledRef = useRef(false);

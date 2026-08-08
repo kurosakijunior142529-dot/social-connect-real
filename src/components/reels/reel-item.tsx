@@ -368,7 +368,20 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           100% { transform: translate(-50%,-95%) scale(0.9); opacity: 0; }
         }
       `}</style>
+
+      <ShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        userId={currentUserId}
+        target={{
+          url: shareUrl,
+          title: `@${post.author?.username ?? ""}`,
+          text: post.caption ?? "",
+          media: { bucket: "posts", path: post.media_url, filename: `vibely-${post.id}.mp4` },
+        }}
+      />
     </div>
+
   );
 }
 

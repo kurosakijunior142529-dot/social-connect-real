@@ -24,20 +24,7 @@ import { cn } from "@/lib/utils";
 export type PanelTab = "emoji" | "gif" | "sticker" | "fav";
 type Gif = { id: string; url: string; w: number; h: number; alt: string };
 
-const GIF_TERMS = [
-  "amor",
-  "feliz",
-  "triste",
-  "risada",
-  "bravo",
-  "bom dia",
-  "boa noite",
-  "parabéns",
-  "obrigado",
-  "dança",
-  "tchau",
-  "aplausos",
-];
+const GIF_TERMS = ["amor", "feliz", "risada", "parabéns", "dança", "aplausos"];
 
 const gifCache = new Map<string, Gif[]>();
 
@@ -80,23 +67,22 @@ export function ExpressionPanel({
   if (!mounted || !open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex flex-col justify-end">
+    <div className="fixed inset-0 z-[80] flex flex-col justify-end sm:items-center">
       <button
         type="button"
         aria-label="Fechar painel"
         onClick={onClose}
-        className="flex-1 bg-black/40 animate-in fade-in duration-150"
+        className="flex-1 bg-transparent"
       />
       <div
         role="dialog"
         aria-label="Emojis, GIFs e figurinhas"
-        className="rounded-t-3xl border-t bg-background shadow-2xl animate-in slide-in-from-bottom duration-200 flex flex-col"
+        className="flex w-full flex-col rounded-t-2xl border-t bg-background shadow-2xl animate-in slide-in-from-bottom duration-200 sm:max-w-[430px] sm:border-x"
         style={{
-          height: "min(60vh, 460px)",
+          height: "min(48dvh, 390px)",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/30" />
         <TabBar tab={tab} onTabChange={onTabChange} onClose={onClose} />
         <div className="min-h-0 flex-1">
           {tab === "emoji" ? (
@@ -116,10 +102,10 @@ export function ExpressionPanel({
 }
 
 const TABS: { id: PanelTab; icon: string; label: string }[] = [
-  { id: "emoji", icon: "😀", label: "Emojis" },
+  { id: "emoji", icon: "☺", label: "Emojis" },
   { id: "gif", icon: "GIF", label: "GIF" },
-  { id: "sticker", icon: "✨", label: "Figurinhas" },
-  { id: "fav", icon: "❤️", label: "Favoritos" },
+  { id: "sticker", icon: "◇", label: "Figurinhas" },
+  { id: "fav", icon: "♡", label: "Favoritos" },
 ];
 
 function TabBar({
@@ -132,8 +118,8 @@ function TabBar({
   onClose: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-1 px-2 pb-1 pt-2">
-      <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none]">
+    <div className="flex h-12 shrink-0 items-stretch border-b px-2">
+      <div className="grid min-w-0 flex-1 grid-cols-4">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -141,16 +127,14 @@ function TabBar({
             onClick={() => onTabChange(t.id)}
             aria-pressed={tab === t.id}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-medium transition",
-              tab === t.id
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground active:bg-muted",
+              "relative flex min-w-0 items-center justify-center gap-1.5 px-1 text-[11px] font-medium transition-colors",
+              tab === t.id ? "text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-primary" : "text-muted-foreground",
             )}
           >
-            <span className={t.id === "gif" ? "text-[10px] font-bold" : "text-base leading-none"}>
+            <span className={t.id === "gif" ? "text-[9px] font-bold" : "text-lg leading-none"}>
               {t.icon}
             </span>
-            {t.label}
+            <span className="truncate">{t.label}</span>
           </button>
         ))}
       </div>
@@ -158,7 +142,7 @@ function TabBar({
         type="button"
         onClick={onClose}
         aria-label="Fechar"
-        className="shrink-0 rounded-full p-2 text-muted-foreground active:bg-muted"
+        className="grid w-10 shrink-0 place-items-center text-muted-foreground active:bg-muted"
       >
         <X className="h-4 w-4" />
       </button>
@@ -176,7 +160,7 @@ function SearchField({
   placeholder: string;
 }) {
   return (
-    <div className="mx-3 mb-2 flex shrink-0 items-center gap-2 rounded-full bg-muted px-3 py-2">
+    <div className="mx-3 my-2 flex h-9 shrink-0 items-center gap-2 rounded-lg bg-muted px-3">
       <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
       <input
         value={value}
@@ -412,21 +396,21 @@ function GifTab({ onGif }: { onGif: (g: Gif) => void }) {
   return (
     <div className="flex h-full flex-col">
       <SearchField value={q} onChange={setQ} placeholder="Pesquisar GIFs…" />
-      <div className="flex shrink-0 gap-1 overflow-x-auto px-3 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none]">
+      {!q ? <div className="flex shrink-0 gap-1 overflow-x-auto px-3 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none]">
         {GIF_TERMS.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setQ(t)}
             className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-[11px] transition",
+              "shrink-0 rounded-md px-2.5 py-1 text-[11px] transition",
               q === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
             )}
           >
             {t}
           </button>
         ))}
-      </div>
+      </div> : null}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-2 [-webkit-overflow-scrolling:touch]">
         {!q && recents.items.length ? (
           <div className="mb-2">

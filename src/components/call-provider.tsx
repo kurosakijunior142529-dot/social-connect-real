@@ -73,7 +73,11 @@ export type CallCaption = {
   speaker: "me" | "other";
   original: string;
   translated?: string;
+  /** pending = translating, done = translated, failed = show original + retry */
+  status: "pending" | "done" | "failed";
+  error?: string;
 };
+
 
 const CallContext = createContext<Ctx | null>(null);
 

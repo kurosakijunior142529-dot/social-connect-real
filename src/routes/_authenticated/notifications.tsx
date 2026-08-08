@@ -41,6 +41,7 @@ function NotificationsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const q = useNotifications(user.id);
+  const items = (q.data ?? []).filter((n) => ALLOWED.has(n.type));
 
   useEffect(() => {
     markAllRead().then(() => qc.invalidateQueries({ queryKey: ["notifications-unread", user.id] }));

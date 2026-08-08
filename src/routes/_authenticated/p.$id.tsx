@@ -46,24 +46,6 @@ function PostDetailPage() {
     },
   });
 
-  const comments = useQuery({
-    queryKey: ["comments", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("comments")
-        .select("*")
-        .eq("post_id", id)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      const authorIds = Array.from(new Set((data ?? []).map((c) => c.author_id)));
-      const { data: profs } = authorIds.length
-        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds)
-        : { data: [] };
-      const map = new Map((profs ?? []).map((p) => [p.id, p]));
-      return (data ?? []).map((c) => ({ ...c, author: map.get(c.author_id) }));
-    },
-  });
-
   const toggleLike = useMutation({
     mutationFn: async () => {
       if (post.data?.liked_by_me) {
@@ -74,20 +56,6 @@ function PostDetailPage() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["post", id] }),
   });
-
-  async function addComment(e: FormEvent) {
-    e.preventDefault();
-    const text = draft.trim();
-    if (!text) return;
-    setDraft("");
-    const { error } = await supabase.from("comments").insert({
-      post_id: id,
-      author_id: user.id,
-      content: text,
-    });
-    if (error) setDraft(text);
-    else queryClient.invalidateQueries({ queryKey: ["comments", id] });
-  }
 
   if (post.isLoading) return <Skeleton className="h-96 rounded-3xl" />;
   if (!post.data) return <div className="text-center py-12">Post não encontrado.</div>;

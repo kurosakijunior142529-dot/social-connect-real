@@ -90,31 +90,56 @@ function ConversationPage() {
 
   const messages = useQuery({
     queryKey: ["messages", conversationId],
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(120);
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[]).slice().reverse();
     },
   });
 
-  const messageIds = (messages.data ?? []).map((m) => m.id);
+  const messageIds = useMemo(
+    () => (messages.data ?? []).map((m) => m.id),
+    [messages.data],
+  );
   const reactions = useMessageReactions("dm", messageIds, user.id);
 
-  const pinnedList = (messages.data ?? []).filter((m) => m.pinned_at);
+  const pinnedList = useMemo(
+    () => (messages.data ?? []).filter((m) => m.pinned_at),
+    [messages.data],
+  );
   const latestPinned = pinnedList[pinnedList.length - 1];
 
-  // realtime
+  // realtime — patch the cache in place instead of refetching everything
   useEffect(() => {
+    const key = ["messages", conversationId];
     const channel = supabase
       .channel(`msg-${conversationId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
-        () => queryClient.invalidateQueries({ queryKey: ["messages", conversationId] }),
+        (payload: any) => {
+          queryClient.setQueryData<any[]>(key, (prev) => {
+            const list = prev ?? [];
+            if (payload.eventType === "INSERT") {
+              if (list.some((m) => m.id === payload.new.id)) return list;
+              return [...list, payload.new];
+            }
+            if (payload.eventType === "UPDATE") {
+              return list.map((m) => (m.id === payload.new.id ? { ...m, ...payload.new } : m));
+            }
+            if (payload.eventType === "DELETE") {
+              return list.filter((m) => m.id !== payload.old.id);
+            }
+            return list;
+          });
+        },
       )
       .on(
         "postgres_changes",
@@ -127,26 +152,33 @@ function ConversationPage() {
     };
   }, [conversationId, queryClient]);
 
-  // mark incoming as read
+  // mark incoming as read (only ids we haven't marked yet)
+  const readMarked = useRef<Set<string>>(new Set());
   useEffect(() => {
     const unread = (messages.data ?? []).filter(
-      (m) => m.sender_id !== user.id && !m.read_at,
+      (m) => m.sender_id !== user.id && !m.read_at && !readMarked.current.has(m.id),
     );
     if (!unread.length) return;
-    (async () => {
-      await (supabase as any)
+    const ids = unread.map((m) => m.id);
+    ids.forEach((id) => readMarked.current.add(id));
+    const t = window.setTimeout(() => {
+      (supabase as any)
         .from("messages")
         .update({ read_at: new Date().toISOString() })
-        .in(
-          "id",
-          unread.map((m) => m.id),
-        );
-    })();
+        .in("id", ids)
+        .then(() => {}, () => ids.forEach((id) => readMarked.current.delete(id)));
+    }, 300);
+    return () => window.clearTimeout(t);
   }, [messages.data, user.id]);
 
+  const firstScroll = useRef(true);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!messages.data?.length) return;
+    const behavior = firstScroll.current ? "auto" : "smooth";
+    firstScroll.current = false;
+    bottomRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior, block: "end" });
   }, [messages.data?.length]);
+
 
   function noteTyping() {
     presence.setMe("typing");

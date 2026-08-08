@@ -5,7 +5,7 @@ import { useNotifications, markAllRead, type NotificationRow } from "@/hooks/use
 import { UserAvatar } from "@/components/user-avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, UserPlus, Send, Eye, Smile, Users, Bell } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, Smile, Users, Bell } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -18,12 +18,11 @@ const ICONS: Record<string, any> = {
   like: Heart,
   comment: MessageCircle,
   follow: UserPlus,
-  message: Send,
-  chat_message: Send,
-  story_view: Eye,
   story_reaction: Smile,
   chat_invite: Users,
 };
+
+const ALLOWED = new Set(["like", "comment", "follow", "story_reaction", "chat_invite"]);
 
 function label(n: NotificationRow) {
   const name = n.actor?.display_name ?? "Alguém";
@@ -31,9 +30,6 @@ function label(n: NotificationRow) {
     case "like": return `${name} curtiu seu post`;
     case "comment": return `${name} comentou: "${n.metadata?.preview ?? ""}"`;
     case "follow": return `${name} começou a te seguir`;
-    case "message": return `${name}: "${n.metadata?.preview ?? ""}"`;
-    case "chat_message": return `${name} no grupo: "${n.metadata?.preview ?? ""}"`;
-    case "story_view": return `${name} viu seu story`;
     case "story_reaction": return `${name} reagiu ao seu story ${n.metadata?.emoji ?? ""}`;
     case "chat_invite": return `${name} te convidou para um grupo`;
     default: return `${name} interagiu com você`;
@@ -45,6 +41,7 @@ function NotificationsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const q = useNotifications(user.id);
+  const items = (q.data ?? []).filter((n) => ALLOWED.has(n.type));
 
   useEffect(() => {
     markAllRead().then(() => qc.invalidateQueries({ queryKey: ["notifications-unread", user.id] }));
@@ -80,14 +77,14 @@ function NotificationsPage() {
             <div key={i} className="h-16 rounded-2xl bg-muted/40 animate-pulse" />
           ))}
         </div>
-      ) : (q.data ?? []).length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center text-muted-foreground">
           <Bell className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">Nada por aqui ainda. Interações vão aparecer em tempo real.</p>
         </div>
       ) : (
         <ul className="space-y-1">
-          {q.data!.map((n) => {
+          {items.map((n) => {
             const Icon = ICONS[n.type] ?? Bell;
             const isInvite = n.type === "chat_invite";
             return (

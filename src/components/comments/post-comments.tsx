@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, X, Smile, SmilePlus } from "lucide-react";
+import { Send, X, Smile, SmilePlus, Heart } from "lucide-react";
 import { EmojiText, AppEmojiPicker } from "@/components/chat/app-emoji";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -72,8 +72,50 @@ export function PostComments({
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
 
+  const likes = useQuery({
+    queryKey: ["comment-likes", postId],
+    enabled: !!postId,
+    queryFn: async () => {
+      const ids: string[] = [];
+      for (const c of comments.data ?? []) {
+        ids.push(c.id);
+        for (const r of c.replies) ids.push(r.id);
+      }
+      if (!ids.length) return {} as Record<string, { count: number; mine: boolean }>;
+      const { data } = await (supabase as any)
+        .from("comment_likes")
+        .select("comment_id, user_id")
+        .in("comment_id", ids);
+      const out: Record<string, { count: number; mine: boolean }> = {};
+      for (const row of data ?? []) {
+        const prev = out[row.comment_id] ?? { count: 0, mine: false };
+        out[row.comment_id] = {
+          count: prev.count + 1,
+          mine: prev.mine || row.user_id === currentUserId,
+        };
+      }
+      return out;
+    },
+  });
+
+  async function toggleLike(commentId: string) {
+    const cur = likes.data?.[commentId];
+    if (cur?.mine) {
+      await (supabase as any)
+        .from("comment_likes")
+        .delete()
+        .match({ comment_id: commentId, user_id: currentUserId });
+    } else {
+      await (supabase as any)
+        .from("comment_likes")
+        .insert({ comment_id: commentId, user_id: currentUserId });
+    }
+    qc.invalidateQueries({ queryKey: ["comment-likes", postId] });
+  }
+
   function refresh() {
     qc.invalidateQueries({ queryKey: ["comments", postId] });
+    qc.invalidateQueries({ queryKey: ["comment-likes", postId] });
     qc.invalidateQueries({ queryKey: ["reels"] });
     qc.invalidateQueries({ queryKey: ["feed"] });
   }
@@ -143,6 +185,7 @@ export function PostComments({
   function renderComment(c: CommentRow, isReply = false) {
     const canEdit = c.author_id === currentUserId;
     const canDelete = canEdit || (!!postAuthorId && postAuthorId === currentUserId);
+    const like = likes.data?.[c.id];
     return (
       <div key={c.id} className={cn("flex items-start gap-3", isReply && "ml-10")}>
         <UserAvatar
@@ -188,7 +231,16 @@ export function PostComments({
             )}
           </div>
           {editing?.id === c.id ? null : (
-            <div className="mt-1 flex gap-3 px-2 text-[11px] text-muted-foreground">
+            <div className="mt-1 flex items-center gap-3 px-2 text-[11px] text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => void toggleLike(c.id)}
+                className={cn("flex items-center gap-1", like?.mine && "text-primary")}
+                aria-label="Curtir comentário"
+              >
+                <Heart className={cn("h-3.5 w-3.5", like?.mine && "fill-current")} />
+                {like?.count ? like.count : null}
+              </button>
               <button
                 type="button"
                 onClick={() =>

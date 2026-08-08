@@ -179,7 +179,7 @@ export function PostComments({
               />
             ) : (
               <div className="text-sm leading-snug break-words">
-                {c.content}
+                <EmojiText text={c.content} />
                 {c.edited_at ? (
                   <span className="ml-1 text-[10px] text-muted-foreground">(editado)</span>
                 ) : null}

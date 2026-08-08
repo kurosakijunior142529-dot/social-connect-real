@@ -65,6 +65,8 @@ export function CallScreen({
   translationLanguage,
   onToggleTranslation,
   onTranslationLanguageChange,
+  onRetryCaption,
+
   onSwitchCamera,
   onMinimize,
   onHangup,

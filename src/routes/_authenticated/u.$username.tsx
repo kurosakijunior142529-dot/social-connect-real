@@ -167,9 +167,11 @@ function ProfilePage() {
   if (profileQuery.isLoading) return <Skeleton className="h-64 rounded-3xl" />;
   if (!profile) return <div className="text-center py-12">Usuário não encontrado.</div>;
 
-  const posts = (stats.data?.posts ?? []) as any[];
-  const videoPosts = posts.filter((p) => p.media_type === "video");
-  const mediaPosts = posts.filter((p) => !!p.media_url);
+  const allPosts = (stats.data?.posts ?? []) as any[];
+  // publicações do feed vs. vídeos curtos (reels) são separados por post_kind
+  const posts = allPosts.filter((p) => p.post_kind !== "reel");
+  const videoPosts = allPosts.filter((p) => p.post_kind === "reel" || p.media_type === "video");
+  const mediaPosts = allPosts.filter((p) => !!p.media_url);
 
   return (
     <div className="-mt-4 md:-mt-10 space-y-5">

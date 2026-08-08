@@ -194,6 +194,9 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
       {/* Depth gradient at the edges */}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.35),transparent_22%,transparent_70%,rgba(0,0,0,0.55))]" />
 
+      {/* Marca d'água do app */}
+      <VideoWatermark username={watermarkUsername} className="bottom-6" />
+
       {/* Elegant loader */}
       {loading ? (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">

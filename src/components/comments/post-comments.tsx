@@ -72,8 +72,50 @@ export function PostComments({
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
 
+  const likes = useQuery({
+    queryKey: ["comment-likes", postId],
+    enabled: !!postId,
+    queryFn: async () => {
+      const ids: string[] = [];
+      for (const c of comments.data ?? []) {
+        ids.push(c.id);
+        for (const r of c.replies) ids.push(r.id);
+      }
+      if (!ids.length) return {} as Record<string, { count: number; mine: boolean }>;
+      const { data } = await (supabase as any)
+        .from("comment_likes")
+        .select("comment_id, user_id")
+        .in("comment_id", ids);
+      const out: Record<string, { count: number; mine: boolean }> = {};
+      for (const row of data ?? []) {
+        const prev = out[row.comment_id] ?? { count: 0, mine: false };
+        out[row.comment_id] = {
+          count: prev.count + 1,
+          mine: prev.mine || row.user_id === currentUserId,
+        };
+      }
+      return out;
+    },
+  });
+
+  async function toggleLike(commentId: string) {
+    const cur = likes.data?.[commentId];
+    if (cur?.mine) {
+      await (supabase as any)
+        .from("comment_likes")
+        .delete()
+        .match({ comment_id: commentId, user_id: currentUserId });
+    } else {
+      await (supabase as any)
+        .from("comment_likes")
+        .insert({ comment_id: commentId, user_id: currentUserId });
+    }
+    qc.invalidateQueries({ queryKey: ["comment-likes", postId] });
+  }
+
   function refresh() {
     qc.invalidateQueries({ queryKey: ["comments", postId] });
+    qc.invalidateQueries({ queryKey: ["comment-likes", postId] });
     qc.invalidateQueries({ queryKey: ["reels"] });
     qc.invalidateQueries({ queryKey: ["feed"] });
   }

@@ -29,8 +29,9 @@ import { ChatSearchBar } from "@/components/chat/search-bar";
 import { TypingIndicator, useConversationPresence } from "@/components/chat/typing-indicator";
 import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
 import { GifPicker } from "@/components/chat/gif-picker";
+import { StickerPicker } from "@/components/chat/sticker-picker";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
-import { Sticker } from "lucide-react";
+import { Sticker, Smile } from "lucide-react";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
@@ -206,6 +207,17 @@ function ConversationPage() {
       media_type: "image/gif",
       content: g.alt,
       meta: { w: g.w, h: g.h },
+    });
+  }
+
+  async function handleSticker(s: { url: string; name: string; path?: string; own?: boolean }) {
+    if (isBlockedPair) return;
+    await sendPayload({
+      kind: "sticker",
+      media_url: s.own && s.path ? s.path : s.url,
+      ...(s.own && s.path ? { media_bucket: "stickers" } : {}),
+      media_type: "image/png",
+      content: s.name,
     });
   }
 
@@ -580,6 +592,20 @@ function ConversationPage() {
               className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
             >
               <Sticker className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </button>
+          }
+        />
+        <StickerPicker
+          userId={user.id}
+          onPick={handleSticker}
+          trigger={
+            <button
+              type="button"
+              disabled={isBlockedPair}
+              aria-label="Figurinhas"
+              className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+            >
+              <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
             </button>
           }
         />

@@ -695,10 +695,26 @@ export function CallProvider({ children }: { children: ReactNode }) {
     [translateCaption],
   );
 
+  /** Rejects transcription noise: fillers, single tokens and model hallucinations. */
+  const isNoise = (text: string) => {
+    const norm = text.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").replace(/\s+/g, " ").trim();
+    if (norm.length < 3) return true;
+    if (/^(a+h*|e+h*|hum+|hm+|uh+|um+|mm+|ok|oi|hã|ãh|yeah|you|the)$/.test(norm)) return true;
+    // Common Whisper hallucinations on silence/noise.
+    if (/(legendas pela comunidade|amara\.org|obrigado por assistir|thanks for watching|subscribe)/.test(norm)) {
+      return true;
+    }
+    const words = norm.split(" ");
+    if (words.length === 1 && norm.length < 5) return true;
+    // A phrase repeating the same word over and over is a decoding loop.
+    if (words.length > 3 && new Set(words).size === 1) return true;
+    return false;
+  };
+
   const pushMyCaption = useCallback(
     (text: string, sourceLang: string) => {
       const clean = text.trim();
-      if (!clean) return;
+      if (!clean || isNoise(clean)) return;
       const now = Date.now();
       if (lastTranscriptRef.current.text === clean && now - lastTranscriptRef.current.at < 8_000) return;
       // Anti-echo: ignore my "speech" when it just repeats what the other person said.
@@ -767,7 +783,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
             );
           });
           const result = await Promise.race([
-            transcribe({ data: { audio, language: spokenLangRef.current } }),
+            transcribe({
+              data: {
+                audio,
+                language: spokenLangRef.current,
+                context: captionsMirrorRef.current
+                  .slice(-2)
+                  .map((item) => item.original)
+                  .join(" ")
+                  .slice(-600),
+              },
+            }),
             timeout,
           ]).finally(() => {
             if (timeoutId !== undefined) window.clearTimeout(timeoutId);

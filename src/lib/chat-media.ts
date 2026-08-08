@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type ChatBucket = "chats" | "chat-audio" | "chat-video" | "chat-docs";
+export type ChatBucket = "chats" | "chat-audio" | "chat-video" | "chat-docs" | "stickers";
 
 export type ChatMessageKind =
   | "text"

@@ -507,24 +507,40 @@ export type Database = {
           author_id: string
           content: string
           created_at: string
+          edited_at: string | null
           id: string
+          parent_id: string | null
           post_id: string
+          sticker_url: string | null
         }
         Insert: {
           author_id: string
           content: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          parent_id?: string | null
           post_id: string
+          sticker_url?: string | null
         }
         Update: {
           author_id?: string
           content?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          parent_id?: string | null
           post_id?: string
+          sticker_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comments_post_id_fkey"
             columns: ["post_id"]
@@ -1458,6 +1474,7 @@ export type Database = {
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
           media_url: string
+          post_kind: string
           thumbnail_url: string | null
           view_count: number
         }
@@ -1468,6 +1485,7 @@ export type Database = {
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url: string
+          post_kind?: string
           thumbnail_url?: string | null
           view_count?: number
         }
@@ -1478,6 +1496,7 @@ export type Database = {
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url?: string
+          post_kind?: string
           thumbnail_url?: string | null
           view_count?: number
         }
@@ -1662,6 +1681,36 @@ export type Database = {
           },
         ]
       }
+      stickers: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          pack: string
+          position: number
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          pack?: string
+          position?: number
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          pack?: string
+          position?: number
+          url?: string
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           caption: string | null
@@ -1830,6 +1879,30 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_stickers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          storage_path?: string
           user_id?: string
         }
         Relationships: []

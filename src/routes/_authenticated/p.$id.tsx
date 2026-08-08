@@ -3,10 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Heart, Send, ArrowLeft } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { PostComments } from "@/components/comments/post-comments";
+import { Heart, ArrowLeft } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -20,7 +18,7 @@ function PostDetailPage() {
   const { id } = Route.useParams();
   const { user } = Route.useRouteContext();
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState("");
+  
 
   const post = useQuery({
     queryKey: ["post", id],
@@ -46,24 +44,6 @@ function PostDetailPage() {
     },
   });
 
-  const comments = useQuery({
-    queryKey: ["comments", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("comments")
-        .select("*")
-        .eq("post_id", id)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      const authorIds = Array.from(new Set((data ?? []).map((c) => c.author_id)));
-      const { data: profs } = authorIds.length
-        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds)
-        : { data: [] };
-      const map = new Map((profs ?? []).map((p) => [p.id, p]));
-      return (data ?? []).map((c) => ({ ...c, author: map.get(c.author_id) }));
-    },
-  });
-
   const toggleLike = useMutation({
     mutationFn: async () => {
       if (post.data?.liked_by_me) {
@@ -74,20 +54,6 @@ function PostDetailPage() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["post", id] }),
   });
-
-  async function addComment(e: FormEvent) {
-    e.preventDefault();
-    const text = draft.trim();
-    if (!text) return;
-    setDraft("");
-    const { error } = await supabase.from("comments").insert({
-      post_id: id,
-      author_id: user.id,
-      content: text,
-    });
-    if (error) setDraft(text);
-    else queryClient.invalidateQueries({ queryKey: ["comments", id] });
-  }
 
   if (post.isLoading) return <Skeleton className="h-96 rounded-3xl" />;
   if (!post.data) return <div className="text-center py-12">Post não encontrado.</div>;
@@ -132,33 +98,7 @@ function PostDetailPage() {
 
       <section className="space-y-3">
         <h2 className="font-semibold text-sm px-1">Comentários</h2>
-        <div className="space-y-3">
-          {comments.data?.map((c) => (
-            <div key={c.id} className="flex items-start gap-3">
-              <UserAvatar avatarPath={c.author?.avatar_url} displayName={c.author?.display_name ?? "?"} className="h-8 w-8" />
-              <div className="flex-1 rounded-2xl bg-muted px-3 py-2">
-                <div className="text-xs font-semibold">{c.author?.display_name}</div>
-                <div className="text-sm">{c.content}</div>
-              </div>
-            </div>
-          ))}
-          {comments.data?.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Seja o primeiro a comentar.</p>
-          ) : null}
-        </div>
-
-        <form onSubmit={addComment} className="flex items-center gap-2 pt-2">
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Adicione um comentário…"
-            maxLength={500}
-            className="rounded-full bg-muted border-transparent"
-          />
-          <Button type="submit" size="icon" className="rounded-full bg-gradient-brand shrink-0">
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+        <PostComments postId={id} currentUserId={user.id} postAuthorId={p.author_id} />
       </section>
     </div>
   );

@@ -15,10 +15,11 @@ export const transcribeCallClip = createServerFn({ method: "POST" })
         // base64 of a complete 16kHz mono WAV file, kept small on the client (~4s)
         audio: z.string().min(64).max(4_000_000),
         language: z.string().min(2).max(10).optional(),
+        context: z.string().max(600).optional(),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const text = await transcribeCallAudio(data.audio, data.language);
+    const text = await transcribeCallAudio(data.audio, data.language, data.context);
     return { text };
   });

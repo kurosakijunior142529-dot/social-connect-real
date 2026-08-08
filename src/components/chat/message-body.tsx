@@ -32,6 +32,7 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   const kind = msg.kind ?? "text";
 
   if (kind === "gif") return <GifBody msg={msg} />;
+  if (kind === "sticker") return <StickerBody msg={msg} />;
   if (kind === "image") return <ImageBody msg={msg} />;
   if (kind === "video") return <VideoBody msg={msg} />;
   if (kind === "audio") return <AudioBody msg={msg} mine={mine} />;
@@ -52,6 +53,21 @@ function GifBody({ msg }: { msg: Msg }) {
       loading="lazy"
       className="rounded-xl max-h-72 max-w-full"
       style={{ aspectRatio: w && h ? `${w}/${h}` : undefined }}
+    />
+  );
+}
+
+function StickerBody({ msg }: { msg: Msg }) {
+  const isAbsolute = !!msg.media_url && !msg.media_bucket;
+  const signed = useChatSigned(msg.media_bucket, isAbsolute ? null : msg.media_url);
+  const src = isAbsolute ? msg.media_url : signed.data;
+  if (!src) return <div className="h-32 w-32 animate-pulse rounded-xl bg-black/10" />;
+  return (
+    <img
+      src={src}
+      alt={msg.content ?? "figurinha"}
+      loading="lazy"
+      className="h-32 w-32 object-contain"
     />
   );
 }

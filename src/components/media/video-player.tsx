@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VideoWatermark } from "@/components/media/watermark";
 
 function fmt(s: number) {
   if (!Number.isFinite(s) || s < 0) s = 0;

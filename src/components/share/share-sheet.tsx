@@ -15,7 +15,13 @@ export type ShareTarget = {
   title?: string;
   text?: string;
   /** Optional media so the sheet can offer a real download. */
-  media?: { bucket: MediaBucket; path: string; filename?: string } | null;
+  media?: {
+    bucket: MediaBucket;
+    path: string;
+    filename?: string;
+    posterPath?: string | null;
+    mimeType?: string | null;
+  } | null;
 };
 
 type Tab = "send" | "social" | "download";

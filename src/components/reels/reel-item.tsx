@@ -426,7 +426,9 @@ function ActionBtn({
       aria-label={label}
       className="flex flex-col items-center gap-1 active:scale-90 transition"
     >
-      <span className="grid h-11 w-11 place-items-center">{icon}</span>
+      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/25 backdrop-blur-md ring-1 ring-white/10 shadow-[0_6px_18px_-8px_rgba(0,0,0,0.9)]">
+        {icon}
+      </span>
       {typeof count === "number" ? (
         <span className="text-[11px] font-semibold tabular drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{formatCount(count)}</span>
       ) : null}

@@ -48,7 +48,7 @@ export function ForwardDialog({
       if (!others.length) return [] as any[];
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
         .in("id", others);
       const byId = new Map((profs ?? []).map((p) => [p.id, p]));
       return (data ?? []).map((c: any) => ({

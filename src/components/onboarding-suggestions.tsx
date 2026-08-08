@@ -37,7 +37,7 @@ export function OnboardingSuggestions({ currentUserId }: { currentUserId: string
 
       const { data } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, bio, is_verified")
+        .select("id, username, display_name, avatar_url, bio, is_verified, badge_variant")
         .neq("id", currentUserId)
         .limit(12);
 

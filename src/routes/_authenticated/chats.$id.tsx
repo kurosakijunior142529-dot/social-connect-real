@@ -80,7 +80,7 @@ function ChatPage() {
       const list = (data ?? []) as any[];
       const senderIds = Array.from(new Set(list.map((m) => m.sender_id)));
       const { data: profs } = senderIds.length
-        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", senderIds)
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", senderIds)
         : { data: [] as any[] };
       const pmap = new Map((profs ?? []).map((p) => [p.id, p]));
       return list.map((m) => ({ ...m, sender: pmap.get(m.sender_id) }));
@@ -327,7 +327,7 @@ function MembersDialog({
       const list = (data ?? []) as any[];
       const ids = list.map((m) => m.user_id);
       const { data: profs } = ids.length
-        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids)
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", ids)
         : { data: [] as any[] };
       const pmap = new Map((profs ?? []).map((p) => [p.id, p]));
       return list.map((m) => ({ ...m, profile: pmap.get(m.user_id) }));

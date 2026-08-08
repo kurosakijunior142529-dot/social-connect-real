@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { VerifiedName } from "@/components/verified-badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedImage } from "@/components/signed-image";
@@ -39,7 +40,7 @@ function ExplorePage() {
       if (!q.trim()) return [];
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, bio")
+        .select("id, username, display_name, avatar_url, bio, is_verified, badge_variant")
         .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
         .limit(30);
       if (error) throw error;
@@ -76,9 +77,9 @@ function ExplorePage() {
                   params={{ username: u.username }}
                   className="flex items-center gap-3 rounded-2xl p-3 hover:bg-muted"
                 >
-                  <UserAvatar avatarPath={u.avatar_url} displayName={u.display_name} />
+                  <UserAvatar avatarPath={u.avatar_url} displayName={u.display_name} verified={!!(u as any).is_verified} badgeVariant={((u as any).badge_variant) ?? null} />
                   <div className="min-w-0">
-                    <div className="font-medium truncate">{u.display_name}</div>
+                    <div className="font-medium truncate"><VerifiedName name={u.display_name} verified={(u as any).is_verified} badgeVariant={(u as any).badge_variant} /></div>
                     <div className="text-xs text-muted-foreground truncate">@{u.username}</div>
                   </div>
                 </Link>

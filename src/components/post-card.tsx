@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { Heart, MessageCircle } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
@@ -7,6 +8,7 @@ import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { SavePostButton } from "@/components/save-post-button";
+import { RepostButton } from "@/components/repost-button";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,7 +21,7 @@ export type FeedPost = {
   media_type: "image" | "video";
   caption: string | null;
   created_at: string;
-  author: { username: string; display_name: string; avatar_url: string | null } | null;
+  author: { username: string; display_name: string; avatar_url: string | null; is_verified?: boolean | null; badge_variant?: string | null } | null;
   likes_count: number;
   comments_count: number;
   liked_by_me: boolean;
@@ -77,6 +79,8 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
           <UserAvatar
             avatarPath={author?.avatar_url}
             displayName={author?.display_name ?? "?"}
+            verified={!!author?.is_verified}
+            badgeVariant={(author?.badge_variant as any) ?? null}
           />
         </Link>
         <div className="flex-1 min-w-0 leading-tight">
@@ -85,7 +89,11 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             params={{ username: author?.username ?? "" }}
             className="block font-semibold text-[15px] truncate"
           >
-            {author?.display_name}
+            <VerifiedName
+              name={author?.display_name}
+              verified={author?.is_verified}
+              badgeVariant={author?.badge_variant}
+            />
           </Link>
           <div className="text-[12px] text-muted-foreground truncate">
             @{author?.username} ·{" "}
@@ -151,6 +159,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             <MessageCircle className="h-[22px] w-[22px]" strokeWidth={1.6} />
             <span className="text-[13px] font-medium tabular">{post.comments_count}</span>
           </Link>
+          <RepostButton postId={post.id} userId={currentUserId} />
           <div className="ml-auto">
             {currentUserId ? <SavePostButton postId={post.id} userId={currentUserId} /> : null}
           </div>
@@ -260,7 +269,7 @@ export function usePostsQuery(opts: {
       const authorIds = Array.from(new Set(posts.map((p) => p.author_id)));
 
       const [profilesRes, likesCountRes, commentsCountRes, myLikesRes] = await Promise.all([
-        supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds),
+        supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", authorIds),
         supabase.from("likes").select("post_id").in("post_id", ids),
         supabase.from("comments").select("post_id").in("post_id", ids),
         opts.currentUserId

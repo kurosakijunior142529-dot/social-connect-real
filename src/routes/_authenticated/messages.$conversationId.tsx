@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { VerifiedName } from "@/components/verified-badge";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,7 +75,7 @@ function ConversationPage() {
       const otherId = data.user_a === user.id ? data.user_b : data.user_a;
       const { data: prof } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
         .eq("id", otherId)
         .maybeSingle();
       return { ...data, other: prof };
@@ -441,10 +442,12 @@ function ConversationPage() {
               <UserAvatar
                 avatarPath={other.avatar_url}
                 displayName={other.display_name}
+                verified={!!(other as any).is_verified}
+                badgeVariant={((other as any).badge_variant) ?? null}
                 className="h-9 w-9"
               />
               <div className="min-w-0 leading-tight">
-                <div className="font-semibold text-[15px] truncate">{other.display_name}</div>
+                <div className="font-semibold text-[15px] truncate"><VerifiedName name={other.display_name} verified={(other as any).is_verified} badgeVariant={(other as any).badge_variant} /></div>
                 <div className="text-[11px] text-muted-foreground truncate">
                   @{other.username}
                 </div>

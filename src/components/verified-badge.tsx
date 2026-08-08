@@ -86,37 +86,123 @@ export function VerifiedBadge({
   const cfg = CONFIG[variant];
   const Icon = cfg.Icon;
   const iconSize = Math.round(size * 0.6);
+  const halo = Math.round(size * 1.75);
 
   return (
     <span
+      className={cn("relative inline-grid place-items-center shrink-0 align-middle", className)}
+      style={{ height: size, width: size }}
       title={title ?? cfg.label}
       aria-label={title ?? cfg.label}
-      className={cn(
-        "relative inline-grid place-items-center rounded-full shrink-0 overflow-hidden",
-        animated && "badge-sheen",
-        className,
-      )}
-      style={{
-        height: size,
-        width: size,
-        background: cfg.gradient,
-        boxShadow: `${cfg.glow}, inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 0 1px ${cfg.ring}`,
-      }}
     >
-      {/* Gloss highlight */}
+      {/* Aro luminoso girando */}
+      {animated ? (
+        <span
+          aria-hidden
+          className="absolute rounded-full badge-spin pointer-events-none"
+          style={{
+            height: halo,
+            width: halo,
+            background: `conic-gradient(from 0deg, transparent 0deg, ${cfg.ring} 70deg, transparent 150deg, transparent 220deg, ${cfg.ring} 290deg, transparent 360deg)`,
+            filter: "blur(2px)",
+            opacity: 0.65,
+            maskImage: "radial-gradient(circle, transparent 52%, #000 58%, #000 76%, transparent 82%)",
+            WebkitMaskImage: "radial-gradient(circle, transparent 52%, #000 58%, #000 76%, transparent 82%)",
+          }}
+        />
+      ) : null}
+
+      {/* Pulso */}
+      {animated ? (
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-full badge-pulse pointer-events-none"
+          style={{ color: cfg.ring }}
+        />
+      ) : null}
+
+      {/* Corpo do selo */}
       <span
-        aria-hidden
-        className="absolute inset-0 rounded-full pointer-events-none"
+        className={cn(
+          "relative inline-grid place-items-center rounded-full overflow-hidden h-full w-full",
+          animated && "badge-sheen badge-breathe",
+        )}
         style={{
-          background:
-            "radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 55%)",
+          background: cfg.gradient,
+          boxShadow: `${cfg.glow}, inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.28), 0 0 0 1px ${cfg.ring}`,
         }}
-      />
-      <Icon
-        strokeWidth={3.5}
-        className="relative text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]"
-        style={{ height: iconSize, width: iconSize }}
-      />
+      >
+        {/* Gloss highlight */}
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 55%)",
+          }}
+        />
+        <Icon
+          strokeWidth={3.5}
+          className="relative text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]"
+          style={{ height: iconSize, width: iconSize }}
+        />
+      </span>
+
+      {/* Estrelinhas */}
+      {animated ? (
+        <>
+          <span
+            aria-hidden
+            className="absolute rounded-full badge-twinkle pointer-events-none"
+            style={{
+              height: Math.max(2, size * 0.16),
+              width: Math.max(2, size * 0.16),
+              top: -size * 0.12,
+              right: -size * 0.06,
+              background: "#fff",
+              boxShadow: `0 0 6px ${cfg.ring}`,
+            }}
+          />
+          <span
+            aria-hidden
+            className="absolute rounded-full badge-twinkle pointer-events-none"
+            style={{
+              height: Math.max(2, size * 0.13),
+              width: Math.max(2, size * 0.13),
+              bottom: -size * 0.1,
+              left: -size * 0.08,
+              background: "#fff",
+              boxShadow: `0 0 6px ${cfg.ring}`,
+              animationDelay: "1.1s",
+            }}
+          />
+        </>
+      ) : null}
+    </span>
+  );
+}
+
+/** Nome + selo, para usar em feeds, chats, comentários, etc. */
+export function VerifiedName({
+  name,
+  verified,
+  badgeVariant,
+  size = 14,
+  className,
+}: {
+  name: string | null | undefined;
+  verified?: boolean | null;
+  badgeVariant?: BadgeVariant | string | null;
+  size?: number;
+  className?: string;
+}) {
+  const show = !!verified || !!badgeVariant;
+  return (
+    <span className={cn("inline-flex items-center gap-1 min-w-0", className)}>
+      <span className="truncate">{name}</span>
+      {show ? (
+        <VerifiedBadge size={size} variant={((badgeVariant as BadgeVariant) ?? "verified")} />
+      ) : null}
     </span>
   );
 }

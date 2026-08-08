@@ -45,6 +45,8 @@ type Props = {
   translationLanguage: string;
   onToggleTranslation: () => void;
   onTranslationLanguageChange: (language: string) => void;
+  onRetryCaption: (id: string) => void;
+
   onSwitchCamera: () => void | Promise<void>;
   onMinimize?: () => void;
   onHangup: () => void;
@@ -63,6 +65,8 @@ export function CallScreen({
   translationLanguage,
   onToggleTranslation,
   onTranslationLanguageChange,
+  onRetryCaption,
+
   onSwitchCamera,
   onMinimize,
   onHangup,
@@ -328,11 +332,28 @@ export function CallScreen({
                     {caption.speaker === "me" ? "Você" : displayName}
                   </div>
                   <p className="text-xs text-white/50">{caption.original}</p>
-                  <p className="text-sm font-semibold">
-                    {caption.translated ?? <span className="text-white/60">traduzindo…</span>}
-                  </p>
+                  {caption.status === "failed" ? (
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold">{caption.original}</p>
+                      <span className="text-[10px] text-white/50">
+                        {caption.error ?? "não foi possível traduzir"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onRetryCaption(caption.id)}
+                        className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold transition active:scale-95"
+                      >
+                        Tentar novamente
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-semibold">
+                      {caption.translated ?? <span className="text-white/60">traduzindo…</span>}
+                    </p>
+                  )}
                 </div>
               ))
+
             )}
           </div>
         </div>

@@ -249,7 +249,13 @@ function LiveRoom() {
       if (t.isHost) {
         try {
           const tracks = await createLocalTracks({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              channelCount: 1,
+              sampleRate: 48000,
+            },
             video: { facingMode, resolution: { width: 1280, height: 720, frameRate: 30 } },
           });
           for (const tr of tracks) await r.localParticipant.publishTrack(tr);

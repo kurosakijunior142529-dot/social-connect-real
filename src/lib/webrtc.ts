@@ -55,7 +55,11 @@ export async function getLocalMedia(
       noiseSuppression: true,
       autoGainControl: true,
       channelCount: { ideal: 1 },
-    },
+      sampleRate: { ideal: 48000 },
+      sampleSize: { ideal: 16 },
+      latency: { ideal: 0.01 },
+    } as MediaTrackConstraints,
+
     video: video
       ? {
           width: { ideal: 1280 },

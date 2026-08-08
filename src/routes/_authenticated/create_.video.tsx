@@ -106,7 +106,10 @@ function VideoStudio() {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-        },
+          channelCount: { ideal: 1 },
+          sampleRate: { ideal: 48000 },
+        } as MediaTrackConstraints,
+
       });
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new DOMException("Tempo esgotado ao pedir permissão de câmera.", "TimeoutError")), 15000),
@@ -178,8 +181,8 @@ function VideoStudio() {
     }
     const mime = pickVideoMime();
     const rec = mime
-      ? new MediaRecorder(streamRef.current, { mimeType: mime, videoBitsPerSecond: 4_500_000 })
-      : new MediaRecorder(streamRef.current);
+      ? new MediaRecorder(streamRef.current, { mimeType: mime, videoBitsPerSecond: 6_000_000, audioBitsPerSecond: 128_000 })
+      : new MediaRecorder(streamRef.current, { audioBitsPerSecond: 128_000 });
     chunks.current = [];
     rec.ondataavailable = (e) => e.data.size > 0 && chunks.current.push(e.data);
     rec.onstop = () => {
@@ -693,8 +696,8 @@ async function renderFiltered(
 
   const mime = pickVideoMime();
   const rec = mime
-    ? new MediaRecorder(canvasStream, { mimeType: mime, videoBitsPerSecond: 4_500_000 })
-    : new MediaRecorder(canvasStream);
+    ? new MediaRecorder(canvasStream, { mimeType: mime, videoBitsPerSecond: 6_000_000, audioBitsPerSecond: 128_000 })
+    : new MediaRecorder(canvasStream, { audioBitsPerSecond: 128_000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
 

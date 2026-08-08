@@ -22,7 +22,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getCallAccess } from "@/lib/calls.functions";
 import {
+  AudioPresets,
   LocalAudioTrack,
+
   LocalVideoTrack,
   Room,
   RoomEvent,
@@ -73,7 +75,11 @@ export type CallCaption = {
   speaker: "me" | "other";
   original: string;
   translated?: string;
+  /** pending = translating, done = translated, failed = show original + retry */
+  status: "pending" | "done" | "failed";
+  error?: string;
 };
+
 
 const CallContext = createContext<Ctx | null>(null);
 
@@ -117,7 +123,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const mediaConnectedRef = useRef(false);
   const translationSessionRef = useRef(0);
   const lastTranscriptRef = useRef({ text: "", at: 0 });
+  const lastRemoteCaptionRef = useRef({ text: "", at: 0 });
+  const translateCaptionRef = useRef<((id: string, original: string) => Promise<void>) | null>(null);
+  const captionsMirrorRef = useRef<CallCaption[]>([]);
   const spokenLangRef = useRef<string>("pt-BR");
+
   const transcribe = useServerFn(transcribeCallClip);
   const translateMany = useServerFn(translateBatch);
   const translationEnabledRef = useRef(false);
@@ -228,14 +238,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
             const original = typeof payload.text === "string" ? payload.text.trim() : "";
             if (!original || !translationEnabledRef.current) return;
             const id = String(row.id);
-            setCaptions((current) => [...current.slice(-60), { id, speaker: "other", original }]);
-            try {
-              const result = await translate({ data: { text: original, target: translationLanguageRef.current } });
-              setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: result.text } : item));
-            } catch {
-              setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: original } : item));
-            }
+            lastRemoteCaptionRef.current = { text: original, at: Date.now() };
+            setCaptions((current) => [
+              ...current.slice(-60),
+              { id, speaker: "other" as const, original, status: "pending" as const },
+            ]);
+            await translateCaptionRef.current?.(id, original);
           } else if (row.kind === "bye") {
+
             hangupLocalRef.current?.();
           }
         } catch (e) {
@@ -305,7 +315,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
         source: Track.Source.Microphone,
         dtx: true,
         red: true,
+        // High-fidelity mono Opus (~64 kbps) instead of the low default bitrate.
+        audioPreset: AudioPresets.musicHighQuality,
+
       });
+
       mediaConnectedRef.current = true;
       setMediaConnected(true);
       const videoTrack = stream.getVideoTracks()[0];
@@ -623,40 +637,99 @@ export function CallProvider({ children }: { children: ReactNode }) {
   // Everything I say is transcribed from the audio track already acquired for
   // the call. Translation never requests microphone access of its own.
 
+  /** Normalized similarity helper used to drop echoed / duplicated speech. */
+  const isNearlySame = (a: string, b: string) => {
+    const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").replace(/\s+/g, " ").trim();
+    const x = norm(a);
+    const y = norm(b);
+    if (!x || !y) return false;
+    return x === y || (x.length > 8 && (x.includes(y) || y.includes(x)));
+  };
+
+  /** Translates one caption, keeping its status in sync so failures can be retried. */
+  const translateCaption = useCallback(
+    async (id: string, original: string) => {
+      const target = translationLanguageRef.current;
+      setCaptions((current) =>
+        current.map((item) =>
+          item.id === id ? { ...item, status: "pending" as const, error: undefined } : item,
+        ),
+      );
+      const previous = captionsMirrorRef.current
+        .filter((item) => item.id !== id && item.original.trim())
+        .slice(-1)[0]?.original;
+      try {
+        const result = await translate({ data: { text: original, target, context: previous } });
+        if (translationLanguageRef.current !== target) return;
+        setCaptions((current) =>
+          current.map((item) =>
+            item.id === id ? { ...item, translated: result.text, status: "done" as const, error: undefined } : item,
+          ),
+        );
+      } catch (error: any) {
+        console.error("[call-translation] translate failed", error);
+        setCaptions((current) =>
+          current.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  translated: undefined,
+                  status: "failed" as const,
+                  error: error?.message ?? "Não foi possível traduzir",
+                }
+              : item,
+          ),
+        );
+      }
+    },
+    [translate],
+  );
+  translateCaptionRef.current = translateCaption;
+
+  const retryCaption = useCallback(
+    (id: string) => {
+      const caption = captionsMirrorRef.current.find((item) => item.id === id);
+      if (!caption) return;
+      void translateCaption(id, caption.original);
+    },
+    [translateCaption],
+  );
+
   const pushMyCaption = useCallback(
     (text: string, sourceLang: string) => {
       const clean = text.trim();
       if (!clean) return;
       const now = Date.now();
       if (lastTranscriptRef.current.text === clean && now - lastTranscriptRef.current.at < 8_000) return;
+      // Anti-echo: ignore my "speech" when it just repeats what the other person said.
+      if (
+        now - lastRemoteCaptionRef.current.at < 6_000 &&
+        isNearlySame(clean, lastRemoteCaptionRef.current.text)
+      ) {
+        return;
+      }
       lastTranscriptRef.current = { text: clean, at: now };
       const id = crypto.randomUUID();
-      setCaptions((current) => [...current.slice(-60), { id, speaker: "me", original: clean }]);
+      setCaptions((current) => [
+        ...current.slice(-60),
+        { id, speaker: "me" as const, original: clean, status: "pending" as const },
+      ]);
       void sendSignalRef.current?.("caption", { text: clean, language: sourceLang });
 
       const target = translationLanguageRef.current;
       if (sourceLang.split("-")[0] === target.split("-")[0]) {
         setCaptions((current) =>
-          current.map((item) => (item.id === id ? { ...item, translated: clean } : item)),
+          current.map((item) =>
+            item.id === id ? { ...item, translated: clean, status: "done" as const } : item,
+          ),
         );
         return;
       }
-      void translate({ data: { text: clean, target } })
-        .then((result) => {
-          if (!translationEnabledRef.current || translationLanguageRef.current !== target) return;
-          setCaptions((current) =>
-            current.map((item) => (item.id === id ? { ...item, translated: result.text } : item)),
-          );
-        })
-        .catch((error) => {
-          console.error("[call-translation] translate failed", error);
-          setCaptions((current) =>
-            current.map((item) => (item.id === id ? { ...item, translated: clean } : item)),
-          );
-        });
+      void translateCaption(id, clean);
     },
-    [translate],
+    [translateCaption],
   );
+
 
   const stopTranslation = useCallback(() => {
     translationEnabledRef.current = false;
@@ -681,6 +754,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let notified = false;
     let consecutiveFailures = 0;
     const handle = startSttFallback(stream, {
+      remoteStream: persistentRemoteStreamRef.current,
+
       onClip: async (audio) => {
         if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
         try {
@@ -756,34 +831,65 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const allowed = ["pt-BR", "en", "es", "fr", "de", "it", "ja", "ko", "zh", "ar"];
       if (!allowed.includes(language)) return;
       if (language === translationLanguageRef.current) return;
+      // Apply the language immediately: the selector never waits for the network.
       translationLanguageRef.current = language;
       setTranslationLanguage(language);
 
-      // Re-translate what is currently on screen so the change is immediate.
-      setCaptions((current) => {
-        const visible = current.slice(-8).filter((item) => item.original.trim().length > 0);
-        if (visible.length > 0) {
-          void translateMany({
-            data: { items: visible.map((v) => ({ id: v.id, text: v.original })), target: language },
-          })
-            .then(({ results }: { results: { id: string; text: string }[] }) => {
-              const map = new Map<string, string>(results.map((r) => [r.id, r.text]));
-              setCaptions((rows) =>
-                rows.map((row) => {
-                  const next = map.get(row.id);
-                  return next ? { ...row, translated: next } : row;
-                }),
-              );
-            })
-            .catch((error: unknown) => console.error("[call-translation] batch translate failed", error));
-        }
-        return current.map((item) =>
-          visible.some((v) => v.id === item.id) ? { ...item, translated: undefined } : item,
+      const visible = captionsMirrorRef.current.slice(-8).filter((item) => item.original.trim().length > 0);
+      setCaptions((current) =>
+        current.map((item) =>
+          visible.some((v) => v.id === item.id)
+            ? { ...item, translated: undefined, status: "pending" as const, error: undefined }
+            : item,
+        ),
+      );
+      if (visible.length === 0) return;
+
+      const markFailed = (message: string) =>
+        setCaptions((rows) =>
+          rows.map((row) =>
+            visible.some((v) => v.id === row.id) && row.status === "pending"
+              ? { ...row, translated: undefined, status: "failed" as const, error: message }
+              : row,
+          ),
         );
-      });
+
+      void translateMany({
+        data: { items: visible.map((v) => ({ id: v.id, text: v.original })), target: language },
+      })
+        .then((response: { ok: boolean; error: string | null; results: { id: string; text: string; ok: boolean }[] }) => {
+          if (translationLanguageRef.current !== language) return;
+          if (!response.ok) {
+            markFailed(response.error ?? "Não foi possível traduzir");
+            return;
+          }
+          const map = new Map(response.results.map((r) => [r.id, r]));
+          setCaptions((rows) =>
+            rows.map((row) => {
+              const next = map.get(row.id);
+              if (!next) return row;
+              return next.ok
+                ? { ...row, translated: next.text, status: "done" as const, error: undefined }
+                : { ...row, translated: undefined, status: "failed" as const, error: "Não foi possível traduzir" };
+            }),
+          );
+        })
+        .catch((error: any) => {
+          console.error("[call-translation] batch translate failed", error);
+          if (translationLanguageRef.current !== language) return;
+          markFailed(error?.message ?? "Não foi possível traduzir");
+        });
+
     },
     [translateMany],
   );
+
+  // Keep a synchronous mirror of the captions so retries and language changes
+  // can read the latest list without stale closures.
+  useEffect(() => {
+    captionsMirrorRef.current = captions;
+  }, [captions]);
+
 
   // Audio Playback Management — re-attach the persistent stream and force
   // play() whenever new remote tracks arrive (trackUpdate bumps).
@@ -888,6 +994,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
           translationLanguage={translationLanguage}
           onToggleTranslation={toggleTranslation}
           onTranslationLanguageChange={changeTranslationLanguage}
+          onRetryCaption={retryCaption}
+
           onSwitchCamera={switchCamera}
           onMinimize={() => setMinimized(true)}
           onHangup={hangupLocal}

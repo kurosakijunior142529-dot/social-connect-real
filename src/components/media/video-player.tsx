@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VideoWatermark } from "@/components/media/watermark";
 
 function fmt(s: number) {
   if (!Number.isFinite(s) || s < 0) s = 0;
@@ -17,6 +18,8 @@ type Props = {
   nextSrc?: string;
   /** Called on double tap. Return false to skip the heart animation. */
   onDoubleTapLike?: () => void;
+  /** Autor exibido na marca d'água do app. */
+  watermarkUsername?: string | null;
 };
 
 type Burst = { id: number; x: number; y: number };
@@ -25,7 +28,7 @@ type Burst = { id: number; x: number; y: number };
  * Premium, immersive video player (TikTok / Reels style).
  * Everything is contained inside the video container — no external layout impact.
  */
-export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike }: Props) {
+export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, watermarkUsername }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
@@ -155,7 +158,7 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike }
     <div
       className={cn(
         "group relative overflow-hidden rounded-2xl bg-black select-none",
-        "shadow-[inset_0_0_60px_rgba(0,0,0,0.6)]",
+        "ring-1 ring-white/10 shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8),inset_0_0_60px_rgba(0,0,0,0.55)]",
         className,
       )}
       onPointerDown={onPointerDown}
@@ -190,6 +193,9 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike }
 
       {/* Depth gradient at the edges */}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.35),transparent_22%,transparent_70%,rgba(0,0,0,0.55))]" />
+
+      {/* Marca d'água do app */}
+      <VideoWatermark username={watermarkUsername} className="bottom-6" />
 
       {/* Elegant loader */}
       {loading ? (

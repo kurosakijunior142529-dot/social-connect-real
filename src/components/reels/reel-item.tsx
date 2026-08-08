@@ -9,6 +9,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import type { FeedPost } from "@/components/post-card";
 import { ShareSheet } from "@/components/share/share-sheet";
+import { VideoWatermark } from "@/components/media/watermark";
 
 
 type Props = {
@@ -228,6 +229,9 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       {/* Top + bottom gradients */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/55 via-black/10 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
+
+      {/* Marca d'água do app */}
+      <VideoWatermark username={post.author?.username} className="bottom-24 right-3" />
 
       {/* Double-tap heart bursts */}
       {bursts.map((b) => (

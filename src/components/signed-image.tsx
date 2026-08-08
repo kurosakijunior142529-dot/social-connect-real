@@ -68,7 +68,11 @@ export function SignedVideo({
   path,
   className,
   onDoubleTapLike,
-}: Omit<Props, "alt" | "fallback"> & { onDoubleTapLike?: () => void }) {
+  watermarkUsername,
+}: Omit<Props, "alt" | "fallback"> & {
+  onDoubleTapLike?: () => void;
+  watermarkUsername?: string | null;
+}) {
   // só assina/baixa o vídeo quando ele chega perto da viewport (performance no feed)
   const [ref, inView] = useInView<HTMLDivElement>();
   const { data: url, isLoading } = useSignedUrl(bucket, inView ? path : null);
@@ -81,7 +85,12 @@ export function SignedVideo({
     );
   return (
     <div ref={ref}>
-      <VideoPlayer src={url} className={className} onDoubleTapLike={onDoubleTapLike} />
+      <VideoPlayer
+        src={url}
+        className={className}
+        onDoubleTapLike={onDoubleTapLike}
+        watermarkUsername={watermarkUsername}
+      />
     </div>
   );
 }

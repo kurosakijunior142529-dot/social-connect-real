@@ -52,17 +52,21 @@ export function ExpressionPanel({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // Keep the latest onClose without retriggering the history effect on re-render.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
   // Android back button closes the panel first.
   useEffect(() => {
     if (!open || typeof window === "undefined") return;
     window.history.pushState({ vibelyPanel: true }, "");
-    const onPop = () => onClose();
+    const onPop = () => closeRef.current();
     window.addEventListener("popstate", onPop);
     return () => {
       window.removeEventListener("popstate", onPop);
       if (window.history.state?.vibelyPanel) window.history.back();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!mounted || !open) return null;
 

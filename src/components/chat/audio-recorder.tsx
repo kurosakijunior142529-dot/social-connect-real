@@ -38,7 +38,13 @@ export function AudioRecorder({
     if (disabled || busy) return;
     try {
       const s = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: { ideal: 1 },
+          sampleRate: { ideal: 48000 },
+        } as MediaTrackConstraints,
       });
       stream.current = s;
       // Prefer mp4/AAC when available — Safari/iOS can't play webm/opus.
@@ -51,7 +57,12 @@ export function AudioRecorder({
         "audio/webm",
       ];
       const mime = candidates.find((c) => MediaRecorder.isTypeSupported(c)) ?? "";
-      const recorder = mime ? new MediaRecorder(s, { mimeType: mime }) : new MediaRecorder(s);
+      // 128 kbps keeps voice notes clean instead of the browser's low default.
+      const recorderOptions: MediaRecorderOptions = { audioBitsPerSecond: 128_000 };
+      const recorder = mime
+        ? new MediaRecorder(s, { ...recorderOptions, mimeType: mime })
+        : new MediaRecorder(s, recorderOptions);
+
       mr.current = recorder;
       chunks.current = [];
       cancelled.current = false;

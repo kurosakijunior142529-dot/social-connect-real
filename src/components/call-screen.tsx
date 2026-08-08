@@ -327,32 +327,57 @@ export function CallScreen({
               </p>
             ) : (
               visibleCaptions.map((caption) => (
-                <div key={caption.id} className="animate-in fade-in slide-in-from-bottom-2 rounded-xl bg-black/25 px-3 py-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wide text-primary">
-                    {caption.speaker === "me" ? "Você" : displayName}
+                <div
+                  key={caption.id}
+                  className={cn(
+                    "animate-in fade-in slide-in-from-bottom-2 rounded-xl px-3 py-2",
+                    caption.speaker === "me"
+                      ? "bg-primary/15 border-l-2 border-primary/60"
+                      : "bg-black/30 border-l-2 border-white/20",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={cn(
+                        "text-[10px] font-semibold uppercase tracking-wide",
+                        caption.speaker === "me" ? "text-primary" : "text-white/70",
+                      )}
+                    >
+                      {caption.speaker === "me" ? "Você" : displayName}
+                    </span>
+                    {caption.status === "pending" ? (
+                      <span className="text-[10px] text-white/50">traduzindo…</span>
+                    ) : null}
                   </div>
-                  <p className="text-xs text-white/50">{caption.original}</p>
                   {caption.status === "failed" ? (
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold">{caption.original}</p>
-                      <span className="text-[10px] text-white/50">
-                        {caption.error ?? "não foi possível traduzir"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onRetryCaption(caption.id)}
-                        className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold transition active:scale-95"
-                      >
-                        Tentar novamente
-                      </button>
+                    <div className="mt-0.5 space-y-1">
+                      <p className="text-sm font-semibold leading-snug">{caption.original}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] text-white/50">
+                          {caption.error ?? "não foi possível traduzir"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onRetryCaption(caption.id)}
+                          className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold transition active:scale-95"
+                        >
+                          Tentar novamente
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-sm font-semibold">
-                      {caption.translated ?? <span className="text-white/60">traduzindo…</span>}
-                    </p>
+                    <>
+                      <p className="text-sm font-semibold leading-snug">
+                        {caption.translated ?? caption.original}
+                      </p>
+                      {caption.translated && caption.translated !== caption.original ? (
+                        <p className="text-[11px] leading-snug text-white/45">{caption.original}</p>
+                      ) : null}
+                    </>
                   )}
                 </div>
               ))
+
 
             )}
           </div>

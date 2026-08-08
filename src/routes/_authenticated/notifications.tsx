@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { VerifiedName } from "@/components/verified-badge";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNotifications, markAllRead, type NotificationRow } from "@/hooks/use-notifications";
@@ -95,7 +96,7 @@ function NotificationsPage() {
               >
                 <div className="relative">
                   {n.actor ? (
-                    <UserAvatar avatarPath={n.actor.avatar_url} displayName={n.actor.display_name} className="h-11 w-11" />
+                    <UserAvatar avatarPath={n.actor.avatar_url} displayName={n.actor.display_name} verified={!!(n.actor as any).is_verified} badgeVariant={((n.actor as any).badge_variant) ?? null} className="h-11 w-11" />
                   ) : (
                     <div className="h-11 w-11 rounded-full bg-muted grid place-items-center"><Bell className="h-5 w-5" /></div>
                   )}
@@ -112,7 +113,7 @@ function NotificationsPage() {
                         className="font-semibold hover:underline"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {n.actor.display_name}
+                        <VerifiedName name={n.actor.display_name} verified={(n.actor as any).is_verified} badgeVariant={(n.actor as any).badge_variant} size={13} />
                       </Link>
                     ) : "Alguém"}
                     <span className="text-muted-foreground"> — {label(n).split(" — ")[0].replace(n.actor?.display_name ?? "", "").trim() || label(n)}</span>

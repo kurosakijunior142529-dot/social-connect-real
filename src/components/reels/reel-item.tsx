@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX } from "lucide-react";
@@ -327,6 +328,8 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
             <UserAvatar
               avatarPath={post.author?.avatar_url}
               displayName={post.author?.display_name ?? "?"}
+              verified={!!(post.author as any)?.is_verified}
+              badgeVariant={((post.author as any)?.badge_variant) ?? null}
               className="h-9 w-9 ring-1 ring-white/60"
             />
           </Link>
@@ -335,7 +338,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
             params={{ username: post.author?.username ?? "" }}
             className="font-semibold text-[15px] drop-shadow"
           >
-            @{post.author?.username}
+            <VerifiedName name={`@${post.author?.username ?? ""}`} verified={(post.author as any)?.is_verified} badgeVariant={(post.author as any)?.badge_variant} />
           </Link>
         </div>
         {post.caption ? (

@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, X } from "lucide-react";
+import { Send, X, Smile } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { StickerPicker, type StickerItem } from "@/components/chat/sticker-picker";
 
 type CommentRow = {
   id: string;
@@ -16,6 +17,7 @@ type CommentRow = {
   created_at: string;
   parent_id: string | null;
   edited_at: string | null;
+  sticker_url: string | null;
   author?: { id: string; username: string; display_name: string; avatar_url: string | null };
 };
 

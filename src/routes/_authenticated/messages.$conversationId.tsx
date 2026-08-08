@@ -29,6 +29,7 @@ import { ChatSearchBar } from "@/components/chat/search-bar";
 import { TypingIndicator, useConversationPresence } from "@/components/chat/typing-indicator";
 import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
 import { GifPicker } from "@/components/chat/gif-picker";
+import { StickerPicker } from "@/components/chat/sticker-picker";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
 import { Sticker } from "lucide-react";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";

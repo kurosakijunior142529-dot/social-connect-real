@@ -22,6 +22,19 @@ export type ShareTarget = {
     posterPath?: string | null;
     mimeType?: string | null;
   } | null;
+  /** Publicação compartilhada como card (estilo Instagram/TikTok). */
+  post?: {
+    id: string;
+    kind?: "post" | "reel";
+    caption?: string | null;
+    mediaBucket: MediaBucket;
+    mediaPath: string;
+    posterPath?: string | null;
+    mediaType?: "image" | "video" | null;
+    authorUsername?: string | null;
+    authorDisplayName?: string | null;
+    authorAvatar?: string | null;
+  } | null;
 };
 
 type Tab = "send" | "social" | "download";

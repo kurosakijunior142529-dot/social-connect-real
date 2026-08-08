@@ -10,6 +10,51 @@ export type StickerItem = { id: string; url: string; name: string; own?: boolean
 
 const MAX_MB = 3;
 
+/** Uploads an image as a user sticker. Shared by every sticker surface. */
+export async function uploadUserSticker(userId: string, file: File): Promise<boolean> {
+  if (!file.type.startsWith("image/")) {
+    toast.error("Envie uma imagem");
+    return false;
+  }
+  if (file.size > MAX_MB * 1024 * 1024) {
+    toast.error(`Máximo ${MAX_MB}MB`);
+    return false;
+  }
+  try {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("stickers").upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type || undefined,
+    });
+    if (error) throw error;
+    const { error: dbErr } = await (supabase as any)
+      .from("user_stickers")
+      .insert({ user_id: userId, storage_path: path, name: file.name.slice(0, 40) });
+    if (dbErr) throw dbErr;
+    toast.success("Figurinha adicionada");
+    return true;
+  } catch (err: any) {
+    console.error("[stickers] upload failed", err);
+    toast.error(err?.message ?? "Falha ao enviar figurinha");
+    return false;
+  }
+}
+
+/** Removes one of the user's own stickers (storage + row). */
+export async function deleteUserSticker(s: StickerItem): Promise<boolean> {
+  if (!s.path) return false;
+  try {
+    await supabase.storage.from("stickers").remove([s.path]);
+    await (supabase as any).from("user_stickers").delete().eq("id", s.id);
+    return true;
+  } catch (err: any) {
+    console.error("[stickers] delete failed", err);
+    toast.error("Não foi possível remover");
+    return false;
+  }
+}
+
 /** Official pack + the current user's own stickers (signed URLs). */
 export function useStickers(userId?: string) {
   return useQuery({

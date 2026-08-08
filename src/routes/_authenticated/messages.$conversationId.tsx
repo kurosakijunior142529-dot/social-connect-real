@@ -209,6 +209,17 @@ function ConversationPage() {
     });
   }
 
+  async function handleSticker(s: { url: string; name: string; path?: string; own?: boolean }) {
+    if (isBlockedPair) return;
+    await sendPayload({
+      kind: "sticker",
+      media_url: s.own && s.path ? s.path : s.url,
+      ...(s.own && s.path ? { media_bucket: "stickers" } : {}),
+      media_type: "image/png",
+      content: s.name,
+    });
+  }
+
   async function handleAudio(file: File, durationMs: number) {
     if (isBlockedPair) return;
     try {

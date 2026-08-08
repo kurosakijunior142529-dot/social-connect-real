@@ -18,7 +18,7 @@ function PostDetailPage() {
   const { id } = Route.useParams();
   const { user } = Route.useRouteContext();
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState("");
+  
 
   const post = useQuery({
     queryKey: ["post", id],

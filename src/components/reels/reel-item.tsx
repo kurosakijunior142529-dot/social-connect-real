@@ -9,6 +9,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import type { FeedPost } from "@/components/post-card";
 import { ShareSheet } from "@/components/share/share-sheet";
+import { VideoWatermark } from "@/components/media/watermark";
 
 
 type Props = {

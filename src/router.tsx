@@ -9,7 +9,7 @@ export const getRouter = () => {
         // stale-while-revalidate: mostra o cache na hora e revalida em background.
         staleTime: 30_000,
         gcTime: 30 * 60_000,
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus: false,
         refetchOnReconnect: true,
         retry: (failureCount) => failureCount < 3,
         retryDelay: (attempt) =>
@@ -28,7 +28,11 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    defaultPreload: "intent",
+    defaultPreloadDelay: 60,
     defaultPreloadStaleTime: 0,
+    defaultPendingMs: 300,
+    defaultPendingMinMs: 200,
   });
 
   return router;

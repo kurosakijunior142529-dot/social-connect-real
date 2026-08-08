@@ -690,3 +690,148 @@ function ConversationPage() {
     </div>
   );
 }
+
+const EMPTY_REACTIONS: any[] = [];
+
+const timeFmt = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+function dayLabel(iso: string) {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today.getTime() - 86_400_000);
+  if (d.toDateString() === today.toDateString()) return "Hoje";
+  if (d.toDateString() === yesterday.toDateString()) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+}
+
+type RowProps = {
+  m: any;
+  mine: boolean;
+  first: boolean;
+  last: boolean;
+  daySep: boolean;
+  userId: string;
+  radius: number | string;
+  bubbleMine: string;
+  bubbleTheirs: string;
+  replied: any;
+  reactions: any[];
+  translated?: string;
+  onReply: (r: { id: string; content: string | null }) => void;
+  onEdit: (x: { id: string; content: string | null }) => void;
+  onDelete: (id: string) => void;
+  onTranslated: (id: string, t: string) => void;
+  onForward: (msg: any) => void;
+  onPinToggle: (id: string, pin: boolean) => void;
+  onToggleReaction: (id: string, emoji: string, mine: boolean) => void;
+};
+
+const MessageRow = memo(
+  function MessageRow(p: RowProps) {
+    const { m, mine, first, last, daySep } = p;
+    const bigRadius = p.radius;
+    const tail = last ? 6 : bigRadius;
+    return (
+      <>
+        {daySep ? (
+          <div className="relative flex justify-center py-3">
+            <span className="rounded-full bg-[color:var(--surface-2)]/80 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur-sm">
+              {dayLabel(m.created_at)}
+            </span>
+          </div>
+        ) : null}
+        <div
+          className={cn(
+            "relative flex group items-end gap-2",
+            mine ? "justify-end" : "justify-start",
+            first ? "mt-2" : "mt-0.5",
+          )}
+        >
+          {mine ? (
+            <MessageActions
+              message={m}
+              ctx={{ scope: "dm", ownerId: p.userId }}
+              mine
+              onReply={p.onReply}
+              onEdit={p.onEdit}
+              onDelete={p.onDelete}
+              onTranslated={p.onTranslated}
+              onForward={p.onForward}
+              onPinToggle={p.onPinToggle}
+            />
+          ) : null}
+          <div className="max-w-[78%]">
+            <div
+              style={{
+                borderRadius: bigRadius,
+                ...(mine ? { borderBottomRightRadius: tail } : { borderBottomLeftRadius: tail }),
+              }}
+              className={cn(
+                "px-3.5 py-2 text-[14px] leading-snug break-words shadow-sm transition-[border-radius] duration-200",
+                mine ? p.bubbleMine : p.bubbleTheirs,
+              )}
+            >
+              {p.replied ? <ReplyQuote text={p.replied.content} /> : null}
+              <MessageBody msg={m} mine={mine} />
+              {p.translated ? (
+                <div
+                  className={cn(
+                    "mt-1 pt-1 border-t text-[12px]",
+                    mine ? "border-black/20 opacity-90" : "border-white/10 text-muted-foreground",
+                  )}
+                >
+                  🌐 {p.translated}
+                </div>
+              ) : null}
+              <div
+                className={cn(
+                  "mt-0.5 flex items-center gap-1 text-[10px] leading-none",
+                  mine ? "justify-end opacity-70" : "justify-end text-muted-foreground",
+                )}
+              >
+                {m.edited_at ? <span>editado</span> : null}
+                <span>{timeFmt.format(new Date(m.created_at))}</span>
+                {mine ? (
+                  m.read_at ? (
+                    <CheckCheck className="h-3 w-3 text-[#7ad9ff]" />
+                  ) : (
+                    <Check className="h-3 w-3" />
+                  )
+                ) : null}
+              </div>
+            </div>
+            <ReactionsBar
+              reactions={p.reactions}
+              onToggle={(emoji, mineR) => p.onToggleReaction(m.id, emoji, mineR)}
+            />
+          </div>
+          {!mine ? (
+            <MessageActions
+              message={m}
+              ctx={{ scope: "dm", ownerId: p.userId }}
+              mine={false}
+              onReply={p.onReply}
+              onEdit={() => {}}
+              onDelete={() => {}}
+              onTranslated={p.onTranslated}
+              onForward={p.onForward}
+              onPinToggle={p.onPinToggle}
+            />
+          ) : null}
+        </div>
+      </>
+    );
+  },
+  (a, b) =>
+    a.m === b.m &&
+    a.mine === b.mine &&
+    a.first === b.first &&
+    a.last === b.last &&
+    a.daySep === b.daySep &&
+    a.replied === b.replied &&
+    a.reactions === b.reactions &&
+    a.translated === b.translated &&
+    a.radius === b.radius &&
+    a.bubbleMine === b.bubbleMine &&
+    a.bubbleTheirs === b.bubbleTheirs,
+);

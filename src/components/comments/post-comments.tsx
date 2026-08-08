@@ -237,6 +237,19 @@ export function PostComments({
       ) : null}
 
       <form onSubmit={submit} className="flex items-center gap-2 pt-2">
+        <StickerPicker
+          userId={currentUserId}
+          onPick={(s) => void sendSticker(s)}
+          trigger={
+            <button
+              type="button"
+              aria-label="Figurinhas"
+              className="shrink-0 rounded-full p-2 text-muted-foreground hover:bg-muted"
+            >
+              <Smile className="h-4 w-4" />
+            </button>
+          }
+        />
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

@@ -45,6 +45,8 @@ type Props = {
   translationLanguage: string;
   onToggleTranslation: () => void;
   onTranslationLanguageChange: (language: string) => void;
+  onRetryCaption: (id: string) => void;
+
   onSwitchCamera: () => void | Promise<void>;
   onMinimize?: () => void;
   onHangup: () => void;

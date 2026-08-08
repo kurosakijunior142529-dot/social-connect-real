@@ -225,6 +225,41 @@
   pointer-events: none;
 }
 
+/* Halo pulsante ao redor do selo */
+@keyframes badge-pulse-anim {
+  0%   { transform: scale(0.85); opacity: 0.75; }
+  70%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.badge-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px currentColor;
+  animation: badge-pulse-anim 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+/* Aro girando (conic) */
+@keyframes badge-spin-anim { to { transform: rotate(360deg); } }
+.badge-spin { animation: badge-spin-anim 4.5s linear infinite; }
+
+/* Brilho de estrelinhas orbitando */
+@keyframes badge-twinkle-anim {
+  0%, 100% { transform: scale(0.4); opacity: 0; }
+  40%      { transform: scale(1); opacity: 1; }
+  70%      { transform: scale(0.6); opacity: 0.2; }
+}
+.badge-twinkle { animation: badge-twinkle-anim 2.4s ease-in-out infinite; }
+
+/* Respiração suave do selo inteiro */
+@keyframes badge-breathe-anim {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.07); }
+}
+.badge-breathe { animation: badge-breathe-anim 3.2s ease-in-out infinite; }
+
 /* ============ Glass bubble theme ============ */
 .bubble-glass {
   backdrop-filter: blur(18px) saturate(160%);

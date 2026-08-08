@@ -10,12 +10,14 @@
 const TARGET_RATE = 16000;
 const MAX_WINDOW_MS = 4500;
 const MIN_WINDOW_MS = 900;
+/** A window is only sent when this much actual voice was detected. */
+const MIN_VOICED_MS = 550;
 const SILENCE_MS = 650;
 const SILENCE_RMS = 0.006;
 /** Keep a short tail of the previous window so words cut at the boundary survive. */
 const OVERLAP_MS = 300;
 /** While the other person is speaking, require a clearly louder local voice. */
-const DUCK_FACTOR = 2.2;
+const DUCK_FACTOR = 3;
 
 export type SttCaptureState = "starting" | "listening" | "transcribing" | "error";
 export type SttFallbackHandle = {
@@ -182,7 +184,7 @@ export function startSttFallback(
     const voiced = voicedSamples;
     keepTail(chunks);
     reset();
-    if (voiced < (TARGET_RATE * MIN_WINDOW_MS) / 1000 / 3) return; // basically silence
+    if (voiced < (TARGET_RATE * MIN_VOICED_MS) / 1000) return; // noise or a stray click, not speech
     sending = true;
     handlers.onStateChange?.("transcribing");
     try {

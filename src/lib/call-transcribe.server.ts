@@ -16,7 +16,11 @@ function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
   return output;
 }
 
-export async function transcribeCallAudio(audio: string, language?: string): Promise<string> {
+export async function transcribeCallAudio(
+  audio: string,
+  language?: string,
+  prompt?: string,
+): Promise<string> {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) throw new Error("Transcrição indisponível no momento.");
 
@@ -26,6 +30,9 @@ export async function transcribeCallAudio(audio: string, language?: string): Pro
   form.append("file", new Blob([bytes], { type: "audio/wav" }), "clip.wav");
   const normalizedLanguage = normalizeLang(language);
   if (normalizedLanguage) form.append("language", normalizedLanguage);
+  // Recent conversation context makes short phrases far less likely to be misheard.
+  if (prompt && prompt.trim()) form.append("prompt", prompt.trim().slice(0, 600));
+  form.append("temperature", "0");
 
   let response: Response;
   try {

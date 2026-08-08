@@ -123,18 +123,8 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     return `${window.location.origin}/p/${post.id}`;
   }, [post.id]);
 
-  const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: `@${post.author?.username}`, text: post.caption ?? "", url: shareUrl });
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success("Link copiado");
-      }
-    } catch {
-      /* user cancelled */
-    }
-  };
+  const handleShare = () => setShareOpen(true);
+
 
   // Gesture handling: single-tap play/pause, double-tap like burst, long-press 2x
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({

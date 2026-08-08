@@ -115,15 +115,31 @@ export function ShareSheet({
   async function sendTo(convId: string) {
     if (!userId) return;
     setBusy(convId);
-    const { error } = await (supabase as any).from("messages").insert({
-      conversation_id: convId,
-      sender_id: userId,
-      content: shareText,
-      kind: "text",
-    });
+    const media = target.media;
+    const payload: any = media
+      ? {
+          conversation_id: convId,
+          sender_id: userId,
+          kind: "video",
+          media_url: media.path,
+          media_bucket: media.bucket,
+          media_type: media.mimeType ?? "video/mp4",
+          media_name: media.filename ?? media.path.split("/").pop() ?? "video.mp4",
+          poster_url: media.posterPath ?? null,
+          content: target.text?.trim() ? target.text.trim() : null,
+        }
+      : {
+          conversation_id: convId,
+          sender_id: userId,
+          content: shareText,
+          kind: "text",
+        };
+    const { error } = await (supabase as any).from("messages").insert(payload);
     setBusy(null);
-    if (error) toast.error(error.message);
-    else setSent((prev) => ({ ...prev, [convId]: true }));
+    if (error) {
+      console.error("[share-sheet] send failed", error);
+      toast.error(error.message);
+    } else setSent((prev) => ({ ...prev, [convId]: true }));
   }
 
   async function copyLink() {

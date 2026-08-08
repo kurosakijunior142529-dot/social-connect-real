@@ -250,6 +250,14 @@ function ConversationPage() {
     }
   }
 
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState<PanelTab>("emoji");
+
+  function togglePanel(tab: PanelTab) {
+    setPanelOpen((prev) => (prev && panelTab === tab ? false : true));
+    setPanelTab(tab);
+  }
+
   async function handleGif(g: { url: string; w: number; h: number; alt: string }) {
     if (isBlockedPair) return;
     await sendPayload({

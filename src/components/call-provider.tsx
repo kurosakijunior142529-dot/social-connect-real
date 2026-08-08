@@ -313,7 +313,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
         source: Track.Source.Microphone,
         dtx: true,
         red: true,
+        // High-quality speech: ~48 kbps Opus instead of the low default bitrate.
+        audioPreset: AudioPresets.speech,
+        audioBitrate: 48_000,
       });
+
       mediaConnectedRef.current = true;
       setMediaConnected(true);
       const videoTrack = stream.getVideoTracks()[0];

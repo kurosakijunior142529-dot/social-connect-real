@@ -69,41 +69,18 @@ export function StickerGrid({
 
   async function upload(file: File) {
     if (!userId) return;
-    if (!file.type.startsWith("image/")) return toast.error("Envie uma imagem");
-    if (file.size > MAX_MB * 1024 * 1024) return toast.error(`Máximo ${MAX_MB}MB`);
     setBusy(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
-      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("stickers").upload(path, file, {
-        cacheControl: "3600",
-        contentType: file.type || undefined,
-      });
-      if (error) throw error;
-      const { error: dbErr } = await (supabase as any)
-        .from("user_stickers")
-        .insert({ user_id: userId, storage_path: path, name: file.name.slice(0, 40) });
-      if (dbErr) throw dbErr;
+      await uploadUserSticker(userId, file);
       qc.invalidateQueries({ queryKey: ["stickers", userId] });
-      toast.success("Figurinha adicionada");
-    } catch (err: any) {
-      console.error("[stickers] upload failed", err);
-      toast.error(err?.message ?? "Falha ao enviar figurinha");
     } finally {
       setBusy(false);
     }
   }
 
   async function removeOwn(s: StickerItem) {
-    if (!s.path) return;
-    try {
-      await supabase.storage.from("stickers").remove([s.path]);
-      await (supabase as any).from("user_stickers").delete().eq("id", s.id);
-      qc.invalidateQueries({ queryKey: ["stickers", userId] });
-    } catch (err: any) {
-      console.error("[stickers] delete failed", err);
-      toast.error("Não foi possível remover");
-    }
+    await deleteUserSticker(s);
+    qc.invalidateQueries({ queryKey: ["stickers", userId] });
   }
 
   if (stickers.isLoading) {

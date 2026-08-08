@@ -4,6 +4,7 @@ import { signChatUrl, humanFileSize, formatDuration, type ChatBucket } from "@/l
 import { useQuery } from "@tanstack/react-query";
 import { FileText, MapPin, Download, Pause, Play, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmojiText } from "@/components/chat/app-emoji";
 
 type Msg = {
   id: string;

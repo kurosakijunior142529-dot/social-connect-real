@@ -29,7 +29,7 @@ import { ChatSearchBar } from "@/components/chat/search-bar";
 import { TypingIndicator, useConversationPresence } from "@/components/chat/typing-indicator";
 import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
-import { Sticker, Smile, SmilePlus } from "lucide-react";
+import { Smile } from "lucide-react";
 import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-panel";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
 import { useChatPrefs } from "@/lib/bubble-themes";
@@ -614,29 +614,11 @@ function ConversationPage() {
         <button
           type="button"
           disabled={isBlockedPair}
-          aria-label="GIF"
-          onClick={() => togglePanel("gif")}
-          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-        >
-          <Sticker className="h-[18px] w-[18px]" strokeWidth={1.8} />
-        </button>
-        <button
-          type="button"
-          disabled={isBlockedPair}
-          aria-label="Figurinhas"
-          onClick={() => togglePanel("sticker")}
-          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-        >
-          <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
-        </button>
-        <button
-          type="button"
-          disabled={isBlockedPair}
-          aria-label="Emojis"
+          aria-label="Emojis, GIFs e figurinhas"
           onClick={() => togglePanel("emoji")}
           className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
         >
-          <SmilePlus className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">

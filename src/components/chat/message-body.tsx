@@ -38,7 +38,7 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   if (kind === "audio") return <AudioBody msg={msg} mine={mine} />;
   if (kind === "document") return <DocBody msg={msg} mine={mine} />;
   if (kind === "location") return <LocationBody msg={msg} />;
-  return <span>{msg.content}</span>;
+  return <EmojiText text={msg.content ?? ""} />;
 }
 
 function GifBody({ msg }: { msg: Msg }) {

@@ -170,6 +170,13 @@ export function PostComments({
                   <X className="h-4 w-4" />
                 </button>
               </form>
+            ) : c.sticker_url ? (
+              <img
+                src={c.sticker_url}
+                alt="figurinha"
+                loading="lazy"
+                className="h-24 w-24 object-contain"
+              />
             ) : (
               <div className="text-sm leading-snug break-words">
                 {c.content}

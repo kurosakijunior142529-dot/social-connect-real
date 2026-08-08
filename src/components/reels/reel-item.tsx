@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX } from "lucide-react";
-import { toast } from "sonner";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import type { FeedPost } from "@/components/post-card";
+import { ShareSheet } from "@/components/share/share-sheet";
+
 
 type Props = {
   post: FeedPost;
@@ -32,6 +34,8 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [speeding, setSpeeding] = useState(false);
   const [scrubberActive, setScrubberActive] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+
 
   const { data: url } = useSignedUrl("posts", post.media_url);
 
@@ -123,18 +127,8 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     return `${window.location.origin}/p/${post.id}`;
   }, [post.id]);
 
-  const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: `@${post.author?.username}`, text: post.caption ?? "", url: shareUrl });
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success("Link copiado");
-      }
-    } catch {
-      /* user cancelled */
-    }
-  };
+  const handleShare = () => setShareOpen(true);
+
 
   // Gesture handling: single-tap play/pause, double-tap like burst, long-press 2x
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
@@ -374,7 +368,20 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           100% { transform: translate(-50%,-95%) scale(0.9); opacity: 0; }
         }
       `}</style>
+
+      <ShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        userId={currentUserId}
+        target={{
+          url: shareUrl,
+          title: `@${post.author?.username ?? ""}`,
+          text: post.caption ?? "",
+          media: { bucket: "posts", path: post.media_url, filename: `vibely-${post.id}.mp4` },
+        }}
+      />
     </div>
+
   );
 }
 

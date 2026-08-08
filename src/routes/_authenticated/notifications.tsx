@@ -18,12 +18,11 @@ const ICONS: Record<string, any> = {
   like: Heart,
   comment: MessageCircle,
   follow: UserPlus,
-  message: Send,
-  chat_message: Send,
-  story_view: Eye,
   story_reaction: Smile,
   chat_invite: Users,
 };
+
+const ALLOWED = new Set(["like", "comment", "follow", "story_reaction", "chat_invite"]);
 
 function label(n: NotificationRow) {
   const name = n.actor?.display_name ?? "Alguém";
@@ -31,9 +30,6 @@ function label(n: NotificationRow) {
     case "like": return `${name} curtiu seu post`;
     case "comment": return `${name} comentou: "${n.metadata?.preview ?? ""}"`;
     case "follow": return `${name} começou a te seguir`;
-    case "message": return `${name}: "${n.metadata?.preview ?? ""}"`;
-    case "chat_message": return `${name} no grupo: "${n.metadata?.preview ?? ""}"`;
-    case "story_view": return `${name} viu seu story`;
     case "story_reaction": return `${name} reagiu ao seu story ${n.metadata?.emoji ?? ""}`;
     case "chat_invite": return `${name} te convidou para um grupo`;
     default: return `${name} interagiu com você`;

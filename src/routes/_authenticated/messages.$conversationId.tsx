@@ -187,13 +187,33 @@ function ConversationPage() {
   }
 
   async function sendPayload(payload: any) {
-    const { error } = await (supabase as any).from("messages").insert({
+    const key = ["messages", conversationId];
+    const tempId = `tmp-${crypto.randomUUID()}`;
+    const optimistic = {
+      id: tempId,
       conversation_id: conversationId,
       sender_id: user.id,
+      created_at: new Date().toISOString(),
       ...payload,
+    };
+    queryClient.setQueryData<any[]>(key, (prev) => [...(prev ?? []), optimistic]);
+    const { data, error } = await (supabase as any)
+      .from("messages")
+      .insert({ conversation_id: conversationId, sender_id: user.id, ...payload })
+      .select()
+      .single();
+    queryClient.setQueryData<any[]>(key, (prev) => {
+      const list = prev ?? [];
+      if (error) return list.filter((m) => m.id !== tempId);
+      if (list.some((m) => m.id === data?.id)) return list.filter((m) => m.id !== tempId);
+      return list.map((m) => (m.id === tempId ? data : m));
     });
-    if (error) toast.error(error.message);
+    if (error) {
+      console.error("[chat] falha ao enviar mensagem", error);
+      toast.error(error.message);
+    }
   }
+
 
   async function handleFile(file: File) {
     if (isBlockedPair) return;

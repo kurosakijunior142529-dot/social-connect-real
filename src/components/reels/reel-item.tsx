@@ -377,7 +377,13 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           url: shareUrl,
           title: `@${post.author?.username ?? ""}`,
           text: post.caption ?? "",
-          media: { bucket: "posts", path: post.media_url, filename: `vibely-${post.id}.mp4` },
+          media: {
+            bucket: "posts",
+            path: post.media_url,
+            filename: `vibely-${post.id}.mp4`,
+            posterPath: (post as any).thumbnail_url ?? null,
+            mimeType: "video/mp4",
+          },
         }}
       />
     </div>

@@ -22,6 +22,19 @@ export type ShareTarget = {
     posterPath?: string | null;
     mimeType?: string | null;
   } | null;
+  /** Publicação compartilhada como card (estilo Instagram/TikTok). */
+  post?: {
+    id: string;
+    kind?: "post" | "reel";
+    caption?: string | null;
+    mediaBucket: MediaBucket;
+    mediaPath: string;
+    posterPath?: string | null;
+    mediaType?: "image" | "video" | null;
+    authorUsername?: string | null;
+    authorDisplayName?: string | null;
+    authorAvatar?: string | null;
+  } | null;
 };
 
 type Tab = "send" | "social" | "download";
@@ -115,18 +128,29 @@ export function ShareSheet({
   async function sendTo(convId: string) {
     if (!userId) return;
     setBusy(convId);
-    const media = target.media;
-    const payload: any = media
+    const post = target.post;
+    const payload: any = post
       ? {
           conversation_id: convId,
           sender_id: userId,
-          kind: "video",
-          media_url: media.path,
-          media_bucket: media.bucket,
-          media_type: media.mimeType ?? "video/mp4",
-          media_name: media.filename ?? media.path.split("/").pop() ?? "video.mp4",
-          poster_url: media.posterPath ?? null,
-          content: target.text?.trim() ? target.text.trim() : null,
+          kind: "post",
+          content: null,
+          media_bucket: post.mediaBucket,
+          media_url: post.mediaPath,
+          poster_url: post.posterPath ?? null,
+          media_type: post.mediaType === "image" ? "image/*" : "video/mp4",
+          meta: {
+            post: {
+              id: post.id,
+              kind: post.kind ?? "post",
+              url: target.url,
+              caption: post.caption ?? null,
+              media_type: post.mediaType ?? "video",
+              author_username: post.authorUsername ?? null,
+              author_display_name: post.authorDisplayName ?? null,
+              author_avatar: post.authorAvatar ?? null,
+            },
+          },
         }
       : {
           conversation_id: convId,

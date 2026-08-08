@@ -361,7 +361,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
         onPointerEnter={() => setScrubberActive(true)}
         onPointerLeave={() => setScrubberActive(false)}
       >
-        <div className="h-full bg-white/85" style={{ width: `${progress * 100}%` }} />
+        <div
+          className="h-full rounded-r-full bg-gradient-to-r from-white/70 to-primary shadow-[0_0_10px_rgba(255,255,255,0.35)]"
+          style={{ width: `${progress * 100}%` }}
+        />
       </div>
 
       <style>{`
@@ -381,6 +384,18 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           url: shareUrl,
           title: `@${post.author?.username ?? ""}`,
           text: post.caption ?? "",
+          post: {
+            id: post.id,
+            kind: "reel",
+            caption: post.caption ?? null,
+            mediaBucket: "posts",
+            mediaPath: post.media_url,
+            posterPath: (post as any).thumbnail_url ?? null,
+            mediaType: "video",
+            authorUsername: post.author?.username ?? null,
+            authorDisplayName: post.author?.display_name ?? null,
+            authorAvatar: post.author?.avatar_url ?? null,
+          },
           media: {
             bucket: "posts",
             path: post.media_url,
@@ -414,7 +429,9 @@ function ActionBtn({
       aria-label={label}
       className="flex flex-col items-center gap-1 active:scale-90 transition"
     >
-      <span className="grid h-11 w-11 place-items-center">{icon}</span>
+      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/25 backdrop-blur-md ring-1 ring-white/10 shadow-[0_6px_18px_-8px_rgba(0,0,0,0.9)]">
+        {icon}
+      </span>
       {typeof count === "number" ? (
         <span className="text-[11px] font-semibold tabular drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{formatCount(count)}</span>
       ) : null}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { signChatUrl, humanFileSize, formatDuration, type ChatBucket } from "@/lib/chat-media";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { FileText, MapPin, Download, Pause, Play, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmojiText } from "@/components/chat/app-emoji";

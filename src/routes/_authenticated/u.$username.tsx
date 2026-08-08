@@ -18,8 +18,8 @@ import {
   Grid3x3,
   Bookmark,
   Heart,
-  Sparkles,
   Play,
+  Repeat2,
   Camera,
   Loader2,
   Menu,
@@ -96,6 +96,20 @@ function ProfilePage() {
       }
       const viewsTotal = (posts.data ?? []).reduce((acc: number, p: any) => acc + (p.view_count ?? 0), 0);
 
+      // Republicações do perfil
+      let repostedPosts: any[] = [];
+      const { data: repostRows } = await supabase
+        .from("reposts")
+        .select("post_id")
+        .eq("user_id", profile!.id)
+        .order("created_at", { ascending: false })
+        .limit(120);
+      const rids = (repostRows ?? []).map((r: any) => r.post_id);
+      if (rids.length) {
+        const { data } = await supabase.from("posts").select("id, media_url, media_type").in("id", rids);
+        repostedPosts = data ?? [];
+      }
+
       // Curtidos e Salvos só para o dono
       let likedPosts: any[] = [];
       let savedPosts: any[] = [];
@@ -125,6 +139,7 @@ function ProfilePage() {
         viewsTotal,
         likedPosts,
         savedPosts,
+        repostedPosts,
       };
     },
   });
@@ -171,7 +186,6 @@ function ProfilePage() {
   // publicações do feed vs. vídeos curtos (reels) são separados por post_kind
   const posts = allPosts.filter((p) => p.post_kind !== "reel");
   const videoPosts = allPosts.filter((p) => p.post_kind === "reel" || p.media_type === "video");
-  const mediaPosts = allPosts.filter((p) => !!p.media_url);
 
   return (
     <div className="-mt-4 md:-mt-10 space-y-5">
@@ -203,7 +217,6 @@ function ProfilePage() {
           <UserAvatar
             avatarPath={profile.avatar_url}
             displayName={profile.display_name}
-            badgeVariant={profile.badge_variant ?? (profile.is_verified ? "verified" : null)}
             className="h-24 w-24"
           />
         </div>
@@ -214,7 +227,7 @@ function ProfilePage() {
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-2xl font-display font-black tracking-tight">{profile.display_name}</h1>
           {profile.is_verified || profile.badge_variant ? (
-            <VerifiedBadge size={20} variant={profile.badge_variant ?? "verified"} />
+            <VerifiedBadge size={24} variant={profile.badge_variant ?? "verified"} />
           ) : null}
           {profile.badge_variant === "founder" ? (
             <span className="text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 font-bold text-black bg-[linear-gradient(135deg,#FFF3B0,#22E06A)] shadow-[0_0_12px_rgba(34,224,106,0.45)]">
@@ -318,9 +331,9 @@ function ProfilePage() {
               <Play className="h-4 w-4" />
               <span className="hidden sm:inline">Vídeos</span>
             </TabsTrigger>
-            <TabsTrigger value="media" className="rounded-full gap-1.5" aria-label="Mídia">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Mídia</span>
+            <TabsTrigger value="reposts" className="rounded-full gap-1.5" aria-label="Republicado">
+              <Repeat2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Republicado</span>
             </TabsTrigger>
             {isMe ? (
               <>
@@ -342,8 +355,8 @@ function ProfilePage() {
           <TabsContent value="videos" className="mt-4">
             <PostGrid posts={videoPosts} empty="Nenhum vídeo publicado." />
           </TabsContent>
-          <TabsContent value="media" className="mt-4">
-            <PostGrid posts={mediaPosts} empty="Sem mídia." />
+          <TabsContent value="reposts" className="mt-4">
+            <PostGrid posts={stats.data?.repostedPosts ?? []} empty="Nenhuma republicação ainda." />
           </TabsContent>
           {isMe ? (
             <>

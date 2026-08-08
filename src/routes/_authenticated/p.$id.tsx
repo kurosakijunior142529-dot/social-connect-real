@@ -100,33 +100,7 @@ function PostDetailPage() {
 
       <section className="space-y-3">
         <h2 className="font-semibold text-sm px-1">Comentários</h2>
-        <div className="space-y-3">
-          {comments.data?.map((c) => (
-            <div key={c.id} className="flex items-start gap-3">
-              <UserAvatar avatarPath={c.author?.avatar_url} displayName={c.author?.display_name ?? "?"} className="h-8 w-8" />
-              <div className="flex-1 rounded-2xl bg-muted px-3 py-2">
-                <div className="text-xs font-semibold">{c.author?.display_name}</div>
-                <div className="text-sm">{c.content}</div>
-              </div>
-            </div>
-          ))}
-          {comments.data?.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Seja o primeiro a comentar.</p>
-          ) : null}
-        </div>
-
-        <form onSubmit={addComment} className="flex items-center gap-2 pt-2">
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Adicione um comentário…"
-            maxLength={500}
-            className="rounded-full bg-muted border-transparent"
-          />
-          <Button type="submit" size="icon" className="rounded-full bg-gradient-brand shrink-0">
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+        <PostComments postId={id} currentUserId={user.id} postAuthorId={p.author_id} />
       </section>
     </div>
   );

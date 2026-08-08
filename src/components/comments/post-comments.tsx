@@ -251,6 +251,15 @@ export function PostComments({
             </button>
           }
         />
+        <AppEmojiPicker onPick={(code) => setDraft((d) => (d ? `${d} ${code}` : code))}>
+          <button
+            type="button"
+            aria-label="Emojis do app"
+            className="shrink-0 rounded-full p-2 text-muted-foreground hover:bg-muted"
+          >
+            <SmilePlus className="h-4 w-4" />
+          </button>
+        </AppEmojiPicker>
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

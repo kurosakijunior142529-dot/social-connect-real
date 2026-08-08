@@ -232,14 +232,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
             const original = typeof payload.text === "string" ? payload.text.trim() : "";
             if (!original || !translationEnabledRef.current) return;
             const id = String(row.id);
-            setCaptions((current) => [...current.slice(-60), { id, speaker: "other", original }]);
-            try {
-              const result = await translate({ data: { text: original, target: translationLanguageRef.current } });
-              setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: result.text } : item));
-            } catch {
-              setCaptions((current) => current.map((item) => item.id === id ? { ...item, translated: original } : item));
-            }
+            lastRemoteCaptionRef.current = { text: original, at: Date.now() };
+            setCaptions((current) => [
+              ...current.slice(-60),
+              { id, speaker: "other" as const, original, status: "pending" as const },
+            ]);
+            await translateCaptionRef.current?.(id, original);
           } else if (row.kind === "bye") {
+
             hangupLocalRef.current?.();
           }
         } catch (e) {

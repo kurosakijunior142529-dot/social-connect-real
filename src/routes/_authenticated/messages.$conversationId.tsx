@@ -28,11 +28,9 @@ import { PinnedSheet } from "@/components/chat/pinned-sheet";
 import { ChatSearchBar } from "@/components/chat/search-bar";
 import { TypingIndicator, useConversationPresence } from "@/components/chat/typing-indicator";
 import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
-import { GifPicker } from "@/components/chat/gif-picker";
-import { StickerPicker } from "@/components/chat/sticker-picker";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
 import { Sticker, Smile, SmilePlus } from "lucide-react";
-import { AppEmojiPicker } from "@/components/chat/app-emoji";
+import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-panel";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
@@ -250,6 +248,14 @@ function ConversationPage() {
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao enviar", { id: toastId });
     }
+  }
+
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState<PanelTab>("emoji");
+
+  function togglePanel(tab: PanelTab) {
+    setPanelOpen((prev) => (prev && panelTab === tab ? false : true));
+    setPanelTab(tab);
   }
 
   async function handleGif(g: { url: string; w: number; h: number; alt: string }) {
@@ -605,43 +611,33 @@ function ConversationPage() {
         className="p-3 hairline-t bg-background flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
-        <GifPicker
-          onPick={handleGif}
-          trigger={
-            <button
-              type="button"
-              disabled={isBlockedPair}
-              aria-label="GIF"
-              className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-            >
-              <Sticker className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            </button>
-          }
-        />
-        <StickerPicker
-          userId={user.id}
-          onPick={handleSticker}
-          trigger={
-            <button
-              type="button"
-              disabled={isBlockedPair}
-              aria-label="Figurinhas"
-              className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-            >
-              <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            </button>
-          }
-        />
-        <AppEmojiPicker onPick={(code) => setDraft((d) => (d ? `${d} ${code}` : code))}>
-          <button
-            type="button"
-            disabled={isBlockedPair}
-            aria-label="Emojis do app"
-            className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-          >
-            <SmilePlus className="h-[18px] w-[18px]" strokeWidth={1.8} />
-          </button>
-        </AppEmojiPicker>
+        <button
+          type="button"
+          disabled={isBlockedPair}
+          aria-label="GIF"
+          onClick={() => togglePanel("gif")}
+          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+        >
+          <Sticker className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          disabled={isBlockedPair}
+          aria-label="Figurinhas"
+          onClick={() => togglePanel("sticker")}
+          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+        >
+          <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          disabled={isBlockedPair}
+          aria-label="Emojis"
+          onClick={() => togglePanel("emoji")}
+          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+        >
+          <SmilePlus className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
           <Input
@@ -678,6 +674,23 @@ function ConversationPage() {
           <AudioRecorder onSend={handleAudio} disabled={isBlockedPair} />
         )}
       </form>
+
+      <ExpressionPanel
+        open={panelOpen && !isBlockedPair}
+        tab={panelTab}
+        onTabChange={setPanelTab}
+        onClose={() => setPanelOpen(false)}
+        userId={user.id}
+        onEmoji={(text) => setDraft((d) => (d ? `${d}${text}` : text))}
+        onGif={(g) => {
+          setPanelOpen(false);
+          void handleGif(g);
+        }}
+        onSticker={(s) => {
+          setPanelOpen(false);
+          void handleSticker(s);
+        }}
+      />
 
       <ForwardDialog
         open={!!forwardMsg}

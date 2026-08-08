@@ -255,7 +255,10 @@ export function startSttFallback(
         processor.disconnect();
         source.disconnect();
         sink.disconnect();
+        remoteSource?.disconnect();
+        remoteAnalyser?.disconnect();
       } catch {
+
         /* already torn down */
       }
       void ctx.close().catch(() => {});

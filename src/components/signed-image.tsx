@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSignedUrl } from "@/hooks/use-signed-url";
+import { useInView } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
 import type { MediaBucket } from "@/lib/media";
 import { Play, ImageOff } from "lucide-react";

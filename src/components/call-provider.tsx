@@ -823,31 +823,55 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const allowed = ["pt-BR", "en", "es", "fr", "de", "it", "ja", "ko", "zh", "ar"];
       if (!allowed.includes(language)) return;
       if (language === translationLanguageRef.current) return;
+      // Apply the language immediately: the selector never waits for the network.
       translationLanguageRef.current = language;
       setTranslationLanguage(language);
 
-      // Re-translate what is currently on screen so the change is immediate.
-      setCaptions((current) => {
-        const visible = current.slice(-8).filter((item) => item.original.trim().length > 0);
-        if (visible.length > 0) {
-          void translateMany({
-            data: { items: visible.map((v) => ({ id: v.id, text: v.original })), target: language },
-          })
-            .then(({ results }: { results: { id: string; text: string }[] }) => {
-              const map = new Map<string, string>(results.map((r) => [r.id, r.text]));
-              setCaptions((rows) =>
-                rows.map((row) => {
-                  const next = map.get(row.id);
-                  return next ? { ...row, translated: next } : row;
-                }),
-              );
-            })
-            .catch((error: unknown) => console.error("[call-translation] batch translate failed", error));
-        }
-        return current.map((item) =>
-          visible.some((v) => v.id === item.id) ? { ...item, translated: undefined } : item,
+      const visible = captionsMirrorRef.current.slice(-8).filter((item) => item.original.trim().length > 0);
+      setCaptions((current) =>
+        current.map((item) =>
+          visible.some((v) => v.id === item.id)
+            ? { ...item, translated: undefined, status: "pending" as const, error: undefined }
+            : item,
+        ),
+      );
+      if (visible.length === 0) return;
+
+      const markFailed = (message: string) =>
+        setCaptions((rows) =>
+          rows.map((row) =>
+            visible.some((v) => v.id === row.id) && row.status === "pending"
+              ? { ...row, translated: undefined, status: "failed" as const, error: message }
+              : row,
+          ),
         );
-      });
+
+      void translateMany({
+        data: { items: visible.map((v) => ({ id: v.id, text: v.original })), target: language },
+      })
+        .then((response: { ok: boolean; error: string | null; results: { id: string; text: string; ok: boolean }[] }) => {
+          if (translationLanguageRef.current !== language) return;
+          if (!response.ok) {
+            markFailed(response.error ?? "Não foi possível traduzir");
+            return;
+          }
+          const map = new Map(response.results.map((r) => [r.id, r]));
+          setCaptions((rows) =>
+            rows.map((row) => {
+              const next = map.get(row.id);
+              if (!next) return row;
+              return next.ok
+                ? { ...row, translated: next.text, status: "done" as const, error: undefined }
+                : { ...row, translated: undefined, status: "failed" as const, error: "Não foi possível traduzir" };
+            }),
+          );
+        })
+        .catch((error: any) => {
+          console.error("[call-translation] batch translate failed", error);
+          if (translationLanguageRef.current !== language) return;
+          markFailed(error?.message ?? "Não foi possível traduzir");
+        });
+
     },
     [translateMany],
   );

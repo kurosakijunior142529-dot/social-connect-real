@@ -27,6 +27,7 @@ function ReelsPage() {
         .from("posts")
         .select("*")
         .eq("media_type", "video")
+        .eq("post_kind", "reel")
         .order("created_at", { ascending: false })
         .limit(30);
       if (error) throw error;

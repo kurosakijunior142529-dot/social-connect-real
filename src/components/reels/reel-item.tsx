@@ -8,6 +8,8 @@ import { useSignedUrl } from "@/hooks/use-signed-url";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import type { FeedPost } from "@/components/post-card";
+import { ShareSheet } from "@/components/share/share-sheet";
+
 
 type Props = {
   post: FeedPost;
@@ -32,6 +34,8 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [speeding, setSpeeding] = useState(false);
   const [scrubberActive, setScrubberActive] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+
 
   const { data: url } = useSignedUrl("posts", post.media_url);
 

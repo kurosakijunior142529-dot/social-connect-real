@@ -75,7 +75,7 @@ function GamePage() {
       const userIds = Array.from(new Set(rows.map((r) => r.user_id)));
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
         .in("id", userIds);
       const map = new Map((profiles ?? []).map((p) => [p.id, p]));
       return rows.map((r) => ({ ...r, profile: map.get(r.user_id) }));

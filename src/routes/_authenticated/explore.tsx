@@ -39,7 +39,7 @@ function ExplorePage() {
       if (!q.trim()) return [];
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, bio")
+        .select("id, username, display_name, avatar_url, bio, is_verified, badge_variant")
         .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
         .limit(30);
       if (error) throw error;

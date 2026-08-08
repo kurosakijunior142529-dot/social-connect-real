@@ -383,7 +383,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           if (row.status !== "ringing") return;
           const { data: prof } = await supabase
             .from("profiles")
-            .select("id, username, display_name, avatar_url")
+            .select("id, username, display_name, avatar_url, is_verified, badge_variant")
             .eq("id", row.caller_id)
             .maybeSingle();
           setIncoming({ id: row.id, type: row.call_type, other: prof ?? { id: row.caller_id } });
@@ -489,7 +489,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         const otherId = isCaller ? data.callee_id : data.caller_id;
         const { data: profile } = await supabase
           .from("profiles")
-          .select("id, username, display_name, avatar_url")
+          .select("id, username, display_name, avatar_url, is_verified, badge_variant")
           .eq("id", otherId)
           .maybeSingle();
         if (cancelled) return;

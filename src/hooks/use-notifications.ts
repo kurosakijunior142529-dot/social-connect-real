@@ -64,7 +64,7 @@ export function useNotifications(userId: string | undefined) {
       const rows = (data ?? []) as NotificationRow[];
       const actorIds = Array.from(new Set(rows.map((r) => r.actor_id).filter(Boolean))) as string[];
       const { data: profs } = actorIds.length
-        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", actorIds)
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", actorIds)
         : { data: [] as any[] };
       const pmap = new Map((profs ?? []).map((p) => [p.id, p]));
       return rows.map((r) => ({ ...r, actor: r.actor_id ? pmap.get(r.actor_id) ?? null : null }));

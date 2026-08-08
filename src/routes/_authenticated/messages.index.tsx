@@ -110,7 +110,7 @@ function DirectList({ userId }: { userId: string }) {
       const otherIds = list.map((c) => (c.user_a === userId ? c.user_b : c.user_a));
       const [profilesRes, lastMessagesRes] = await Promise.all([
         otherIds.length
-          ? supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", otherIds)
+          ? supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", otherIds)
           : Promise.resolve({ data: [] as any[] }),
         list.length
           ? supabase

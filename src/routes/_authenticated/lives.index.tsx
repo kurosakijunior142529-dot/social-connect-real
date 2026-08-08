@@ -34,7 +34,7 @@ function LivesFeed() {
       const rows = (data ?? []) as any[];
       if (!rows.length) return [];
       const ids = Array.from(new Set(rows.map((r) => r.host_id)));
-      const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
+      const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", ids);
       const map = new Map((profiles ?? []).map((p) => [p.id, p]));
       return rows.map((r) => ({ ...r, host: map.get(r.host_id) }));
     },
@@ -53,7 +53,7 @@ function LivesFeed() {
       const rows = (data ?? []) as any[];
       if (!rows.length) return [];
       const ids = Array.from(new Set(rows.map((r) => r.host_id)));
-      const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
+      const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", ids);
       const map = new Map((profiles ?? []).map((p) => [p.id, p]));
       return rows.map((r) => ({ ...r, host: map.get(r.host_id) }));
     },

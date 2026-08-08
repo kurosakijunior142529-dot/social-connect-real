@@ -35,7 +35,7 @@ function ListingDetail() {
       if (!data) return null;
       const { data: seller } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
         .eq("id", data.seller_id)
         .maybeSingle();
       return { ...data, seller };

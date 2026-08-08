@@ -38,7 +38,7 @@ export function usePostComments(postId: string | null) {
       const rows = (data ?? []) as unknown as CommentRow[];
       const ids = Array.from(new Set(rows.map((c) => c.author_id)));
       const { data: profs } = ids.length
-        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids)
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", ids)
         : { data: [] as any[] };
       const map = new Map((profs ?? []).map((p: any) => [p.id, p]));
       const withAuthors = rows.map((c) => ({ ...c, author: map.get(c.author_id) }));

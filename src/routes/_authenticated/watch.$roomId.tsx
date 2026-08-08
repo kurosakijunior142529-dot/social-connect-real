@@ -110,7 +110,7 @@ function WatchRoomPage() {
       if (!ids.length) return [];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
         .in("id", ids);
       const map = new Map((profiles ?? []).map((p) => [p.id, p]));
       return (data ?? []).map((m: any) => ({ ...m, profile: map.get(m.user_id) }));
@@ -131,7 +131,7 @@ function WatchRoomPage() {
       if (!ids.length) return [];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
         .in("id", ids);
       const map = new Map((profiles ?? []).map((p) => [p.id, p]));
       return rows.map((r) => ({ ...r, profile: map.get(r.sender_id) }));

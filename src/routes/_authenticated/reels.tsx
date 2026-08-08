@@ -39,7 +39,7 @@ function ReelsPage() {
       const authorIds = Array.from(new Set(posts.map((p) => p.author_id)));
 
       const [profilesRes, likesCountRes, commentsCountRes, myLikesRes] = await Promise.all([
-        supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", authorIds),
+        supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", authorIds),
         supabase.from("likes").select("post_id").in("post_id", ids),
         supabase.from("comments").select("post_id").in("post_id", ids),
         supabase.from("likes").select("post_id").eq("user_id", user.id).in("post_id", ids),

@@ -39,7 +39,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
       const list = (rows ?? []) as StoryRow[];
       const userIds = Array.from(new Set(list.map((s) => s.user_id)));
       const { data: profs } = userIds.length
-        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", userIds)
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", userIds)
         : { data: [] as any[] };
       const pmap = new Map((profs ?? []).map((p: any) => [p.id, p]));
       const byUser = new Map<string, Grouped>();

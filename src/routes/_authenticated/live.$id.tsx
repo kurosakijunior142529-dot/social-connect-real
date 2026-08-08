@@ -98,7 +98,7 @@ function LiveRoom() {
     queryKey: ["profile", liveQ.data?.host_id],
     queryFn: async () => {
       if (!liveQ.data?.host_id) return null;
-      const { data } = await supabase.from("profiles").select("id, username, display_name, avatar_url").eq("id", liveQ.data.host_id).maybeSingle();
+      const { data } = await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").eq("id", liveQ.data.host_id).maybeSingle();
       return data;
     },
     enabled: !!liveQ.data?.host_id,
@@ -117,7 +117,7 @@ function LiveRoom() {
       const rows = (data ?? []) as any[];
       if (!rows.length) return [];
       const ids = Array.from(new Set(rows.map((r) => r.sender_id)));
-      const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
+      const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", ids);
       const pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
       return rows.map((r) => ({ ...r, profile: pmap.get(r.sender_id) }));
     },
@@ -134,7 +134,7 @@ function LiveRoom() {
       const rows = (data ?? []) as any[];
       if (!rows.length) return [];
       const ids = Array.from(new Set(rows.map((r) => r.user_id)));
-      const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
+      const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", ids);
       const pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
       return rows.map((r) => ({ ...r, profile: pmap.get(r.user_id) }));
     },

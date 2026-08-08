@@ -74,7 +74,7 @@ function ConversationPage() {
       const otherId = data.user_a === user.id ? data.user_b : data.user_a;
       const { data: prof } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
         .eq("id", otherId)
         .maybeSingle();
       return { ...data, other: prof };

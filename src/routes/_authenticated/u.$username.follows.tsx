@@ -44,7 +44,7 @@ function FollowsPage() {
       if (!ids.length) return { profile, users: [] as Row[] };
       const { data: users } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
         .in("id", ids);
       return { profile, users: (users ?? []) as Row[] };
     },

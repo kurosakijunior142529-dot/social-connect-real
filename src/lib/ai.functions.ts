@@ -12,19 +12,32 @@ function gateway() {
 
 const MODEL = "google/gemini-3-flash-preview";
 
-// Translate a snippet of text
+// Translate a snippet of text. `context` (previous caption/line) improves
+// accuracy for short, broken sentences captured live during a call.
 export const translateText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ text: z.string().min(1).max(4000), target: z.string().min(2).max(10) }).parse(i))
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        text: z.string().min(1).max(4000),
+        target: z.string().min(2).max(10),
+        context: z.string().max(1000).optional(),
+      })
+      .parse(i),
+  )
   .handler(async ({ data }) => {
+    const contextBlock = data.context
+      ? `Previous line (context only, DO NOT translate it):\n${data.context}\n\n`
+      : "";
     const { text: out } = await generateText({
       model: gateway()(MODEL),
-      prompt: `Translate the following text to language code "${data.target}". Return ONLY the translation, no quotes, no notes.\n\n${data.text}`,
+      prompt: `${contextBlock}Translate the following text to language code "${data.target}". It may be a partial sentence from a live conversation; translate it naturally anyway. Return ONLY the translation, no quotes, no notes.\n\n${data.text}`,
     });
     return { text: out.trim() };
   });
 
-// Translate several snippets at once (used when the live-caption language changes)
+// Translate several snippets at once (used when the live-caption language changes).
+// Never rejects on model failure: returns `ok: false` so the UI can offer a retry.
 export const translateBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
@@ -37,18 +50,34 @@ export const translateBatch = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const numbered = data.items.map((item, index) => `${index + 1}. ${item.text.replace(/\n/g, " ")}`).join("\n");
-    const { text } = await generateText({
-      model: gateway()(MODEL),
-      prompt: `Translate each numbered line to language code "${data.target}". Return exactly ${data.items.length} lines, same numbering, translation only, no notes.\n\n${numbered}`,
-    });
-    const lines = text
-      .split("\n")
-      .map((line) => line.replace(/^\s*\d+[.)]\s*/, "").trim())
-      .filter(Boolean);
-    return {
-      results: data.items.map((item, index) => ({ id: item.id, text: lines[index] ?? item.text })),
-    };
+    try {
+      const { text } = await generateText({
+        model: gateway()(MODEL),
+        prompt: `Translate each numbered line to language code "${data.target}". Return exactly ${data.items.length} lines, same numbering, translation only, no notes.\n\n${numbered}`,
+      });
+      const lines = text
+        .split("\n")
+        .map((line) => line.replace(/^\s*\d+[.)]\s*/, "").trim())
+        .filter(Boolean);
+      return {
+        ok: true as const,
+        error: null as string | null,
+        results: data.items.map((item, index) => ({
+          id: item.id,
+          text: lines[index] ?? item.text,
+          ok: Boolean(lines[index]),
+        })),
+      };
+    } catch (error) {
+      console.error("[translateBatch] failed", error);
+      return {
+        ok: false as const,
+        error: error instanceof Error ? error.message : "Falha na tradução",
+        results: data.items.map((item) => ({ id: item.id, text: item.text, ok: false })),
+      };
+    }
   });
+
 
 // Summarize the last N messages of a chat or DM
 export const summarizeConversation = createServerFn({ method: "POST" })

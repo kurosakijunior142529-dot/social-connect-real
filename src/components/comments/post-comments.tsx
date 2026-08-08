@@ -230,7 +230,16 @@ export function PostComments({
             )}
           </div>
           {editing?.id === c.id ? null : (
-            <div className="mt-1 flex gap-3 px-2 text-[11px] text-muted-foreground">
+            <div className="mt-1 flex items-center gap-3 px-2 text-[11px] text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => void toggleLike(c.id)}
+                className={cn("flex items-center gap-1", like?.mine && "text-primary")}
+                aria-label="Curtir comentário"
+              >
+                <Heart className={cn("h-3.5 w-3.5", like?.mine && "fill-current")} />
+                {like?.count ? like.count : null}
+              </button>
               <button
                 type="button"
                 onClick={() =>

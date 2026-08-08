@@ -68,11 +68,23 @@ export function SignedVideo({
   className,
   onDoubleTapLike,
 }: Omit<Props, "alt" | "fallback"> & { onDoubleTapLike?: () => void }) {
-  const { data: url, isLoading } = useSignedUrl(bucket, path);
+  // só assina/baixa o vídeo quando ele chega perto da viewport (performance no feed)
+  const [ref, inView] = useInView<HTMLDivElement>();
+  const { data: url, isLoading } = useSignedUrl(bucket, inView ? path : null);
   if (!path) return null;
-  if (isLoading || !url) return <Placeholder className={cn("rounded-2xl", className)} />;
-  return <VideoPlayer src={url} className={className} onDoubleTapLike={onDoubleTapLike} />;
+  if (!inView || isLoading || !url)
+    return (
+      <div ref={ref}>
+        <Placeholder className={cn("rounded-2xl", className)} />
+      </div>
+    );
+  return (
+    <div ref={ref}>
+      <VideoPlayer src={url} className={className} onDoubleTapLike={onDoubleTapLike} />
+    </div>
+  );
 }
+
 
 /**
  * Thumbnail for grids: renders a real image for images and an auto-generated

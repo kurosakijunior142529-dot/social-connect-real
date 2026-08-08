@@ -39,18 +39,8 @@ export function UserAvatar({ avatarPath, displayName, className, ring, verified,
     </Avatar>
   );
 
-  const withBadge = (child: React.ReactNode) => (
-    <span className="relative inline-block">
-      {child}
-      {verified || badgeVariant ? (
-        <VerifiedBadge
-          variant={badgeVariant ?? "verified"}
-          className="absolute -bottom-0.5 -right-0.5 ring-2 ring-background"
-          size={14}
-        />
-      ) : null}
-    </span>
-  );
+  // O selo verificado aparece somente ao lado do nome (VerifiedName), nunca na foto.
+  const withBadge = (child: React.ReactNode) => child;
 
   if (!ring) return withBadge(inner);
 

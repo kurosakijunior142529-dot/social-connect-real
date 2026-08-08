@@ -1,6 +1,6 @@
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { VerifiedBadge, type BadgeVariant } from "@/components/verified-badge";
+import { type BadgeVariant } from "@/components/verified-badge";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -8,11 +8,12 @@ type Props = {
   displayName: string;
   className?: string;
   ring?: boolean | "story" | "viewed";
+  /** mantido por compatibilidade — o selo é exibido apenas no nome */
   verified?: boolean;
   badgeVariant?: BadgeVariant | null;
 };
 
-export function UserAvatar({ avatarPath, displayName, className, ring, verified, badgeVariant }: Props) {
+export function UserAvatar({ avatarPath, displayName, className, ring }: Props) {
   const { data: url } = useSignedUrl("avatars", avatarPath);
   const initials = displayName
     .split(" ")

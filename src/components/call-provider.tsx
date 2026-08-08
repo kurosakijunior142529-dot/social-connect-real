@@ -876,6 +876,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     [translateMany],
   );
 
+  // Keep a synchronous mirror of the captions so retries and language changes
+  // can read the latest list without stale closures.
+  useEffect(() => {
+    captionsMirrorRef.current = captions;
+  }, [captions]);
+
+
   // Audio Playback Management — re-attach the persistent stream and force
   // play() whenever new remote tracks arrive (trackUpdate bumps).
   useEffect(() => {

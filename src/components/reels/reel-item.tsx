@@ -361,7 +361,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
         onPointerEnter={() => setScrubberActive(true)}
         onPointerLeave={() => setScrubberActive(false)}
       >
-        <div className="h-full bg-white/85" style={{ width: `${progress * 100}%` }} />
+        <div
+          className="h-full rounded-r-full bg-gradient-to-r from-white/70 to-primary shadow-[0_0_10px_rgba(255,255,255,0.35)]"
+          style={{ width: `${progress * 100}%` }}
+        />
       </div>
 
       <style>{`

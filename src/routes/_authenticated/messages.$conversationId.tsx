@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
@@ -90,31 +90,56 @@ function ConversationPage() {
 
   const messages = useQuery({
     queryKey: ["messages", conversationId],
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(120);
       if (error) throw error;
-      return (data ?? []) as any[];
+      return ((data ?? []) as any[]).slice().reverse();
     },
   });
 
-  const messageIds = (messages.data ?? []).map((m) => m.id);
+  const messageIds = useMemo(
+    () => (messages.data ?? []).map((m) => m.id),
+    [messages.data],
+  );
   const reactions = useMessageReactions("dm", messageIds, user.id);
 
-  const pinnedList = (messages.data ?? []).filter((m) => m.pinned_at);
+  const pinnedList = useMemo(
+    () => (messages.data ?? []).filter((m) => m.pinned_at),
+    [messages.data],
+  );
   const latestPinned = pinnedList[pinnedList.length - 1];
 
-  // realtime
+  // realtime — patch the cache in place instead of refetching everything
   useEffect(() => {
+    const key = ["messages", conversationId];
     const channel = supabase
       .channel(`msg-${conversationId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
-        () => queryClient.invalidateQueries({ queryKey: ["messages", conversationId] }),
+        (payload: any) => {
+          queryClient.setQueryData<any[]>(key, (prev) => {
+            const list = prev ?? [];
+            if (payload.eventType === "INSERT") {
+              if (list.some((m) => m.id === payload.new.id)) return list;
+              return [...list, payload.new];
+            }
+            if (payload.eventType === "UPDATE") {
+              return list.map((m) => (m.id === payload.new.id ? { ...m, ...payload.new } : m));
+            }
+            if (payload.eventType === "DELETE") {
+              return list.filter((m) => m.id !== payload.old.id);
+            }
+            return list;
+          });
+        },
       )
       .on(
         "postgres_changes",
@@ -127,26 +152,33 @@ function ConversationPage() {
     };
   }, [conversationId, queryClient]);
 
-  // mark incoming as read
+  // mark incoming as read (only ids we haven't marked yet)
+  const readMarked = useRef<Set<string>>(new Set());
   useEffect(() => {
     const unread = (messages.data ?? []).filter(
-      (m) => m.sender_id !== user.id && !m.read_at,
+      (m) => m.sender_id !== user.id && !m.read_at && !readMarked.current.has(m.id),
     );
     if (!unread.length) return;
-    (async () => {
-      await (supabase as any)
+    const ids = unread.map((m) => m.id);
+    ids.forEach((id) => readMarked.current.add(id));
+    const t = window.setTimeout(() => {
+      (supabase as any)
         .from("messages")
         .update({ read_at: new Date().toISOString() })
-        .in(
-          "id",
-          unread.map((m) => m.id),
-        );
-    })();
+        .in("id", ids)
+        .then(() => {}, () => ids.forEach((id) => readMarked.current.delete(id)));
+    }, 300);
+    return () => window.clearTimeout(t);
   }, [messages.data, user.id]);
 
+  const firstScroll = useRef(true);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!messages.data?.length) return;
+    const behavior = firstScroll.current ? "auto" : "smooth";
+    firstScroll.current = false;
+    bottomRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior, block: "end" });
   }, [messages.data?.length]);
+
 
   function noteTyping() {
     presence.setMe("typing");
@@ -155,13 +187,33 @@ function ConversationPage() {
   }
 
   async function sendPayload(payload: any) {
-    const { error } = await (supabase as any).from("messages").insert({
+    const key = ["messages", conversationId];
+    const tempId = `tmp-${crypto.randomUUID()}`;
+    const optimistic = {
+      id: tempId,
       conversation_id: conversationId,
       sender_id: user.id,
+      created_at: new Date().toISOString(),
       ...payload,
+    };
+    queryClient.setQueryData<any[]>(key, (prev) => [...(prev ?? []), optimistic]);
+    const { data, error } = await (supabase as any)
+      .from("messages")
+      .insert({ conversation_id: conversationId, sender_id: user.id, ...payload })
+      .select()
+      .single();
+    queryClient.setQueryData<any[]>(key, (prev) => {
+      const list = prev ?? [];
+      if (error) return list.filter((m) => m.id !== tempId);
+      if (list.some((m) => m.id === data?.id)) return list.filter((m) => m.id !== tempId);
+      return list.map((m) => (m.id === tempId ? data : m));
     });
-    if (error) toast.error(error.message);
+    if (error) {
+      console.error("[chat] falha ao enviar mensagem", error);
+      toast.error(error.message);
+    }
   }
+
 
   async function handleFile(file: File) {
     if (isBlockedPair) return;
@@ -327,7 +379,45 @@ function ConversationPage() {
     return list;
   }, [messages.data, blocks.data, searchOpen, searchQ]);
 
-  const byId = new Map(visibleMessages.map((m) => [m.id, m]));
+  const byId = useMemo(
+    () => new Map(visibleMessages.map((m) => [m.id, m])),
+    [visibleMessages],
+  );
+
+  // grouping metadata: date separators + consecutive bubbles from same sender
+  const rows = useMemo(() => {
+    const GROUP_MS = 5 * 60_000;
+    return visibleMessages.map((m, i) => {
+      const prev = visibleMessages[i - 1];
+      const next = visibleMessages[i + 1];
+      const ts = new Date(m.created_at).getTime();
+      const sameSenderPrev =
+        !!prev && prev.sender_id === m.sender_id && ts - new Date(prev.created_at).getTime() < GROUP_MS;
+      const sameSenderNext =
+        !!next && next.sender_id === m.sender_id && new Date(next.created_at).getTime() - ts < GROUP_MS;
+      const daySep =
+        !prev || new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
+      return { m, first: !sameSenderPrev, last: !sameSenderNext, daySep };
+    });
+  }, [visibleMessages]);
+
+  const onTranslated = useCallback(
+    (id: string, t: string) => setTranslations((p) => ({ ...p, [id]: t })),
+    [],
+  );
+  const onForward = useCallback((msg: any) => setForwardMsg(msg), []);
+  const onEditMsg = useCallback((x: { id: string; content: string | null }) => {
+    setEditing(x);
+    setDraft(x.content ?? "");
+  }, []);
+  const onToggleReaction = useCallback(
+    (id: string, emoji: string, mineR: boolean) =>
+      toggleReaction("dm", id, user.id, emoji, mineR).then(() =>
+        queryClient.invalidateQueries({ queryKey: ["reactions", "dm"] }),
+      ),
+    [user.id, queryClient],
+  );
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
@@ -442,7 +532,7 @@ function ConversationPage() {
 
       <div
         className={cn(
-          "relative flex-1 overflow-y-auto px-4 py-4 space-y-1.5",
+          "relative flex-1 overflow-y-auto overscroll-contain px-4 py-4 [content-visibility:auto] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]",
           chatFont.className,
           (conv.data as any)?.wallpaper_type === "custom"
             ? "bg-background"
@@ -459,99 +549,31 @@ function ConversationPage() {
         }
       >
         <div className="pointer-events-none absolute inset-0 bg-background/35 backdrop-blur-[1px]" />
-        {visibleMessages.map((m) => {
-          const mine = m.sender_id === user.id;
-          const replied = m.reply_to ? byId.get(m.reply_to) : null;
-          const rs = reactions.data?.[m.id] ?? [];
-          const translated = translations[m.id];
-          return (
-            <div
-              key={m.id}
-              className={cn("relative flex group items-end gap-2", mine ? "justify-end" : "justify-start")}
-            >
-              {mine ? (
-                <MessageActions
-                  message={m}
-                  ctx={{ scope: "dm", ownerId: user.id }}
-                  mine
-                  onReply={setReplyTo}
-                  onEdit={(x) => {
-                    setEditing(x);
-                    setDraft(x.content ?? "");
-                  }}
-                  onDelete={deleteMessage}
-                  onTranslated={(id, t) => setTranslations((p) => ({ ...p, [id]: t }))}
-                  onForward={(msg) => setForwardMsg(msg)}
-                  onPinToggle={togglePin}
-                />
-              ) : null}
-              <div className="max-w-[78%]">
-                <div
-                  style={{ borderRadius: prefs.radius, ...(mine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }) }}
-                  className={cn(
-                    "px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
-                    mine ? bubbleTheme.mine : bubbleTheme.theirs,
-                  )}
-                >
-                  {replied ? <ReplyQuote text={replied.content} /> : null}
-                  <MessageBody msg={m} mine={mine} />
-                  {m.edited_at ? (
-                    <span
-                      className={cn(
-                        "ml-2 text-[10px]",
-                        mine ? "opacity-70" : "text-muted-foreground",
-                      )}
-                    >
-                      editado
-                    </span>
-                  ) : null}
-                  {translated ? (
-                    <div
-                      className={cn(
-                        "mt-1 pt-1 border-t text-[12px]",
-                        mine
-                          ? "border-black/20 opacity-90"
-                          : "border-white/10 text-muted-foreground",
-                      )}
-                    >
-                      🌐 {translated}
-                    </div>
-                  ) : null}
-                  {mine ? (
-                    <span className="ml-2 inline-flex align-middle opacity-80">
-                      {m.read_at ? (
-                        <CheckCheck className="h-3 w-3 text-[#7ad9ff]" />
-                      ) : (
-                        <Check className="h-3 w-3" />
-                      )}
-                    </span>
-                  ) : null}
-                </div>
-                <ReactionsBar
-                  reactions={rs}
-                  onToggle={(emoji, mineR) =>
-                    toggleReaction("dm", m.id, user.id, emoji, mineR).then(() =>
-                      queryClient.invalidateQueries({ queryKey: ["reactions", "dm"] }),
-                    )
-                  }
-                />
-              </div>
-              {!mine ? (
-                <MessageActions
-                  message={m}
-                  ctx={{ scope: "dm", ownerId: user.id }}
-                  mine={false}
-                  onReply={setReplyTo}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
-                  onTranslated={(id, t) => setTranslations((p) => ({ ...p, [id]: t }))}
-                  onForward={(msg) => setForwardMsg(msg)}
-                  onPinToggle={togglePin}
-                />
-              ) : null}
-            </div>
-          );
-        })}
+        {rows.map(({ m, first, last, daySep }) => (
+          <MessageRow
+            key={m.id}
+            m={m}
+            mine={m.sender_id === user.id}
+            first={first}
+            last={last}
+            daySep={daySep}
+            userId={user.id}
+            radius={prefs.radius}
+            bubbleMine={bubbleTheme.mine}
+            bubbleTheirs={bubbleTheme.theirs}
+            replied={m.reply_to ? byId.get(m.reply_to) ?? null : null}
+            reactions={reactions.data?.[m.id] ?? EMPTY_REACTIONS}
+            translated={translations[m.id]}
+            onReply={setReplyTo}
+            onEdit={onEditMsg}
+            onDelete={deleteMessage}
+            onTranslated={onTranslated}
+            onForward={onForward}
+            onPinToggle={togglePin}
+            onToggleReaction={onToggleReaction}
+          />
+        ))}
+
         <div ref={bottomRef} />
       </div>
 
@@ -688,3 +710,148 @@ function ConversationPage() {
     </div>
   );
 }
+
+const EMPTY_REACTIONS: any[] = [];
+
+const timeFmt = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+function dayLabel(iso: string) {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today.getTime() - 86_400_000);
+  if (d.toDateString() === today.toDateString()) return "Hoje";
+  if (d.toDateString() === yesterday.toDateString()) return "Ontem";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+}
+
+type RowProps = {
+  m: any;
+  mine: boolean;
+  first: boolean;
+  last: boolean;
+  daySep: boolean;
+  userId: string;
+  radius: number | string;
+  bubbleMine: string;
+  bubbleTheirs: string;
+  replied: any;
+  reactions: any[];
+  translated?: string;
+  onReply: (r: { id: string; content: string | null }) => void;
+  onEdit: (x: { id: string; content: string | null }) => void;
+  onDelete: (id: string) => void;
+  onTranslated: (id: string, t: string) => void;
+  onForward: (msg: any) => void;
+  onPinToggle: (id: string, pin: boolean) => void;
+  onToggleReaction: (id: string, emoji: string, mine: boolean) => void;
+};
+
+const MessageRow = memo(
+  function MessageRow(p: RowProps) {
+    const { m, mine, first, last, daySep } = p;
+    const bigRadius = p.radius;
+    const tail = last ? 6 : bigRadius;
+    return (
+      <>
+        {daySep ? (
+          <div className="relative flex justify-center py-3">
+            <span className="rounded-full bg-[color:var(--surface-2)]/80 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur-sm">
+              {dayLabel(m.created_at)}
+            </span>
+          </div>
+        ) : null}
+        <div
+          className={cn(
+            "relative flex group items-end gap-2",
+            mine ? "justify-end" : "justify-start",
+            first ? "mt-2" : "mt-0.5",
+          )}
+        >
+          {mine ? (
+            <MessageActions
+              message={m}
+              ctx={{ scope: "dm", ownerId: p.userId }}
+              mine
+              onReply={p.onReply}
+              onEdit={p.onEdit}
+              onDelete={p.onDelete}
+              onTranslated={p.onTranslated}
+              onForward={p.onForward}
+              onPinToggle={p.onPinToggle}
+            />
+          ) : null}
+          <div className="max-w-[78%]">
+            <div
+              style={{
+                borderRadius: bigRadius,
+                ...(mine ? { borderBottomRightRadius: tail } : { borderBottomLeftRadius: tail }),
+              }}
+              className={cn(
+                "px-3.5 py-2 text-[14px] leading-snug break-words shadow-sm transition-[border-radius] duration-200",
+                mine ? p.bubbleMine : p.bubbleTheirs,
+              )}
+            >
+              {p.replied ? <ReplyQuote text={p.replied.content} /> : null}
+              <MessageBody msg={m} mine={mine} />
+              {p.translated ? (
+                <div
+                  className={cn(
+                    "mt-1 pt-1 border-t text-[12px]",
+                    mine ? "border-black/20 opacity-90" : "border-white/10 text-muted-foreground",
+                  )}
+                >
+                  🌐 {p.translated}
+                </div>
+              ) : null}
+              <div
+                className={cn(
+                  "mt-0.5 flex items-center gap-1 text-[10px] leading-none",
+                  mine ? "justify-end opacity-70" : "justify-end text-muted-foreground",
+                )}
+              >
+                {m.edited_at ? <span>editado</span> : null}
+                <span>{timeFmt.format(new Date(m.created_at))}</span>
+                {mine ? (
+                  m.read_at ? (
+                    <CheckCheck className="h-3 w-3 text-[#7ad9ff]" />
+                  ) : (
+                    <Check className="h-3 w-3" />
+                  )
+                ) : null}
+              </div>
+            </div>
+            <ReactionsBar
+              reactions={p.reactions}
+              onToggle={(emoji, mineR) => p.onToggleReaction(m.id, emoji, mineR)}
+            />
+          </div>
+          {!mine ? (
+            <MessageActions
+              message={m}
+              ctx={{ scope: "dm", ownerId: p.userId }}
+              mine={false}
+              onReply={p.onReply}
+              onEdit={() => {}}
+              onDelete={() => {}}
+              onTranslated={p.onTranslated}
+              onForward={p.onForward}
+              onPinToggle={p.onPinToggle}
+            />
+          ) : null}
+        </div>
+      </>
+    );
+  },
+  (a, b) =>
+    a.m === b.m &&
+    a.mine === b.mine &&
+    a.first === b.first &&
+    a.last === b.last &&
+    a.daySep === b.daySep &&
+    a.replied === b.replied &&
+    a.reactions === b.reactions &&
+    a.translated === b.translated &&
+    a.radius === b.radius &&
+    a.bubbleMine === b.bubbleMine &&
+    a.bubbleTheirs === b.bubbleTheirs,
+);

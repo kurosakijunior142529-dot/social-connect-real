@@ -748,6 +748,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let notified = false;
     let consecutiveFailures = 0;
     const handle = startSttFallback(stream, {
+      remoteStream: persistentRemoteStreamRef.current,
+
       onClip: async (audio) => {
         if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
         try {

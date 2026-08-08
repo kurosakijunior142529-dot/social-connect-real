@@ -98,6 +98,24 @@ export function PostComments({
     refresh();
   }
 
+  async function sendSticker(s: StickerItem) {
+    const parentId = replyTo?.id ?? null;
+    setReplyTo(null);
+    const { error } = await supabase.from("comments").insert({
+      post_id: postId,
+      author_id: currentUserId,
+      content: "",
+      sticker_url: s.url,
+      ...(parentId ? { parent_id: parentId } : {}),
+    } as any);
+    if (error) {
+      toast.error(error.message ?? "Não foi possível enviar a figurinha");
+      return;
+    }
+    refresh();
+  }
+
+
   async function saveEdit(e: FormEvent) {
     e.preventDefault();
     if (!editing) return;

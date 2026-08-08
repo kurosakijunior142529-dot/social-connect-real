@@ -84,6 +84,9 @@ async function blobToBase64(blob: Blob): Promise<string> {
 /**
  * Starts windowed transcription over an existing stream.
  * `onClip` receives a base64 WAV; it should resolve with the transcript (or null).
+ * When `remoteStream` is provided, audio captured while the other participant is
+ * speaking must be clearly louder to count as local voice — this keeps the other
+ * person's voice (leaking through the speaker) out of my own captions.
  */
 export function startSttFallback(
   stream: MediaStream,
@@ -91,6 +94,7 @@ export function startSttFallback(
     onClip: (base64Wav: string) => Promise<void>;
     onError?: (error: unknown) => void;
     onStateChange?: (state: SttCaptureState) => void;
+    remoteStream?: MediaStream | null;
   },
 ): SttFallbackHandle | null {
   const audioTracks = stream.getAudioTracks();
@@ -105,6 +109,9 @@ export function startSttFallback(
   let source: MediaStreamAudioSourceNode;
   let processor: ScriptProcessorNode;
   let sink: GainNode;
+  let remoteSource: MediaStreamAudioSourceNode | null = null;
+  let remoteAnalyser: AnalyserNode | null = null;
+  let remoteData: Uint8Array | null = null;
   try {
     ctx = new AudioCtor();
     source = ctx.createMediaStreamSource(new MediaStream(audioTracks));
@@ -115,6 +122,16 @@ export function startSttFallback(
     source.connect(processor);
     processor.connect(sink);
     sink.connect(ctx.destination);
+
+    const remoteTracks = handlers.remoteStream?.getAudioTracks() ?? [];
+    if (remoteTracks.length > 0) {
+      remoteSource = ctx.createMediaStreamSource(new MediaStream(remoteTracks));
+      remoteAnalyser = ctx.createAnalyser();
+      remoteAnalyser.fftSize = 512;
+      remoteAnalyser.smoothingTimeConstant = 0.7;
+      remoteSource.connect(remoteAnalyser);
+      remoteData = new Uint8Array(remoteAnalyser.frequencyBinCount);
+    }
   } catch (error) {
     handlers.onError?.(error);
     return null;
@@ -126,19 +143,44 @@ export function startSttFallback(
   let voicedSamples = 0;
   let silentSamples = 0;
   let sending = false;
+  let noiseFloor = SILENCE_RMS;
+  let tail: Float32Array[] = [];
   handlers.onStateChange?.("starting");
 
+  const overlapSamples = Math.round((TARGET_RATE * OVERLAP_MS) / 1000);
+
+  const keepTail = (chunks: Float32Array[]) => {
+    const next: Float32Array[] = [];
+    let kept = 0;
+    for (let i = chunks.length - 1; i >= 0 && kept < overlapSamples; i -= 1) {
+      const chunk = chunks[i];
+      if (!chunk) continue;
+      next.unshift(chunk);
+      kept += chunk.length;
+    }
+    tail = next;
+  };
+
   const reset = () => {
-    pcm = [];
-    samples = 0;
+    pcm = tail.length > 0 ? [...tail] : [];
+    samples = pcm.reduce((n, c) => n + c.length, 0);
     voicedSamples = 0;
     silentSamples = 0;
+  };
+
+  const remoteActive = () => {
+    if (!remoteAnalyser || !remoteData) return false;
+    remoteAnalyser.getByteFrequencyData(remoteData as Uint8Array<ArrayBuffer>);
+    let sum = 0;
+    for (let i = 0; i < remoteData.length; i += 1) sum += remoteData[i]! * remoteData[i]!;
+    return Math.sqrt(sum / remoteData.length) / 255 > 0.045;
   };
 
   const flush = async () => {
     if (sending || pcm.length === 0) return;
     const chunks = pcm;
     const voiced = voicedSamples;
+    keepTail(chunks);
     reset();
     if (voiced < (TARGET_RATE * MIN_WINDOW_MS) / 1000 / 3) return; // basically silence
     sending = true;
@@ -167,9 +209,14 @@ export function startSttFallback(
     for (let i = 0; i < chunk.length; i += 1) sum += (chunk[i] ?? 0) ** 2;
     const rms = Math.sqrt(sum / Math.max(1, chunk.length));
 
+    // Adaptive noise floor: slowly track the quietest recent level.
+    noiseFloor = rms < noiseFloor ? noiseFloor * 0.9 + rms * 0.1 : noiseFloor * 0.995 + rms * 0.005;
+    const base = Math.max(SILENCE_RMS, noiseFloor * 1.8);
+    const threshold = remoteActive() ? base * DUCK_FACTOR : base;
+
     pcm.push(chunk);
     samples += chunk.length;
-    if (rms > SILENCE_RMS) {
+    if (rms > threshold) {
       voicedSamples += chunk.length;
       silentSamples = 0;
     } else {
@@ -184,6 +231,7 @@ export function startSttFallback(
       void flush();
     }
   };
+
 
   const ready = ctx
     .resume()

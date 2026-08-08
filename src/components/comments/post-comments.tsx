@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, X, Smile } from "lucide-react";
+import { Send, X, Smile, SmilePlus } from "lucide-react";
+import { EmojiText, AppEmojiPicker } from "@/components/chat/app-emoji";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StickerPicker, type StickerItem } from "@/components/chat/sticker-picker";
@@ -179,7 +180,7 @@ export function PostComments({
               />
             ) : (
               <div className="text-sm leading-snug break-words">
-                {c.content}
+                <EmojiText text={c.content} />
                 {c.edited_at ? (
                   <span className="ml-1 text-[10px] text-muted-foreground">(editado)</span>
                 ) : null}
@@ -250,6 +251,15 @@ export function PostComments({
             </button>
           }
         />
+        <AppEmojiPicker onPick={(code) => setDraft((d) => (d ? `${d} ${code}` : code))}>
+          <button
+            type="button"
+            aria-label="Emojis do app"
+            className="shrink-0 rounded-full p-2 text-muted-foreground hover:bg-muted"
+          >
+            <SmilePlus className="h-4 w-4" />
+          </button>
+        </AppEmojiPicker>
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

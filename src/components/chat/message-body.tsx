@@ -4,6 +4,7 @@ import { signChatUrl, humanFileSize, formatDuration, type ChatBucket } from "@/l
 import { useQuery } from "@tanstack/react-query";
 import { FileText, MapPin, Download, Pause, Play, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmojiText } from "@/components/chat/app-emoji";
 
 type Msg = {
   id: string;
@@ -38,7 +39,7 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   if (kind === "audio") return <AudioBody msg={msg} mine={mine} />;
   if (kind === "document") return <DocBody msg={msg} mine={mine} />;
   if (kind === "location") return <LocationBody msg={msg} />;
-  return <span>{msg.content}</span>;
+  return <EmojiText text={msg.content ?? ""} />;
 }
 
 function GifBody({ msg }: { msg: Msg }) {

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ImagePlus, Video, X } from "lucide-react";
+import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
+import { exportVideo, needsReencode } from "@/lib/video-export";
 
 export const Route = createFileRoute("/_authenticated/create")({
   component: CreatePage,
@@ -18,14 +20,20 @@ function CreatePage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
+  const [trim, setTrim] = useState<TrimState>(defaultTrim);
+  const [progress, setProgress] = useState(0);
+
+  const isVideo = !!file?.type.startsWith("video/");
 
   function pick(f: File | null) {
     if (!f) return;
     if (f.size > 25 * 1024 * 1024) return toast.error("Arquivo maior que 25MB");
     const isImage = f.type.startsWith("image/");
-    const isVideo = f.type.startsWith("video/");
-    if (!isImage && !isVideo) return toast.error("Envie uma imagem ou vídeo");
+    const isVid = f.type.startsWith("video/");
+    if (!isImage && !isVid) return toast.error("Envie uma imagem ou vídeo");
     setFile(f);
+    setTrim(defaultTrim);
+    setProgress(0);
     setPreview(URL.createObjectURL(f));
   }
 
@@ -35,20 +43,44 @@ function CreatePage() {
     if (caption.length > 500) return toast.error("Legenda longa demais");
     setBusy(true);
     try {
-      const path = await uploadMedia("posts", user.id, file);
+      let toUpload: File = file;
+
+      if (isVideo && preview) {
+        const opts = {
+          from: trim.from,
+          to: trim.to || trim.duration,
+          muted: trim.muted,
+          aspect: trim.aspect,
+          onProgress: setProgress,
+        };
+        if (needsReencode(opts, trim.duration)) {
+          try {
+            const out = await exportVideo(preview, opts);
+            toUpload = new File([out.blob], `video-${Date.now()}.${out.ext}`, { type: out.blob.type });
+          } catch (err) {
+            console.warn("[create] video export failed, uploading original", err);
+            toast.message("Não foi possível aplicar o corte — enviando o vídeo original");
+          }
+        }
+      }
+
+      const path = await uploadMedia("posts", user.id, toUpload);
       const { error } = await supabase.from("posts").insert({
         author_id: user.id,
         media_url: path,
-        media_type: file.type.startsWith("video/") ? "video" : "image",
+        media_type: isVideo ? "video" : "image",
+        post_kind: "post",
         caption: caption.trim(),
       });
       if (error) throw error;
       toast.success("Post publicado!");
       navigate({ to: "/" });
     } catch (err: any) {
-      toast.error(err.message ?? "Falha ao publicar");
+      console.error("[create] publish failed", err);
+      toast.error(err?.message ?? "Falha ao publicar");
     } finally {
       setBusy(false);
+      setProgress(0);
     }
   }
 
@@ -73,8 +105,8 @@ function CreatePage() {
       <form onSubmit={submit} className="space-y-4">
         {preview ? (
           <div className="relative rounded-3xl overflow-hidden bg-black">
-            {file?.type.startsWith("video/") ? (
-              <video src={preview} controls className="w-full aspect-square object-cover" />
+            {isVideo ? (
+              <video src={preview} controls playsInline className="w-full aspect-square object-cover" />
             ) : (
               <img src={preview} alt="preview" className="w-full aspect-square object-cover" />
             )}
@@ -83,6 +115,7 @@ function CreatePage() {
               onClick={() => {
                 setFile(null);
                 setPreview(null);
+                setTrim(defaultTrim);
               }}
               className="absolute top-3 right-3 rounded-full bg-black/60 text-white p-2"
             >
@@ -103,6 +136,10 @@ function CreatePage() {
           </label>
         )}
 
+        {isVideo && preview ? (
+          <VideoTrimmer src={preview} value={trim} onChange={setTrim} />
+        ) : null}
+
         <Textarea
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
@@ -118,7 +155,7 @@ function CreatePage() {
           disabled={busy || !file}
           className="w-full h-12 rounded-full bg-gradient-brand hover:opacity-90 text-base font-semibold"
         >
-          {busy ? "Publicando…" : "Publicar"}
+          {busy ? (progress > 0 && progress < 1 ? `Processando ${Math.round(progress * 100)}%` : "Publicando…") : "Publicar"}
         </Button>
       </form>
     </div>

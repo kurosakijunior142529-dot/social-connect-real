@@ -254,6 +254,7 @@ function VideoStudio() {
         author_id: user.id,
         media_url: path,
         media_type: "video",
+        post_kind: "reel",
         caption: caption.trim(),
       });
       if (error) throw error;

@@ -17,6 +17,8 @@ type Props = {
   nextSrc?: string;
   /** Called on double tap. Return false to skip the heart animation. */
   onDoubleTapLike?: () => void;
+  /** Autor exibido na marca d'água do app. */
+  watermarkUsername?: string | null;
 };
 
 type Burst = { id: number; x: number; y: number };

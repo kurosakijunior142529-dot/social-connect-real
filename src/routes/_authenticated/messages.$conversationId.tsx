@@ -609,6 +609,16 @@ function ConversationPage() {
             </button>
           }
         />
+        <AppEmojiPicker onPick={(code) => setDraft((d) => (d ? `${d} ${code}` : code))}>
+          <button
+            type="button"
+            disabled={isBlockedPair}
+            aria-label="Emojis do app"
+            className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+          >
+            <SmilePlus className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </button>
+        </AppEmojiPicker>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
           <Input

@@ -32,6 +32,7 @@ function useChatSigned(bucket: string | null | undefined, path: string | null | 
 export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   const kind = msg.kind ?? "text";
 
+  if (kind === "post") return <PostShareBody msg={msg} />;
   if (kind === "gif") return <GifBody msg={msg} />;
   if (kind === "sticker") return <StickerBody msg={msg} />;
   if (kind === "image") return <ImageBody msg={msg} />;
@@ -40,6 +41,59 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   if (kind === "document") return <DocBody msg={msg} mine={mine} />;
   if (kind === "location") return <LocationBody msg={msg} />;
   return <EmojiText text={msg.content ?? ""} />;
+}
+
+/** Publicação compartilhada — card com capa, autor e legenda (abre o post completo). */
+function PostShareBody({ msg }: { msg: Msg }) {
+  const p = msg.meta?.post ?? {};
+  const bucket = (msg.media_bucket as any) ?? "posts";
+  const cover = useSignedUrl(bucket, msg.poster_url ?? msg.media_url ?? null);
+  const isVideo = (p.media_type ?? "video") === "video";
+  const usesVideoFrame = isVideo && !msg.poster_url;
+
+  return (
+    <Link
+      to="/p/$id"
+      params={{ id: String(p.id ?? "") }}
+      className="block w-60 max-w-full overflow-hidden rounded-2xl border border-white/10 bg-black/25"
+    >
+      <div className="relative aspect-[4/5] w-full bg-black/40">
+        {cover.data ? (
+          usesVideoFrame ? (
+            <video
+              src={`${cover.data}#t=0.1`}
+              className="h-full w-full object-cover"
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <img src={cover.data} alt="" className="h-full w-full object-cover" loading="lazy" />
+          )
+        ) : (
+          <div className="h-full w-full animate-pulse bg-white/5" />
+        )}
+        {isVideo ? (
+          <span className="pointer-events-none absolute inset-0 grid place-items-center">
+            <span className="grid h-11 w-11 place-items-center rounded-full bg-black/45 backdrop-blur-md">
+              <Play className="h-5 w-5 text-white" fill="currentColor" strokeWidth={0} />
+            </span>
+          </span>
+        ) : null}
+      </div>
+      <div className="space-y-1 p-2.5">
+        <div className="text-[12px] font-semibold">
+          @{p.author_username ?? "publicação"}
+        </div>
+        {p.caption ? (
+          <div className="line-clamp-2 text-[12px] leading-snug text-muted-foreground">
+            {p.caption}
+          </div>
+        ) : null}
+        <div className="pt-0.5 text-[11px] font-medium text-primary">Ver publicação</div>
+      </div>
+    </Link>
+  );
 }
 
 function GifBody({ msg }: { msg: Msg }) {

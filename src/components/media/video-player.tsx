@@ -158,7 +158,7 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
     <div
       className={cn(
         "group relative overflow-hidden rounded-2xl bg-black select-none",
-        "shadow-[inset_0_0_60px_rgba(0,0,0,0.6)]",
+        "ring-1 ring-white/10 shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8),inset_0_0_60px_rgba(0,0,0,0.55)]",
         className,
       )}
       onPointerDown={onPointerDown}

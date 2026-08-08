@@ -988,6 +988,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
           translationLanguage={translationLanguage}
           onToggleTranslation={toggleTranslation}
           onTranslationLanguageChange={changeTranslationLanguage}
+          onRetryCaption={retryCaption}
+
           onSwitchCamera={switchCamera}
           onMinimize={() => setMinimized(true)}
           onHangup={hangupLocal}

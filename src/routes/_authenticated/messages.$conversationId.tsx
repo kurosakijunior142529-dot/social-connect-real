@@ -603,43 +603,33 @@ function ConversationPage() {
         className="p-3 hairline-t bg-background flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
-        <GifPicker
-          onPick={handleGif}
-          trigger={
-            <button
-              type="button"
-              disabled={isBlockedPair}
-              aria-label="GIF"
-              className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-            >
-              <Sticker className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            </button>
-          }
-        />
-        <StickerPicker
-          userId={user.id}
-          onPick={handleSticker}
-          trigger={
-            <button
-              type="button"
-              disabled={isBlockedPair}
-              aria-label="Figurinhas"
-              className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-            >
-              <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
-            </button>
-          }
-        />
-        <AppEmojiPicker onPick={(code) => setDraft((d) => (d ? `${d} ${code}` : code))}>
-          <button
-            type="button"
-            disabled={isBlockedPair}
-            aria-label="Emojis do app"
-            className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-          >
-            <SmilePlus className="h-[18px] w-[18px]" strokeWidth={1.8} />
-          </button>
-        </AppEmojiPicker>
+        <button
+          type="button"
+          disabled={isBlockedPair}
+          aria-label="GIF"
+          onClick={() => togglePanel("gif")}
+          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+        >
+          <Sticker className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          disabled={isBlockedPair}
+          aria-label="Figurinhas"
+          onClick={() => togglePanel("sticker")}
+          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+        >
+          <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          disabled={isBlockedPair}
+          aria-label="Emojis"
+          onClick={() => togglePanel("emoji")}
+          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+        >
+          <SmilePlus className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
           <Input

@@ -77,14 +77,14 @@ function NotificationsPage() {
             <div key={i} className="h-16 rounded-2xl bg-muted/40 animate-pulse" />
           ))}
         </div>
-      ) : (q.data ?? []).length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center text-muted-foreground">
           <Bell className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">Nada por aqui ainda. Interações vão aparecer em tempo real.</p>
         </div>
       ) : (
         <ul className="space-y-1">
-          {q.data!.map((n) => {
+          {items.map((n) => {
             const Icon = ICONS[n.type] ?? Bell;
             const isInvite = n.type === "chat_invite";
             return (

@@ -38,7 +38,12 @@ function FeedPage() {
         .eq("follower_id", user.id);
       const followingIds = (follows ?? []).map((f) => f.following_id);
       const authors = [...followingIds, user.id];
-      let q = supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(50);
+      let q = supabase
+        .from("posts")
+        .select("*")
+        .neq("post_kind", "reel")
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (followingIds.length > 0) q = q.in("author_id", authors);
       return q;
     },

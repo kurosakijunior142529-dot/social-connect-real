@@ -675,6 +675,23 @@ function ConversationPage() {
         )}
       </form>
 
+      <ExpressionPanel
+        open={panelOpen && !isBlockedPair}
+        tab={panelTab}
+        onTabChange={setPanelTab}
+        onClose={() => setPanelOpen(false)}
+        userId={user.id}
+        onEmoji={(text) => setDraft((d) => (d ? `${d}${text}` : text))}
+        onGif={(g) => {
+          setPanelOpen(false);
+          void handleGif(g);
+        }}
+        onSticker={(s) => {
+          setPanelOpen(false);
+          void handleSticker(s);
+        }}
+      />
+
       <ForwardDialog
         open={!!forwardMsg}
         onOpenChange={(o) => !o && setForwardMsg(null)}

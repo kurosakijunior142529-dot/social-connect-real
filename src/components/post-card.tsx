@@ -8,6 +8,7 @@ import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { SavePostButton } from "@/components/save-post-button";
+import { RepostButton } from "@/components/repost-button";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -158,6 +159,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             <MessageCircle className="h-[22px] w-[22px]" strokeWidth={1.6} />
             <span className="text-[13px] font-medium tabular">{post.comments_count}</span>
           </Link>
+          <RepostButton postId={post.id} userId={currentUserId} />
           <div className="ml-auto">
             {currentUserId ? <SavePostButton postId={post.id} userId={currentUserId} /> : null}
           </div>

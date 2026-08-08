@@ -381,6 +381,18 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           url: shareUrl,
           title: `@${post.author?.username ?? ""}`,
           text: post.caption ?? "",
+          post: {
+            id: post.id,
+            kind: "reel",
+            caption: post.caption ?? null,
+            mediaBucket: "posts",
+            mediaPath: post.media_url,
+            posterPath: (post as any).thumbnail_url ?? null,
+            mediaType: "video",
+            authorUsername: post.author?.username ?? null,
+            authorDisplayName: post.author?.display_name ?? null,
+            authorAvatar: post.author?.avatar_url ?? null,
+          },
           media: {
             bucket: "posts",
             path: post.media_url,

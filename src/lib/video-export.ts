@@ -1,5 +1,6 @@
 /**
- * Client-side video export: trim, filter, mute and (optional) vertical crop.
+ * Client-side video export: trim, filter, mute, vertical crop,
+ * AI-style watermark removal (content-aware patch) and music overlay.
  * Runs entirely on the device using canvas + MediaRecorder so uploads are
  * smaller and faster. Falls back gracefully when re-encoding isn't needed.
  */
@@ -19,6 +20,19 @@ export function pickVideoMime(): string {
   }
 }
 
+export type WatermarkCorner = "br" | "bl" | "tr" | "tl";
+
+export type MusicTrack = {
+  url: string;
+  name: string;
+  /** 0..1 music level in the final mix */
+  volume: number;
+  /** seconds into the track where playback starts */
+  offset: number;
+  /** 0..1 original video audio level */
+  originalVolume: number;
+};
+
 export type ExportOptions = {
   /** css filter string, e.g. "saturate(1.2)" */
   filterCss?: string;
@@ -27,6 +41,11 @@ export type ExportOptions = {
   muted?: boolean;
   /** "original" keeps source ratio, "vertical" crops to 9:16 */
   aspect?: "original" | "vertical";
+  /** corners to clean up with the content-aware watermark remover */
+  dewatermark?: WatermarkCorner[];
+  /** strength 0..1 of the watermark removal patch */
+  dewatermarkStrength?: number;
+  music?: MusicTrack | null;
   onProgress?: (p: number) => void;
 };
 
@@ -36,6 +55,8 @@ export function needsReencode(opts: ExportOptions, duration: number): boolean {
   if (opts.filterCss && opts.filterCss !== "none") return true;
   if (opts.muted) return true;
   if (opts.aspect === "vertical") return true;
+  if (opts.dewatermark && opts.dewatermark.length > 0) return true;
+  if (opts.music) return true;
   if (duration > 0 && (from > 0.05 || to < duration - 0.05)) return true;
   return false;
 }
@@ -68,11 +89,78 @@ export async function captureFrame(srcUrl: string, at: number): Promise<Blob | n
   }
 }
 
+/** Region (in canvas px) covered by a corner watermark. */
+function cornerRect(corner: WatermarkCorner, w: number, h: number) {
+  const rw = Math.round(w * 0.34);
+  const rh = Math.round(h * 0.12);
+  const m = Math.round(Math.min(w, h) * 0.015);
+  const x = corner === "br" || corner === "tr" ? w - rw - m : m;
+  const y = corner === "br" || corner === "bl" ? h - rh - m : m;
+  return { x, y, w: rw, h: rh };
+}
+
+/**
+ * Content-aware clean-up: replaces the watermark area with a reconstruction
+ * built from neighbouring pixels (clone + mirrored blend + blur), so logos and
+ * usernames dissolve into the background instead of being covered by a box.
+ */
+function cleanRegion(
+  ctx: CanvasRenderingContext2D,
+  scratch: HTMLCanvasElement,
+  sctx: CanvasRenderingContext2D,
+  rect: { x: number; y: number; w: number; h: number },
+  canvasW: number,
+  canvasH: number,
+  strength: number,
+) {
+  const { x, y, w, h } = rect;
+  if (w <= 2 || h <= 2) return;
+
+  // pick a donor strip just outside the region (above when possible)
+  const donorY = y - h >= 0 ? y - h : Math.min(canvasH - h, y + h);
+  const donorX = Math.max(0, Math.min(canvasW - w, x));
+
+  scratch.width = w;
+  scratch.height = h;
+  sctx.clearRect(0, 0, w, h);
+
+  // 1. clone the donor strip
+  sctx.drawImage(ctx.canvas, donorX, donorY, w, h, 0, 0, w, h);
+  // 2. blend a vertically mirrored copy to kill visible seams
+  sctx.save();
+  sctx.globalAlpha = 0.5;
+  sctx.translate(0, h);
+  sctx.scale(1, -1);
+  sctx.drawImage(ctx.canvas, donorX, donorY, w, h, 0, 0, w, h);
+  sctx.restore();
+  // 3. low-pass the patch so residual texture matches a soft background
+  sctx.save();
+  sctx.filter = `blur(${Math.max(2, Math.round(Math.min(w, h) * 0.12))}px)`;
+  sctx.globalAlpha = 0.9;
+  sctx.drawImage(scratch, 0, 0);
+  sctx.restore();
+
+  // 4. feathered composite over the watermark
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.5, Math.min(1, strength));
+  ctx.filter = "blur(0.4px)";
+  ctx.drawImage(scratch, x, y, w, h);
+  ctx.restore();
+}
+
 export async function exportVideo(
   srcUrl: string,
   opts: ExportOptions = {},
 ): Promise<{ blob: Blob; ext: string }> {
-  const { filterCss = "none", muted = false, aspect = "original", onProgress } = opts;
+  const {
+    filterCss = "none",
+    muted = false,
+    aspect = "original",
+    dewatermark = [],
+    dewatermarkStrength = 1,
+    music = null,
+    onProgress,
+  } = opts;
 
   const src = document.createElement("video");
   src.src = srcUrl;
@@ -110,20 +198,55 @@ export async function exportVideo(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas indisponível neste dispositivo");
 
+  const scratch = document.createElement("canvas");
+  const sctx = scratch.getContext("2d");
+
   const canvasStream = canvas.captureStream(30);
-  if (!muted) {
+
+  // ---- audio graph (original + music) ----
+  let audioCtx: AudioContext | null = null;
+  let musicEl: HTMLAudioElement | null = null;
+  const wantsAudio = !muted || !!music;
+  if (wantsAudio) {
     try {
-      const ms = (src as any).captureStream?.() as MediaStream | undefined;
-      ms?.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
+      audioCtx = new AudioContext();
+      const dest = audioCtx.createMediaStreamDestination();
+
+      if (!muted) {
+        const sourceNode = audioCtx.createMediaElementSource(src);
+        const gain = audioCtx.createGain();
+        gain.gain.value = music ? Math.max(0, Math.min(1, music.originalVolume)) : 1;
+        sourceNode.connect(gain).connect(dest);
+      }
+
+      if (music) {
+        musicEl = document.createElement("audio");
+        musicEl.src = music.url;
+        musicEl.crossOrigin = "anonymous";
+        musicEl.loop = true;
+        await new Promise<void>((res) => {
+          musicEl!.oncanplay = () => res();
+          musicEl!.onerror = () => res();
+          setTimeout(res, 4000);
+        });
+        musicEl.currentTime = Math.max(0, music.offset);
+        const mNode = audioCtx.createMediaElementSource(musicEl);
+        const mGain = audioCtx.createGain();
+        mGain.gain.value = Math.max(0, Math.min(1, music.volume));
+        mNode.connect(mGain).connect(dest);
+      }
+
+      dest.stream.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
+      if (audioCtx.state === "suspended") await audioCtx.resume();
     } catch (err) {
-      console.warn("[video-export] audio capture unavailable", err);
+      console.warn("[video-export] audio graph unavailable", err);
     }
   }
 
   const mime = pickVideoMime();
   const rec = mime
-    ? new MediaRecorder(canvasStream, { mimeType: mime, videoBitsPerSecond: 6_000_000, audioBitsPerSecond: 128_000 })
-    : new MediaRecorder(canvasStream, { audioBitsPerSecond: 128_000 });
+    ? new MediaRecorder(canvasStream, { mimeType: mime, videoBitsPerSecond: 6_000_000, audioBitsPerSecond: 192_000 })
+    : new MediaRecorder(canvasStream, { audioBitsPerSecond: 192_000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
 
@@ -140,12 +263,17 @@ export async function exportVideo(
   const dx = (w - dw) / 2;
   const dy = (h - dh) / 2;
 
+  const rects = dewatermark.map((c) => cornerRect(c, w, h));
+
   let raf = 0;
   const draw = () => {
     ctx.save();
     (ctx as any).filter = filterCss || "none";
     ctx.drawImage(src, dx, dy, dw, dh);
     ctx.restore();
+    if (sctx) {
+      for (const r of rects) cleanRegion(ctx, scratch, sctx, r, w, h, dewatermarkStrength);
+    }
     onProgress?.(Math.min(1, (src.currentTime - from) / total));
     raf = requestAnimationFrame(draw);
   };
@@ -158,6 +286,7 @@ export async function exportVideo(
   raf = requestAnimationFrame(draw);
   try {
     await src.play();
+    if (musicEl) await musicEl.play().catch(() => undefined);
   } catch (err) {
     cancelAnimationFrame(raf);
     rec.stop();
@@ -173,9 +302,15 @@ export async function exportVideo(
   });
 
   src.pause();
+  musicEl?.pause();
   cancelAnimationFrame(raf);
   rec.stop();
   const blob = await done;
+  try {
+    await audioCtx?.close();
+  } catch {
+    /* noop */
+  }
   const ext = blob.type.includes("mp4") ? "mp4" : "webm";
   return { blob, ext };
 }

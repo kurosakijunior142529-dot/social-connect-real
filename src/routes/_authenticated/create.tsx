@@ -51,6 +51,8 @@ function CreatePage() {
           to: trim.to || trim.duration,
           muted: trim.muted,
           aspect: trim.aspect,
+          dewatermark: trim.dewatermark,
+          music: trim.music,
           onProgress: setProgress,
         };
         if (needsReencode(opts, trim.duration)) {

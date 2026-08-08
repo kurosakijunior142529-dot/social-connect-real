@@ -1,6 +1,6 @@
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { VerifiedBadge, type BadgeVariant } from "@/components/verified-badge";
+import { type BadgeVariant } from "@/components/verified-badge";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -8,11 +8,12 @@ type Props = {
   displayName: string;
   className?: string;
   ring?: boolean | "story" | "viewed";
+  /** mantido por compatibilidade — o selo é exibido apenas no nome */
   verified?: boolean;
   badgeVariant?: BadgeVariant | null;
 };
 
-export function UserAvatar({ avatarPath, displayName, className, ring, verified, badgeVariant }: Props) {
+export function UserAvatar({ avatarPath, displayName, className, ring }: Props) {
   const { data: url } = useSignedUrl("avatars", avatarPath);
   const initials = displayName
     .split(" ")
@@ -39,18 +40,8 @@ export function UserAvatar({ avatarPath, displayName, className, ring, verified,
     </Avatar>
   );
 
-  const withBadge = (child: React.ReactNode) => (
-    <span className="relative inline-block">
-      {child}
-      {verified || badgeVariant ? (
-        <VerifiedBadge
-          variant={badgeVariant ?? "verified"}
-          className="absolute -bottom-0.5 -right-0.5 ring-2 ring-background"
-          size={14}
-        />
-      ) : null}
-    </span>
-  );
+  // O selo verificado aparece somente ao lado do nome (VerifiedName), nunca na foto.
+  const withBadge = (child: React.ReactNode) => child;
 
   if (!ring) return withBadge(inner);
 

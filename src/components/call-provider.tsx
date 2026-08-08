@@ -313,9 +313,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
         source: Track.Source.Microphone,
         dtx: true,
         red: true,
-        // High-quality speech: ~48 kbps Opus instead of the low default bitrate.
-        audioPreset: AudioPresets.speech,
-        audioBitrate: 48_000,
+        // High-fidelity mono Opus (~64 kbps) instead of the low default bitrate.
+        audioPreset: AudioPresets.musicHighQuality,
+
       });
 
       mediaConnectedRef.current = true;

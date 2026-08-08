@@ -12,12 +12,17 @@ const MAX_WINDOW_MS = 4500;
 const MIN_WINDOW_MS = 900;
 const SILENCE_MS = 650;
 const SILENCE_RMS = 0.006;
+/** Keep a short tail of the previous window so words cut at the boundary survive. */
+const OVERLAP_MS = 300;
+/** While the other person is speaking, require a clearly louder local voice. */
+const DUCK_FACTOR = 2.2;
 
 export type SttCaptureState = "starting" | "listening" | "transcribing" | "error";
 export type SttFallbackHandle = {
   ready: Promise<boolean>;
   stop: () => void;
 };
+
 
 function downsample(input: Float32Array, from: number, to: number): Float32Array {
   if (to >= from) return input;

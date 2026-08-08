@@ -529,99 +529,31 @@ function ConversationPage() {
         }
       >
         <div className="pointer-events-none absolute inset-0 bg-background/35 backdrop-blur-[1px]" />
-        {visibleMessages.map((m) => {
-          const mine = m.sender_id === user.id;
-          const replied = m.reply_to ? byId.get(m.reply_to) : null;
-          const rs = reactions.data?.[m.id] ?? [];
-          const translated = translations[m.id];
-          return (
-            <div
-              key={m.id}
-              className={cn("relative flex group items-end gap-2", mine ? "justify-end" : "justify-start")}
-            >
-              {mine ? (
-                <MessageActions
-                  message={m}
-                  ctx={{ scope: "dm", ownerId: user.id }}
-                  mine
-                  onReply={setReplyTo}
-                  onEdit={(x) => {
-                    setEditing(x);
-                    setDraft(x.content ?? "");
-                  }}
-                  onDelete={deleteMessage}
-                  onTranslated={(id, t) => setTranslations((p) => ({ ...p, [id]: t }))}
-                  onForward={(msg) => setForwardMsg(msg)}
-                  onPinToggle={togglePin}
-                />
-              ) : null}
-              <div className="max-w-[78%]">
-                <div
-                  style={{ borderRadius: prefs.radius, ...(mine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }) }}
-                  className={cn(
-                    "px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
-                    mine ? bubbleTheme.mine : bubbleTheme.theirs,
-                  )}
-                >
-                  {replied ? <ReplyQuote text={replied.content} /> : null}
-                  <MessageBody msg={m} mine={mine} />
-                  {m.edited_at ? (
-                    <span
-                      className={cn(
-                        "ml-2 text-[10px]",
-                        mine ? "opacity-70" : "text-muted-foreground",
-                      )}
-                    >
-                      editado
-                    </span>
-                  ) : null}
-                  {translated ? (
-                    <div
-                      className={cn(
-                        "mt-1 pt-1 border-t text-[12px]",
-                        mine
-                          ? "border-black/20 opacity-90"
-                          : "border-white/10 text-muted-foreground",
-                      )}
-                    >
-                      🌐 {translated}
-                    </div>
-                  ) : null}
-                  {mine ? (
-                    <span className="ml-2 inline-flex align-middle opacity-80">
-                      {m.read_at ? (
-                        <CheckCheck className="h-3 w-3 text-[#7ad9ff]" />
-                      ) : (
-                        <Check className="h-3 w-3" />
-                      )}
-                    </span>
-                  ) : null}
-                </div>
-                <ReactionsBar
-                  reactions={rs}
-                  onToggle={(emoji, mineR) =>
-                    toggleReaction("dm", m.id, user.id, emoji, mineR).then(() =>
-                      queryClient.invalidateQueries({ queryKey: ["reactions", "dm"] }),
-                    )
-                  }
-                />
-              </div>
-              {!mine ? (
-                <MessageActions
-                  message={m}
-                  ctx={{ scope: "dm", ownerId: user.id }}
-                  mine={false}
-                  onReply={setReplyTo}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
-                  onTranslated={(id, t) => setTranslations((p) => ({ ...p, [id]: t }))}
-                  onForward={(msg) => setForwardMsg(msg)}
-                  onPinToggle={togglePin}
-                />
-              ) : null}
-            </div>
-          );
-        })}
+        {rows.map(({ m, first, last, daySep }) => (
+          <MessageRow
+            key={m.id}
+            m={m}
+            mine={m.sender_id === user.id}
+            first={first}
+            last={last}
+            daySep={daySep}
+            userId={user.id}
+            radius={prefs.radius}
+            bubbleMine={bubbleTheme.mine}
+            bubbleTheirs={bubbleTheme.theirs}
+            replied={m.reply_to ? byId.get(m.reply_to) ?? null : null}
+            reactions={reactions.data?.[m.id] ?? EMPTY_REACTIONS}
+            translated={translations[m.id]}
+            onReply={setReplyTo}
+            onEdit={onEditMsg}
+            onDelete={deleteMessage}
+            onTranslated={onTranslated}
+            onForward={onForward}
+            onPinToggle={togglePin}
+            onToggleReaction={onToggleReaction}
+          />
+        ))}
+
         <div ref={bottomRef} />
       </div>
 

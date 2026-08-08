@@ -5,7 +5,7 @@ import { useNotifications, markAllRead, type NotificationRow } from "@/hooks/use
 import { UserAvatar } from "@/components/user-avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, UserPlus, Send, Eye, Smile, Users, Bell } from "lucide-react";
+import { Heart, MessageCircle, UserPlus, Smile, Users, Bell } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";

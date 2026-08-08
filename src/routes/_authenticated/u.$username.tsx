@@ -76,7 +76,7 @@ function ProfilePage() {
       const [posts, followers, following, mine] = await Promise.all([
         supabase
           .from("posts")
-          .select("id, media_url, media_type, view_count")
+          .select("id, media_url, media_type, view_count, post_kind")
           .eq("author_id", profile!.id)
           .order("created_at", { ascending: false }),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profile!.id),

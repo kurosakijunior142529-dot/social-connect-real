@@ -631,40 +631,99 @@ export function CallProvider({ children }: { children: ReactNode }) {
   // Everything I say is transcribed from the audio track already acquired for
   // the call. Translation never requests microphone access of its own.
 
+  /** Normalized similarity helper used to drop echoed / duplicated speech. */
+  const isNearlySame = (a: string, b: string) => {
+    const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").replace(/\s+/g, " ").trim();
+    const x = norm(a);
+    const y = norm(b);
+    if (!x || !y) return false;
+    return x === y || (x.length > 8 && (x.includes(y) || y.includes(x)));
+  };
+
+  /** Translates one caption, keeping its status in sync so failures can be retried. */
+  const translateCaption = useCallback(
+    async (id: string, original: string) => {
+      const target = translationLanguageRef.current;
+      setCaptions((current) =>
+        current.map((item) =>
+          item.id === id ? { ...item, status: "pending" as const, error: undefined } : item,
+        ),
+      );
+      const previous = captionsMirrorRef.current
+        .filter((item) => item.id !== id && item.original.trim())
+        .slice(-1)[0]?.original;
+      try {
+        const result = await translate({ data: { text: original, target, context: previous } });
+        if (translationLanguageRef.current !== target) return;
+        setCaptions((current) =>
+          current.map((item) =>
+            item.id === id ? { ...item, translated: result.text, status: "done" as const, error: undefined } : item,
+          ),
+        );
+      } catch (error: any) {
+        console.error("[call-translation] translate failed", error);
+        setCaptions((current) =>
+          current.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  translated: undefined,
+                  status: "failed" as const,
+                  error: error?.message ?? "Não foi possível traduzir",
+                }
+              : item,
+          ),
+        );
+      }
+    },
+    [translate],
+  );
+  translateCaptionRef.current = translateCaption;
+
+  const retryCaption = useCallback(
+    (id: string) => {
+      const caption = captionsMirrorRef.current.find((item) => item.id === id);
+      if (!caption) return;
+      void translateCaption(id, caption.original);
+    },
+    [translateCaption],
+  );
+
   const pushMyCaption = useCallback(
     (text: string, sourceLang: string) => {
       const clean = text.trim();
       if (!clean) return;
       const now = Date.now();
       if (lastTranscriptRef.current.text === clean && now - lastTranscriptRef.current.at < 8_000) return;
+      // Anti-echo: ignore my "speech" when it just repeats what the other person said.
+      if (
+        now - lastRemoteCaptionRef.current.at < 6_000 &&
+        isNearlySame(clean, lastRemoteCaptionRef.current.text)
+      ) {
+        return;
+      }
       lastTranscriptRef.current = { text: clean, at: now };
       const id = crypto.randomUUID();
-      setCaptions((current) => [...current.slice(-60), { id, speaker: "me", original: clean }]);
+      setCaptions((current) => [
+        ...current.slice(-60),
+        { id, speaker: "me" as const, original: clean, status: "pending" as const },
+      ]);
       void sendSignalRef.current?.("caption", { text: clean, language: sourceLang });
 
       const target = translationLanguageRef.current;
       if (sourceLang.split("-")[0] === target.split("-")[0]) {
         setCaptions((current) =>
-          current.map((item) => (item.id === id ? { ...item, translated: clean } : item)),
+          current.map((item) =>
+            item.id === id ? { ...item, translated: clean, status: "done" as const } : item,
+          ),
         );
         return;
       }
-      void translate({ data: { text: clean, target } })
-        .then((result) => {
-          if (!translationEnabledRef.current || translationLanguageRef.current !== target) return;
-          setCaptions((current) =>
-            current.map((item) => (item.id === id ? { ...item, translated: result.text } : item)),
-          );
-        })
-        .catch((error) => {
-          console.error("[call-translation] translate failed", error);
-          setCaptions((current) =>
-            current.map((item) => (item.id === id ? { ...item, translated: clean } : item)),
-          );
-        });
+      void translateCaption(id, clean);
     },
-    [translate],
+    [translateCaption],
   );
+
 
   const stopTranslation = useCallback(() => {
     translationEnabledRef.current = false;

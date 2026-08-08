@@ -595,6 +595,20 @@ function ConversationPage() {
             </button>
           }
         />
+        <StickerPicker
+          userId={user.id}
+          onPick={handleSticker}
+          trigger={
+            <button
+              type="button"
+              disabled={isBlockedPair}
+              aria-label="Figurinhas"
+              className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+            >
+              <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </button>
+          }
+        />
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
           <Input

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { VerifiedName } from "@/components/verified-badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
@@ -151,10 +152,10 @@ function DirectList({ userId }: { userId: string }) {
             params={{ conversationId: c.id }}
             className="flex items-center gap-3 px-4 py-3 active:bg-[color:var(--surface)] transition-colors"
           >
-            <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} className="h-12 w-12" />
+            <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12" />
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between gap-2">
-                <div className="font-semibold text-[15px] truncate">{c.other?.display_name}</div>
+                <div className="font-semibold text-[15px] truncate"><VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} /></div>
                 {c.last ? (
                   <div className="text-[11px] text-muted-foreground shrink-0 tabular">
                     {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}

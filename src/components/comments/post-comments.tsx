@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { VerifiedName } from "@/components/verified-badge";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
@@ -19,7 +20,7 @@ type CommentRow = {
   parent_id: string | null;
   edited_at: string | null;
   sticker_url: string | null;
-  author?: { id: string; username: string; display_name: string; avatar_url: string | null };
+  author?: { id: string; username: string; display_name: string; avatar_url: string | null; is_verified?: boolean | null; badge_variant?: string | null };
 };
 
 type Node = CommentRow & { replies: CommentRow[] };
@@ -191,12 +192,19 @@ export function PostComments({
         <UserAvatar
           avatarPath={c.author?.avatar_url}
           displayName={c.author?.display_name ?? "?"}
+          verified={!!c.author?.is_verified}
+          badgeVariant={(c.author?.badge_variant as any) ?? null}
           className="h-8 w-8"
         />
         <div className="flex-1 min-w-0">
           <div className={cn("rounded-2xl px-3 py-2", surfaceClassName)}>
             <div className="text-xs font-semibold">
-              {c.author?.display_name ?? `@${c.author?.username ?? ""}`}
+              <VerifiedName
+                name={c.author?.display_name ?? `@${c.author?.username ?? ""}`}
+                verified={c.author?.is_verified}
+                badgeVariant={c.author?.badge_variant}
+                size={13}
+              />
             </div>
             {editing?.id === c.id ? (
               <form onSubmit={saveEdit} className="mt-1 flex items-center gap-2">

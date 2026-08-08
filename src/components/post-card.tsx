@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { Heart, MessageCircle } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
@@ -19,7 +20,7 @@ export type FeedPost = {
   media_type: "image" | "video";
   caption: string | null;
   created_at: string;
-  author: { username: string; display_name: string; avatar_url: string | null } | null;
+  author: { username: string; display_name: string; avatar_url: string | null; is_verified?: boolean | null; badge_variant?: string | null } | null;
   likes_count: number;
   comments_count: number;
   liked_by_me: boolean;
@@ -77,6 +78,8 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
           <UserAvatar
             avatarPath={author?.avatar_url}
             displayName={author?.display_name ?? "?"}
+            verified={!!author?.is_verified}
+            badgeVariant={(author?.badge_variant as any) ?? null}
           />
         </Link>
         <div className="flex-1 min-w-0 leading-tight">
@@ -85,7 +88,11 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             params={{ username: author?.username ?? "" }}
             className="block font-semibold text-[15px] truncate"
           >
-            {author?.display_name}
+            <VerifiedName
+              name={author?.display_name}
+              verified={author?.is_verified}
+              badgeVariant={author?.badge_variant}
+            />
           </Link>
           <div className="text-[12px] text-muted-foreground truncate">
             @{author?.username} ·{" "}

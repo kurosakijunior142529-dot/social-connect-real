@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { VerifiedName } from "@/components/verified-badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
@@ -68,11 +69,11 @@ function PostDetailPage() {
       <article className="rounded-3xl bg-card border overflow-hidden">
         <header className="flex items-center gap-3 p-4">
           <Link to="/u/$username" params={{ username: p.author?.username ?? "" }}>
-            <UserAvatar avatarPath={p.author?.avatar_url} displayName={p.author?.display_name ?? "?"} ring />
+            <UserAvatar avatarPath={p.author?.avatar_url} displayName={p.author?.display_name ?? "?"} verified={!!(p.author as any)?.is_verified} badgeVariant={((p.author as any)?.badge_variant) ?? null} ring />
           </Link>
           <div>
             <Link to="/u/$username" params={{ username: p.author?.username ?? "" }} className="font-semibold text-sm hover:underline">
-              {p.author?.display_name}
+              <VerifiedName name={p.author?.display_name} verified={(p.author as any)?.is_verified} badgeVariant={(p.author as any)?.badge_variant} />
             </Link>
             <div className="text-xs text-muted-foreground">@{p.author?.username}</div>
           </div>

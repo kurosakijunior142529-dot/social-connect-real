@@ -359,7 +359,45 @@ function ConversationPage() {
     return list;
   }, [messages.data, blocks.data, searchOpen, searchQ]);
 
-  const byId = new Map(visibleMessages.map((m) => [m.id, m]));
+  const byId = useMemo(
+    () => new Map(visibleMessages.map((m) => [m.id, m])),
+    [visibleMessages],
+  );
+
+  // grouping metadata: date separators + consecutive bubbles from same sender
+  const rows = useMemo(() => {
+    const GROUP_MS = 5 * 60_000;
+    return visibleMessages.map((m, i) => {
+      const prev = visibleMessages[i - 1];
+      const next = visibleMessages[i + 1];
+      const ts = new Date(m.created_at).getTime();
+      const sameSenderPrev =
+        !!prev && prev.sender_id === m.sender_id && ts - new Date(prev.created_at).getTime() < GROUP_MS;
+      const sameSenderNext =
+        !!next && next.sender_id === m.sender_id && new Date(next.created_at).getTime() - ts < GROUP_MS;
+      const daySep =
+        !prev || new Date(prev.created_at).toDateString() !== new Date(m.created_at).toDateString();
+      return { m, first: !sameSenderPrev, last: !sameSenderNext, daySep };
+    });
+  }, [visibleMessages]);
+
+  const onTranslated = useCallback(
+    (id: string, t: string) => setTranslations((p) => ({ ...p, [id]: t })),
+    [],
+  );
+  const onForward = useCallback((msg: any) => setForwardMsg(msg), []);
+  const onEditMsg = useCallback((x: { id: string; content: string | null }) => {
+    setEditing(x);
+    setDraft(x.content ?? "");
+  }, []);
+  const onToggleReaction = useCallback(
+    (id: string, emoji: string, mineR: boolean) =>
+      toggleReaction("dm", id, user.id, emoji, mineR).then(() =>
+        queryClient.invalidateQueries({ queryKey: ["reactions", "dm"] }),
+      ),
+    [user.id, queryClient],
+  );
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">

@@ -185,6 +185,7 @@ export function PostComments({
   function renderComment(c: CommentRow, isReply = false) {
     const canEdit = c.author_id === currentUserId;
     const canDelete = canEdit || (!!postAuthorId && postAuthorId === currentUserId);
+    const like = likes.data?.[c.id];
     return (
       <div key={c.id} className={cn("flex items-start gap-3", isReply && "ml-10")}>
         <UserAvatar

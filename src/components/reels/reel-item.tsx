@@ -10,6 +10,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import type { FeedPost } from "@/components/post-card";
 import { ShareSheet } from "@/components/share/share-sheet";
+import { RepostButton } from "@/components/repost-button";
 import { VideoWatermark } from "@/components/media/watermark";
 
 
@@ -300,6 +301,9 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           label="Comentar"
           icon={<MessageCircle className="h-[26px] w-[26px] text-white" strokeWidth={1.6} />}
         />
+        <div className="flex flex-col items-center text-white">
+          <RepostButton postId={post.id} userId={currentUserId} variant="reel" />
+        </div>
         <ActionBtn
           onClick={handleShare}
           label="Compartilhar"

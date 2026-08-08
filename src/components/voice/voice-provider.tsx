@@ -203,15 +203,16 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         const room = new Room({
           adaptiveStream: true,
           dynacast: true,
-          // Captura leve: mono, 24 kHz, com supressão de ruído/eco do próprio SO.
+          // Captura em alta qualidade: mono 48 kHz, com supressão de ruído/eco do próprio SO.
           audioCaptureDefaults: {
             channelCount: 1,
+            sampleRate: 48000,
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
           },
           // Opus com DTX (não transmite silêncio) + RED (resiste a perda de pacote).
-          publishDefaults: { dtx: true, red: true, audioPreset: AudioPresets.speech },
+          publishDefaults: { dtx: true, red: true, audioPreset: AudioPresets.musicHighQuality },
         });
         roomRef.current = room;
 

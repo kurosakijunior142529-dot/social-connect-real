@@ -493,7 +493,7 @@ function GifTab({ onGif }: { onGif: (g: Gif) => void }) {
                   <button
                     type="button"
                     aria-label={isFav ? "Remover dos favoritos" : "Favoritar"}
-                    onClick={() => favs.toggle({ kind: "gif", id, ...g })}
+                    onClick={() => favs.toggle({ kind: "gif", ...g, id })}
                     className="absolute right-1 top-1 rounded-full bg-background/70 p-1.5 backdrop-blur"
                   >
                     <Heart className={cn("h-3.5 w-3.5", isFav && "fill-primary text-primary")} />

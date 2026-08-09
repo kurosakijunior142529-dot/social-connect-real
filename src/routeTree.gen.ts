@@ -53,6 +53,7 @@ import { Route as AuthenticatedAccountSecurityRouteImport } from './routes/_auth
 import { Route as AuthenticatedAccountPrivacyRouteImport } from './routes/_authenticated/account.privacy'
 import { Route as AuthenticatedAccountMonetizationRouteImport } from './routes/_authenticated/account.monetization'
 import { Route as AuthenticatedAccountBlockedRouteImport } from './routes/_authenticated/account.blocked'
+import { Route as AuthenticatedGamesPongIndexRouteImport } from './routes/_authenticated/games.pong.index'
 import { Route as AuthenticatedGamesOnlineIndexRouteImport } from './routes/_authenticated/games.online.index'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedUUsernameFollowsRouteImport } from './routes/_authenticated/u.$username.follows'
@@ -293,6 +294,12 @@ const AuthenticatedAccountBlockedRoute =
     path: '/account/blocked',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGamesPongIndexRoute =
+  AuthenticatedGamesPongIndexRouteImport.update({
+    id: '/games/pong/',
+    path: '/games/pong/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGamesOnlineIndexRoute =
   AuthenticatedGamesOnlineIndexRouteImport.update({
     id: '/',
@@ -366,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/games/online/': typeof AuthenticatedGamesOnlineIndexRoute
+  '/games/pong/': typeof AuthenticatedGamesPongIndexRoute
 }
 export interface FileRoutesByTo {
   '/create': typeof AuthenticatedCreateRoute
@@ -414,6 +422,7 @@ export interface FileRoutesByTo {
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/games/online': typeof AuthenticatedGamesOnlineIndexRoute
+  '/games/pong': typeof AuthenticatedGamesPongIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -465,6 +474,7 @@ export interface FileRoutesById {
   '/_authenticated/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_authenticated/games/online/': typeof AuthenticatedGamesOnlineIndexRoute
+  '/_authenticated/games/pong/': typeof AuthenticatedGamesPongIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/u/$username/follows'
     | '/api/public/payments/webhook'
     | '/games/online/'
+    | '/games/pong/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/create'
@@ -564,6 +575,7 @@ export interface FileRouteTypes {
     | '/u/$username/follows'
     | '/api/public/payments/webhook'
     | '/games/online'
+    | '/games/pong'
   id:
     | '__root__'
     | '/_authenticated'
@@ -614,6 +626,7 @@ export interface FileRouteTypes {
     | '/_authenticated/u/$username/follows'
     | '/api/public/payments/webhook'
     | '/_authenticated/games/online/'
+    | '/_authenticated/games/pong/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -935,6 +948,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountBlockedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/games/pong/': {
+      id: '/_authenticated/games/pong/'
+      path: '/games/pong'
+      fullPath: '/games/pong/'
+      preLoaderRoute: typeof AuthenticatedGamesPongIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/games/online/': {
       id: '/_authenticated/games/online/'
       path: '/'
@@ -1036,6 +1056,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
   AuthenticatedVoiceIndexRoute: typeof AuthenticatedVoiceIndexRoute
   AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
+  AuthenticatedGamesPongIndexRoute: typeof AuthenticatedGamesPongIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1079,6 +1100,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
   AuthenticatedVoiceIndexRoute: AuthenticatedVoiceIndexRoute,
   AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
+  AuthenticatedGamesPongIndexRoute: AuthenticatedGamesPongIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1095,13 +1117,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

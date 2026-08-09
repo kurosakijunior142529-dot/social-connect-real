@@ -1492,6 +1492,117 @@ export type Database = {
         }
         Relationships: []
       }
+      pong_matches: {
+        Row: {
+          arena: string | null
+          created_at: string
+          id: string
+          my_score: number
+          opponent_id: string | null
+          opponent_score: number
+          power: string | null
+          room: string | null
+          user_id: string
+          won: boolean
+          xp_gained: number
+        }
+        Insert: {
+          arena?: string | null
+          created_at?: string
+          id?: string
+          my_score?: number
+          opponent_id?: string | null
+          opponent_score?: number
+          power?: string | null
+          room?: string | null
+          user_id: string
+          won?: boolean
+          xp_gained?: number
+        }
+        Update: {
+          arena?: string | null
+          created_at?: string
+          id?: string
+          my_score?: number
+          opponent_id?: string | null
+          opponent_score?: number
+          power?: string | null
+          room?: string | null
+          user_id?: string
+          won?: boolean
+          xp_gained?: number
+        }
+        Relationships: []
+      }
+      pong_queue: {
+        Row: {
+          created_at: string
+          matched_at: string | null
+          room: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          matched_at?: string | null
+          room?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          matched_at?: string | null
+          room?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pong_stats: {
+        Row: {
+          best_streak: number
+          cosmetics: Json
+          created_at: string
+          favorite_power: string | null
+          level: number
+          losses: number
+          points_conceded: number
+          points_scored: number
+          streak: number
+          updated_at: string
+          user_id: string
+          wins: number
+          xp: number
+        }
+        Insert: {
+          best_streak?: number
+          cosmetics?: Json
+          created_at?: string
+          favorite_power?: string | null
+          level?: number
+          losses?: number
+          points_conceded?: number
+          points_scored?: number
+          streak?: number
+          updated_at?: string
+          user_id: string
+          wins?: number
+          xp?: number
+        }
+        Update: {
+          best_streak?: number
+          cosmetics?: Json
+          created_at?: string
+          favorite_power?: string | null
+          level?: number
+          losses?: number
+          points_conceded?: number
+          points_scored?: number
+          streak?: number
+          updated_at?: string
+          user_id?: string
+          wins?: number
+          xp?: number
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           author_id: string
@@ -2251,6 +2362,30 @@ export type Database = {
           _user: string
         }
         Returns: undefined
+      }
+      pong_find_match: {
+        Args: never
+        Returns: {
+          room: string
+          status: string
+        }[]
+      }
+      pong_leave_queue: { Args: never; Returns: undefined }
+      pong_record_result: {
+        Args: {
+          _arena?: string
+          _my_score: number
+          _opp_score: number
+          _opponent: string
+          _power?: string
+          _room: string
+        }
+        Returns: {
+          level: number
+          streak: number
+          xp: number
+          xp_gained: number
+        }[]
       }
       request_withdrawal: {
         Args: { _amount_coins: number; _bank_account_id: string }

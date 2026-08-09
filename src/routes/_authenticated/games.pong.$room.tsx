@@ -1,0 +1,325 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Copy, Loader2, Share2, Wifi, WifiOff } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/user-avatar";
+import { VerifiedName } from "@/components/verified-badge";
+import { PongCanvas, usePongMatch } from "@/components/games/pong-online";
+import { ARENAS, BALL_SKINS, FIELD, PADDLE_SKINS, POWERS, POWER_MAP, type PowerId } from "@/lib/pong/config";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/_authenticated/games/pong/$room")({
+  component: PongRoom,
+  head: () => ({
+    meta: [
+      { title: "Partida de Ping Pong · vibely" },
+      { name: "description", content: "Duelo de Ping Pong em tempo real com poderes especiais." },
+      { property: "og:title", content: "Partida de Ping Pong · vibely" },
+      { property: "og:description", content: "Duelo de Ping Pong em tempo real com poderes especiais." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+});
+
+function PongRoom() {
+  const { room } = Route.useParams();
+  const { user } = Route.useRouteContext() as any;
+  const navigate = useNavigate();
+
+  const profile = useQuery({
+    queryKey: ["profile-min", user.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).maybeSingle();
+      return data;
+    },
+  });
+
+  const stats = useQuery({
+    queryKey: ["pong-stats", user.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("pong_stats").select("*").eq("user_id", user.id).maybeSingle();
+      return data ?? null;
+    },
+  });
+  const level = stats.data?.level ?? 1;
+
+  const me = useMemo(
+    () => ({ id: user.id, name: profile.data?.display_name ?? "Jogador", avatar: profile.data?.avatar_url ?? null }),
+    [user.id, profile.data?.display_name, profile.data?.avatar_url],
+  );
+
+  const match = usePongMatch(room, me);
+  const {
+    sim, impacts, opponent, connected, lag, opponentGone,
+    phase, score, countdown, fxView, mySide, isHost,
+    myPower, cooldown, setTarget, choosePower, usePower, startMatch,
+  } = match;
+
+  const [arena, setArena] = useState("neon");
+  const [paddleSkin, setPaddleSkin] = useState("aurora");
+  const [ballSkin, setBallSkin] = useState("classic");
+  const [result, setResult] = useState<{ won: boolean; xp: number; level: number } | null>(null);
+  const recorded = useRef(false);
+
+  const myScore = mySide === 0 ? score[0] : score[1];
+  const oppScore = mySide === 0 ? score[1] : score[0];
+
+  // registra resultado uma única vez ao fim da partida
+  useEffect(() => {
+    if (phase !== "over" || recorded.current) return;
+    recorded.current = true;
+    const won = myScore > oppScore;
+    (async () => {
+      const { data } = await (supabase as any).rpc("pong_record_result", {
+        _room: room,
+        _opponent: opponent?.id ?? null,
+        _my_score: myScore,
+        _opp_score: oppScore,
+        _power: myPower,
+        _arena: arena,
+      });
+      const row = Array.isArray(data) ? data[0] : data;
+      setResult({ won, xp: row?.xp_gained ?? 0, level: row?.level ?? level });
+      void stats.refetch();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  function playAgain() {
+    recorded.current = false;
+    setResult(null);
+    startMatch();
+  }
+
+  async function invite() {
+    const url = `${window.location.origin}/games/pong/${room}`;
+    try {
+      if (navigator.share) await navigator.share({ title: "Ping Pong no vibely", text: "Bora um duelo?", url });
+      else { await navigator.clipboard.writeText(url); toast.success("Link copiado"); }
+    } catch { /* cancelado */ }
+  }
+
+  const waiting = !opponent;
+  const powerDef = myPower ? POWER_MAP[myPower] : null;
+  const myFx = fxView[mySide];
+  const activeFx = POWERS.filter((p) => (myFx as any)?.[p.id] > 0);
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col bg-[color:var(--surface)]">
+      <header className="sticky top-0 z-20 glass-heavy hairline-b">
+        <div className="flex h-14 items-center gap-3 px-4">
+          <Link to="/games/pong" className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)]" aria-label="Sair">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[15px] font-semibold">Sala {room}</div>
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              {connected ? <Wifi className="h-3 w-3 text-primary" /> : <WifiOff className="h-3 w-3 text-destructive" />}
+              {connected ? (isHost ? `Anfitrião · ${lag}ms` : `Conectado · ${lag}ms`) : "Reconectando…"}
+            </div>
+          </div>
+          <button onClick={invite} className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)]" aria-label="Convidar">
+            <Share2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => { void navigator.clipboard.writeText(room); toast.success("Código copiado"); }}
+            className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)]"
+            aria-label="Copiar código"
+          >
+            <Copy className="h-4 w-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* placar */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <UserAvatar avatarPath={opponent?.avatar ?? null} displayName={opponent?.name ?? "?"} className="h-9 w-9" />
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-medium">{opponent?.name ?? "Aguardando…"}</div>
+            <div className="text-[11px] text-muted-foreground">Adversário</div>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-[color:var(--surface-2)] px-4 py-1.5 text-center">
+          <div className="text-xl font-semibold tabular">
+            {myScore} <span className="text-muted-foreground">—</span> {oppScore}
+          </div>
+          <div className="text-[10px] text-muted-foreground">até {FIELD.winScore}</div>
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="min-w-0 text-right">
+            <div className="truncate text-[13px] font-medium">
+              <VerifiedName name={me.name} />
+            </div>
+            <div className="text-[11px] text-muted-foreground">Você · Nv {level}</div>
+          </div>
+          <UserAvatar avatarPath={me.avatar} displayName={me.name} className="h-9 w-9" />
+        </div>
+      </div>
+
+      {/* campo */}
+      <div className="relative mx-auto w-full max-w-md flex-1 px-3">
+        <div className="relative mx-auto aspect-[1/1.5] w-full overflow-hidden rounded-3xl">
+          <PongCanvas
+            simRef={sim}
+            impactsRef={impacts}
+            mySide={mySide}
+            arena={arena}
+            paddleSkin={paddleSkin}
+            ballSkin={ballSkin}
+            onTarget={setTarget}
+          />
+
+          {phase === "countdown" ? (
+            <div className="pointer-events-none absolute inset-0 grid place-items-center">
+              <div key={countdown} className="animate-scale-in text-6xl font-display font-semibold text-primary-foreground drop-shadow-lg">
+                {countdown || "Vai!"}
+              </div>
+            </div>
+          ) : null}
+
+          {opponentGone && phase !== "over" ? (
+            <div className="absolute inset-0 grid place-items-center bg-background/70 p-6 text-center backdrop-blur">
+              <div>
+                <div className="text-base font-semibold">O adversário saiu</div>
+                <p className="mt-1 text-[12px] text-muted-foreground">Aguarde a reconexão ou volte ao lobby.</p>
+                <Button className="mt-3" onClick={() => navigate({ to: "/games/pong" })}>Voltar ao lobby</Button>
+              </div>
+            </div>
+          ) : null}
+
+          {phase === "lobby" ? (
+            <div className="absolute inset-0 grid place-items-center bg-background/70 p-6 text-center backdrop-blur">
+              <div className="w-full">
+                {waiting ? (
+                  <>
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+                    <div className="mt-3 text-sm font-medium">Esperando o adversário…</div>
+                    <p className="mt-1 text-[12px] text-muted-foreground">Compartilhe o código <b>{room}</b>.</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-sm font-medium">Tudo pronto!</div>
+                    <p className="mt-1 text-[12px] text-muted-foreground">
+                      Escolha seu poder abaixo e {isHost ? "inicie a partida." : "aguarde o anfitrião iniciar."}
+                    </p>
+                    {isHost ? (
+                      <Button className="mt-3 w-full" onClick={startMatch} disabled={!myPower}>
+                        {myPower ? "Começar partida" : "Escolha um poder"}
+                      </Button>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {phase === "over" ? (
+            <div className="absolute inset-0 grid place-items-center bg-background/80 p-6 text-center backdrop-blur">
+              <div className="w-full">
+                <div className="text-2xl font-display font-semibold">{myScore > oppScore ? "Vitória! 🏆" : "Derrota"}</div>
+                <div className="mt-1 text-sm text-muted-foreground tabular">{myScore} — {oppScore}</div>
+                {result ? (
+                  <div className="mt-2 text-[12px] text-primary">+{result.xp} XP · Nível {result.level}</div>
+                ) : null}
+                <div className="mt-4 flex gap-2">
+                  <Button variant="secondary" className="flex-1" onClick={() => navigate({ to: "/games/pong" })}>Sair</Button>
+                  {isHost ? <Button className="flex-1" onClick={playAgain}>Revanche</Button> : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* poder + efeitos */}
+      <div className="mx-auto w-full max-w-md space-y-3 px-3 py-4">
+        {activeFx.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {activeFx.map((p) => (
+              <span key={p.id} className="rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px]" style={{ color: p.color }}>
+                {p.emoji} {p.name} {Math.ceil((myFx as any)[p.id])}s
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex items-center gap-3">
+          <Button
+            className="h-14 flex-1 rounded-2xl text-base"
+            disabled={!powerDef || cooldown > 0 || phase !== "playing"}
+            onClick={usePower}
+          >
+            {powerDef ? (
+              <span className="flex items-center gap-2">
+                <span className="text-xl">{powerDef.emoji}</span>
+                {cooldown > 0 ? `${Math.ceil(cooldown)}s` : powerDef.name}
+              </span>
+            ) : (
+              "Escolha um poder"
+            )}
+          </Button>
+        </div>
+
+        <div>
+          <div className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Poder do duelo</div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {POWERS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => choosePower(p.id as PowerId)}
+                disabled={phase === "playing" || phase === "countdown"}
+                className={cn(
+                  "shrink-0 rounded-2xl px-3 py-2 text-center transition disabled:opacity-50",
+                  myPower === p.id ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface-2)]",
+                )}
+                title={p.desc}
+              >
+                <div className="text-lg">{p.emoji}</div>
+                <div className="text-[11px] font-medium">{p.name}</div>
+              </button>
+            ))}
+          </div>
+          {powerDef ? <p className="mt-1 px-1 text-[11px] text-muted-foreground">{powerDef.desc}</p> : null}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <Selector label="Arena" value={arena} onChange={setArena} items={ARENAS} level={level} />
+          <Selector label="Raquete" value={paddleSkin} onChange={setPaddleSkin} items={PADDLE_SKINS} level={level} />
+          <Selector label="Bola" value={ballSkin} onChange={setBallSkin} items={BALL_SKINS} level={level} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Selector({
+  label, value, onChange, items, level,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  items: { id: string; name: string; unlockLevel: number }[];
+  level: number;
+}) {
+  return (
+    <label className="rounded-2xl bg-[color:var(--surface-2)] p-2">
+      <div className="px-1 text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-transparent px-1 py-1 text-[13px] outline-none"
+      >
+        {items.map((i) => (
+          <option key={i.id} value={i.id} disabled={level < i.unlockLevel}>
+            {i.name}{level < i.unlockLevel ? ` (Nv ${i.unlockLevel})` : ""}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}

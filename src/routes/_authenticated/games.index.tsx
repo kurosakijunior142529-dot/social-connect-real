@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Gamepad2, Zap, Grid3x3, Snowflake, Brain, Crown, Bomb, Hash, CircleDot, Users, Disc3 } from "lucide-react";
+import { Gamepad2, Zap, Grid3x3, Snowflake, Brain, Crown, Bomb, Hash, CircleDot, Users, Disc3, Swords } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/games/")({
   component: GamesIndex,

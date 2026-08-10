@@ -19,20 +19,28 @@ export const FIELD = {
 
 export type PowerId =
   | "teleport"
+  | "rewind"
   | "gravity"
-  | "time"
   | "portal"
   | "shield"
   | "clone"
   | "magnet"
   | "speed"
-  | "reflex";
+  | "reflex"
+  | "freeze"
+  | "shrink"
+  | "wall"
+  | "fury"
+  | "ghost";
 
 export type PowerDef = {
   id: PowerId;
   name: string;
   emoji: string;
+  /** frase curta: o que acontece na prática */
   desc: string;
+  /** em quem o efeito recai */
+  target: "self" | "enemy" | "ball";
   /** segundos de recarga */
   cooldown: number;
   /** segundos de duração do efeito (0 = instantâneo) */
@@ -42,37 +50,91 @@ export type PowerDef = {
 
 export const POWERS: PowerDef[] = [
   {
+    id: "rewind",
+    name: "Tempo",
+    emoji: "⏳",
+    desc: "Volta a partida 10 segundos: bola, raquetes e placar retornam ao que eram.",
+    target: "ball",
+    cooldown: 26,
+    duration: 0,
+    color: "#facc15",
+  },
+  {
     id: "teleport",
     name: "Teleporte",
     emoji: "✨",
-    desc: "Sua raquete salta instantaneamente até 25% do campo na direção da bola.",
-    cooldown: 9,
+    desc: "Sua raquete pisca instantaneamente para debaixo da bola.",
+    target: "self",
+    cooldown: 8,
     duration: 0,
     color: "#8b5cf6",
+  },
+  {
+    id: "freeze",
+    name: "Congelar",
+    emoji: "❄️",
+    desc: "A raquete do adversário fica travada por 2s.",
+    target: "enemy",
+    cooldown: 18,
+    duration: 2,
+    color: "#67e8f9",
+  },
+  {
+    id: "shrink",
+    name: "Encolher",
+    emoji: "🔻",
+    desc: "A raquete do adversário fica 45% menor por 6s.",
+    target: "enemy",
+    cooldown: 18,
+    duration: 6,
+    color: "#fb7185",
+  },
+  {
+    id: "wall",
+    name: "Muralha",
+    emoji: "🧱",
+    desc: "Ergue uma barreira que rebate a bola na frente da sua raquete por 5s.",
+    target: "self",
+    cooldown: 20,
+    duration: 5,
+    color: "#a3a3a3",
+  },
+  {
+    id: "fury",
+    name: "Fúria",
+    emoji: "🔥",
+    desc: "Sua próxima defesa vira um smash: a bola sai 80% mais rápida.",
+    target: "self",
+    cooldown: 15,
+    duration: 8,
+    color: "#f97316",
+  },
+  {
+    id: "ghost",
+    name: "Fantasma",
+    emoji: "👻",
+    desc: "Por 4s a bola quase some quando entra no campo do adversário.",
+    target: "enemy",
+    cooldown: 19,
+    duration: 4,
+    color: "#e5e7eb",
   },
   {
     id: "gravity",
     name: "Gravidade",
     emoji: "🌀",
-    desc: "Curva a trajetória da bola em direção ao lado do adversário por 4s.",
+    desc: "Puxa a bola para longe da sua raquete e para os cantos do rival por 4s.",
+    target: "ball",
     cooldown: 16,
     duration: 4,
     color: "#38bdf8",
   },
   {
-    id: "time",
-    name: "Tempo",
-    emoji: "⏳",
-    desc: "Desacelera a bola em 40% durante 3s para você se posicionar.",
-    cooldown: 15,
-    duration: 3,
-    color: "#facc15",
-  },
-  {
     id: "portal",
     name: "Portal",
     emoji: "🌌",
-    desc: "Por 5s, ao cruzar o meio a bola é espelhada para o outro lado do campo.",
+    desc: "Por 5s a bola atravessa o meio e reaparece espelhada do outro lado.",
+    target: "ball",
     cooldown: 18,
     duration: 5,
     color: "#a855f7",
@@ -81,7 +143,8 @@ export const POWERS: PowerDef[] = [
     id: "shield",
     name: "Escudo",
     emoji: "🛡️",
-    desc: "Bloqueia o próximo ponto contra você (uma vez, dentro de 12s).",
+    desc: "Segura um ponto contra você: a bola volta ao jogo uma vez em 12s.",
+    target: "self",
     cooldown: 22,
     duration: 12,
     color: "#22d3ee",
@@ -90,7 +153,8 @@ export const POWERS: PowerDef[] = [
     id: "clone",
     name: "Clone",
     emoji: "👥",
-    desc: "Cria uma segunda raquete de apoio à sua frente por 6s.",
+    desc: "Uma segunda raquete espelha a sua e defende à frente por 6s.",
+    target: "self",
     cooldown: 20,
     duration: 6,
     color: "#f472b6",
@@ -99,16 +163,18 @@ export const POWERS: PowerDef[] = [
     id: "magnet",
     name: "Magnetismo",
     emoji: "🧲",
-    desc: "Aumenta a área de contato da raquete em 55% por 6s.",
+    desc: "Sua raquete fica 55% maior por 6s.",
+    target: "self",
     cooldown: 16,
     duration: 6,
-    color: "#fb7185",
+    color: "#c084fc",
   },
   {
     id: "speed",
     name: "Velocidade",
     emoji: "⚡",
-    desc: "Sua raquete fica 70% mais rápida por 6s.",
+    desc: "Sua raquete se move 70% mais rápido por 6s.",
+    target: "self",
     cooldown: 14,
     duration: 6,
     color: "#34d399",
@@ -117,16 +183,18 @@ export const POWERS: PowerDef[] = [
     id: "reflex",
     name: "Reflexo",
     emoji: "🎯",
-    desc: "Por 6s, cada defesa devolve a bola 35% mais forte e com ângulo perfeito.",
+    desc: "Por 6s toda defesa sai com ângulo perfeito e 35% mais força.",
+    target: "self",
     cooldown: 17,
     duration: 6,
-    color: "#f97316",
+    color: "#fbbf24",
   },
 ];
 
 export const POWER_MAP: Record<PowerId, PowerDef> = Object.fromEntries(
   POWERS.map((p) => [p.id, p]),
 ) as Record<PowerId, PowerDef>;
+
 
 export type ArenaDef = {
   id: string;

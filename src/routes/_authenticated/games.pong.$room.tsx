@@ -274,18 +274,29 @@ function PongRoom() {
                 onClick={() => choosePower(p.id as PowerId)}
                 disabled={phase === "playing" || phase === "countdown"}
                 className={cn(
-                  "shrink-0 rounded-2xl px-3 py-2 text-center transition disabled:opacity-50",
+                  "w-[86px] shrink-0 rounded-2xl px-2 py-2 text-center transition disabled:opacity-50",
                   myPower === p.id ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface-2)]",
                 )}
                 title={p.desc}
               >
                 <div className="text-lg">{p.emoji}</div>
-                <div className="text-[11px] font-medium">{p.name}</div>
+                <div className="truncate text-[11px] font-medium">{p.name}</div>
+                <div className={cn("text-[10px]", myPower === p.id ? "opacity-80" : "text-muted-foreground")}>{p.cooldown}s</div>
               </button>
             ))}
           </div>
-          {powerDef ? <p className="mt-1 px-1 text-[11px] text-muted-foreground">{powerDef.desc}</p> : null}
+          {powerDef ? (
+            <p className="mt-1 px-1 text-[11px] text-muted-foreground">
+              <b style={{ color: powerDef.color }}>{powerDef.emoji} {powerDef.name}</b>{" "}
+              <span className="opacity-70">
+                ({powerDef.target === "enemy" ? "afeta o rival" : powerDef.target === "ball" ? "afeta a bola" : "afeta você"}
+                {powerDef.duration ? ` · ${powerDef.duration}s` : " · instantâneo"})
+              </span>{" "}
+              {powerDef.desc}
+            </p>
+          ) : null}
         </div>
+
 
         <div className="grid grid-cols-3 gap-2">
           <Selector label="Arena" value={arena} onChange={setArena} items={ARENAS} level={level} />

@@ -106,7 +106,8 @@ function PongRoom() {
   const waiting = !opponent;
   const powerDef = myPower ? POWER_MAP[myPower] : null;
   const myFx = fxView[mySide];
-  const activeFx = POWERS.filter((p) => (myFx as any)?.[p.id] > 0);
+  const activeFx = POWERS.filter((p) => ((myFx as any)?.[p.id] ?? 0) > 0);
+  const cdPct = powerDef ? Math.max(0, Math.min(1, cooldown / (cooldownTotal || powerDef.cooldown))) : 0;
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[color:var(--surface)]">

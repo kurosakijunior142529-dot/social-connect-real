@@ -56,7 +56,7 @@ function PongRoom() {
   const {
     sim, impacts, opponent, connected, lag, opponentGone,
     phase, score, countdown, fxView, mySide, isHost,
-    myPower, cooldown, setTarget, choosePower, usePower, startMatch,
+    myPower, cooldown, cooldownTotal, setTarget, choosePower, usePower, startMatch,
   } = match;
 
   const [arena, setArena] = useState("neon");

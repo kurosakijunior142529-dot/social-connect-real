@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
 import { VerifiedName } from "@/components/verified-badge";
 import { PongCanvas, usePongMatch } from "@/components/games/pong-online";
-import { ARENAS, BALL_SKINS, FIELD, PADDLE_SKINS, POWERS, POWER_MAP, type PowerId } from "@/lib/pong/config";
+import { ARENAS, BALL_SKINS, FIELD, PADDLE_SKINS, POWERS, POWER_CATEGORIES, POWER_MAP, type PowerCategory, type PowerId } from "@/lib/pong/config";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/games/pong/$room")({
@@ -56,9 +56,10 @@ function PongRoom() {
   const {
     sim, impacts, opponent, connected, lag, opponentGone,
     phase, score, countdown, fxView, mySide, isHost,
-    myPower, cooldown, setTarget, choosePower, usePower, startMatch,
+    myPower, cooldown, cooldownTotal, setTarget, choosePower, usePower, startMatch,
   } = match;
 
+  const [cat, setCat] = useState<PowerCategory>("ataque");
   const [arena, setArena] = useState("neon");
   const [paddleSkin, setPaddleSkin] = useState("aurora");
   const [ballSkin, setBallSkin] = useState("classic");
@@ -106,7 +107,8 @@ function PongRoom() {
   const waiting = !opponent;
   const powerDef = myPower ? POWER_MAP[myPower] : null;
   const myFx = fxView[mySide];
-  const activeFx = POWERS.filter((p) => (myFx as any)?.[p.id] > 0);
+  const activeFx = POWERS.filter((p) => ((myFx as any)?.[p.id] ?? 0) > 0);
+  const cdPct = powerDef ? Math.max(0, Math.min(1, cooldown / (cooldownTotal || powerDef.cooldown))) : 0;
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[color:var(--surface)]">
@@ -236,66 +238,115 @@ function PongRoom() {
         </div>
       </div>
 
-      {/* poder + efeitos */}
+      {/* HUD: poder + efeitos */}
       <div className="mx-auto w-full max-w-md space-y-3 px-3 py-4">
         {activeFx.length ? (
           <div className="flex flex-wrap gap-1.5">
             {activeFx.map((p) => (
-              <span key={p.id} className="rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px]" style={{ color: p.color }}>
-                {p.emoji} {p.name} {Math.ceil((myFx as any)[p.id])}s
+              <span
+                key={p.id}
+                className="flex items-center gap-1 rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px]"
+                style={{ color: p.color }}
+              >
+                {p.emoji} {p.name}
+                <b className="tabular">{Math.ceil((myFx as any)[p.id])}s</b>
               </span>
             ))}
           </div>
         ) : null}
 
+        {/* botão de uso com anel de recarga */}
         <div className="flex items-center gap-3">
-          <Button
-            className="h-14 flex-1 rounded-2xl text-base"
-            disabled={!powerDef || cooldown > 0 || phase !== "playing"}
+          <button
             onClick={usePower}
+            disabled={!powerDef || cooldown > 0 || phase !== "playing"}
+            aria-label={powerDef ? `Usar ${powerDef.name}` : "Escolha um poder"}
+            className="relative grid h-20 w-20 shrink-0 place-items-center rounded-full transition active:scale-95 disabled:opacity-60"
+            style={{
+              background: powerDef
+                ? `conic-gradient(${powerDef.color} ${(1 - cdPct) * 360}deg, color-mix(in srgb, ${powerDef.color} 18%, transparent) 0deg)`
+                : "var(--surface-2)",
+              boxShadow: powerDef && cooldown === 0 && phase === "playing" ? `0 0 24px -4px ${powerDef.color}` : undefined,
+            }}
           >
+            <span className="grid h-[68px] w-[68px] place-items-center rounded-full bg-[color:var(--surface-2)]">
+              {powerDef ? (
+                <span className="text-center leading-tight">
+                  <span className="block text-2xl">{powerDef.emoji}</span>
+                  <span className="block text-[10px] font-semibold tabular">
+                    {cooldown > 0 ? `${Math.ceil(cooldown)}s` : "USAR"}
+                  </span>
+                </span>
+              ) : (
+                <span className="px-1 text-[10px] text-muted-foreground">Escolher</span>
+              )}
+            </span>
+          </button>
+
+          <div className="min-w-0 flex-1 rounded-2xl bg-[color:var(--surface-2)] p-3">
             {powerDef ? (
-              <span className="flex items-center gap-2">
-                <span className="text-xl">{powerDef.emoji}</span>
-                {cooldown > 0 ? `${Math.ceil(cooldown)}s` : powerDef.name}
-              </span>
+              <>
+                <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: powerDef.color }}>
+                  {powerDef.name}
+                  <span className="rounded-full bg-background/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {powerDef.category}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{powerDef.desc}</p>
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  {powerDef.target === "enemy" ? "Afeta o rival" : powerDef.target === "ball" ? "Afeta a bola" : "Afeta você"} ·{" "}
+                  {powerDef.duration ? `${powerDef.duration}s de efeito` : "instantâneo"} · recarga {powerDef.cooldown}s
+                </div>
+              </>
             ) : (
-              "Escolha um poder"
+              <p className="text-[12px] text-muted-foreground">Escolha um dos {POWERS.length} poderes abaixo para levar ao duelo.</p>
             )}
-          </Button>
+          </div>
         </div>
 
+        {/* seleção de poderes por categoria */}
         <div>
-          <div className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Poder do duelo</div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {POWERS.map((p) => (
+          <div className="mb-1.5 flex items-center gap-1.5 overflow-x-auto px-1 pb-1">
+            {POWER_CATEGORIES.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setCat(c.id)}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition",
+                  cat === c.id ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface-2)] text-muted-foreground",
+                )}
+              >
+                {c.emoji} {c.name}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {POWERS.filter((p) => p.category === cat).map((p) => (
               <button
                 key={p.id}
                 onClick={() => choosePower(p.id as PowerId)}
                 disabled={phase === "playing" || phase === "countdown"}
                 className={cn(
-                  "w-[86px] shrink-0 rounded-2xl px-2 py-2 text-center transition disabled:opacity-50",
-                  myPower === p.id ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface-2)]",
+                  "relative rounded-2xl px-1.5 py-2 text-center transition active:scale-95 disabled:opacity-50",
+                  myPower === p.id ? "ring-2" : "bg-[color:var(--surface-2)]",
                 )}
+                style={
+                  myPower === p.id
+                    ? { background: `color-mix(in srgb, ${p.color} 22%, var(--surface-2))`, boxShadow: `0 0 0 2px ${p.color} inset` }
+                    : undefined
+                }
                 title={p.desc}
               >
-                <div className="text-lg">{p.emoji}</div>
-                <div className="truncate text-[11px] font-medium">{p.name}</div>
-                <div className={cn("text-[10px]", myPower === p.id ? "opacity-80" : "text-muted-foreground")}>{p.cooldown}s</div>
+                <div className="text-xl">{p.emoji}</div>
+                <div className="truncate text-[10px] font-medium">{p.name}</div>
+                <div className="text-[9px] text-muted-foreground">
+                  {"★".repeat(p.tier)} · {p.cooldown}s
+                </div>
               </button>
             ))}
           </div>
-          {powerDef ? (
-            <p className="mt-1 px-1 text-[11px] text-muted-foreground">
-              <b style={{ color: powerDef.color }}>{powerDef.emoji} {powerDef.name}</b>{" "}
-              <span className="opacity-70">
-                ({powerDef.target === "enemy" ? "afeta o rival" : powerDef.target === "ball" ? "afeta a bola" : "afeta você"}
-                {powerDef.duration ? ` · ${powerDef.duration}s` : " · instantâneo"})
-              </span>{" "}
-              {powerDef.desc}
-            </p>
-          ) : null}
         </div>
+
 
 
         <div className="grid grid-cols-3 gap-2">

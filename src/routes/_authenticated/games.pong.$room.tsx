@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
 import { VerifiedName } from "@/components/verified-badge";
 import { PongCanvas, usePongMatch } from "@/components/games/pong-online";
-import { ARENAS, BALL_SKINS, FIELD, PADDLE_SKINS, POWERS, POWER_MAP, type PowerId } from "@/lib/pong/config";
+import { ARENAS, BALL_SKINS, FIELD, PADDLE_SKINS, POWERS, POWER_CATEGORIES, POWER_MAP, type PowerCategory, type PowerId } from "@/lib/pong/config";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/games/pong/$room")({
@@ -59,6 +59,7 @@ function PongRoom() {
     myPower, cooldown, cooldownTotal, setTarget, choosePower, usePower, startMatch,
   } = match;
 
+  const [cat, setCat] = useState<PowerCategory>("ataque");
   const [arena, setArena] = useState("neon");
   const [paddleSkin, setPaddleSkin] = useState("aurora");
   const [ballSkin, setBallSkin] = useState("classic");

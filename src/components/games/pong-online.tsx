@@ -9,6 +9,7 @@ import {
   POWERS,
   type PowerId,
 } from "@/lib/pong/config";
+import { ensureAudio, setArenaTrack, setIntensity, sfx, startMusic, stopMusic } from "@/lib/pong/audio";
 
 /* ------------------------------------------------------------------ */
 /* tipos                                                               */
@@ -16,36 +17,24 @@ import {
 
 export type Phase = "lobby" | "countdown" | "playing" | "point" | "over";
 
-export type Fx = {
-  gravity: number;
-  portal: number;
-  clone: number;
-  magnet: number;
-  speed: number;
-  reflex: number;
-  shield: number;
-  shieldUsed: boolean;
-  /** aplicados no adversário */
-  freeze: number;
-  shrink: number;
-  ghost: number;
-  /** próprios */
-  wall: number;
-  fury: number;
-};
+/** duração restante de cada efeito no lado que o SOFRE (ou possui) */
+export type Fx = Partial<Record<PowerId, number>> & { shieldUsed?: boolean };
 
-const emptyFx = (): Fx => ({
-  gravity: 0, portal: 0, clone: 0, magnet: 0, speed: 0, reflex: 0,
-  shield: 0, shieldUsed: false, freeze: 0, shrink: 0, ghost: 0, wall: 0, fury: 0,
-});
-
-const mergeFx = (f: Partial<Fx> | undefined): Fx => ({ ...emptyFx(), ...(f ?? {}) });
+const emptyFx = (): Fx => ({});
+const mergeFx = (f: Fx | undefined): Fx => ({ ...(f ?? {}) });
+const dur = (f: Fx | undefined, id: PowerId) => (f?.[id] ?? 0) as number;
 
 type Snap = { t: number; bx: number; by: number; vx: number; vy: number; p0: number; p1: number; s0: number; s1: number };
+
+type Stick = { side: 0 | 1; t: number } | null;
 
 type Sim = {
   bx: number; by: number; vx: number; vy: number;
   p0: number; p1: number;
+  /** sentinelas autônomas */
+  g0: number; g1: number;
+  spin: number;
+  stick: Stick;
   s0: number; s1: number;
   phase: Phase;
   timer: number;
@@ -55,6 +44,8 @@ type Sim = {
   hist: Snap[];
   clock: number;
   rewindAt: number;
+  /** rally atual — usado para intensidade da trilha */
+  rally: number;
 };
 
 export type Peer = { id: string; name: string; avatar: string | null; joinedAt: number; power: PowerId | null; ready: boolean };
@@ -62,54 +53,14 @@ export type Peer = { id: string; name: string; avatar: string | null; joinedAt: 
 export type Impact = { x: number; y: number; t: number; color: string; big?: boolean; kind?: "hit" | "goal" | "power" | "rewind" };
 
 /* ------------------------------------------------------------------ */
-/* áudio simples (WebAudio, sem assets)                                */
-/* ------------------------------------------------------------------ */
-
-let actx: AudioContext | null = null;
-function beep(freq: number, dur = 0.07, type: OscillatorType = "sine", gain = 0.05) {
-  try {
-    if (typeof window === "undefined") return;
-    actx = actx ?? new (window.AudioContext || (window as any).webkitAudioContext)();
-    if (actx.state === "suspended") void actx.resume();
-    const o = actx.createOscillator();
-    const g = actx.createGain();
-    o.type = type;
-    o.frequency.value = freq;
-    g.gain.value = gain;
-    o.connect(g).connect(actx.destination);
-    const now = actx.currentTime;
-    g.gain.setValueAtTime(gain, now);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    o.start(now);
-    o.stop(now + dur);
-  } catch {
-    /* silencioso */
-  }
-}
-function sweep(from: number, to: number, dur = 0.5, gain = 0.05) {
-  try {
-    if (typeof window === "undefined") return;
-    actx = actx ?? new (window.AudioContext || (window as any).webkitAudioContext)();
-    if (actx.state === "suspended") void actx.resume();
-    const o = actx.createOscillator();
-    const g = actx.createGain();
-    o.type = "sawtooth";
-    const now = actx.currentTime;
-    o.frequency.setValueAtTime(from, now);
-    o.frequency.exponentialRampToValueAtTime(Math.max(40, to), now + dur);
-    g.gain.setValueAtTime(gain, now);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    o.connect(g).connect(actx.destination);
-    o.start(now);
-    o.stop(now + dur);
-  } catch {
-    /* silencioso */
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /* motor                                                               */
 /* ------------------------------------------------------------------ */
+
+export function ballRadius(sim: Sim) {
+  const giant = dur(sim.fx[0], "giant") > 0 || dur(sim.fx[1], "giant") > 0;
+  const tiny = dur(sim.fx[0], "tiny") > 0 || dur(sim.fx[1], "tiny") > 0;
+  return FIELD.ballR * (giant ? 1.7 : 1) * (tiny ? 0.55 : 1);
+}
 
 function serve(sim: Sim, to: 0 | 1) {
   sim.bx = FIELD.w / 2;
@@ -118,42 +69,50 @@ function serve(sim: Sim, to: 0 | 1) {
   sim.vx = Math.cos(angle) * FIELD.baseSpeed;
   sim.vy = Math.sin(angle) * FIELD.baseSpeed;
   sim.serveTo = to;
+  sim.spin = 0;
+  sim.stick = null;
+  sim.rally = 0;
 }
 
 export function newSim(): Sim {
   const sim: Sim = {
     bx: FIELD.w / 2, by: FIELD.h / 2, vx: 0, vy: 0,
     p0: FIELD.w / 2, p1: FIELD.w / 2,
+    g0: FIELD.w / 2, g1: FIELD.w / 2,
+    spin: 0, stick: null,
     s0: 0, s1: 0,
     phase: "lobby", timer: 0, serveTo: 0,
     fx: [emptyFx(), emptyFx()],
-    hist: [], clock: 0, rewindAt: 0,
+    hist: [], clock: 0, rewindAt: 0, rally: 0,
   };
   serve(sim, 0);
   return sim;
 }
 
+const TIMED: PowerId[] = [
+  "gravity", "portal", "clone", "magnet", "speed", "reflex", "shield",
+  "freeze", "shrink", "ghost", "wall", "fury",
+  "curve", "blackhole", "invert", "fog", "slowmo", "hyper", "quake",
+  "vortex", "stealth", "spikes", "sentinel", "chaos", "overdrive",
+  "giant", "tiny", "sticky",
+];
+
 function decay(fx: Fx, dt: number) {
-  fx.gravity = Math.max(0, fx.gravity - dt);
-  fx.portal = Math.max(0, fx.portal - dt);
-  fx.clone = Math.max(0, fx.clone - dt);
-  fx.magnet = Math.max(0, fx.magnet - dt);
-  fx.speed = Math.max(0, fx.speed - dt);
-  fx.reflex = Math.max(0, fx.reflex - dt);
-  fx.freeze = Math.max(0, fx.freeze - dt);
-  fx.shrink = Math.max(0, fx.shrink - dt);
-  fx.ghost = Math.max(0, fx.ghost - dt);
-  fx.wall = Math.max(0, fx.wall - dt);
-  fx.fury = Math.max(0, fx.fury - dt);
-  const before = fx.shield;
-  fx.shield = Math.max(0, fx.shield - dt);
-  if (before > 0 && fx.shield === 0) fx.shieldUsed = false;
+  for (const k of TIMED) {
+    const v = fx[k];
+    if (v && v > 0) {
+      const n = v - dt;
+      if (n <= 0) delete fx[k];
+      else fx[k] = n;
+    }
+  }
+  if (!fx.shield) fx.shieldUsed = false;
 }
 
 export function paddleHalf(fx: Fx) {
   let h = FIELD.paddleHalf;
-  if (fx.magnet > 0) h *= 1.55;
-  if (fx.shrink > 0) h *= 0.55;
+  if (dur(fx, "magnet") > 0) h *= 1.55;
+  if (dur(fx, "shrink") > 0) h *= 0.55;
   return h;
 }
 
@@ -163,6 +122,17 @@ export function wallY(side: 0 | 1) {
 }
 export function cloneY(side: 0 | 1) {
   return side === 0 ? FIELD.h - FIELD.paddleInset - 0.24 : FIELD.paddleInset + 0.24;
+}
+export function sentinelY(side: 0 | 1) {
+  return side === 0 ? FIELD.h - FIELD.paddleInset - 0.36 : FIELD.paddleInset + 0.36;
+}
+export function holeY(side: 0 | 1) {
+  return side === 0 ? FIELD.h * 0.78 : FIELD.h * 0.22;
+}
+
+/** metade do campo em que a bola está (0 = baixo, 1 = cima) */
+function ballHalf(sim: Sim): 0 | 1 {
+  return sim.by > FIELD.h / 2 ? 0 : 1;
 }
 
 /** avança a simulação (só o host executa) */
@@ -191,111 +161,222 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
     while (sim.hist.length && sim.clock - sim.hist[0].t > 14) sim.hist.shift();
   }
 
+  // sentinelas perseguem a bola
+  for (const side of [0, 1] as const) {
+    if (dur(sim.fx[side], "sentinel") <= 0) continue;
+    const cur = side === 0 ? sim.g0 : sim.g1;
+    const d = sim.bx - cur;
+    const nx = cur + Math.sign(d) * Math.min(Math.abs(d), 1.7 * dt);
+    if (side === 0) sim.g0 = nx; else sim.g1 = nx;
+  }
+
+  const R = ballRadius(sim);
+
+  // bola presa (Grude)
+  if (sim.stick) {
+    const side = sim.stick.side;
+    const px = side === 0 ? sim.p0 : sim.p1;
+    const py = side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset;
+    sim.bx = px;
+    sim.by = py + (side === 0 ? -1 : 1) * (R + FIELD.paddleH);
+    sim.vx = 0; sim.vy = 0;
+    sim.stick.t -= dt;
+    if (sim.stick.t <= 0) {
+      const dir = side === 0 ? -1 : 1;
+      const foeX = side === 0 ? sim.p1 : sim.p0;
+      // mira no canto mais distante da raquete adversária
+      const aimX = foeX > FIELD.w / 2 ? 0.12 : FIELD.w - 0.12;
+      const ang = Math.atan2(aimX - sim.bx, Math.abs(FIELD.h - 2 * FIELD.paddleInset)) * 1.6;
+      const sp = FIELD.maxSpeed * 0.85;
+      sim.vx = Math.sin(ang) * sp;
+      sim.vy = dir * Math.abs(Math.cos(ang) * sp);
+      sim.stick = null;
+      onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: "#eab308", big: true, kind: "power" });
+      sfx("sticky");
+    }
+    return;
+  }
+
   const sub = 3;
   const h = dt / sub;
 
   for (let i = 0; i < sub; i++) {
-    // gravidade: puxa a bola para os cantos do lado adversário
+    const half = ballHalf(sim);
+    const foeOf = (s: 0 | 1) => (s === 0 ? 1 : 0) as 0 | 1;
+
+    /* ---- forças de poderes ---- */
     for (const side of [0, 1] as const) {
-      if (sim.fx[side].gravity > 0) {
-        const pull = side === 0 ? -1 : 1; // empurra para o campo do rival
-        sim.vy += pull * 0.5 * h;
-        sim.vx += (sim.bx < FIELD.w / 2 ? -0.45 : 0.45) * h;
+      const f = sim.fx[side];
+
+      // gravidade: quem lançou empurra a bola para o fundo do rival
+      if (dur(f, "gravity") > 0) {
+        const dir = side === 0 ? -1 : 1;
+        sim.vy += dir * 0.55 * h;
+      }
+      // buraco negro (armazenado em quem sofre)
+      if (dur(f, "blackhole") > 0) {
+        const hx = FIELD.w / 2, hy = holeY(side);
+        const dx = hx - sim.bx, dy = hy - sim.by;
+        const d2 = Math.max(0.02, dx * dx + dy * dy);
+        const g = 0.55 / d2;
+        sim.vx += dx * g * h;
+        sim.vy += dy * g * h;
+      }
+      // vórtice (em quem sofre): gira o vetor de velocidade no seu campo
+      if (dur(f, "vortex") > 0 && half === side) {
+        const w = 2.2 * h * (side === 0 ? 1 : -1);
+        const nvx = sim.vx * Math.cos(w) - sim.vy * Math.sin(w);
+        const nvy = sim.vx * Math.sin(w) + sim.vy * Math.cos(w);
+        sim.vx = nvx; sim.vy = nvy;
+      }
+      // caos (em quem sofre)
+      if (dur(f, "chaos") > 0 && half === side) {
+        sim.vx += (Math.random() - 0.5) * 4.5 * h;
+        sim.vy += (Math.random() - 0.5) * 2.5 * h;
       }
     }
 
+    // efeito curva (spin)
+    if (Math.abs(sim.spin) > 0.001) {
+      sim.vx += sim.spin * 1.5 * h;
+      sim.spin *= Math.pow(0.55, h);
+    }
+
+    // limite de velocidade
+    const sp = Math.hypot(sim.vx, sim.vy);
+    const cap = FIELD.maxSpeed * 1.6;
+    if (sp > cap) { sim.vx = (sim.vx / sp) * cap; sim.vy = (sim.vy / sp) * cap; }
+
+    // multiplicador local (lento/hiper)
+    let mul = 1;
+    if (dur(sim.fx[half], "slowmo") > 0) mul *= 0.55;
+    if (dur(sim.fx[half], "hyper") > 0) mul *= 1.6;
+
     const prevY = sim.by;
-    sim.bx += sim.vx * h;
-    sim.by += sim.vy * h;
+    sim.bx += sim.vx * h * mul;
+    sim.by += sim.vy * h * mul;
 
     // paredes laterais
-    if (sim.bx < FIELD.ballR) { sim.bx = FIELD.ballR; sim.vx = Math.abs(sim.vx); beep(320, 0.04, "triangle", 0.03); onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: "#ffffff", kind: "hit" }); }
-    if (sim.bx > FIELD.w - FIELD.ballR) { sim.bx = FIELD.w - FIELD.ballR; sim.vx = -Math.abs(sim.vx); beep(320, 0.04, "triangle", 0.03); onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: "#ffffff", kind: "hit" }); }
+    if (sim.bx < R) { sim.bx = R; sim.vx = Math.abs(sim.vx); sim.spin *= -0.5; sfx("wall"); onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: "#ffffff", kind: "hit" }); }
+    if (sim.bx > FIELD.w - R) { sim.bx = FIELD.w - R; sim.vx = -Math.abs(sim.vx); sim.spin *= -0.5; sfx("wall"); onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: "#ffffff", kind: "hit" }); }
 
     // portal: espelha ao cruzar o meio
-    const portalOn = sim.fx[0].portal > 0 || sim.fx[1].portal > 0;
+    const portalOn = dur(sim.fx[0], "portal") > 0 || dur(sim.fx[1], "portal") > 0;
     if (portalOn && ((prevY < FIELD.h / 2 && sim.by >= FIELD.h / 2) || (prevY > FIELD.h / 2 && sim.by <= FIELD.h / 2))) {
       sim.bx = FIELD.w - sim.bx;
       sim.vx = -sim.vx;
       onImpact({ x: sim.bx, y: FIELD.h / 2, t: performance.now(), color: "#a855f7", kind: "power" });
-      beep(660, 0.09, "sawtooth", 0.04);
+      sfx("portal");
     }
 
     const y0 = FIELD.h - FIELD.paddleInset;
     const y1 = FIELD.paddleInset;
 
-    const hit = (px: number, fx: Fx, dir: 1 | -1, py: number, wide = false) => {
-      const half = wide ? FIELD.w : paddleHalf(fx);
-      if (Math.abs(sim.bx - px) > half + FIELD.ballR) return false;
-      let boost = fx.reflex > 0 ? 1.35 : 1.04;
+    const hit = (px: number, side: 0 | 1, dirSign: 1 | -1, py: number, opts?: { wide?: boolean; auto?: boolean }) => {
+      const f = sim.fx[side];
+      const wide = !!opts?.wide;
+      const hw = wide ? FIELD.w : paddleHalf(f) * (opts?.auto ? 0.6 : 1);
+      if (Math.abs(sim.bx - px) > hw + R) return false;
+
+      // Grude: prende a bola
+      if (dur(f, "sticky") > 0 && !wide && !opts?.auto) {
+        delete f.sticky;
+        sim.stick = { side, t: 0.75 };
+        onImpact({ x: sim.bx, y: py, t: performance.now(), color: "#eab308", kind: "power" });
+        sfx("sticky");
+        return true;
+      }
+
+      const reflex = dur(f, "reflex") > 0;
+      const spikes = dur(f, "spikes") > 0;
+      let boost = reflex ? 1.35 : spikes ? 1.3 : 1.05;
       let fury = false;
-      if (fx.fury > 0 && !wide) { boost *= 1.8; fx.fury = 0; fury = true; }
-      const off = wide ? (sim.bx - FIELD.w / 2) / (FIELD.w / 2) : (sim.bx - px) / half;
+      if (dur(f, "fury") > 0 && !wide && !opts?.auto) { boost *= 1.8; delete f.fury; fury = true; }
+
+      const off = wide ? (sim.bx - FIELD.w / 2) / (FIELD.w / 2) : (sim.bx - px) / hw;
       const speed = Math.min(FIELD.maxSpeed * (fury ? 1.5 : 1), Math.hypot(sim.vx, sim.vy) * boost);
-      const angle = fx.reflex > 0 ? off * 0.5 : off * 0.9;
+      let angle = reflex ? off * 0.5 : off * 0.9;
+      if (spikes) angle += (Math.random() - 0.5) * 0.85;
       sim.vx = Math.sin(angle) * speed;
-      sim.vy = dir * Math.abs(Math.cos(angle) * speed);
-      sim.by = py + dir * (FIELD.ballR + FIELD.paddleH * 0.6);
+      sim.vy = dirSign * Math.abs(Math.cos(angle) * speed);
+      sim.by = py + dirSign * (R + FIELD.paddleH * 0.6);
+      sim.spin = dur(f, "curve") > 0 ? off * 1.9 : sim.spin * 0.3;
+      sim.rally += 1;
+
       onImpact({
         x: sim.bx, y: py, t: performance.now(),
-        color: fury ? "#f97316" : fx.reflex > 0 ? "#fbbf24" : wide ? "#a3a3a3" : "#ffffff",
-        big: fury, kind: "hit",
+        color: fury ? "#f97316" : spikes ? "#84cc16" : reflex ? "#fbbf24" : wide ? "#a3a3a3" : "#ffffff",
+        big: fury || spikes, kind: "hit",
       });
-      beep(fury ? 900 : fx.reflex > 0 ? 720 : 480, fury ? 0.12 : 0.06, "square", 0.05);
+      sfx(fury ? "hitHard" : "hit", Math.min(1, speed / FIELD.maxSpeed));
       return true;
     };
 
-    // raquete de baixo (jogador 0)
-    if (sim.vy > 0 && sim.by + FIELD.ballR >= y0 && prevY + FIELD.ballR <= y0 + 0.06) hit(sim.p0, sim.fx[0], -1, y0);
-    if (sim.fx[0].clone > 0 && sim.vy > 0) {
-      const cy = cloneY(0);
-      if (sim.by + FIELD.ballR >= cy && prevY + FIELD.ballR <= cy + 0.05) hit(sim.p0, sim.fx[0], -1, cy);
+    // jogador 0 (baixo)
+    if (sim.vy > 0) {
+      if (sim.by + R >= y0 && prevY + R <= y0 + 0.07) hit(sim.p0, 0, -1, y0);
+      if (dur(sim.fx[0], "clone") > 0) {
+        const cy = cloneY(0);
+        if (sim.by + R >= cy && prevY + R <= cy + 0.05) hit(sim.p0, 0, -1, cy);
+      }
+      if (dur(sim.fx[0], "sentinel") > 0) {
+        const gy = sentinelY(0);
+        if (sim.by + R >= gy && prevY + R <= gy + 0.05) hit(sim.g0, 0, -1, gy, { auto: true });
+      }
+      if (dur(sim.fx[0], "wall") > 0) {
+        const wy = wallY(0);
+        if (sim.by + R >= wy && prevY + R <= wy + 0.05) hit(FIELD.w / 2, 0, -1, wy, { wide: true });
+      }
     }
-    if (sim.fx[0].wall > 0 && sim.vy > 0) {
-      const wy = wallY(0);
-      if (sim.by + FIELD.ballR >= wy && prevY + FIELD.ballR <= wy + 0.05) hit(FIELD.w / 2, sim.fx[0], -1, wy, true);
-    }
-    // raquete de cima (jogador 1)
-    if (sim.vy < 0 && sim.by - FIELD.ballR <= y1 && prevY - FIELD.ballR >= y1 - 0.06) hit(sim.p1, sim.fx[1], 1, y1);
-    if (sim.fx[1].clone > 0 && sim.vy < 0) {
-      const cy = cloneY(1);
-      if (sim.by - FIELD.ballR <= cy && prevY - FIELD.ballR >= cy - 0.05) hit(sim.p1, sim.fx[1], 1, cy);
-    }
-    if (sim.fx[1].wall > 0 && sim.vy < 0) {
-      const wy = wallY(1);
-      if (sim.by - FIELD.ballR <= wy && prevY - FIELD.ballR >= wy - 0.05) hit(FIELD.w / 2, sim.fx[1], 1, wy, true);
+    // jogador 1 (cima)
+    if (sim.vy < 0) {
+      if (sim.by - R <= y1 && prevY - R >= y1 - 0.07) hit(sim.p1, 1, 1, y1);
+      if (dur(sim.fx[1], "clone") > 0) {
+        const cy = cloneY(1);
+        if (sim.by - R <= cy && prevY - R >= cy - 0.05) hit(sim.p1, 1, 1, cy);
+      }
+      if (dur(sim.fx[1], "sentinel") > 0) {
+        const gy = sentinelY(1);
+        if (sim.by - R <= gy && prevY - R >= gy - 0.05) hit(sim.g1, 1, 1, gy, { auto: true });
+      }
+      if (dur(sim.fx[1], "wall") > 0) {
+        const wy = wallY(1);
+        if (sim.by - R <= wy && prevY - R >= wy - 0.05) hit(FIELD.w / 2, 1, 1, wy, { wide: true });
+      }
     }
 
     // pontos / escudo
     if (sim.by > FIELD.h + 0.05) {
-      if (sim.fx[0].shield > 0 && !sim.fx[0].shieldUsed) {
+      if (dur(sim.fx[0], "shield") > 0 && !sim.fx[0].shieldUsed) {
         sim.fx[0].shieldUsed = true;
         sim.by = FIELD.h - 0.06;
         sim.vy = -Math.abs(sim.vy);
         onImpact({ x: sim.bx, y: FIELD.h - 0.04, t: performance.now(), color: "#22d3ee", big: true, kind: "power" });
-        beep(220, 0.18, "sine", 0.06);
+        sfx("shield");
       } else {
         sim.s1 += 1;
         onImpact({ x: sim.bx, y: FIELD.h, t: performance.now(), color: "#f87171", big: true, kind: "goal" });
-        beep(180, 0.2, "sawtooth", 0.05);
+        sfx("concede");
         sim.phase = sim.s1 >= FIELD.winScore ? "over" : "point";
         sim.timer = 1.3;
         sim.serveTo = 0;
+        sim.rally = 0;
       }
     } else if (sim.by < -0.05) {
-      if (sim.fx[1].shield > 0 && !sim.fx[1].shieldUsed) {
+      if (dur(sim.fx[1], "shield") > 0 && !sim.fx[1].shieldUsed) {
         sim.fx[1].shieldUsed = true;
         sim.by = 0.06;
         sim.vy = Math.abs(sim.vy);
         onImpact({ x: sim.bx, y: 0.04, t: performance.now(), color: "#22d3ee", big: true, kind: "power" });
-        beep(220, 0.18, "sine", 0.06);
+        sfx("shield");
       } else {
         sim.s0 += 1;
         onImpact({ x: sim.bx, y: 0, t: performance.now(), color: "#4ade80", big: true, kind: "goal" });
-        beep(880, 0.16, "triangle", 0.05);
+        sfx("goal");
         sim.phase = sim.s0 >= FIELD.winScore ? "over" : "point";
         sim.timer = 1.3;
         sim.serveTo = 1;
+        sim.rally = 0;
       }
     }
   }
@@ -303,14 +384,20 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
 
 function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) => void) {
   const fx = sim.fx[side];
-  const foe = sim.fx[side === 0 ? 1 : 0];
+  const foeSide: 0 | 1 = side === 0 ? 1 : 0;
+  const foe = sim.fx[foeSide];
   const def = POWER_MAP[id];
   if (!def) return;
+
+  const at = (y: number, color = def.color, big = true) =>
+    onImpact?.({ x: sim.bx, y, t: performance.now(), color, big, kind: "power" });
+
   switch (id) {
+    /* instantâneos */
     case "teleport": {
       const cur = side === 0 ? sim.p0 : sim.p1;
       const target = Math.max(0.05, Math.min(FIELD.w - 0.05, sim.bx));
-      const dx = Math.max(-0.35, Math.min(0.35, target - cur));
+      const dx = Math.max(-0.4, Math.min(0.4, target - cur));
       if (side === 0) sim.p0 = cur + dx; else sim.p1 = cur + dx;
       break;
     }
@@ -325,31 +412,91 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
         sim.s0 = snap.s0; sim.s1 = snap.s1;
         sim.hist = sim.hist.filter((s) => s.t <= snap!.t);
         sim.clock = snap.t;
+        sim.stick = null;
       }
       sim.rewindAt = performance.now();
       onImpact?.({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: "#facc15", big: true, kind: "rewind" });
-      sweep(1200, 120, 0.7, 0.05);
+      sfx("rewind");
       return;
     }
-    case "gravity": fx.gravity = def.duration; break;
-    case "portal": fx.portal = def.duration; break;
-    case "clone": fx.clone = def.duration; break;
-    case "magnet": fx.magnet = def.duration; break;
-    case "speed": fx.speed = def.duration; break;
-    case "reflex": fx.reflex = def.duration; break;
-    case "wall": fx.wall = def.duration; break;
-    case "fury": fx.fury = def.duration; break;
-    case "shield": fx.shield = def.duration; fx.shieldUsed = false; break;
-    case "freeze": foe.freeze = def.duration; break;
+    case "laser": {
+      const dir = side === 0 ? -1 : 1;
+      const speed = FIELD.maxSpeed * 1.25;
+      const off = (sim.bx - FIELD.w / 2) / (FIELD.w / 2);
+      sim.vx = off * speed * 0.25;
+      sim.vy = dir * speed;
+      sim.spin = 0;
+      sim.stick = null;
+      at(sim.by);
+      sfx("laser");
+      return;
+    }
+    case "swap": {
+      const a = sim.p0; sim.p0 = sim.p1; sim.p1 = a;
+      onImpact?.({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: def.color, big: true, kind: "power" });
+      sfx("portal");
+      return;
+    }
+    case "recall": {
+      serve(sim, foeSide);
+      onImpact?.({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: def.color, big: true, kind: "power" });
+      sfx("power");
+      return;
+    }
+    case "steal": {
+      const mine = side === 0 ? sim.s0 : sim.s1;
+      const theirs = side === 0 ? sim.s1 : sim.s0;
+      if (mine < theirs && theirs > 0) {
+        if (side === 0) { sim.s0 += 1; sim.s1 -= 1; } else { sim.s1 += 1; sim.s0 -= 1; }
+        onImpact?.({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: def.color, big: true, kind: "goal" });
+        sfx("goal");
+      } else {
+        sfx("wall");
+      }
+      return;
+    }
+
+    /* duradouros no próprio jogador */
+    case "gravity": case "portal": case "clone": case "magnet": case "speed":
+    case "reflex": case "wall": case "fury": case "curve": case "slowmo":
+    case "stealth": case "spikes": case "overdrive": case "giant":
+    case "tiny": case "sticky":
+      fx[id] = def.duration;
+      break;
+    case "sentinel":
+      fx.sentinel = def.duration;
+      if (side === 0) sim.g0 = sim.bx; else sim.g1 = sim.bx;
+      break;
+    case "shield":
+      fx.shield = def.duration;
+      fx.shieldUsed = false;
+      break;
+
+    /* duradouros no adversário */
+    case "freeze": foe.freeze = def.duration; sfx("freeze"); break;
     case "shrink": foe.shrink = def.duration; break;
-    case "ghost": fx.ghost = def.duration; break;
+    case "ghost": foe.ghost = def.duration; break;
+    case "blackhole": foe.blackhole = def.duration; break;
+    case "invert": foe.invert = def.duration; break;
+    case "fog": foe.fog = def.duration; break;
+    case "hyper": foe.hyper = def.duration; break;
+    case "quake": foe.quake = def.duration; sfx("quake"); break;
+    case "vortex": foe.vortex = def.duration; break;
+    case "chaos": foe.chaos = def.duration; break;
   }
-  beep(540, 0.12, "sawtooth", 0.05);
+  at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
+  if (id !== "freeze" && id !== "quake") sfx("power");
 }
 
 /* ------------------------------------------------------------------ */
 /* hook de rede + jogo                                                 */
 /* ------------------------------------------------------------------ */
+
+const fxEq = (a: Fx, b: Fx) => {
+  const ka = Object.keys(a), kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  return ka.every((k) => Math.abs(((a as any)[k] || 0) - ((b as any)[k] || 0)) < 0.24 || (a as any)[k] === (b as any)[k]);
+};
 
 export function usePongMatch(room: string, me: { id: string; name: string; avatar: string | null }) {
   const [peers, setPeers] = useState<Record<string, Peer>>({});
@@ -369,6 +516,7 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
   const impactsRef = useRef<Impact[]>([]);
   const lastRemoteRef = useRef<number>(0);
   const cooldownUntilRef = useRef<number>(0);
+  const cooldownTotalRef = useRef<number>(1);
   const myPowerRef = useRef<PowerId | null>(null);
   const meRef = useRef(me);
   meRef.current = me;
@@ -420,14 +568,22 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
       if (isHostRef.current) return;
       const s = simRef.current;
       const p = payload as any;
-      s.bx = p.bx; s.by = p.by; s.vx = p.vx; s.vy = p.vy;
+      // reconciliação suave: corrige a bola sem teleportes bruscos
+      const dx = p.bx - s.bx, dy = p.by - s.by;
+      const far = Math.hypot(dx, dy) > 0.12 || p.ph !== s.phase;
+      s.bx = far ? p.bx : s.bx + dx * 0.45;
+      s.by = far ? p.by : s.by + dy * 0.45;
+      s.vx = p.vx; s.vy = p.vy;
       s.p0 = p.p0;
       if (mySideRef.current !== 1) s.p1 = p.p1;
+      s.g0 = p.g0 ?? s.g0; s.g1 = p.g1 ?? s.g1;
+      s.stick = p.st ?? null;
       s.s0 = p.s0; s.s1 = p.s1;
       s.phase = p.ph;
       s.timer = p.tm;
+      s.rally = p.ry ?? 0;
       s.fx = [mergeFx(p.fx?.[0]), mergeFx(p.fx?.[1])];
-      if (p.rw && p.rw !== s.rewindAt) { s.rewindAt = performance.now(); }
+      if (p.rw && p.rw !== s.rewindAt) { s.rewindAt = performance.now(); sfx("rewind"); }
       setPhase(p.ph);
       setScore([p.s0, p.s1]);
       setCountdown(p.ph === "countdown" ? Math.max(0, Math.ceil(p.tm)) : 0);
@@ -436,7 +592,6 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     });
 
     ch.on("broadcast", { event: "p" }, ({ payload }) => {
-      // posição da raquete do convidado (só o host consome)
       if (!isHostRef.current) return;
       simRef.current.p1 = payload.x;
     });
@@ -444,7 +599,6 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     ch.on("broadcast", { event: "pw" }, ({ payload }) => {
       if (!isHostRef.current) return;
       applyPower(simRef.current, 1, payload.id as PowerId, pushImpact);
-      pushImpact({ x: simRef.current.p1, y: FIELD.paddleInset, t: performance.now(), color: POWER_MAP[payload.id as PowerId]?.color ?? "#fff", big: true, kind: "power" });
     });
 
     ch.on("broadcast", { event: "start" }, () => {
@@ -455,6 +609,7 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
       serve(s, 0);
       setPhase("countdown");
       setScore([0, 0]);
+      startMusic();
     });
 
     ch.on("broadcast", { event: "bye" }, () => setOpponentGone(true));
@@ -479,6 +634,7 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
       supabase.removeChannel(ch);
       chRef.current = null;
       setConnected(false);
+      stopMusic();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, me.id]);
@@ -489,6 +645,11 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     let last = performance.now();
     let acc = 0;
     let sendAcc = 0;
+    let uiAcc = 0;
+    let lastPhase: Phase = "lobby";
+    let lastScore: [number, number] = [0, 0];
+    let lastCd = -1;
+    let lastFx: [Fx, Fx] = [{}, {}];
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
@@ -499,11 +660,13 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
 
       // movimento da própria raquete (previsão local para ambos)
       const fxMe = sim.fx[side] ?? emptyFx();
-      if (fxMe.freeze <= 0) {
-        const spd = FIELD.paddleSpeed * (fxMe.speed > 0 ? 1.7 : 1);
+      if (dur(fxMe, "freeze") <= 0 && !sim.stick) {
+        const spd = FIELD.paddleSpeed * (dur(fxMe, "speed") > 0 ? 1.7 : 1);
         const cur = side === 0 ? sim.p0 : sim.p1;
         const half = paddleHalf(fxMe);
-        const tgt = Math.max(half, Math.min(FIELD.w - half, targetRef.current));
+        let want = targetRef.current;
+        if (dur(fxMe, "quake") > 0) want += Math.sin(now / 55) * 0.06 + (Math.random() - 0.5) * 0.02;
+        const tgt = Math.max(half, Math.min(FIELD.w - half, want));
         const d = tgt - cur;
         const move = Math.sign(d) * Math.min(Math.abs(d), spd * dt);
         const nx = cur + move;
@@ -513,43 +676,68 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
       if (isHostRef.current) {
         acc += dt;
         let guard = 0;
-        while (acc > 1 / 120 && guard++ < 12) {
+        while (acc > 1 / 120 && guard++ < 10) {
           step(sim, 1 / 120, pushImpact);
           acc -= 1 / 120;
         }
-        setPhase(sim.phase);
-        setScore([sim.s0, sim.s1]);
-        setCountdown(sim.phase === "countdown" ? Math.max(0, Math.ceil(sim.timer)) : 0);
-        setFxView([{ ...sim.fx[0] }, { ...sim.fx[1] }]);
+        if (guard >= 10) acc = 0;
 
         sendAcc += dt;
-        if (sendAcc >= 0.04) {
+        if (sendAcc >= 0.045) {
           sendAcc = 0;
           chRef.current?.send({
             type: "broadcast",
             event: "s",
             payload: {
               bx: sim.bx, by: sim.by, vx: sim.vx, vy: sim.vy,
-              p0: sim.p0, p1: sim.p1, s0: sim.s0, s1: sim.s1,
+              p0: sim.p0, p1: sim.p1, g0: sim.g0, g1: sim.g1, st: sim.stick,
+              s0: sim.s0, s1: sim.s1, ry: sim.rally,
               ph: sim.phase, tm: sim.timer, fx: sim.fx, rw: sim.rewindAt, t: Date.now(),
             },
           });
         }
-      } else {
+      } else if (sim.phase === "playing" && !sim.stick) {
         // extrapolação suave da bola entre snapshots
-        if (sim.phase === "playing") {
-          sim.bx += sim.vx * dt;
-          sim.by += sim.vy * dt;
-        }
+        let mul = 1;
+        const half = sim.by > FIELD.h / 2 ? 0 : 1;
+        if (dur(sim.fx[half], "slowmo") > 0) mul *= 0.55;
+        if (dur(sim.fx[half], "hyper") > 0) mul *= 1.6;
+        sim.bx += sim.vx * dt * mul;
+        sim.by += sim.vy * dt * mul;
         sendAcc += dt;
-        if (sendAcc >= 0.04) {
+        if (sendAcc >= 0.045) {
+          sendAcc = 0;
+          chRef.current?.send({ type: "broadcast", event: "p", payload: { x: sim.p1 } });
+        }
+      } else {
+        sendAcc += dt;
+        if (sendAcc >= 0.045) {
           sendAcc = 0;
           chRef.current?.send({ type: "broadcast", event: "p", payload: { x: sim.p1 } });
         }
       }
 
-      const cd = Math.max(0, (cooldownUntilRef.current - Date.now()) / 1000);
-      setCooldown(cd);
+      /* ---- UI: atualiza no máximo ~10x/s e só quando muda ---- */
+      uiAcc += dt;
+      if (uiAcc >= 0.1) {
+        uiAcc = 0;
+        if (isHostRef.current) {
+          if (sim.phase !== lastPhase) { lastPhase = sim.phase; setPhase(sim.phase); }
+          if (sim.s0 !== lastScore[0] || sim.s1 !== lastScore[1]) {
+            lastScore = [sim.s0, sim.s1];
+            setScore(lastScore);
+          }
+          const cd = sim.phase === "countdown" ? Math.max(0, Math.ceil(sim.timer)) : 0;
+          if (cd !== lastCd) { lastCd = cd; setCountdown(cd); if (cd > 0) sfx("count"); else if (sim.phase === "playing") sfx("go"); }
+          if (!fxEq(sim.fx[0], lastFx[0]) || !fxEq(sim.fx[1], lastFx[1])) {
+            lastFx = [{ ...sim.fx[0] }, { ...sim.fx[1] }];
+            setFxView(lastFx);
+          }
+        }
+        const cdLeft = Math.max(0, (cooldownUntilRef.current - Date.now()) / 1000);
+        setCooldown(cdLeft);
+        setIntensity(Math.min(1, sim.rally / 8 + (sim.phase === "playing" ? 0.25 : 0)));
+      }
     };
 
     raf = requestAnimationFrame(frame);
@@ -567,11 +755,15 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
   }, []);
 
   /* ---------------- ações ---------------- */
-  const setTarget = useCallback((x: number) => { targetRef.current = x; }, []);
+  const setTarget = useCallback((x: number) => {
+    const fxMe = simRef.current.fx[mySideRef.current] ?? {};
+    targetRef.current = dur(fxMe, "invert") > 0 ? FIELD.w - x : x;
+  }, []);
 
   const choosePower = useCallback((id: PowerId | null) => {
     setMyPower(id);
     myPowerRef.current = id;
+    sfx("select");
     void chRef.current?.track({
       name: meRef.current.name, avatar: meRef.current.avatar,
       joinedAt: peers[me.id]?.joinedAt ?? Date.now(), power: id, ready: !!id,
@@ -583,20 +775,26 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     if (!id) return;
     if (Date.now() < cooldownUntilRef.current) return;
     if (simRef.current.phase !== "playing") return;
-    cooldownUntilRef.current = Date.now() + POWER_MAP[id].cooldown * 1000;
+    ensureAudio();
+    const mine = simRef.current.fx[mySideRef.current] ?? {};
+    const factor = dur(mine, "overdrive") > 0 ? 0.5 : 1;
+    const total = POWER_MAP[id].cooldown * factor;
+    cooldownTotalRef.current = total;
+    cooldownUntilRef.current = Date.now() + total * 1000;
+    setCooldown(total);
     if (isHostRef.current) {
       applyPower(simRef.current, 0, id, pushImpact);
-      pushImpact({ x: simRef.current.p0, y: FIELD.h - FIELD.paddleInset, t: performance.now(), color: POWER_MAP[id].color, big: true, kind: "power" });
     } else {
       chRef.current?.send({ type: "broadcast", event: "pw", payload: { id } });
       pushImpact({ x: simRef.current.p1, y: FIELD.paddleInset, t: performance.now(), color: POWER_MAP[id].color, big: true, kind: "power" });
+      sfx("power");
       if (id === "teleport") {
         const cur = simRef.current.p1;
-        const dx = Math.max(-0.35, Math.min(0.35, simRef.current.bx - cur));
+        const dx = Math.max(-0.4, Math.min(0.4, simRef.current.bx - cur));
         simRef.current.p1 = cur + dx;
         targetRef.current = cur + dx;
       }
-      if (id === "rewind") { simRef.current.rewindAt = performance.now(); sweep(1200, 120, 0.7, 0.05); }
+      if (id === "rewind") { simRef.current.rewindAt = performance.now(); sfx("rewind"); }
     }
   }, [pushImpact]);
 
@@ -609,14 +807,26 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     setPhase("countdown");
     setScore([0, 0]);
     cooldownUntilRef.current = 0;
+    ensureAudio();
+    startMusic();
     chRef.current?.send({ type: "broadcast", event: "start", payload: {} });
   }, []);
+
+  useEffect(() => {
+    if (phase === "over") {
+      stopMusic();
+      const won = mySide === 0 ? score[0] > score[1] : score[1] > score[0];
+      sfx(won ? "win" : "lose");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   return {
     sim: simRef, impacts: impactsRef,
     peers: sorted, opponent, connected, lag, opponentGone,
     phase, score, countdown, fxView, mySide, isHost,
-    myPower, cooldown, setTarget, choosePower, usePower, startMatch,
+    myPower, cooldown, cooldownTotal: cooldownTotalRef.current,
+    setTarget, choosePower, usePower, startMatch,
   };
 }
 
@@ -624,7 +834,7 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
 /* canvas — camada gráfica                                             */
 /* ------------------------------------------------------------------ */
 
-type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number };
+type Particle = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; size: number; grav?: number };
 
 function hexA(hex: string, a: number) {
   const h = hex.replace("#", "");
@@ -651,22 +861,25 @@ export function PongCanvas({
   onTarget: (x: number) => void;
 }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
-  const trail = useRef<{ x: number; y: number; t: number }[]>([]);
+  const trail = useRef<{ x: number; y: number; t: number; r: number }[]>([]);
   const parts = useRef<Particle[]>([]);
   const stars = useRef<{ x: number; y: number; z: number; s: number }[]>([]);
   const seen = useRef<Set<number>>(new Set());
+  const bgRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => { setArenaTrack(arena); }, [arena]);
 
   useEffect(() => {
     const cv = ref.current;
     if (!cv) return;
-    const ctx = cv.getContext("2d");
+    const ctx = cv.getContext("2d", { alpha: false });
     if (!ctx) return;
     const arenaDef = ARENAS.find((a) => a.id === arena) ?? ARENAS[0];
     const pSkin = PADDLE_SKINS.find((s) => s.id === paddleSkin) ?? PADDLE_SKINS[0];
     const bSkin = BALL_SKINS.find((s) => s.id === ballSkin) ?? BALL_SKINS[0];
 
     if (!stars.current.length) {
-      stars.current = Array.from({ length: 70 }, () => ({
+      stars.current = Array.from({ length: 90 }, () => ({
         x: Math.random(),
         y: Math.random(),
         z: 0.25 + Math.random() * 0.75,
@@ -678,19 +891,69 @@ export function PongCanvas({
     let shake = 0;
     let lastT = performance.now();
     const start = performance.now();
+    let frameSkip = 0;
+    let fpsAvg = 60;
 
     const burst = (x: number, y: number, color: string, count: number, power = 1) => {
-      for (let i = 0; i < count; i++) {
+      const n = Math.round(count * (fpsAvg < 45 ? 0.5 : 1));
+      for (let i = 0; i < n; i++) {
         const a = Math.random() * Math.PI * 2;
-        const sp = (0.15 + Math.random() * 0.55) * power;
+        const sp = (0.15 + Math.random() * 0.65) * power;
         parts.current.push({
           x, y,
           vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-          life: 0, max: 0.35 + Math.random() * 0.5,
-          color, size: (1 + Math.random() * 2.4) * power,
+          life: 0, max: 0.35 + Math.random() * 0.55,
+          color, size: (1 + Math.random() * 2.6) * power,
+          grav: 0.25,
         });
       }
-      if (parts.current.length > 420) parts.current.splice(0, parts.current.length - 420);
+      if (parts.current.length > 380) parts.current.splice(0, parts.current.length - 380);
+    };
+
+    /* fundo estático pré-renderizado (nebulosas + grade) */
+    const buildBg = (W: number, H: number, dpr: number) => {
+      const off = document.createElement("canvas");
+      off.width = W; off.height = H;
+      const c = off.getContext("2d");
+      if (!c) return off;
+      const g = c.createLinearGradient(0, 0, W * 0.3, H);
+      g.addColorStop(0, arenaDef.bg[0]);
+      g.addColorStop(1, arenaDef.bg[1]);
+      c.fillStyle = g;
+      c.fillRect(0, 0, W, H);
+
+      c.globalCompositeOperation = "lighter";
+      for (let n = 0; n < 4; n++) {
+        const cx = W * (0.15 + 0.24 * n);
+        const cy = H * (0.12 + 0.26 * n);
+        const rad = Math.min(W, H) * (0.4 + n * 0.12);
+        const rg = c.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        rg.addColorStop(0, hexA(n % 2 ? arenaDef.accent : arenaDef.glow, 0.11));
+        rg.addColorStop(1, hexA(n % 2 ? arenaDef.accent : arenaDef.glow, 0));
+        c.fillStyle = rg;
+        c.beginPath(); c.arc(cx, cy, rad, 0, Math.PI * 2); c.fill();
+      }
+      c.globalCompositeOperation = "source-over";
+
+      // grade em perspectiva suave
+      c.strokeStyle = hexA(arenaDef.glow, 0.09);
+      c.lineWidth = Math.max(1, dpr * 0.7);
+      for (let i = 1; i < 12; i++) {
+        const y = (H / 12) * i;
+        c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke();
+      }
+      for (let i = 1; i < 8; i++) {
+        const x = (W / 8) * i;
+        c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke();
+      }
+      // textura sutil
+      c.globalAlpha = 0.05;
+      for (let i = 0; i < 900; i++) {
+        c.fillStyle = Math.random() > 0.5 ? "#ffffff" : "#000000";
+        c.fillRect(Math.random() * W, Math.random() * H, dpr, dpr);
+      }
+      c.globalAlpha = 1;
+      return off;
     };
 
     const draw = () => {
@@ -698,15 +961,24 @@ export function PongCanvas({
       const now = performance.now();
       const dt = Math.min(0.05, (now - lastT) / 1000);
       lastT = now;
+      fpsAvg = fpsAvg * 0.92 + (1 / Math.max(0.001, dt)) * 0.08;
       const el = (now - start) / 1000;
 
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      // em dispositivos fracos, desenha a 30fps
+      if (fpsAvg < 42 && (frameSkip = (frameSkip + 1) % 2) === 1) return;
+
+      const dpr = Math.min(fpsAvg < 45 ? 1.4 : 2, window.devicePixelRatio || 1);
       const rect = cv.getBoundingClientRect();
-      if (cv.width !== Math.floor(rect.width * dpr) || cv.height !== Math.floor(rect.height * dpr)) {
-        cv.width = Math.floor(rect.width * dpr);
-        cv.height = Math.floor(rect.height * dpr);
+      const wantW = Math.floor(rect.width * dpr);
+      const wantH = Math.floor(rect.height * dpr);
+      if (cv.width !== wantW || cv.height !== wantH) {
+        cv.width = wantW; cv.height = wantH;
+        bgRef.current = null;
       }
       const W = cv.width, H = cv.height;
+      if (!W || !H) return;
+      if (!bgRef.current) bgRef.current = buildBg(W, H, dpr);
+
       const sx = W / FIELD.w, sy = H / FIELD.h;
       const sim = simRef.current;
       const flip = mySide === 1;
@@ -717,19 +989,23 @@ export function PongCanvas({
       const f1 = mergeFx(sim.fx?.[1]);
       const fxBySide = [f0, f1] as const;
       const meFx = fxBySide[mySide];
-      const foeFx = fxBySide[mySide === 0 ? 1 : 0];
+      const foeSide: 0 | 1 = mySide === 0 ? 1 : 0;
+      const foeFx = fxBySide[foeSide];
+      const R = ballRadius(sim);
 
       // ---- novos impactos viram partículas
       for (const i of impactsRef.current) {
         const key = i.t;
         if (seen.current.has(key)) continue;
         seen.current.add(key);
-        if (i.kind === "goal") { burst(fxp(i.x), fy(i.y), i.color, 44, 1.6); shake = Math.max(shake, 14); }
-        else if (i.kind === "power") { burst(fxp(i.x), fy(i.y), i.color, 30, 1.2); shake = Math.max(shake, 7); }
-        else if (i.kind === "rewind") { burst(W / 2, H / 2, "#facc15", 60, 1.8); shake = Math.max(shake, 10); }
-        else { burst(fxp(i.x), fy(i.y), i.color, i.big ? 26 : 12, i.big ? 1.4 : 0.8); shake = Math.max(shake, i.big ? 9 : 3.5); }
+        if (i.kind === "goal") { burst(fxp(i.x), fy(i.y), i.color, 50, 1.7); shake = Math.max(shake, 15); }
+        else if (i.kind === "power") { burst(fxp(i.x), fy(i.y), i.color, 34, 1.25); shake = Math.max(shake, 7); }
+        else if (i.kind === "rewind") { burst(W / 2, H / 2, "#facc15", 64, 1.8); shake = Math.max(shake, 11); }
+        else { burst(fxp(i.x), fy(i.y), i.color, i.big ? 28 : 12, i.big ? 1.5 : 0.8); shake = Math.max(shake, i.big ? 9 : 3.2); }
       }
       if (seen.current.size > 200) seen.current = new Set();
+
+      if (dur(meFx, "quake") > 0) shake = Math.max(shake, 6);
 
       const rewinding = sim.rewindAt && now - sim.rewindAt < 900 ? 1 - (now - sim.rewindAt) / 900 : 0;
 
@@ -738,53 +1014,73 @@ export function PongCanvas({
       if (shake > 0.2) ctx.translate((Math.random() - 0.5) * shake * dpr, (Math.random() - 0.5) * shake * dpr);
 
       /* fundo -------------------------------------------------- */
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, arenaDef.bg[0]);
-      g.addColorStop(1, arenaDef.bg[1]);
-      ctx.fillStyle = g;
-      ctx.fillRect(-W, -H, W * 3, H * 3);
-
-      // nebulosas suaves
-      ctx.globalCompositeOperation = "lighter";
-      for (let n = 0; n < 3; n++) {
-        const cx = W * (0.25 + 0.25 * n) + Math.sin(el * 0.25 + n) * W * 0.1;
-        const cy = H * (0.2 + 0.3 * n) + Math.cos(el * 0.2 + n) * H * 0.07;
-        const rad = Math.min(W, H) * (0.35 + n * 0.1);
-        const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-        rg.addColorStop(0, hexA(arenaDef.glow, 0.13));
-        rg.addColorStop(1, hexA(arenaDef.glow, 0));
-        ctx.fillStyle = rg;
-        ctx.beginPath();
-        ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.drawImage(bgRef.current, 0, 0);
 
       // estrelas com parallax leve seguindo a bola
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
       for (const st of stars.current) {
-        const px = (st.x * W + Math.sin(el * 0.1 * st.z) * 8 * dpr + (sim.bx - 0.5) * 22 * dpr * st.z + W) % W;
-        const py = (st.y * H + el * 6 * st.z * dpr) % H;
-        ctx.globalAlpha = 0.25 + st.z * 0.5 * (0.6 + 0.4 * Math.sin(el * 2 + st.x * 10));
+        const px = (st.x * W + Math.sin(el * 0.1 * st.z) * 8 * dpr + (sim.bx - 0.5) * 26 * dpr * st.z + W) % W;
+        const py = (st.y * H + el * 7 * st.z * dpr) % H;
+        ctx.globalAlpha = 0.2 + st.z * 0.55 * (0.6 + 0.4 * Math.sin(el * 2 + st.x * 10));
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         ctx.arc(px, py, st.s * st.z * dpr, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
+      ctx.restore();
 
-      /* grade de campo ------------------------------------------ */
-      ctx.strokeStyle = hexA(arenaDef.glow, 0.1);
-      ctx.lineWidth = Math.max(1, dpr * 0.8);
-      for (let i = 1; i < 6; i++) {
-        const y = (H / 6) * i;
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-      }
-      for (let i = 1; i < 4; i++) {
-        const x = (W / 4) * i;
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      /* buraco negro -------------------------------------------- */
+      for (const side of [0, 1] as const) {
+        if (dur(fxBySide[side], "blackhole") <= 0) continue;
+        const hx = fxp(FIELD.w / 2), hy = fy(holeY(side));
+        const rad = Math.min(W, H) * 0.19;
+        ctx.save();
+        const hg = ctx.createRadialGradient(hx, hy, rad * 0.1, hx, hy, rad);
+        hg.addColorStop(0, "rgba(0,0,0,0.95)");
+        hg.addColorStop(0.6, hexA("#818cf8", 0.35));
+        hg.addColorStop(1, hexA("#818cf8", 0));
+        ctx.fillStyle = hg;
+        ctx.beginPath(); ctx.arc(hx, hy, rad, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = hexA("#c7d2fe", 0.5);
+        ctx.lineWidth = 1.5 * dpr;
+        for (let a = 0; a < 3; a++) {
+          ctx.beginPath();
+          for (let k = 0; k < 42; k++) {
+            const th = k * 0.22 + el * 2.4 + a * 2.1;
+            const rr = rad * (0.16 + k * 0.019);
+            const X = hx + Math.cos(th) * rr, Y = hy + Math.sin(th) * rr * 0.85;
+            k ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+          }
+          ctx.globalAlpha = 0.4;
+          ctx.stroke();
+        }
+        ctx.restore();
       }
 
-      // linha central pulsante
+      /* vórtice --------------------------------------------------- */
+      for (const side of [0, 1] as const) {
+        if (dur(fxBySide[side], "vortex") <= 0) continue;
+        const cx = fxp(FIELD.w / 2), cy = fy(holeY(side));
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = hexA("#22c55e", 0.28);
+        ctx.lineWidth = 2 * dpr;
+        for (let a = 0; a < 4; a++) {
+          ctx.beginPath();
+          for (let k = 0; k < 50; k++) {
+            const th = k * 0.3 - el * 3 + a * 1.57;
+            const rr = Math.min(W, H) * (0.02 + k * 0.006);
+            const X = cx + Math.cos(th) * rr, Y = cy + Math.sin(th) * rr;
+            k ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      /* linha central + moldura ---------------------------------- */
       const pulse = 0.55 + 0.45 * Math.sin(el * 2.2);
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -796,105 +1092,103 @@ export function PongCanvas({
       ctx.lineDashOffset = -el * 26 * dpr;
       ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
       ctx.setLineDash([]);
-      // círculo central
-      ctx.globalAlpha = 0.35;
+      ctx.globalAlpha = 0.3;
       ctx.beginPath();
       ctx.arc(W / 2, H / 2, Math.min(W, H) * 0.12 * (1 + 0.03 * Math.sin(el * 3)), 0, Math.PI * 2);
       ctx.stroke();
-      ctx.restore();
-
-      // moldura neon
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.strokeStyle = hexA(arenaDef.glow, 0.35);
-      ctx.shadowColor = arenaDef.glow;
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = hexA(arenaDef.glow, 0.32);
       ctx.shadowBlur = 22 * dpr;
-      ctx.lineWidth = 2 * dpr;
       ctx.strokeRect(dpr, dpr, W - dpr * 2, H - dpr * 2);
       ctx.restore();
 
-      /* muralhas / clones -------------------------------------- */
+      /* muralhas -------------------------------------------------- */
       const drawWall = (side: 0 | 1) => {
         const f = fxBySide[side];
-        if (f.wall <= 0) return;
+        if (dur(f, "wall") <= 0) return;
         const y = fy(wallY(side));
-        const a = Math.min(1, f.wall) * 0.75;
+        const a = Math.min(1, dur(f, "wall")) * 0.8;
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
-        const wg = ctx.createLinearGradient(0, y - 8 * dpr, 0, y + 8 * dpr);
+        const wg = ctx.createLinearGradient(0, y - 9 * dpr, 0, y + 9 * dpr);
         wg.addColorStop(0, hexA("#a3a3a3", 0));
         wg.addColorStop(0.5, hexA("#e5e7eb", a));
         wg.addColorStop(1, hexA("#a3a3a3", 0));
         ctx.fillStyle = wg;
-        ctx.fillRect(0, y - 8 * dpr, W, 16 * dpr);
-        ctx.globalAlpha = a * 0.6;
+        ctx.fillRect(0, y - 9 * dpr, W, 18 * dpr);
+        ctx.globalAlpha = a * 0.55;
         ctx.strokeStyle = "#e5e7eb";
         ctx.lineWidth = 1 * dpr;
         for (let x = 0; x < W; x += 18 * dpr) {
-          ctx.beginPath(); ctx.moveTo(x + (el * 20 * dpr) % (18 * dpr), y - 7 * dpr); ctx.lineTo(x, y + 7 * dpr); ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x + ((el * 22 * dpr) % (18 * dpr)), y - 8 * dpr);
+          ctx.lineTo(x, y + 8 * dpr);
+          ctx.stroke();
         }
         ctx.restore();
       };
       drawWall(0); drawWall(1);
 
       /* rastro da bola ------------------------------------------ */
-      trail.current.push({ x: sim.bx, y: sim.by, t: now });
-      if (trail.current.length > 26) trail.current.shift();
+      trail.current.push({ x: sim.bx, y: sim.by, t: now, r: R });
+      if (trail.current.length > 30) trail.current.shift();
+      const furyBall = dur(f0, "fury") > 0 || dur(f1, "fury") > 0;
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
-      const furyBall = f0.fury > 0 || f1.fury > 0;
       trail.current.forEach((p, i) => {
         const k = i / trail.current.length;
-        ctx.globalAlpha = k * k * 0.5;
+        ctx.globalAlpha = k * k * 0.55;
         ctx.fillStyle = furyBall ? "rgba(249,115,22,0.6)" : bSkin.trail;
         ctx.beginPath();
-        ctx.arc(fxp(p.x), fy(p.y), FIELD.ballR * sx * (0.25 + k * 0.95), 0, Math.PI * 2);
+        ctx.arc(fxp(p.x), fy(p.y), p.r * sx * (0.22 + k * 1.0), 0, Math.PI * 2);
         ctx.fill();
       });
       ctx.restore();
 
       /* raquetes ------------------------------------------------- */
-      const drawPaddle = (x: number, y: number, side: 0 | 1, ghostAlpha = 1) => {
+      const drawPaddle = (x: number, y: number, side: 0 | 1, alpha = 1, small = false) => {
         const f = fxBySide[side];
-        const half = paddleHalf(f) * sx;
-        const hh = FIELD.paddleH * sy * 1.15;
+        const half = paddleHalf(f) * (small ? 0.6 : 1) * sx;
+        const hh = FIELD.paddleH * sy * 1.2;
         const mine = side === mySide;
+        // camuflagem: some para o rival
+        let a = alpha;
+        if (dur(f, "stealth") > 0 && !mine) a *= 0.08;
+        else if (dur(f, "stealth") > 0) a *= 0.55;
         const color = mine ? pSkin.color : "#94a3b8";
         const trailC = mine ? pSkin.trail : "#cbd5e1";
         const px = fxp(x) - half, py = fy(y) - hh / 2;
         const r = hh / 2;
 
         ctx.save();
-        ctx.globalAlpha = ghostAlpha;
-        // brilho sob a raquete
+        ctx.globalAlpha = a;
         ctx.globalCompositeOperation = "lighter";
-        const glow = ctx.createRadialGradient(fxp(x), fy(y), 0, fxp(x), fy(y), half * 1.9);
-        glow.addColorStop(0, hexA(color, 0.5 * (f.speed > 0 || f.magnet > 0 ? 1.3 : 1)));
+        const glow = ctx.createRadialGradient(fxp(x), fy(y), 0, fxp(x), fy(y), half * 2);
+        glow.addColorStop(0, hexA(color, 0.55));
         glow.addColorStop(1, hexA(color, 0));
         ctx.fillStyle = glow;
         ctx.fillRect(px - half, py - hh * 3, half * 4, hh * 7);
         ctx.globalCompositeOperation = "source-over";
 
         const pg = ctx.createLinearGradient(0, py, 0, py + hh);
-        pg.addColorStop(0, trailC);
+        pg.addColorStop(0, "#ffffff");
+        pg.addColorStop(0.35, trailC);
         pg.addColorStop(1, color);
         ctx.fillStyle = pg;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 20 * dpr;
+        ctx.shadowBlur = 22 * dpr;
         ctx.beginPath();
         ctx.roundRect(px, py, half * 2, hh, r);
         ctx.fill();
         ctx.shadowBlur = 0;
-        // reflexo interno
-        ctx.globalAlpha = ghostAlpha * 0.5;
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.globalAlpha = a * 0.55;
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
         ctx.beginPath();
-        ctx.roundRect(px + r * 0.5, py + hh * 0.18, half * 2 - r, hh * 0.26, hh * 0.13);
+        ctx.roundRect(px + r * 0.5, py + hh * 0.16, Math.max(0, half * 2 - r), hh * 0.24, hh * 0.12);
         ctx.fill();
-        ctx.globalAlpha = ghostAlpha;
+        ctx.globalAlpha = a;
 
-        // congelado
-        if (f.freeze > 0) {
+        if (dur(f, "freeze") > 0) {
           ctx.strokeStyle = hexA("#67e8f9", 0.9);
           ctx.lineWidth = 2 * dpr;
           ctx.beginPath();
@@ -902,18 +1196,17 @@ export function PongCanvas({
           ctx.stroke();
           for (let i = 0; i < 5; i++) {
             const fxx = px + (half * 2 * (i + 0.5)) / 5;
-            ctx.globalAlpha = ghostAlpha * 0.6;
+            ctx.globalAlpha = a * 0.6;
             ctx.fillStyle = "#e0f2fe";
             ctx.beginPath();
             ctx.arc(fxx, py + hh / 2 + Math.sin(el * 4 + i) * 2 * dpr, 2 * dpr, 0, Math.PI * 2);
             ctx.fill();
-            ctx.globalAlpha = ghostAlpha;
+            ctx.globalAlpha = a;
           }
         }
-        // escudo
-        if (f.shield > 0 && !f.shieldUsed) {
+        if (dur(f, "shield") > 0 && !f.shieldUsed) {
           ctx.globalCompositeOperation = "lighter";
-          const sa = 0.25 + 0.2 * Math.sin(el * 5);
+          const sa = 0.3 + 0.2 * Math.sin(el * 5);
           ctx.strokeStyle = hexA("#22d3ee", sa + 0.35);
           ctx.lineWidth = 3 * dpr;
           ctx.beginPath();
@@ -922,12 +1215,11 @@ export function PongCanvas({
           ctx.stroke();
           ctx.globalCompositeOperation = "source-over";
         }
-        // fúria
-        if (f.fury > 0) {
+        if (dur(f, "fury") > 0) {
           ctx.globalCompositeOperation = "lighter";
           for (let i = 0; i < 6; i++) {
             const fxx = px + (half * 2 * (i + 0.5)) / 6;
-            const hgt = (6 + Math.abs(Math.sin(el * 9 + i)) * 12) * dpr;
+            const hgt = (6 + Math.abs(Math.sin(el * 9 + i)) * 14) * dpr;
             ctx.fillStyle = hexA("#f97316", 0.5);
             ctx.beginPath();
             ctx.ellipse(fxx, py + (side === mySide ? -hgt / 2 : hh + hgt / 2), 3.5 * dpr, hgt / 2, 0, 0, Math.PI * 2);
@@ -935,39 +1227,78 @@ export function PongCanvas({
           }
           ctx.globalCompositeOperation = "source-over";
         }
+        if (dur(f, "spikes") > 0) {
+          ctx.fillStyle = hexA("#84cc16", 0.85);
+          for (let i = 0; i < 7; i++) {
+            const fxx = px + (half * 2 * (i + 0.5)) / 7;
+            const dir = side === mySide ? -1 : 1;
+            ctx.beginPath();
+            ctx.moveTo(fxx - 3 * dpr, py + (dir < 0 ? 0 : hh));
+            ctx.lineTo(fxx + 3 * dpr, py + (dir < 0 ? 0 : hh));
+            ctx.lineTo(fxx, py + (dir < 0 ? -7 * dpr : hh + 7 * dpr));
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+        if (dur(f, "overdrive") > 0) {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.strokeStyle = hexA("#fde047", 0.5 + 0.3 * Math.sin(el * 8));
+          ctx.lineWidth = 1.6 * dpr;
+          ctx.beginPath();
+          ctx.roundRect(px - 5 * dpr, py - 5 * dpr, half * 2 + 10 * dpr, hh + 10 * dpr, r + 5 * dpr);
+          ctx.stroke();
+          ctx.globalCompositeOperation = "source-over";
+        }
         ctx.restore();
       };
 
       drawPaddle(sim.p0, FIELD.h - FIELD.paddleInset, 0);
       drawPaddle(sim.p1, FIELD.paddleInset, 1);
-      if (f0.clone > 0) drawPaddle(sim.p0, cloneY(0), 0, 0.45);
-      if (f1.clone > 0) drawPaddle(sim.p1, cloneY(1), 1, 0.45);
+      if (dur(f0, "clone") > 0) drawPaddle(sim.p0, cloneY(0), 0, 0.45);
+      if (dur(f1, "clone") > 0) drawPaddle(sim.p1, cloneY(1), 1, 0.45);
+      if (dur(f0, "sentinel") > 0) drawPaddle(sim.g0, sentinelY(0), 0, 0.75, true);
+      if (dur(f1, "sentinel") > 0) drawPaddle(sim.g1, sentinelY(1), 1, 0.75, true);
 
       /* bola ------------------------------------------------------ */
-      // fantasma: some no campo de quem sofre o efeito
       const ballInMyHalf = mySide === 0 ? sim.by > FIELD.h / 2 : sim.by < FIELD.h / 2;
-      const ballAlpha = foeFx.ghost > 0 && ballInMyHalf ? 0.14 : 1;
+      const ballAlpha = dur(meFx, "ghost") > 0 && ballInMyHalf ? 0.12 : 1;
       const bx = fxp(sim.bx), by = fy(sim.by);
-      const br = FIELD.ballR * sx;
+      const br = R * sx;
       ctx.save();
       ctx.globalAlpha = ballAlpha;
       ctx.globalCompositeOperation = "lighter";
-      const bg = ctx.createRadialGradient(bx, by, 0, bx, by, br * 3.2);
-      bg.addColorStop(0, hexA(furyBall ? "#fb923c" : bSkin.color, 0.85));
+      const bg = ctx.createRadialGradient(bx, by, 0, bx, by, br * 3.4);
+      bg.addColorStop(0, hexA(furyBall ? "#fb923c" : bSkin.color, 0.9));
       bg.addColorStop(1, hexA(furyBall ? "#f97316" : bSkin.color, 0));
       ctx.fillStyle = bg;
-      ctx.beginPath(); ctx.arc(bx, by, br * 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx, by, br * 3.4, 0, Math.PI * 2); ctx.fill();
       ctx.globalCompositeOperation = "source-over";
-      const core = ctx.createRadialGradient(bx - br * 0.35, by - br * 0.35, br * 0.1, bx, by, br);
+      const core = ctx.createRadialGradient(bx - br * 0.35, by - br * 0.35, br * 0.08, bx, by, br);
       core.addColorStop(0, "#ffffff");
-      core.addColorStop(1, furyBall ? "#fb923c" : bSkin.color);
+      core.addColorStop(0.6, furyBall ? "#fdba74" : bSkin.color);
+      core.addColorStop(1, furyBall ? "#ea580c" : hexA(bSkin.color, 0.85));
       ctx.fillStyle = core;
       ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
+      // anel de spin
+      if (Math.abs(sim.spin) > 0.05) {
+        ctx.strokeStyle = hexA("#2dd4bf", 0.75);
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        ctx.arc(bx, by, br * 1.6, el * 8 * Math.sign(sim.spin), el * 8 * Math.sign(sim.spin) + Math.PI);
+        ctx.stroke();
+      }
       if (furyBall) {
         ctx.strokeStyle = hexA("#fdba74", 0.8);
         ctx.lineWidth = 2 * dpr;
         ctx.beginPath();
         ctx.arc(bx, by, br * (1.5 + 0.15 * Math.sin(el * 12)), el * 4, el * 4 + Math.PI * 1.3);
+        ctx.stroke();
+      }
+      if (sim.stick) {
+        ctx.strokeStyle = hexA("#eab308", 0.8);
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        ctx.arc(bx, by, br * (1.9 + 0.2 * Math.sin(el * 14)), 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.restore();
@@ -980,6 +1311,7 @@ export function PongCanvas({
         if (p.life >= p.max) return false;
         p.x += p.vx * sx * dt;
         p.y += p.vy * sy * dt;
+        p.vy += (p.grav ?? 0) * sy * dt * 0.35;
         p.vx *= 0.97; p.vy *= 0.97;
         const k = 1 - p.life / p.max;
         ctx.globalAlpha = k;
@@ -997,7 +1329,7 @@ export function PongCanvas({
       ctx.globalCompositeOperation = "lighter";
       for (const i of impactsRef.current) {
         const t = (now - i.t) / 620;
-        const rad = (i.kind === "goal" ? 140 : i.big ? 100 : 46) * dpr * (1 - Math.pow(1 - t, 2));
+        const rad = (i.kind === "goal" ? 150 : i.big ? 105 : 48) * dpr * (1 - Math.pow(1 - t, 2));
         ctx.globalAlpha = (1 - t) * 0.7;
         ctx.strokeStyle = i.color;
         ctx.lineWidth = (i.big ? 4 : 2.5) * dpr * (1 - t);
@@ -1007,19 +1339,53 @@ export function PongCanvas({
       }
       ctx.restore();
 
+      /* neblina no meu campo -------------------------------------- */
+      if (dur(meFx, "fog") > 0) {
+        const top = mySide === 0 ? H / 2 : 0;
+        ctx.save();
+        const fg = ctx.createLinearGradient(0, top, 0, top + H / 2);
+        const strong = Math.min(1, dur(meFx, "fog") / 1.5);
+        fg.addColorStop(0, hexA("#cbd5e1", 0.12 * strong));
+        fg.addColorStop(0.6, hexA("#94a3b8", 0.55 * strong));
+        fg.addColorStop(1, hexA("#e2e8f0", 0.7 * strong));
+        ctx.fillStyle = fg;
+        ctx.fillRect(0, top, W, H / 2);
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < 6; i++) {
+          const cx = ((el * (12 + i * 7) + i * 180) % (W + 300)) - 150;
+          const cy = top + (H / 2) * (0.2 + 0.14 * i);
+          const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 150 * dpr);
+          rg.addColorStop(0, hexA("#f8fafc", 0.14 * strong));
+          rg.addColorStop(1, hexA("#f8fafc", 0));
+          ctx.fillStyle = rg;
+          ctx.beginPath(); ctx.arc(cx, cy, 150 * dpr, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      /* inversão de controles ------------------------------------- */
+      if (dur(meFx, "invert") > 0) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = hexA("#f0abfc", 0.25 + 0.15 * Math.sin(el * 6));
+        ctx.lineWidth = 5 * dpr;
+        ctx.strokeRect(3 * dpr, 3 * dpr, W - 6 * dpr, H - 6 * dpr);
+        ctx.restore();
+      }
+
       /* efeito de retorno no tempo -------------------------------- */
       if (rewinding > 0) {
         ctx.save();
-        ctx.globalAlpha = rewinding * 0.45;
+        ctx.globalAlpha = rewinding * 0.4;
         ctx.fillStyle = "#facc15";
         ctx.globalCompositeOperation = "overlay";
         ctx.fillRect(0, 0, W, H);
         ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = rewinding * 0.35;
+        ctx.globalAlpha = rewinding * 0.3;
         ctx.strokeStyle = "#fde68a";
         ctx.lineWidth = 1 * dpr;
-        for (let y = 0; y < H; y += 5 * dpr) {
-          ctx.beginPath(); ctx.moveTo(0, y + ((el * 200) % (5 * dpr))); ctx.lineTo(W, y); ctx.stroke();
+        for (let y = 0; y < H; y += 6 * dpr) {
+          ctx.beginPath(); ctx.moveTo(0, y + ((el * 200) % (6 * dpr))); ctx.lineTo(W, y); ctx.stroke();
         }
         ctx.globalAlpha = rewinding;
         for (let i = 0; i < 3; i++) {
@@ -1033,21 +1399,27 @@ export function PongCanvas({
       }
 
       /* aura de status do jogador --------------------------------- */
-      if (meFx.freeze > 0 || meFx.shrink > 0 || foeFx.ghost > 0) {
+      const statusColor =
+        dur(meFx, "freeze") > 0 ? "#67e8f9"
+          : dur(meFx, "shrink") > 0 ? "#fb7185"
+            : dur(meFx, "chaos") > 0 ? "#e879f9"
+              : dur(meFx, "ghost") > 0 ? "#e5e7eb"
+                : dur(foeFx, "fury") > 0 ? "#f97316"
+                  : null;
+      if (statusColor) {
         ctx.save();
-        const c = meFx.freeze > 0 ? "#67e8f9" : meFx.shrink > 0 ? "#fb7185" : "#e5e7eb";
         const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
-        vg.addColorStop(0, hexA(c, 0));
-        vg.addColorStop(1, hexA(c, 0.28));
+        vg.addColorStop(0, hexA(statusColor, 0));
+        vg.addColorStop(1, hexA(statusColor, 0.28));
         ctx.fillStyle = vg;
         ctx.fillRect(0, 0, W, H);
         ctx.restore();
       }
 
-      // vinheta
-      const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.78);
+      // vinheta cinematográfica
+      const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.38, W / 2, H / 2, Math.max(W, H) * 0.8);
       vig.addColorStop(0, "rgba(0,0,0,0)");
-      vig.addColorStop(1, "rgba(0,0,0,0.45)");
+      vig.addColorStop(1, "rgba(0,0,0,0.5)");
       ctx.fillStyle = vig;
       ctx.fillRect(0, 0, W, H);
 
@@ -1067,7 +1439,7 @@ export function PongCanvas({
     <canvas
       ref={ref}
       className="h-full w-full touch-none rounded-3xl"
-      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); handle(e); }}
+      onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); ensureAudio(); handle(e); }}
       onPointerMove={(e) => { if (e.buttons || e.pointerType === "touch") handle(e); }}
     />
   );

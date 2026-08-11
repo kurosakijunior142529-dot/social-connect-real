@@ -649,12 +649,58 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
       return;
     }
 
+    /* ---- expansão: instantâneos ---- */
+    case "dash": {
+      const cur = side === 0 ? sim.p0 : sim.p1;
+      const dirD = sim.bx >= cur ? 1 : -1;
+      const nx = Math.max(0.05, Math.min(FIELD.w - 0.05, cur + dirD * 0.26));
+      if (side === 0) sim.p0 = nx; else sim.p1 = nx;
+      at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
+      sfx("power");
+      return;
+    }
+    case "shift": {
+      const cur = side === 0 ? sim.p0 : sim.p1;
+      const nx = FIELD.w - cur;
+      if (side === 0) sim.p0 = nx; else sim.p1 = nx;
+      at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
+      sfx("portal");
+      return;
+    }
+    case "taunt": {
+      if (foeSide === 0) sim.p0 = FIELD.w / 2; else sim.p1 = FIELD.w / 2;
+      foe.taunt = def.duration;
+      foe.freeze = Math.max(dur(foe, "freeze"), def.duration);
+      at(foeSide === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
+      sfx("freeze");
+      return;
+    }
+    case "golden": {
+      sim.mult = 2;
+      onImpact?.({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: def.color, big: true, kind: "power" });
+      sfx("power");
+      return;
+    }
+    case "gambit": {
+      if (side === 0) sim.s0 = Math.max(0, sim.s0 - 1); else sim.s1 = Math.max(0, sim.s1 - 1);
+      fx.gambit = def.duration;
+      onImpact?.({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: def.color, big: true, kind: "power" });
+      sfx("power");
+      return;
+    }
+
     /* duradouros no próprio jogador */
     case "gravity": case "portal": case "clone": case "magnet": case "speed":
     case "reflex": case "wall": case "fury": case "curve": case "slowmo":
     case "stealth": case "spikes": case "overdrive": case "giant":
     case "tiny": case "sticky":
+    case "wrap": case "anchor": case "fuse": case "damp": case "fork":
+    case "feather": case "root": case "split": case "counter": case "parry":
+    case "tether": case "bulwark": case "secondwind": case "serveback":
+    case "vault": case "netrise": case "haven": case "bubble":
+    case "momentum": case "overload": case "curtain": case "resonance":
       fx[id] = def.duration;
+      if (id === "momentum") sim.mom[side] = 0;
       break;
     case "sentinel":
       fx.sentinel = def.duration;
@@ -676,6 +722,11 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
     case "quake": foe.quake = def.duration; sfx("quake"); break;
     case "vortex": foe.vortex = def.duration; break;
     case "chaos": foe.chaos = def.duration; break;
+    case "ceiling": case "saw": case "current": case "heavy":
+    case "blind": case "jam": case "drift": case "silence": case "leech":
+    case "mirror": case "narrow": case "lead": case "deadzone":
+      foe[id] = def.duration;
+      break;
   }
   at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
   if (id !== "freeze" && id !== "quake") sfx("power");

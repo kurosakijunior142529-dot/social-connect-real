@@ -558,6 +558,18 @@ function ConversationPage() {
         }
       >
         <div className="pointer-events-none absolute inset-0 bg-background/35 backdrop-blur-[1px]" />
+        {hasOlder && (messages.data?.length ?? 0) > 0 ? (
+          <div className="relative mb-3 flex justify-center">
+            <button
+              onClick={loadOlder}
+              disabled={loadingOlder}
+              className="rounded-full bg-[color:var(--surface-2)] px-4 py-1.5 text-[12px] text-muted-foreground active:scale-95 disabled:opacity-60"
+            >
+              {loadingOlder ? "Carregando…" : "Carregar mensagens anteriores"}
+            </button>
+          </div>
+        ) : null}
+
         {rows.map(({ m, first, last, daySep }) => (
           <MessageRow
             key={m.id}

@@ -46,6 +46,16 @@ type Sim = {
   rewindAt: number;
   /** rally atual — usado para intensidade da trilha */
   rally: number;
+  /** multiplicador de pontos da disputa atual (Ponto de Ouro) */
+  mult: number;
+  /** força o próximo saque para um lado (Sacada) */
+  serveOverride: 0 | 1 | null;
+  /** Fôlego — instante em que a recarga zera para cada lado */
+  sw: [number, number];
+  /** Ímpeto — pilhas acumuladas por lado */
+  mom: [number, number];
+  /** último toque válido (lado) — usado por Cofre/Ressonância */
+  lastHit: 0 | 1 | null;
 };
 
 export type Peer = { id: string; name: string; avatar: string | null; joinedAt: number; power: PowerId | null; ready: boolean };
@@ -63,15 +73,19 @@ export function ballRadius(sim: Sim) {
 }
 
 function serve(sim: Sim, to: 0 | 1) {
+  const forced = sim.serveOverride;
+  const dest: 0 | 1 = forced === null || forced === undefined ? to : forced;
+  sim.serveOverride = null;
   sim.bx = FIELD.w / 2;
   sim.by = FIELD.h / 2;
-  const angle = (Math.random() * 0.7 - 0.35) + (to === 0 ? Math.PI / 2 : -Math.PI / 2);
+  const angle = (Math.random() * 0.7 - 0.35) + (dest === 0 ? Math.PI / 2 : -Math.PI / 2);
   sim.vx = Math.cos(angle) * FIELD.baseSpeed;
   sim.vy = Math.sin(angle) * FIELD.baseSpeed;
-  sim.serveTo = to;
+  sim.serveTo = dest;
   sim.spin = 0;
   sim.stick = null;
   sim.rally = 0;
+  sim.lastHit = null;
 }
 
 export function newSim(): Sim {
@@ -84,6 +98,7 @@ export function newSim(): Sim {
     phase: "lobby", timer: 0, serveTo: 0,
     fx: [emptyFx(), emptyFx()],
     hist: [], clock: 0, rewindAt: 0, rally: 0,
+    mult: 1, serveOverride: null, sw: [0, 0], mom: [0, 0], lastHit: null,
   };
   serve(sim, 0);
   return sim;
@@ -95,6 +110,15 @@ const TIMED: PowerId[] = [
   "curve", "blackhole", "invert", "fog", "slowmo", "hyper", "quake",
   "vortex", "stealth", "spikes", "sentinel", "chaos", "overdrive",
   "giant", "tiny", "sticky",
+  // expansão
+  "wrap", "ceiling", "anchor", "fuse", "saw", "current", "damp", "fork",
+  "heavy", "feather",
+  "root", "split", "counter", "parry", "tether", "bulwark", "secondwind",
+  "serveback",
+  "blind", "jam", "drift", "silence", "leech", "mirror", "narrow", "lead",
+  "deadzone", "taunt",
+  "vault", "netrise", "haven", "bubble", "momentum", "overload", "gambit",
+  "curtain", "resonance",
 ];
 
 function decay(fx: Fx, dt: number) {
@@ -109,11 +133,29 @@ function decay(fx: Fx, dt: number) {
   if (!fx.shield) fx.shieldUsed = false;
 }
 
-export function paddleHalf(fx: Fx) {
+export function paddleHalf(fx: Fx, mom = 0) {
   let h = FIELD.paddleHalf;
   if (dur(fx, "magnet") > 0) h *= 1.55;
   if (dur(fx, "shrink") > 0) h *= 0.55;
+  if (dur(fx, "root") > 0) h *= 2;
+  if (dur(fx, "split") > 0) h *= 1.75;
+  if (dur(fx, "momentum") > 0) h *= 1 + Math.min(0.6, mom * 0.06);
   return h;
+}
+
+/** buraco central da raquete dividida (0 = sem buraco) */
+export function splitGap(fx: Fx) {
+  return dur(fx, "split") > 0 ? 0.42 : 0;
+}
+
+/** limites laterais efetivos do campo para um lado (Estreitar) */
+export function courtInset(fx: Fx) {
+  return dur(fx, "narrow") > 0 ? FIELD.w * 0.16 : 0;
+}
+
+/** y da placa "Teto" no campo de quem sofre */
+export function ceilingY(side: 0 | 1) {
+  return side === 0 ? FIELD.h * 0.88 : FIELD.h * 0.12;
 }
 
 /** posição Y da muralha de cada lado */
@@ -234,6 +276,23 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
         sim.vx += (Math.random() - 0.5) * 4.5 * h;
         sim.vy += (Math.random() - 0.5) * 2.5 * h;
       }
+      // serrote (em quem sofre): zigue-zague em serra
+      if (dur(f, "saw") > 0 && half === side) {
+        sim.vx += Math.sign(Math.sin(sim.clock * 11)) * 2.6 * h;
+      }
+      // correnteza (em quem sofre): empurrão lateral constante
+      if (dur(f, "current") > 0 && half === side) {
+        sim.vx += (side === 0 ? 1 : -1) * 1.1 * h;
+      }
+      // refúgio (no dono): puxa a bola para o centro do próprio campo
+      if (dur(f, "haven") > 0 && half === side) {
+        sim.vx += (FIELD.w / 2 - sim.bx) * 3.2 * h;
+      }
+      // pluma (no dono): trava a bola no fundo do próprio campo
+      if (dur(f, "feather") > 0 && half === side) {
+        const deep = side === 0 ? sim.by > FIELD.h * 0.82 : sim.by < FIELD.h * 0.18;
+        if (deep) { sim.vx *= Math.pow(0.25, h); sim.vy *= Math.pow(0.25, h); }
+      }
     }
 
     // efeito curva (spin)
@@ -247,36 +306,115 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
     const cap = FIELD.maxSpeed * 1.6;
     if (sp > cap) { sim.vx = (sim.vx / sp) * cap; sim.vy = (sim.vy / sp) * cap; }
 
-    // multiplicador local (lento/hiper)
+    // multiplicador local (lento/hiper/bolha temporal)
     let mul = 1;
     if (dur(sim.fx[half], "slowmo") > 0) mul *= 0.55;
     if (dur(sim.fx[half], "hyper") > 0) mul *= 1.6;
+    const bubbleOn = dur(sim.fx[0], "bubble") > 0 || dur(sim.fx[1], "bubble") > 0;
+    if (bubbleOn && Math.abs(sim.by - FIELD.h / 2) < FIELD.h * 0.17) mul *= 0.5;
 
     const prevY = sim.by;
+    const prevX = sim.bx;
     sim.bx += sim.vx * h * mul;
     sim.by += sim.vy * h * mul;
 
-    // paredes laterais
-    if (sim.bx < R) { sim.bx = R; sim.vx = Math.abs(sim.vx); sim.spin *= -0.5; sfx("wall"); onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: "#ffffff", kind: "hit" }); }
-    if (sim.bx > FIELD.w - R) { sim.bx = FIELD.w - R; sim.vx = -Math.abs(sim.vx); sim.spin *= -0.5; sfx("wall"); onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: "#ffffff", kind: "hit" }); }
+
+    // paredes laterais (com Fronteira Aberta, Estreitar e Amortecer)
+    const wrapOn = dur(sim.fx[0], "wrap") > 0 || dur(sim.fx[1], "wrap") > 0;
+    const inset = courtInset(sim.fx[half]);
+    const damp = dur(sim.fx[half], "damp") > 0 ? 0.5 : 1;
+    const leftX = inset + R;
+    const rightX = FIELD.w - inset - R;
+    if (sim.bx < leftX) {
+      if (wrapOn && inset === 0) {
+        sim.bx = FIELD.w - R;
+      } else {
+        sim.bx = leftX; sim.vx = Math.abs(sim.vx) * damp; sim.vy *= damp === 1 ? 1 : 0.85; sim.spin *= -0.5;
+        sfx("wall"); onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: inset > 0 ? "#fb923c" : "#ffffff", kind: "hit" });
+      }
+    }
+    if (sim.bx > rightX) {
+      if (wrapOn && inset === 0) {
+        sim.bx = R;
+      } else {
+        sim.bx = rightX; sim.vx = -Math.abs(sim.vx) * damp; sim.vy *= damp === 1 ? 1 : 0.85; sim.spin *= -0.5;
+        sfx("wall"); onImpact({ x: sim.bx, y: sim.by, t: performance.now(), color: inset > 0 ? "#fb923c" : "#ffffff", kind: "hit" });
+      }
+    }
 
     // portal: espelha ao cruzar o meio
     const portalOn = dur(sim.fx[0], "portal") > 0 || dur(sim.fx[1], "portal") > 0;
-    if (portalOn && ((prevY < FIELD.h / 2 && sim.by >= FIELD.h / 2) || (prevY > FIELD.h / 2 && sim.by <= FIELD.h / 2))) {
+    const crossedMid = (prevY < FIELD.h / 2 && sim.by >= FIELD.h / 2) || (prevY > FIELD.h / 2 && sim.by <= FIELD.h / 2);
+    if (portalOn && crossedMid) {
       sim.bx = FIELD.w - sim.bx;
       sim.vx = -sim.vx;
       onImpact({ x: sim.bx, y: FIELD.h / 2, t: performance.now(), color: "#a855f7", kind: "power" });
       sfx("portal");
     }
 
+    // rede alta: bolas fracas voltam ao cruzar o meio
+    const netOn = dur(sim.fx[0], "netrise") > 0 || dur(sim.fx[1], "netrise") > 0;
+    if (netOn && crossedMid && Math.abs(sim.vy) < FIELD.baseSpeed * 0.95) {
+      sim.by = prevY;
+      sim.vy = -sim.vy * 0.9;
+      onImpact({ x: sim.bx, y: FIELD.h / 2, t: performance.now(), color: "#22c55e", kind: "power" });
+      sfx("wall");
+    }
+
+    // cortina: barra vertical no meio do campo
+    const curtainOn = dur(sim.fx[0], "curtain") > 0 || dur(sim.fx[1], "curtain") > 0;
+    if (curtainOn && crossedMid) {
+      const gapC = FIELD.w * 0.5;
+      const inGap = Math.abs(sim.bx - gapC) < FIELD.w * 0.19;
+      if (!inGap) {
+        sim.by = prevY;
+        sim.vy = -sim.vy;
+        onImpact({ x: sim.bx, y: FIELD.h / 2, t: performance.now(), color: "#c084fc", kind: "power" });
+        sfx("wall");
+      }
+    }
+
+    // âncora: freia a bola ao entrar no campo de quem ativou
+    for (const side of [0, 1] as const) {
+      if (dur(sim.fx[side], "anchor") <= 0) continue;
+      const entered = side === 0
+        ? prevY <= FIELD.h / 2 && sim.by > FIELD.h / 2
+        : prevY >= FIELD.h / 2 && sim.by < FIELD.h / 2;
+      if (entered) {
+        sim.vx *= 0.7; sim.vy *= 0.7;
+        onImpact({ x: sim.bx, y: FIELD.h / 2, t: performance.now(), color: "#60a5fa", kind: "power" });
+      }
+    }
+
+    // teto: placa que rebate no campo de quem sofre
+    for (const side of [0, 1] as const) {
+      if (dur(sim.fx[side], "ceiling") <= 0) continue;
+      const cy = ceilingY(side);
+      const down = side === 0;
+      const crossed = down ? prevY < cy && sim.by >= cy : prevY > cy && sim.by <= cy;
+      if (crossed) {
+        sim.by = cy + (down ? -R : R);
+        sim.vy = down ? -Math.abs(sim.vy) : Math.abs(sim.vy);
+        onImpact({ x: sim.bx, y: cy, t: performance.now(), color: "#93c5fd", big: true, kind: "power" });
+        sfx("wall");
+      }
+    }
+
+    void prevX;
+
     const y0 = FIELD.h - FIELD.paddleInset;
     const y1 = FIELD.paddleInset;
 
+
     const hit = (px: number, side: 0 | 1, dirSign: 1 | -1, py: number, opts?: { wide?: boolean; auto?: boolean }) => {
       const f = sim.fx[side];
+      const foeF = sim.fx[side === 0 ? 1 : 0];
       const wide = !!opts?.wide;
-      const hw = wide ? FIELD.w : paddleHalf(f) * (opts?.auto ? 0.6 : 1);
-      if (Math.abs(sim.bx - px) > hw + R) return false;
+      const hw = wide ? FIELD.w : paddleHalf(f, sim.mom[side]) * (opts?.auto ? 0.6 : 1);
+      const distX = Math.abs(sim.bx - px);
+      if (distX > hw + R) return false;
+      // Divisão: buraco no meio da raquete
+      if (!wide && !opts?.auto && distX < hw * splitGap(f) - R) return false;
 
       // Grude: prende a bola
       if (dur(f, "sticky") > 0 && !wide && !opts?.auto) {
@@ -289,28 +427,65 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
 
       const reflex = dur(f, "reflex") > 0;
       const spikes = dur(f, "spikes") > 0;
-      let boost = reflex ? 1.35 : spikes ? 1.3 : 1.05;
+      const bulwark = dur(f, "bulwark") > 0;
+      const heavy = dur(f, "heavy") > 0; // sofrido: devolução reta
+      const incoming = Math.hypot(sim.vx, sim.vy);
+      let boost = reflex ? 1.35 : spikes ? 1.3 : bulwark ? 1.18 : 1.05;
       let fury = false;
+      let special = "";
       if (dur(f, "fury") > 0 && !wide && !opts?.auto) { boost *= 1.8; delete f.fury; fury = true; }
+      // Aparar: janela curta de contra-ataque
+      if (dur(f, "parry") > 0 && !wide && !opts?.auto) {
+        delete f.parry;
+        boost = 2.2;
+        foeF.freeze = Math.max(dur(foeF, "freeze"), 1);
+        special = "parry";
+        sfx("power");
+      }
+      // Contragolpe: bolas rápidas voltam dobradas
+      if (dur(f, "counter") > 0 && incoming > FIELD.maxSpeed * 0.7 && !wide && !opts?.auto) {
+        boost *= 2;
+        special = special || "counter";
+      }
+      // Aposta / Ressonância / Ímpeto / Estopim
+      if (dur(f, "gambit") > 0) boost *= 1.4;
+      const behind = side === 0 ? sim.s0 < sim.s1 : sim.s1 < sim.s0;
+      if (dur(f, "resonance") > 0 && behind) boost *= 1.22;
+      if (dur(f, "momentum") > 0) { sim.mom[side] = Math.min(10, sim.mom[side] + 1); boost *= 1 + sim.mom[side] * 0.04; }
+      const fuseOn = dur(sim.fx[0], "fuse") > 0 || dur(sim.fx[1], "fuse") > 0;
+      if (fuseOn) boost *= 1.08;
 
       const off = wide ? (sim.bx - FIELD.w / 2) / (FIELD.w / 2) : (sim.bx - px) / hw;
-      const speed = Math.min(FIELD.maxSpeed * (fury ? 1.5 : 1), Math.hypot(sim.vx, sim.vy) * boost);
+      const speedCap = FIELD.maxSpeed * (fury ? 1.5 : special ? 1.7 : 1);
+      const speed = Math.min(speedCap, incoming * boost);
       let angle = reflex ? off * 0.5 : off * 0.9;
       if (spikes) angle += (Math.random() - 0.5) * 0.85;
+      if (bulwark || heavy) angle = 0;
+      // Bifurcação: mira automática no canto mais longe do rival
+      if (dur(f, "fork") > 0 && !wide && !opts?.auto) {
+        delete f.fork;
+        const foeX = side === 0 ? sim.p1 : sim.p0;
+        const aimX = foeX > FIELD.w / 2 ? FIELD.w * 0.1 : FIELD.w * 0.9;
+        angle = Math.max(-0.9, Math.min(0.9, (aimX - sim.bx) * 1.5));
+        special = special || "fork";
+      }
       sim.vx = Math.sin(angle) * speed;
       sim.vy = dirSign * Math.abs(Math.cos(angle) * speed);
       sim.by = py + dirSign * (R + FIELD.paddleH * 0.6);
       sim.spin = dur(f, "curve") > 0 ? off * 1.9 : sim.spin * 0.3;
       sim.rally += 1;
+      sim.lastHit = side;
 
       onImpact({
         x: sim.bx, y: py, t: performance.now(),
-        color: fury ? "#f97316" : spikes ? "#84cc16" : reflex ? "#fbbf24" : wide ? "#a3a3a3" : "#ffffff",
-        big: fury || spikes, kind: "hit",
+        color: special === "parry" ? "#fde047" : special === "counter" ? "#ef4444"
+          : fury ? "#f97316" : spikes ? "#84cc16" : reflex ? "#fbbf24" : wide ? "#a3a3a3" : "#ffffff",
+        big: fury || spikes || !!special, kind: "hit",
       });
-      sfx(fury ? "hitHard" : "hit", Math.min(1, speed / FIELD.maxSpeed));
+      sfx(fury || special ? "hitHard" : "hit", Math.min(1, speed / FIELD.maxSpeed));
       return true;
     };
+
 
     // jogador 0 (baixo)
     if (sim.vy > 0) {
@@ -346,6 +521,26 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
     }
 
     // pontos / escudo
+    const award = (winner: 0 | 1) => {
+      let pts = sim.mult;
+      // Cofre: ponto extra em rally longo
+      if (dur(sim.fx[winner], "vault") > 0 && sim.rally >= 6) {
+        pts += 1;
+        delete sim.fx[winner].vault;
+        onImpact({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: "#facc15", big: true, kind: "goal" });
+      }
+      if (winner === 0) sim.s0 += pts; else sim.s1 += pts;
+      // Fôlego é cancelado em quem tomou o ponto
+      const loser: 0 | 1 = winner === 0 ? 1 : 0;
+      delete sim.fx[loser].secondwind;
+      sim.mom = [0, 0];
+      sim.mult = 1;
+      sim.rally = 0;
+      // Sacada: quem ativou recebe o próximo saque
+      if (dur(sim.fx[0], "serveback") > 0) { sim.serveOverride = 0; delete sim.fx[0].serveback; }
+      else if (dur(sim.fx[1], "serveback") > 0) { sim.serveOverride = 1; delete sim.fx[1].serveback; }
+    };
+
     if (sim.by > FIELD.h + 0.05) {
       if (dur(sim.fx[0], "shield") > 0 && !sim.fx[0].shieldUsed) {
         sim.fx[0].shieldUsed = true;
@@ -354,13 +549,12 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
         onImpact({ x: sim.bx, y: FIELD.h - 0.04, t: performance.now(), color: "#22d3ee", big: true, kind: "power" });
         sfx("shield");
       } else {
-        sim.s1 += 1;
+        award(1);
         onImpact({ x: sim.bx, y: FIELD.h, t: performance.now(), color: "#f87171", big: true, kind: "goal" });
         sfx("concede");
         sim.phase = sim.s1 >= FIELD.winScore ? "over" : "point";
         sim.timer = 1.3;
         sim.serveTo = 0;
-        sim.rally = 0;
       }
     } else if (sim.by < -0.05) {
       if (dur(sim.fx[1], "shield") > 0 && !sim.fx[1].shieldUsed) {
@@ -370,13 +564,12 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
         onImpact({ x: sim.bx, y: 0.04, t: performance.now(), color: "#22d3ee", big: true, kind: "power" });
         sfx("shield");
       } else {
-        sim.s0 += 1;
+        award(0);
         onImpact({ x: sim.bx, y: 0, t: performance.now(), color: "#4ade80", big: true, kind: "goal" });
         sfx("goal");
         sim.phase = sim.s0 >= FIELD.winScore ? "over" : "point";
         sim.timer = 1.3;
         sim.serveTo = 1;
-        sim.rally = 0;
       }
     }
   }
@@ -386,8 +579,16 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
   const fx = sim.fx[side];
   const foeSide: 0 | 1 = side === 0 ? 1 : 0;
   const foe = sim.fx[foeSide];
-  const def = POWER_MAP[id];
-  if (!def) return;
+  const base = POWER_MAP[id];
+  if (!base) return;
+  // Silenciar bloqueia poderes do lado afetado
+  if (dur(fx, "silence") > 0) { sfx("wall"); return; }
+  // Sobrecarga: o próximo poder dura o dobro
+  let def = base;
+  if (dur(fx, "overload") > 0 && id !== "overload" && base.duration > 0) {
+    delete fx.overload;
+    def = { ...base, duration: base.duration * 2 };
+  }
 
   const at = (y: number, color = def.color, big = true) =>
     onImpact?.({ x: sim.bx, y, t: performance.now(), color, big, kind: "power" });
@@ -456,12 +657,58 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
       return;
     }
 
+    /* ---- expansão: instantâneos ---- */
+    case "dash": {
+      const cur = side === 0 ? sim.p0 : sim.p1;
+      const dirD = sim.bx >= cur ? 1 : -1;
+      const nx = Math.max(0.05, Math.min(FIELD.w - 0.05, cur + dirD * 0.26));
+      if (side === 0) sim.p0 = nx; else sim.p1 = nx;
+      at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
+      sfx("power");
+      return;
+    }
+    case "shift": {
+      const cur = side === 0 ? sim.p0 : sim.p1;
+      const nx = FIELD.w - cur;
+      if (side === 0) sim.p0 = nx; else sim.p1 = nx;
+      at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
+      sfx("portal");
+      return;
+    }
+    case "taunt": {
+      if (foeSide === 0) sim.p0 = FIELD.w / 2; else sim.p1 = FIELD.w / 2;
+      foe.taunt = def.duration;
+      foe.freeze = Math.max(dur(foe, "freeze"), def.duration);
+      at(foeSide === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
+      sfx("freeze");
+      return;
+    }
+    case "golden": {
+      sim.mult = 2;
+      onImpact?.({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: def.color, big: true, kind: "power" });
+      sfx("power");
+      return;
+    }
+    case "gambit": {
+      if (side === 0) sim.s0 = Math.max(0, sim.s0 - 1); else sim.s1 = Math.max(0, sim.s1 - 1);
+      fx.gambit = def.duration;
+      onImpact?.({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: def.color, big: true, kind: "power" });
+      sfx("power");
+      return;
+    }
+
     /* duradouros no próprio jogador */
     case "gravity": case "portal": case "clone": case "magnet": case "speed":
     case "reflex": case "wall": case "fury": case "curve": case "slowmo":
     case "stealth": case "spikes": case "overdrive": case "giant":
     case "tiny": case "sticky":
+    case "wrap": case "anchor": case "fuse": case "damp": case "fork":
+    case "feather": case "root": case "split": case "counter": case "parry":
+    case "tether": case "bulwark": case "secondwind": case "serveback":
+    case "vault": case "netrise": case "haven": case "bubble":
+    case "momentum": case "overload": case "curtain": case "resonance":
       fx[id] = def.duration;
+      if (id === "momentum") sim.mom[side] = 0;
       break;
     case "sentinel":
       fx.sentinel = def.duration;
@@ -483,6 +730,11 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
     case "quake": foe.quake = def.duration; sfx("quake"); break;
     case "vortex": foe.vortex = def.duration; break;
     case "chaos": foe.chaos = def.duration; break;
+    case "ceiling": case "saw": case "current": case "heavy":
+    case "blind": case "jam": case "drift": case "silence": case "leech":
+    case "mirror": case "narrow": case "lead": case "deadzone":
+      foe[id] = def.duration;
+      break;
   }
   at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
   if (id !== "freeze" && id !== "quake") sfx("power");
@@ -640,7 +892,9 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
   }, [room, me.id]);
 
   /* ---------------- loop principal ---------------- */
+  const swArmed = useRef(false);
   useEffect(() => {
+    const jamBuf: { t: number; x: number }[] = [];
     let raf = 0;
     let last = performance.now();
     let acc = 0;
@@ -660,18 +914,41 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
 
       // movimento da própria raquete (previsão local para ambos)
       const fxMe = sim.fx[side] ?? emptyFx();
-      if (dur(fxMe, "freeze") <= 0 && !sim.stick) {
-        const spd = FIELD.paddleSpeed * (dur(fxMe, "speed") > 0 ? 1.7 : 1);
+      if (dur(fxMe, "freeze") <= 0 && dur(fxMe, "root") <= 0 && !sim.stick) {
+        let spd = FIELD.paddleSpeed * (dur(fxMe, "speed") > 0 ? 1.7 : 1);
+        if (dur(fxMe, "lead") > 0) spd *= 0.55;
+        if (dur(fxMe, "momentum") > 0) spd *= 1 + Math.min(0.4, sim.mom[side] * 0.04);
         const cur = side === 0 ? sim.p0 : sim.p1;
-        const half = paddleHalf(fxMe);
+        const half = paddleHalf(fxMe, sim.mom[side]);
+        // Interferência: comando com atraso
         let want = targetRef.current;
+        if (dur(fxMe, "jam") > 0) {
+          jamBuf.push({ t: now, x: want });
+          while (jamBuf.length > 1 && now - jamBuf[0].t > 260) jamBuf.shift();
+          want = jamBuf[0].x;
+        } else if (jamBuf.length) {
+          jamBuf.length = 0;
+        }
         if (dur(fxMe, "quake") > 0) want += Math.sin(now / 55) * 0.06 + (Math.random() - 0.5) * 0.02;
+        // Deriva: escorrega sozinha para a lateral
+        if (dur(fxMe, "drift") > 0) want += (side === 0 ? 0.22 : -0.22);
+        // Corda: acompanha a bola sozinha em parte do caminho
+        if (dur(fxMe, "tether") > 0) want = want * 0.55 + sim.bx * 0.45;
         const tgt = Math.max(half, Math.min(FIELD.w - half, want));
         const d = tgt - cur;
         const move = Math.sign(d) * Math.min(Math.abs(d), spd * dt);
         const nx = cur + move;
         if (side === 0) sim.p0 = nx; else sim.p1 = nx;
       }
+
+      // Fôlego: zera a recarga quando o efeito termina sem ter sido cancelado
+      if (swArmed.current && dur(fxMe, "secondwind") <= 0) {
+        swArmed.current = false;
+        cooldownUntilRef.current = 0;
+        setCooldown(0);
+        sfx("power");
+      }
+
 
       if (isHostRef.current) {
         acc += dt;
@@ -777,11 +1054,16 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     if (simRef.current.phase !== "playing") return;
     ensureAudio();
     const mine = simRef.current.fx[mySideRef.current] ?? {};
-    const factor = dur(mine, "overdrive") > 0 ? 0.5 : 1;
+    if (dur(mine, "silence") > 0) { sfx("wall"); return; }
+    let factor = 1;
+    if (dur(mine, "overdrive") > 0) factor *= 0.5;
+    if (dur(mine, "gambit") > 0) factor *= 0.5;
+    if (dur(mine, "leech") > 0) factor *= 2;
     const total = POWER_MAP[id].cooldown * factor;
     cooldownTotalRef.current = total;
     cooldownUntilRef.current = Date.now() + total * 1000;
     setCooldown(total);
+    if (id === "secondwind") swArmed.current = true;
     if (isHostRef.current) {
       applyPower(simRef.current, 0, id, pushImpact);
     } else {
@@ -793,6 +1075,15 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
         const dx = Math.max(-0.4, Math.min(0.4, simRef.current.bx - cur));
         simRef.current.p1 = cur + dx;
         targetRef.current = cur + dx;
+      }
+      if (id === "dash") {
+        const cur = simRef.current.p1;
+        const nx = Math.max(0.05, Math.min(FIELD.w - 0.05, cur + (simRef.current.bx >= cur ? 0.26 : -0.26)));
+        simRef.current.p1 = nx; targetRef.current = nx;
+      }
+      if (id === "shift") {
+        const nx = FIELD.w - simRef.current.p1;
+        simRef.current.p1 = nx; targetRef.current = nx;
       }
       if (id === "rewind") { simRef.current.rewindAt = performance.now(); sfx("rewind"); }
     }

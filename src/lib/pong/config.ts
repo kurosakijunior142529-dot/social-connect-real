@@ -26,7 +26,19 @@ export type PowerId =
   | "curve" | "blackhole" | "invert" | "fog" | "slowmo" | "hyper"
   | "laser" | "swap" | "quake" | "vortex" | "stealth" | "recall"
   | "spikes" | "sentinel" | "chaos" | "overdrive" | "steal" | "giant"
-  | "tiny" | "sticky";
+  | "tiny" | "sticky"
+  // expansão 3D — espaço/bola
+  | "wrap" | "ceiling" | "anchor" | "fuse" | "saw" | "current"
+  | "damp" | "fork" | "heavy" | "feather"
+  // expansão 3D — raquete/próprio
+  | "dash" | "root" | "split" | "counter" | "parry" | "tether"
+  | "shift" | "bulwark" | "secondwind" | "serveback"
+  // expansão 3D — adversário
+  | "blind" | "jam" | "drift" | "silence" | "leech" | "mirror"
+  | "narrow" | "lead" | "deadzone" | "taunt"
+  // expansão 3D — arena/regras
+  | "golden" | "vault" | "netrise" | "haven" | "bubble" | "momentum"
+  | "overload" | "gambit" | "curtain" | "resonance";
 
 export type PowerCategory = "ataque" | "defesa" | "controle" | "caos";
 
@@ -221,6 +233,214 @@ export const POWERS: PowerDef[] = [
     id: "sticky", name: "Grude", emoji: "🍯", category: "controle", tier: 2,
     desc: "A próxima bola gruda na sua raquete e é relançada com mira perfeita.",
     target: "self", cooldown: 16, duration: 8, color: "#eab308",
+  },
+
+  /* ---------------- expansão 3D: espaço e bola ---------------- */
+  {
+    id: "wrap", name: "Fronteira Aberta", emoji: "🌐", category: "caos", tier: 2,
+    desc: "Por 6s as laterais viram portais: a bola some de um lado e volta do outro.",
+    target: "ball", cooldown: 18, duration: 6, color: "#5eead4",
+  },
+  {
+    id: "ceiling", name: "Teto", emoji: "🔲", category: "ataque", tier: 2,
+    desc: "Cria uma placa no fundo do campo rival que rebate a bola de volta por 5s.",
+    target: "enemy", cooldown: 21, duration: 5, color: "#93c5fd",
+  },
+  {
+    id: "anchor", name: "Âncora", emoji: "⚓", category: "defesa", tier: 1,
+    desc: "Por 6s a bola perde 30% da velocidade toda vez que entra no seu campo.",
+    target: "self", cooldown: 17, duration: 6, color: "#60a5fa",
+  },
+  {
+    id: "fuse", name: "Estopim", emoji: "🧨", category: "caos", tier: 3,
+    desc: "Por 10s cada rebatida acelera a bola 8% — para os dois lados.",
+    target: "ball", cooldown: 24, duration: 10, color: "#f97316",
+  },
+  {
+    id: "saw", name: "Serrote", emoji: "📈", category: "ataque", tier: 2,
+    desc: "No campo rival a bola zigueza­gueia em serra por 5s.",
+    target: "enemy", cooldown: 19, duration: 5, color: "#fb7185",
+  },
+  {
+    id: "current", name: "Correnteza", emoji: "🌊", category: "controle", tier: 2,
+    desc: "Uma corrente lateral empurra a bola no campo rival por 6s.",
+    target: "enemy", cooldown: 18, duration: 6, color: "#22d3ee",
+  },
+  {
+    id: "damp", name: "Amortecer", emoji: "🪶", category: "defesa", tier: 1,
+    desc: "Por 6s a bola perde metade da força ao bater nas laterais do seu campo.",
+    target: "self", cooldown: 15, duration: 6, color: "#a7f3d0",
+  },
+  {
+    id: "fork", name: "Bifurcação", emoji: "🔱", category: "ataque", tier: 2,
+    desc: "Sua próxima rebatida mira sozinha o canto mais longe do rival.",
+    target: "self", cooldown: 16, duration: 8, color: "#c4b5fd",
+  },
+  {
+    id: "heavy", name: "Peso", emoji: "🪨", category: "controle", tier: 2,
+    desc: "Por 4s as devoluções do rival saem retas, sem ângulo.",
+    target: "enemy", cooldown: 19, duration: 4, color: "#9ca3af",
+  },
+  {
+    id: "feather", name: "Pluma", emoji: "🕊️", category: "defesa", tier: 1,
+    desc: "Por 8s a bola quase para ao chegar no fundo do seu campo.",
+    target: "self", cooldown: 18, duration: 8, color: "#e0f2fe",
+  },
+
+  /* ---------------- expansão 3D: raquete ---------------- */
+  {
+    id: "dash", name: "Arranque", emoji: "💨", category: "defesa", tier: 1,
+    desc: "Impulso lateral instantâneo na direção em que você está indo.",
+    target: "self", cooldown: 7, duration: 0, color: "#38bdf8",
+  },
+  {
+    id: "root", name: "Fixar", emoji: "🌳", category: "defesa", tier: 2,
+    desc: "Sua raquete trava no lugar por 3s, mas fica com o dobro do tamanho.",
+    target: "self", cooldown: 18, duration: 3, color: "#4ade80",
+  },
+  {
+    id: "split", name: "Divisão", emoji: "✂️", category: "defesa", tier: 3,
+    desc: "Sua raquete se parte em duas metades afastadas por 6s — cobre mais, mas com buraco no meio.",
+    target: "self", cooldown: 20, duration: 6, color: "#f0abfc",
+  },
+  {
+    id: "counter", name: "Contragolpe", emoji: "🥊", category: "ataque", tier: 2,
+    desc: "Por 4s, bolas rápidas voltam com o dobro da velocidade.",
+    target: "self", cooldown: 18, duration: 4, color: "#ef4444",
+  },
+  {
+    id: "parry", name: "Aparar", emoji: "⚔️", category: "ataque", tier: 3,
+    desc: "Janela de 0,7s: acertar a bola devolve no máximo e trava o rival por 1s.",
+    target: "self", cooldown: 16, duration: 0.7, color: "#fde047",
+  },
+  {
+    id: "tether", name: "Corda", emoji: "🪢", category: "defesa", tier: 1,
+    desc: "Por 5s sua raquete acompanha a bola sozinha em parte do caminho.",
+    target: "self", cooldown: 17, duration: 5, color: "#fbbf24",
+  },
+  {
+    id: "shift", name: "Deslocar", emoji: "↔️", category: "controle", tier: 1,
+    desc: "Sua raquete salta para a posição espelhada do campo.",
+    target: "self", cooldown: 9, duration: 0, color: "#a78bfa",
+  },
+  {
+    id: "bulwark", name: "Reforço", emoji: "🏰", category: "defesa", tier: 2,
+    desc: "Por 6s suas devoluções não perdem velocidade, mas saem sem ângulo.",
+    target: "self", cooldown: 18, duration: 6, color: "#94a3b8",
+  },
+  {
+    id: "secondwind", name: "Fôlego", emoji: "🌬️", category: "controle", tier: 2,
+    desc: "Zera sua recarga depois de 3s — se tomar ponto antes, é cancelado.",
+    target: "self", cooldown: 26, duration: 3, color: "#67e8f9",
+  },
+  {
+    id: "serveback", name: "Sacada", emoji: "🎾", category: "controle", tier: 1,
+    desc: "Você recebe o próximo saque, tenha marcado ou não.",
+    target: "self", cooldown: 20, duration: 12, color: "#bef264",
+  },
+
+  /* ---------------- expansão 3D: adversário ---------------- */
+  {
+    id: "blind", name: "Ofuscar", emoji: "💡", category: "caos", tier: 1,
+    desc: "Um clarão cega a tela do rival por 1,2s.",
+    target: "enemy", cooldown: 14, duration: 1.2, color: "#fef08a",
+  },
+  {
+    id: "jam", name: "Interferência", emoji: "📡", category: "controle", tier: 3,
+    desc: "Por 5s o comando do rival responde com atraso.",
+    target: "enemy", cooldown: 22, duration: 5, color: "#f472b6",
+  },
+  {
+    id: "drift", name: "Deriva", emoji: "🧭", category: "controle", tier: 2,
+    desc: "Por 6s a raquete do rival escorrega sozinha para a lateral.",
+    target: "enemy", cooldown: 19, duration: 6, color: "#38bdf8",
+  },
+  {
+    id: "silence", name: "Silenciar", emoji: "🔇", category: "controle", tier: 3,
+    desc: "Por 6s o rival não consegue usar poderes.",
+    target: "enemy", cooldown: 26, duration: 6, color: "#a855f7",
+  },
+  {
+    id: "leech", name: "Sanguessuga", emoji: "🩸", category: "controle", tier: 2,
+    desc: "Por 8s a recarga do rival demora o dobro.",
+    target: "enemy", cooldown: 22, duration: 8, color: "#dc2626",
+  },
+  {
+    id: "mirror", name: "Espelho Falso", emoji: "🪞", category: "caos", tier: 3,
+    desc: "Por 4s o rival vê a bola espelhada na tela.",
+    target: "enemy", cooldown: 22, duration: 4, color: "#e879f9",
+  },
+  {
+    id: "narrow", name: "Estreitar", emoji: "🧿", category: "ataque", tier: 2,
+    desc: "Por 6s as laterais do campo rival se fecham e matam os ângulos.",
+    target: "enemy", cooldown: 20, duration: 6, color: "#fb923c",
+  },
+  {
+    id: "lead", name: "Chumbo", emoji: "🔩", category: "controle", tier: 1,
+    desc: "Por 5s a raquete do rival fica 45% mais lenta.",
+    target: "enemy", cooldown: 17, duration: 5, color: "#78716c",
+  },
+  {
+    id: "deadzone", name: "Zona Morta", emoji: "🚫", category: "caos", tier: 2,
+    desc: "Uma faixa do campo rival apaga a bola por 5s.",
+    target: "enemy", cooldown: 20, duration: 5, color: "#64748b",
+  },
+  {
+    id: "taunt", name: "Provocação", emoji: "😜", category: "caos", tier: 1,
+    desc: "Puxa a raquete do rival para o meio e a trava por 0,5s.",
+    target: "enemy", cooldown: 13, duration: 0.5, color: "#fca5a5",
+  },
+
+  /* ---------------- expansão 3D: arena e regras ---------------- */
+  {
+    id: "golden", name: "Ponto de Ouro", emoji: "🥇", category: "caos", tier: 3,
+    desc: "A próxima disputa vale 2 pontos — para quem ganhar.",
+    target: "ball", cooldown: 28, duration: 0, color: "#fbbf24",
+  },
+  {
+    id: "vault", name: "Cofre", emoji: "🏦", category: "ataque", tier: 2,
+    desc: "Se você vencer esta disputa com 6+ toques, ganha 1 ponto extra.",
+    target: "self", cooldown: 22, duration: 14, color: "#facc15",
+  },
+  {
+    id: "netrise", name: "Rede Alta", emoji: "🕸️", category: "controle", tier: 3,
+    desc: "Por 5s uma rede no meio barra bolas fracas — só passa quem bate forte.",
+    target: "ball", cooldown: 23, duration: 5, color: "#22c55e",
+  },
+  {
+    id: "haven", name: "Refúgio", emoji: "🛟", category: "defesa", tier: 1,
+    desc: "Um campo de força no seu lado puxa a bola para o centro por 5s.",
+    target: "self", cooldown: 18, duration: 5, color: "#34d399",
+  },
+  {
+    id: "bubble", name: "Bolha Temporal", emoji: "🫧", category: "controle", tier: 2,
+    desc: "Por 6s o meio do campo fica em câmera lenta para os dois.",
+    target: "ball", cooldown: 21, duration: 6, color: "#a5f3fc",
+  },
+  {
+    id: "momentum", name: "Ímpeto", emoji: "📶", category: "ataque", tier: 3,
+    desc: "Por 8s cada rebatida sua deixa sua raquete maior e mais rápida.",
+    target: "self", cooldown: 23, duration: 8, color: "#f59e0b",
+  },
+  {
+    id: "overload", name: "Sobrecarga", emoji: "🔋", category: "controle", tier: 3,
+    desc: "O próximo poder que você usar dura o dobro.",
+    target: "self", cooldown: 25, duration: 15, color: "#a3e635",
+  },
+  {
+    id: "gambit", name: "Aposta", emoji: "🎰", category: "caos", tier: 3,
+    desc: "Perde 1 ponto na hora; por 10s suas devoluções voam e a recarga cai pela metade.",
+    target: "self", cooldown: 30, duration: 10, color: "#f43f5e",
+  },
+  {
+    id: "curtain", name: "Cortina", emoji: "🎭", category: "caos", tier: 2,
+    desc: "Uma barra atravessa o meio do campo por 4s e os dois têm que desviar.",
+    target: "ball", cooldown: 20, duration: 4, color: "#c084fc",
+  },
+  {
+    id: "resonance", name: "Ressonância", emoji: "🔊", category: "ataque", tier: 2,
+    desc: "Por 10s, enquanto você estiver perdendo, a bola acelera a cada toque seu.",
+    target: "self", cooldown: 21, duration: 10, color: "#2dd4bf",
   },
 ];
 

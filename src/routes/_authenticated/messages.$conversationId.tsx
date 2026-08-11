@@ -103,6 +103,37 @@ function ConversationPage() {
     },
   });
 
+  const [hasOlder, setHasOlder] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const skipScroll = useRef(false);
+
+
+  async function loadOlder() {
+    const list = queryClient.getQueryData<any[]>(["messages", conversationId]) ?? [];
+    const oldest = list[0];
+    if (!oldest || loadingOlder) return;
+    setLoadingOlder(true);
+    const { data, error } = await (supabase as any)
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .lt("created_at", oldest.created_at)
+      .order("created_at", { ascending: false })
+      .limit(120);
+    setLoadingOlder(false);
+    if (error) return;
+    const older = ((data ?? []) as any[]).slice().reverse();
+    if (older.length < 120) setHasOlder(false);
+    if (!older.length) return;
+    skipScroll.current = true;
+    queryClient.setQueryData<any[]>(["messages", conversationId], (prev) => {
+      const cur = prev ?? [];
+      const seen = new Set(cur.map((m) => m.id));
+      return [...older.filter((m) => !seen.has(m.id)), ...cur];
+    });
+  }
+
+
   const messageIds = useMemo(
     () => (messages.data ?? []).map((m) => m.id),
     [messages.data],
@@ -173,10 +204,12 @@ function ConversationPage() {
   const firstScroll = useRef(true);
   useEffect(() => {
     if (!messages.data?.length) return;
+    if (skipScroll.current) { skipScroll.current = false; return; }
     const behavior = firstScroll.current ? "auto" : "smooth";
     firstScroll.current = false;
     bottomRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior, block: "end" });
   }, [messages.data?.length]);
+
 
 
   function noteTyping() {

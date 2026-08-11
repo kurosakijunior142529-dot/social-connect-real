@@ -69,10 +69,19 @@ function PongRoom() {
   const myScore = mySide === 0 ? score[0] : score[1];
   const oppScore = mySide === 0 ? score[1] : score[0];
 
-  // registra resultado uma única vez ao fim da partida
+  // registra resultado uma única vez por partida (inclui revanches do convidado)
   useEffect(() => {
-    if (phase !== "over" || recorded.current) return;
+    if (phase !== "over") {
+      // nova partida começou (inclusive iniciada pelo anfitrião): libera o registro
+      if (recorded.current) {
+        recorded.current = false;
+        setResult(null);
+      }
+      return;
+    }
+    if (recorded.current) return;
     recorded.current = true;
+
     const won = myScore > oppScore;
     (async () => {
       const { data } = await (supabase as any).rpc("pong_record_result", {

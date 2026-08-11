@@ -912,18 +912,41 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
 
       // movimento da própria raquete (previsão local para ambos)
       const fxMe = sim.fx[side] ?? emptyFx();
-      if (dur(fxMe, "freeze") <= 0 && !sim.stick) {
-        const spd = FIELD.paddleSpeed * (dur(fxMe, "speed") > 0 ? 1.7 : 1);
+      if (dur(fxMe, "freeze") <= 0 && dur(fxMe, "root") <= 0 && !sim.stick) {
+        let spd = FIELD.paddleSpeed * (dur(fxMe, "speed") > 0 ? 1.7 : 1);
+        if (dur(fxMe, "lead") > 0) spd *= 0.55;
+        if (dur(fxMe, "momentum") > 0) spd *= 1 + Math.min(0.4, sim.mom[side] * 0.04);
         const cur = side === 0 ? sim.p0 : sim.p1;
-        const half = paddleHalf(fxMe);
+        const half = paddleHalf(fxMe, sim.mom[side]);
+        // Interferência: comando com atraso
         let want = targetRef.current;
+        if (dur(fxMe, "jam") > 0) {
+          jamBuf.push({ t: now, x: want });
+          while (jamBuf.length > 1 && now - jamBuf[0].t > 260) jamBuf.shift();
+          want = jamBuf[0].x;
+        } else if (jamBuf.length) {
+          jamBuf.length = 0;
+        }
         if (dur(fxMe, "quake") > 0) want += Math.sin(now / 55) * 0.06 + (Math.random() - 0.5) * 0.02;
+        // Deriva: escorrega sozinha para a lateral
+        if (dur(fxMe, "drift") > 0) want += (side === 0 ? 0.22 : -0.22);
+        // Corda: acompanha a bola sozinha em parte do caminho
+        if (dur(fxMe, "tether") > 0) want = want * 0.55 + sim.bx * 0.45;
         const tgt = Math.max(half, Math.min(FIELD.w - half, want));
         const d = tgt - cur;
         const move = Math.sign(d) * Math.min(Math.abs(d), spd * dt);
         const nx = cur + move;
         if (side === 0) sim.p0 = nx; else sim.p1 = nx;
       }
+
+      // Fôlego: zera a recarga quando o efeito termina sem ter sido cancelado
+      if (swArmed.current && dur(fxMe, "secondwind") <= 0) {
+        swArmed.current = false;
+        cooldownUntilRef.current = 0;
+        setCooldown(0);
+        sfx("power");
+      }
+
 
       if (isHostRef.current) {
         acc += dt;

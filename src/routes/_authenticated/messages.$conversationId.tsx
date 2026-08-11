@@ -125,6 +125,7 @@ function ConversationPage() {
     const older = ((data ?? []) as any[]).slice().reverse();
     if (older.length < 120) setHasOlder(false);
     if (!older.length) return;
+    skipScroll.current = true;
     queryClient.setQueryData<any[]>(["messages", conversationId], (prev) => {
       const cur = prev ?? [];
       const seen = new Set(cur.map((m) => m.id));

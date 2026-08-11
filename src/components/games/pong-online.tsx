@@ -892,7 +892,9 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
   }, [room, me.id]);
 
   /* ---------------- loop principal ---------------- */
+  const swArmed = useRef(false);
   useEffect(() => {
+    const jamBuf: { t: number; x: number }[] = [];
     let raf = 0;
     let last = performance.now();
     let acc = 0;

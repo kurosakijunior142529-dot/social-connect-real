@@ -105,6 +105,8 @@ function ConversationPage() {
 
   const [hasOlder, setHasOlder] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const skipScroll = useRef(false);
+
 
   async function loadOlder() {
     const list = queryClient.getQueryData<any[]>(["messages", conversationId]) ?? [];

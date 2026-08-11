@@ -579,8 +579,16 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
   const fx = sim.fx[side];
   const foeSide: 0 | 1 = side === 0 ? 1 : 0;
   const foe = sim.fx[foeSide];
-  const def = POWER_MAP[id];
-  if (!def) return;
+  const base = POWER_MAP[id];
+  if (!base) return;
+  // Silenciar bloqueia poderes do lado afetado
+  if (dur(fx, "silence") > 0) { sfx("wall"); return; }
+  // Sobrecarga: o próximo poder dura o dobro
+  let def = base;
+  if (dur(fx, "overload") > 0 && id !== "overload" && base.duration > 0) {
+    delete fx.overload;
+    def = { ...base, duration: base.duration * 2 };
+  }
 
   const at = (y: number, color = def.color, big = true) =>
     onImpact?.({ x: sim.bx, y, t: performance.now(), color, big, kind: "power" });

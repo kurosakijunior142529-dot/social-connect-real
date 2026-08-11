@@ -175,15 +175,20 @@ function PongRoom() {
       {/* campo */}
       <div className="relative mx-auto w-full max-w-md flex-1 px-3">
         <div className="relative mx-auto aspect-[1/1.5] w-full overflow-hidden rounded-3xl">
-          <PongCanvas
-            simRef={sim}
-            impactsRef={impacts}
-            mySide={mySide}
-            arena={arena}
-            paddleSkin={paddleSkin}
-            ballSkin={ballSkin}
-            onTarget={setTarget}
-          />
+          <ClientOnly fallback={<div className="h-full w-full rounded-3xl bg-muted/30" />}>
+            <Suspense fallback={<div className="h-full w-full rounded-3xl bg-muted/30" />}>
+              <PongScene3D
+                simRef={sim}
+                impactsRef={impacts}
+                mySide={mySide}
+                arena={arena}
+                paddleSkin={paddleSkin}
+                ballSkin={ballSkin}
+                onTarget={setTarget}
+              />
+            </Suspense>
+          </ClientOnly>
+
 
           {phase === "countdown" ? (
             <div className="pointer-events-none absolute inset-0 grid place-items-center">

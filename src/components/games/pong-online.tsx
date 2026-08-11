@@ -408,9 +408,13 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
 
     const hit = (px: number, side: 0 | 1, dirSign: 1 | -1, py: number, opts?: { wide?: boolean; auto?: boolean }) => {
       const f = sim.fx[side];
+      const foeF = sim.fx[side === 0 ? 1 : 0];
       const wide = !!opts?.wide;
-      const hw = wide ? FIELD.w : paddleHalf(f) * (opts?.auto ? 0.6 : 1);
-      if (Math.abs(sim.bx - px) > hw + R) return false;
+      const hw = wide ? FIELD.w : paddleHalf(f, sim.mom[side]) * (opts?.auto ? 0.6 : 1);
+      const distX = Math.abs(sim.bx - px);
+      if (distX > hw + R) return false;
+      // Divisão: buraco no meio da raquete
+      if (!wide && !opts?.auto && distX < hw * splitGap(f) - R) return false;
 
       // Grude: prende a bola
       if (dur(f, "sticky") > 0 && !wide && !opts?.auto) {
@@ -423,28 +427,65 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
 
       const reflex = dur(f, "reflex") > 0;
       const spikes = dur(f, "spikes") > 0;
-      let boost = reflex ? 1.35 : spikes ? 1.3 : 1.05;
+      const bulwark = dur(f, "bulwark") > 0;
+      const heavy = dur(f, "heavy") > 0; // sofrido: devolução reta
+      const incoming = Math.hypot(sim.vx, sim.vy);
+      let boost = reflex ? 1.35 : spikes ? 1.3 : bulwark ? 1.18 : 1.05;
       let fury = false;
+      let special = "";
       if (dur(f, "fury") > 0 && !wide && !opts?.auto) { boost *= 1.8; delete f.fury; fury = true; }
+      // Aparar: janela curta de contra-ataque
+      if (dur(f, "parry") > 0 && !wide && !opts?.auto) {
+        delete f.parry;
+        boost = 2.2;
+        foeF.freeze = Math.max(dur(foeF, "freeze"), 1);
+        special = "parry";
+        sfx("power");
+      }
+      // Contragolpe: bolas rápidas voltam dobradas
+      if (dur(f, "counter") > 0 && incoming > FIELD.maxSpeed * 0.7 && !wide && !opts?.auto) {
+        boost *= 2;
+        special = special || "counter";
+      }
+      // Aposta / Ressonância / Ímpeto / Estopim
+      if (dur(f, "gambit") > 0) boost *= 1.4;
+      const behind = side === 0 ? sim.s0 < sim.s1 : sim.s1 < sim.s0;
+      if (dur(f, "resonance") > 0 && behind) boost *= 1.22;
+      if (dur(f, "momentum") > 0) { sim.mom[side] = Math.min(10, sim.mom[side] + 1); boost *= 1 + sim.mom[side] * 0.04; }
+      const fuseOn = dur(sim.fx[0], "fuse") > 0 || dur(sim.fx[1], "fuse") > 0;
+      if (fuseOn) boost *= 1.08;
 
       const off = wide ? (sim.bx - FIELD.w / 2) / (FIELD.w / 2) : (sim.bx - px) / hw;
-      const speed = Math.min(FIELD.maxSpeed * (fury ? 1.5 : 1), Math.hypot(sim.vx, sim.vy) * boost);
+      const speedCap = FIELD.maxSpeed * (fury ? 1.5 : special ? 1.7 : 1);
+      const speed = Math.min(speedCap, incoming * boost);
       let angle = reflex ? off * 0.5 : off * 0.9;
       if (spikes) angle += (Math.random() - 0.5) * 0.85;
+      if (bulwark || heavy) angle = 0;
+      // Bifurcação: mira automática no canto mais longe do rival
+      if (dur(f, "fork") > 0 && !wide && !opts?.auto) {
+        delete f.fork;
+        const foeX = side === 0 ? sim.p1 : sim.p0;
+        const aimX = foeX > FIELD.w / 2 ? FIELD.w * 0.1 : FIELD.w * 0.9;
+        angle = Math.max(-0.9, Math.min(0.9, (aimX - sim.bx) * 1.5));
+        special = special || "fork";
+      }
       sim.vx = Math.sin(angle) * speed;
       sim.vy = dirSign * Math.abs(Math.cos(angle) * speed);
       sim.by = py + dirSign * (R + FIELD.paddleH * 0.6);
       sim.spin = dur(f, "curve") > 0 ? off * 1.9 : sim.spin * 0.3;
       sim.rally += 1;
+      sim.lastHit = side;
 
       onImpact({
         x: sim.bx, y: py, t: performance.now(),
-        color: fury ? "#f97316" : spikes ? "#84cc16" : reflex ? "#fbbf24" : wide ? "#a3a3a3" : "#ffffff",
-        big: fury || spikes, kind: "hit",
+        color: special === "parry" ? "#fde047" : special === "counter" ? "#ef4444"
+          : fury ? "#f97316" : spikes ? "#84cc16" : reflex ? "#fbbf24" : wide ? "#a3a3a3" : "#ffffff",
+        big: fury || spikes || !!special, kind: "hit",
       });
-      sfx(fury ? "hitHard" : "hit", Math.min(1, speed / FIELD.maxSpeed));
+      sfx(fury || special ? "hitHard" : "hit", Math.min(1, speed / FIELD.maxSpeed));
       return true;
     };
+
 
     // jogador 0 (baixo)
     if (sim.vy > 0) {

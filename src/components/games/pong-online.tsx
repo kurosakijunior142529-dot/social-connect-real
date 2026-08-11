@@ -1054,11 +1054,16 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     if (simRef.current.phase !== "playing") return;
     ensureAudio();
     const mine = simRef.current.fx[mySideRef.current] ?? {};
-    const factor = dur(mine, "overdrive") > 0 ? 0.5 : 1;
+    if (dur(mine, "silence") > 0) { sfx("wall"); return; }
+    let factor = 1;
+    if (dur(mine, "overdrive") > 0) factor *= 0.5;
+    if (dur(mine, "gambit") > 0) factor *= 0.5;
+    if (dur(mine, "leech") > 0) factor *= 2;
     const total = POWER_MAP[id].cooldown * factor;
     cooldownTotalRef.current = total;
     cooldownUntilRef.current = Date.now() + total * 1000;
     setCooldown(total);
+    if (id === "secondwind") swArmed.current = true;
     if (isHostRef.current) {
       applyPower(simRef.current, 0, id, pushImpact);
     } else {
@@ -1070,6 +1075,15 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
         const dx = Math.max(-0.4, Math.min(0.4, simRef.current.bx - cur));
         simRef.current.p1 = cur + dx;
         targetRef.current = cur + dx;
+      }
+      if (id === "dash") {
+        const cur = simRef.current.p1;
+        const nx = Math.max(0.05, Math.min(FIELD.w - 0.05, cur + (simRef.current.bx >= cur ? 0.26 : -0.26)));
+        simRef.current.p1 = nx; targetRef.current = nx;
+      }
+      if (id === "shift") {
+        const nx = FIELD.w - simRef.current.p1;
+        simRef.current.p1 = nx; targetRef.current = nx;
       }
       if (id === "rewind") { simRef.current.rewindAt = performance.now(); sfx("rewind"); }
     }

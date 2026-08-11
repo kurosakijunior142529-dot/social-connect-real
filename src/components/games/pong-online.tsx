@@ -521,6 +521,26 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
     }
 
     // pontos / escudo
+    const award = (winner: 0 | 1) => {
+      let pts = sim.mult;
+      // Cofre: ponto extra em rally longo
+      if (dur(sim.fx[winner], "vault") > 0 && sim.rally >= 6) {
+        pts += 1;
+        delete sim.fx[winner].vault;
+        onImpact({ x: FIELD.w / 2, y: FIELD.h / 2, t: performance.now(), color: "#facc15", big: true, kind: "goal" });
+      }
+      if (winner === 0) sim.s0 += pts; else sim.s1 += pts;
+      // Fôlego é cancelado em quem tomou o ponto
+      const loser: 0 | 1 = winner === 0 ? 1 : 0;
+      delete sim.fx[loser].secondwind;
+      sim.mom = [0, 0];
+      sim.mult = 1;
+      sim.rally = 0;
+      // Sacada: quem ativou recebe o próximo saque
+      if (dur(sim.fx[0], "serveback") > 0) { sim.serveOverride = 0; delete sim.fx[0].serveback; }
+      else if (dur(sim.fx[1], "serveback") > 0) { sim.serveOverride = 1; delete sim.fx[1].serveback; }
+    };
+
     if (sim.by > FIELD.h + 0.05) {
       if (dur(sim.fx[0], "shield") > 0 && !sim.fx[0].shieldUsed) {
         sim.fx[0].shieldUsed = true;
@@ -529,13 +549,12 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
         onImpact({ x: sim.bx, y: FIELD.h - 0.04, t: performance.now(), color: "#22d3ee", big: true, kind: "power" });
         sfx("shield");
       } else {
-        sim.s1 += 1;
+        award(1);
         onImpact({ x: sim.bx, y: FIELD.h, t: performance.now(), color: "#f87171", big: true, kind: "goal" });
         sfx("concede");
         sim.phase = sim.s1 >= FIELD.winScore ? "over" : "point";
         sim.timer = 1.3;
         sim.serveTo = 0;
-        sim.rally = 0;
       }
     } else if (sim.by < -0.05) {
       if (dur(sim.fx[1], "shield") > 0 && !sim.fx[1].shieldUsed) {
@@ -545,13 +564,12 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
         onImpact({ x: sim.bx, y: 0.04, t: performance.now(), color: "#22d3ee", big: true, kind: "power" });
         sfx("shield");
       } else {
-        sim.s0 += 1;
+        award(0);
         onImpact({ x: sim.bx, y: 0, t: performance.now(), color: "#4ade80", big: true, kind: "goal" });
         sfx("goal");
         sim.phase = sim.s0 >= FIELD.winScore ? "over" : "point";
         sim.timer = 1.3;
         sim.serveTo = 1;
-        sim.rally = 0;
       }
     }
   }

@@ -201,10 +201,12 @@ function ConversationPage() {
   const firstScroll = useRef(true);
   useEffect(() => {
     if (!messages.data?.length) return;
+    if (skipScroll.current) { skipScroll.current = false; return; }
     const behavior = firstScroll.current ? "auto" : "smooth";
     firstScroll.current = false;
     bottomRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior, block: "end" });
   }, [messages.data?.length]);
+
 
 
   function noteTyping() {

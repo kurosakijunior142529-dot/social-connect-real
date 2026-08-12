@@ -237,13 +237,20 @@ export function sfx(name: SfxName, strength = 1) {
 /* trilha procedural                                                   */
 /* ------------------------------------------------------------------ */
 
-type Track = { root: number; scale: number[]; bpm: number; wave: OscillatorType };
+type Track = {
+  root: number;
+  scale: number[];
+  bpm: number;
+  wave: OscillatorType;
+  /** progressão harmônica em graus da escala, um por compasso */
+  prog: number[];
+};
 
 const TRACKS: Record<string, Track> = {
-  neon: { root: 55, scale: [0, 3, 5, 7, 10, 12, 15], bpm: 124, wave: "sawtooth" },
-  sunset: { root: 49, scale: [0, 2, 4, 7, 9, 12, 16], bpm: 108, wave: "triangle" },
-  deep: { root: 43.65, scale: [0, 2, 3, 7, 8, 12, 14], bpm: 116, wave: "square" },
-  void: { root: 41.2, scale: [0, 1, 5, 6, 8, 12, 13], bpm: 132, wave: "sawtooth" },
+  neon: { root: 55, scale: [0, 3, 5, 7, 10, 12, 15], bpm: 126, wave: "sawtooth", prog: [0, 5, 3, 4] },
+  sunset: { root: 49, scale: [0, 2, 4, 7, 9, 12, 16], bpm: 110, wave: "triangle", prog: [0, 4, 5, 2] },
+  deep: { root: 43.65, scale: [0, 2, 3, 7, 8, 12, 14], bpm: 118, wave: "square", prog: [0, 3, 5, 3] },
+  void: { root: 41.2, scale: [0, 1, 5, 6, 8, 12, 13], bpm: 134, wave: "sawtooth", prog: [0, 1, 5, 4] },
 };
 
 let track: Track = TRACKS.neon;
@@ -256,93 +263,194 @@ export function setIntensity(v: number) {
   intensity = Math.max(0, Math.min(1, v));
 }
 
-function voice(freq: number, t: number, dur: number, gain: number, type: OscillatorType, dest: GainNode) {
+function voice(
+  freq: number, t: number, dur: number, gain: number, type: OscillatorType, dest: AudioNode,
+  opts: { detune?: number; cutoff?: number; pan?: number; attack?: number } = {},
+) {
   const c = ctx!;
   const o = c.createOscillator();
   const o2 = c.createOscillator();
   const g = c.createGain();
   const f = c.createBiquadFilter();
+  const p = c.createStereoPanner();
+  p.pan.value = opts.pan ?? 0;
   f.type = "lowpass";
-  f.frequency.setValueAtTime(700 + intensity * 3200, t);
-  f.Q.value = 6;
+  const cutoff = opts.cutoff ?? 700 + intensity * 3400;
+  f.frequency.setValueAtTime(cutoff, t);
+  f.frequency.exponentialRampToValueAtTime(Math.max(220, cutoff * 0.45), t + dur);
+  f.Q.value = 7;
   o.type = type;
   o2.type = type;
   o.frequency.value = freq;
   o2.frequency.value = freq;
-  o2.detune.value = 9;
+  o2.detune.value = opts.detune ?? 11;
+  const atk = opts.attack ?? 0.02;
   g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(gain, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(gain, t + atk);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(f); o2.connect(f);
-  f.connect(g).connect(dest);
+  f.connect(g).connect(p).connect(dest);
   o.start(t); o2.start(t);
   o.stop(t + dur + 0.03); o2.stop(t + dur + 0.03);
 }
 
-function drum(t: number, kind: "kick" | "hat" | "snare", dest: GainNode) {
+function drum(t: number, kind: "kick" | "hat" | "openhat" | "snare" | "clap" | "ride", dest: AudioNode) {
   const c = ctx!;
   if (kind === "kick") {
     const o = c.createOscillator();
     const g = c.createGain();
+    const click = c.createOscillator();
+    const cg = c.createGain();
     o.type = "sine";
-    o.frequency.setValueAtTime(140, t);
-    o.frequency.exponentialRampToValueAtTime(42, t + 0.14);
-    g.gain.setValueAtTime(0.4, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    o.frequency.setValueAtTime(165, t);
+    o.frequency.exponentialRampToValueAtTime(40, t + 0.13);
+    g.gain.setValueAtTime(0.5, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    click.type = "square";
+    click.frequency.setValueAtTime(900, t);
+    cg.gain.setValueAtTime(0.06, t);
+    cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
     o.connect(g).connect(dest);
-    o.start(t); o.stop(t + 0.22);
+    click.connect(cg).connect(dest);
+    o.start(t); o.stop(t + 0.26);
+    click.start(t); click.stop(t + 0.04);
     return;
   }
-  const len = kind === "hat" ? 0.05 : 0.16;
+  const len = kind === "hat" ? 0.045 : kind === "openhat" ? 0.22 : kind === "ride" ? 0.3 : 0.18;
   const buf = c.createBuffer(1, Math.floor(c.sampleRate * len), c.sampleRate);
   const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, kind === "clap" ? 1.6 : 1);
   const src = c.createBufferSource();
   src.buffer = buf;
   const f = c.createBiquadFilter();
-  f.type = kind === "hat" ? "highpass" : "bandpass";
-  f.frequency.value = kind === "hat" ? 7000 : 1500;
+  f.type = kind === "snare" || kind === "clap" ? "bandpass" : "highpass";
+  f.frequency.value = kind === "hat" ? 8200 : kind === "openhat" ? 7000 : kind === "ride" ? 9500 : kind === "clap" ? 1900 : 1500;
+  f.Q.value = kind === "clap" ? 2.4 : 0.8;
   const g = c.createGain();
-  g.gain.setValueAtTime(kind === "hat" ? 0.12 : 0.25, t);
+  const lvl = kind === "hat" ? 0.1 : kind === "openhat" ? 0.07 : kind === "ride" ? 0.05 : kind === "clap" ? 0.2 : 0.24;
+  g.gain.setValueAtTime(lvl, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-  src.connect(f).connect(g).connect(dest);
+  const p = c.createStereoPanner();
+  p.pan.value = kind === "hat" ? 0.18 : kind === "ride" ? -0.24 : 0;
+  src.connect(f).connect(g).connect(p).connect(dest);
   src.start(t); src.stop(t + len + 0.02);
+
+  if (kind === "snare") {
+    const o = c.createOscillator();
+    const og = c.createGain();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(210, t);
+    o.frequency.exponentialRampToValueAtTime(140, t + 0.1);
+    og.gain.setValueAtTime(0.12, t);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    o.connect(og).connect(dest);
+    o.start(t); o.stop(t + 0.16);
+  }
+}
+
+/** bus com sidechain (duck no kick) + delay estéreo — dá vida à trilha */
+let musicBus: GainNode | null = null;
+let duck: GainNode | null = null;
+
+function ensureMusicBus() {
+  const c = ctx!;
+  if (musicBus || !musicGain) return;
+  duck = c.createGain();
+  duck.gain.value = 1;
+  const delay = c.createDelay(1);
+  delay.delayTime.value = 0.28;
+  const fb = c.createGain();
+  fb.gain.value = 0.3;
+  const dTone = c.createBiquadFilter();
+  dTone.type = "highpass";
+  dTone.frequency.value = 500;
+  const dWet = c.createGain();
+  dWet.gain.value = 0.22;
+  duck.connect(musicGain);
+  duck.connect(delay);
+  delay.connect(dTone).connect(fb).connect(delay);
+  dTone.connect(dWet).connect(musicGain);
+  musicBus = duck;
+}
+
+function pump(t: number) {
+  if (!duck || !ctx) return;
+  duck.gain.cancelScheduledValues(t);
+  duck.gain.setValueAtTime(0.45, t);
+  duck.gain.linearRampToValueAtTime(1, t + 0.22);
 }
 
 function schedule() {
   const c = ctx;
   if (!c || !musicGain || !musicOn) return;
+  ensureMusicBus();
+  const bus = musicBus ?? musicGain;
   const spb = 60 / track.bpm / 2; // colcheias
   while (nextTime < c.currentTime + 0.25) {
     const t = Math.max(nextTime, c.currentTime + 0.02);
     const bar = Math.floor(step / 16);
     const s = step % 16;
+    const deg = track.prog[bar % track.prog.length]!;
+    const rootHz = track.root * Math.pow(2, track.scale[deg]! / 12);
+    const hot = intensity;
 
     // bateria
-    if (s % 4 === 0) drum(t, "kick", musicGain);
-    if (s % 8 === 4) drum(t, "snare", musicGain);
-    if (intensity > 0.25 && s % 2 === 1) drum(t, "hat", musicGain);
+    if (s % 4 === 0 || (hot > 0.6 && s === 14)) { drum(t, "kick", musicGain); pump(t); }
+    if (s % 8 === 4) { drum(t, "snare", musicGain); if (hot > 0.4) drum(t, "clap", musicGain); }
+    if (hot > 0.2 && s % 2 === 1) drum(t, "hat", bus);
+    if (hot > 0.55 && s % 8 === 6) drum(t, "openhat", bus);
+    if (hot > 0.75 && s % 2 === 0) drum(t, "ride", bus);
 
-    // baixo
-    if (s % 4 === 0) {
-      const deg = [0, 0, 5, 3][bar % 4];
-      voice(track.root * Math.pow(2, track.scale[deg] / 12), t, spb * 1.7, 0.16, "square", musicGain);
+    // baixo com groove
+    if (s % 2 === 0) {
+      const octDown = s % 8 === 0 ? 0 : -12;
+      voice(rootHz * Math.pow(2, octDown / 12), t, spb * 1.5, 0.17, "square", bus, { cutoff: 420 + hot * 900 });
     }
+
     // arpejo
-    if (intensity > 0.1 && s % 2 === 0) {
+    if (hot > 0.08 && s % 2 === 0) {
       const idx = (s / 2 + bar) % track.scale.length;
       const oct = 3 + (s % 8 === 0 ? 1 : 0);
-      voice(track.root * Math.pow(2, track.scale[idx] / 12 + oct - 1), t, spb * 0.9, 0.05 + intensity * 0.05, track.wave, musicGain);
+      voice(
+        track.root * Math.pow(2, track.scale[idx]! / 12 + oct - 1), t, spb * 0.85,
+        0.045 + hot * 0.055, track.wave, bus,
+        { pan: ((s % 4) - 1.5) / 5 },
+      );
     }
-    // pad em barras alternadas
-    if (s === 0 && intensity > 0.5) {
-      voice(track.root * Math.pow(2, track.scale[2] / 12 + 1), t, spb * 14, 0.035, "triangle", musicGain);
+
+    // lead em staccato quando a partida esquenta
+    if (hot > 0.45 && (s === 3 || s === 7 || s === 11)) {
+      const idx = (s + bar * 2) % track.scale.length;
+      voice(rootHz * Math.pow(2, track.scale[idx]! / 12 + 2), t, spb * 0.55, 0.05, "triangle", bus, { pan: -0.3, attack: 0.006 });
+    }
+
+    // pad harmônico sustentado
+    if (s === 0) {
+      [0, 3, 7].forEach((iv, i) =>
+        voice(rootHz * Math.pow(2, (iv + 12) / 12), t, spb * 15, 0.022 + hot * 0.018, "sawtooth", bus,
+          { cutoff: 900 + hot * 1600, pan: i === 0 ? -0.35 : i === 2 ? 0.35 : 0, attack: 0.4 }),
+      );
+    }
+
+    // riser no fim do ciclo de 4 compassos
+    if (hot > 0.5 && s === 12 && bar % 4 === 3) {
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(300, t);
+      o.frequency.exponentialRampToValueAtTime(1800, t + spb * 4);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.05, t + spb * 3.6);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + spb * 4.2);
+      o.connect(g).connect(bus);
+      o.start(t); o.stop(t + spb * 4.3);
     }
 
     step++;
     nextTime += spb;
   }
 }
+
 
 export function startMusic() {
   const c = ensureAudio();

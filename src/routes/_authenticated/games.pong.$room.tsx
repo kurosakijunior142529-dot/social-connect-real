@@ -1,5 +1,5 @@
 import { createFileRoute, ClientOnly, Link, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Copy, Loader2, Share2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
@@ -7,11 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
 import { VerifiedName } from "@/components/verified-badge";
-import { usePongMatch } from "@/components/games/pong-online";
-
-const PongScene3D = lazy(() => import("@/components/games/pong-scene3d"));
+import { usePongMatch, PongCanvas } from "@/components/games/pong-online";
 import { ARENAS, BALL_SKINS, FIELD, PADDLE_SKINS, POWERS, POWER_CATEGORIES, POWER_MAP, type PowerCategory, type PowerId } from "@/lib/pong/config";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/games/pong/$room")({
   component: PongRoom,
@@ -178,18 +177,17 @@ function PongRoom() {
       <div className="relative mx-auto w-full max-w-md flex-1 px-3">
         <div className="relative mx-auto aspect-[1/1.5] w-full overflow-hidden rounded-3xl">
           <ClientOnly fallback={<div className="h-full w-full rounded-3xl bg-muted/30" />}>
-            <Suspense fallback={<div className="h-full w-full rounded-3xl bg-muted/30" />}>
-              <PongScene3D
-                simRef={sim}
-                impactsRef={impacts}
-                mySide={mySide}
-                arena={arena}
-                paddleSkin={paddleSkin}
-                ballSkin={ballSkin}
-                onTarget={setTarget}
-              />
-            </Suspense>
+            <PongCanvas
+              simRef={sim}
+              impactsRef={impacts}
+              mySide={mySide}
+              arena={arena}
+              paddleSkin={paddleSkin}
+              ballSkin={ballSkin}
+              onTarget={setTarget}
+            />
           </ClientOnly>
+
 
 
           {phase === "countdown" ? (

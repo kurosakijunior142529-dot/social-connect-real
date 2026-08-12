@@ -112,77 +112,126 @@ export type SfxName =
   | "shield" | "count" | "go" | "win" | "lose" | "select" | "portal"
   | "freeze" | "laser" | "quake" | "sticky";
 
+/** varredura de frequência com brilho — usada nos poderes */
+function sweep(from: number, to: number, dur: number, gain = 0.1, type: OscillatorType = "sawtooth", delay = 0) {
+  tone({ freq: from, to, dur, type, gain, delay });
+  tone({ freq: from * 1.5, to: to * 1.5, dur: dur * 0.8, type: "sine", gain: gain * 0.5, delay: delay + 0.02 });
+}
+
+/** acorde arpejado curto — assinatura sonora dos poderes */
+function chord(base: number, intervals: number[], dur: number, gain = 0.09, type: OscillatorType = "triangle", spread = 0.035) {
+  intervals.forEach((iv, i) =>
+    tone({ freq: base * Math.pow(2, iv / 12), dur, type, gain, delay: i * spread, detune: (i % 2 ? 8 : -8) }),
+  );
+}
+
+function sub(freq: number, to: number, dur: number, gain = 0.22, delay = 0) {
+  tone({ freq, to, dur, type: "sine", gain, delay });
+}
+
 export function sfx(name: SfxName, strength = 1) {
   switch (name) {
     case "hit":
-      tone({ freq: 420 + strength * 160, to: 220, dur: 0.09, type: "triangle", gain: 0.14 });
-      noise(0.05, 0.06, 2600, "highpass");
+      tone({ freq: 430 + strength * 200, to: 210, dur: 0.085, type: "triangle", gain: 0.15 });
+      tone({ freq: 1250 + strength * 400, to: 700, dur: 0.05, type: "sine", gain: 0.07 });
+      noise(0.045, 0.07, 3200, "highpass");
       break;
     case "hitHard":
-      tone({ freq: 900, to: 180, dur: 0.16, type: "sawtooth", gain: 0.16 });
-      tone({ freq: 140, to: 60, dur: 0.22, type: "sine", gain: 0.2 });
-      noise(0.12, 0.12, 3200, "highpass", 400);
+      tone({ freq: 1050, to: 170, dur: 0.18, type: "sawtooth", gain: 0.17 });
+      tone({ freq: 520, to: 120, dur: 0.24, type: "square", gain: 0.09, delay: 0.01 });
+      sub(150, 52, 0.3, 0.26);
+      noise(0.14, 0.13, 3600, "highpass", 380);
       break;
     case "wall":
-      tone({ freq: 300, to: 200, dur: 0.05, type: "square", gain: 0.07 });
+      tone({ freq: 320, to: 190, dur: 0.055, type: "square", gain: 0.08 });
+      noise(0.03, 0.04, 4200, "highpass");
       break;
     case "goal":
-      [0, 0.09, 0.18].forEach((d, i) => tone({ freq: 520 + i * 190, dur: 0.22, type: "triangle", gain: 0.13, delay: d }));
-      tone({ freq: 90, to: 50, dur: 0.4, type: "sine", gain: 0.18 });
+      chord(523.25, [0, 4, 7, 12], 0.5, 0.11, "triangle", 0.07);
+      sweep(400, 1600, 0.3, 0.06, "sine");
+      sub(110, 55, 0.5, 0.2);
+      noise(0.5, 0.05, 2000, "bandpass", 8000);
       break;
     case "concede":
-      tone({ freq: 320, to: 90, dur: 0.5, type: "sawtooth", gain: 0.12 });
-      noise(0.3, 0.08, 700, "lowpass");
+      chord(392, [0, -3, -8], 0.55, 0.1, "sawtooth", 0.09);
+      sub(120, 42, 0.6, 0.16);
+      noise(0.35, 0.07, 600, "lowpass");
       break;
     case "power":
-      tone({ freq: 220, to: 1100, dur: 0.3, type: "sawtooth", gain: 0.1 });
-      tone({ freq: 660, to: 1320, dur: 0.22, type: "sine", gain: 0.08, delay: 0.04 });
-      noise(0.25, 0.07, 900, "bandpass", 5000);
+      // carga → estouro → cauda cintilante
+      sweep(180, 1400, 0.34, 0.1);
+      chord(880, [0, 7, 12], 0.35, 0.07, "sine", 0.045);
+      sub(90, 46, 0.4, 0.18, 0.2);
+      noise(0.3, 0.08, 800, "bandpass", 7000);
       break;
     case "rewind":
-      tone({ freq: 1400, to: 90, dur: 0.85, type: "sawtooth", gain: 0.11 });
-      noise(0.8, 0.07, 4000, "bandpass", 200);
+      tone({ freq: 1600, to: 80, dur: 0.95, type: "sawtooth", gain: 0.12 });
+      tone({ freq: 2400, to: 120, dur: 0.7, type: "square", gain: 0.05, delay: 0.08 });
+      chord(220, [0, 5, 10], 0.8, 0.05, "sine", 0.12);
+      noise(0.9, 0.08, 5000, "bandpass", 150);
       break;
     case "shield":
-      tone({ freq: 180, to: 520, dur: 0.3, type: "sine", gain: 0.15 });
-      tone({ freq: 720, dur: 0.4, type: "triangle", gain: 0.06, delay: 0.05 });
+      sweep(160, 620, 0.35, 0.13, "sine");
+      chord(659.25, [0, 5, 12], 0.55, 0.06, "triangle", 0.05);
+      noise(0.3, 0.05, 1600, "bandpass", 4200);
       break;
     case "portal":
-      tone({ freq: 300, to: 1500, dur: 0.25, type: "sine", gain: 0.09 });
-      tone({ freq: 1500, to: 300, dur: 0.25, type: "sine", gain: 0.07, delay: 0.12 });
+      sweep(280, 1800, 0.26, 0.09, "sine");
+      sweep(1800, 280, 0.26, 0.07, "sine", 0.13);
+      chord(440, [0, 6, 11], 0.4, 0.05, "sine", 0.05);
+      noise(0.35, 0.05, 3000, "bandpass", 900);
       break;
     case "freeze":
-      [0, 0.05, 0.1, 0.16].forEach((d, i) => tone({ freq: 1800 - i * 260, dur: 0.18, type: "sine", gain: 0.07, delay: d }));
-      noise(0.3, 0.05, 6000, "highpass");
+      [0, 0.045, 0.09, 0.14, 0.2].forEach((d, i) =>
+        tone({ freq: 2200 - i * 300, dur: 0.2, type: "sine", gain: 0.07, delay: d }),
+      );
+      chord(1046, [0, 7, 14], 0.5, 0.035, "triangle", 0.06);
+      noise(0.45, 0.055, 6500, "highpass");
       break;
     case "laser":
-      tone({ freq: 1800, to: 200, dur: 0.22, type: "square", gain: 0.11 });
-      noise(0.15, 0.08, 5000, "bandpass", 800);
+      tone({ freq: 2400, to: 180, dur: 0.24, type: "square", gain: 0.12 });
+      tone({ freq: 3600, to: 400, dur: 0.14, type: "sawtooth", gain: 0.06, delay: 0.02 });
+      sub(140, 60, 0.28, 0.16, 0.04);
+      noise(0.18, 0.09, 5200, "bandpass", 700);
       break;
     case "quake":
-      tone({ freq: 70, to: 38, dur: 0.9, type: "sine", gain: 0.24 });
-      noise(0.7, 0.1, 300, "lowpass");
+      sub(78, 34, 1.0, 0.3);
+      tone({ freq: 46, to: 28, dur: 1.1, type: "square", gain: 0.12, delay: 0.05 });
+      noise(0.85, 0.12, 260, "lowpass");
+      noise(0.4, 0.05, 900, "bandpass", 120);
       break;
     case "sticky":
-      tone({ freq: 260, to: 520, dur: 0.18, type: "triangle", gain: 0.1 });
+      tone({ freq: 240, to: 560, dur: 0.2, type: "triangle", gain: 0.11 });
+      tone({ freq: 120, to: 300, dur: 0.24, type: "sine", gain: 0.08, delay: 0.03 });
+      noise(0.12, 0.04, 1400, "lowpass");
       break;
     case "count":
-      tone({ freq: 620, dur: 0.12, type: "square", gain: 0.09 });
+      tone({ freq: 660, dur: 0.13, type: "square", gain: 0.1 });
+      tone({ freq: 1320, dur: 0.07, type: "sine", gain: 0.05 });
       break;
     case "go":
-      [660, 880, 1320].forEach((f, i) => tone({ freq: f, dur: 0.22, type: "square", gain: 0.1, delay: i * 0.06 }));
+      chord(659.25, [0, 5, 12, 19], 0.3, 0.1, "square", 0.055);
+      sub(110, 60, 0.4, 0.2);
       break;
     case "win":
-      [523, 659, 784, 1047].forEach((f, i) => tone({ freq: f, dur: 0.45, type: "triangle", gain: 0.13, delay: i * 0.11 }));
+      [523, 659, 784, 1047, 1319].forEach((f, i) =>
+        tone({ freq: f, dur: 0.5, type: "triangle", gain: 0.13, delay: i * 0.1 }),
+      );
+      chord(261.6, [0, 7, 12], 1.4, 0.05, "sawtooth", 0.2);
       break;
     case "lose":
-      [523, 440, 349, 262].forEach((f, i) => tone({ freq: f, dur: 0.5, type: "sine", gain: 0.12, delay: i * 0.13 }));
+      [523, 440, 349, 262].forEach((f, i) =>
+        tone({ freq: f, dur: 0.55, type: "sine", gain: 0.12, delay: i * 0.13 }),
+      );
+      sub(90, 40, 1.0, 0.14, 0.3);
       break;
     case "select":
-      tone({ freq: 880, to: 1320, dur: 0.07, type: "square", gain: 0.06 });
+      tone({ freq: 880, to: 1480, dur: 0.07, type: "square", gain: 0.07 });
+      tone({ freq: 1760, dur: 0.05, type: "sine", gain: 0.04, delay: 0.03 });
       break;
   }
 }
+
 
 /* ------------------------------------------------------------------ */
 /* trilha procedural                                                   */

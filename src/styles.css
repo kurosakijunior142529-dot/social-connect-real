@@ -209,7 +209,8 @@
 .emoji-anim-hover {
   transition: transform 0.2s var(--ease-out-quart);
 }
-.emoji-anim-hover:hover img, .emoji-anim-hover:active img {
+.emoji-anim-hover:hover img, .emoji-anim-hover:active img,
+.emoji-anim-hover:hover .emoji-char, .emoji-anim-hover:active .emoji-char {
   animation: emoji-idle 0.9s ease-in-out infinite;
 }
 

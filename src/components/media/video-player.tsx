@@ -201,14 +201,20 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         loop
         muted={muted}
         preload="metadata"
-        className="h-full w-full object-cover transition-transform duration-500 ease-out will-change-transform"
+        className="h-full w-full object-cover"
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
           setLoading(false);
         }}
         onTimeUpdate={(e) => {
           const t = e.currentTarget.currentTime;
-          // throttle: só atualiza o estado ~4x/s para não re-renderizar o feed
+          const d = e.currentTarget.duration || 0;
+          // barra fina: atualizada direto no DOM (sem re-render do feed)
+          if (thinBarRef.current && d > 0) {
+            thinBarRef.current.style.width = `${(t / d) * 100}%`;
+          }
+          // estado só é atualizado quando os controles estão visíveis
+          if (!showControls) return;
           if (Math.abs(t - lastTime.current) < 0.25) return;
           lastTime.current = t;
           setCurrent(t);
@@ -220,6 +226,7 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
+
 
       {/* nextSrc é usado apenas como dica; sem preload de vídeo para não saturar a rede */}
 

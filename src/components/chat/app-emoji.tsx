@@ -48,7 +48,7 @@ export function AppEmojiPicker({
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-2">
         <div className="grid grid-cols-6 gap-1">
-          {APP_EMOJIS.map((e) => (
+          {APP_EMOJIS.map((e, i) => (
             <button
               key={e.code}
               type="button"
@@ -57,11 +57,19 @@ export function AppEmojiPicker({
                 onPick(`:${e.code}:`);
                 setOpen(false);
               }}
-              className="grid h-9 w-9 place-items-center rounded-lg transition hover:bg-muted active:scale-95"
+              className="emoji-anim-hover grid h-9 w-9 place-items-center rounded-lg transition hover:bg-muted active:scale-95"
             >
-              <img src={e.src} alt={e.label} loading="lazy" className="h-7 w-7 object-contain" />
+              <img
+                src={e.src}
+                alt={e.label}
+                loading="lazy"
+                decoding="async"
+                style={{ animationDelay: `${i * 45}ms` }}
+                className="emoji-anim h-7 w-7 object-contain"
+              />
             </button>
           ))}
+
         </div>
       </PopoverContent>
     </Popover>

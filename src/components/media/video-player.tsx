@@ -63,22 +63,35 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
   }, []);
 
   // Autoplay (muted) when scrolled into view, pause when out.
+  // Only ONE video plays at a time in the whole app — evita travamento no feed.
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.6 && !document.hidden) {
+          claimActiveVideo(el);
           el.play().catch(() => {});
         } else {
           el.pause();
+          releaseActiveVideo(el);
         }
       },
       { threshold: [0, 0.6, 1] },
     );
     io.observe(el);
-    return () => io.disconnect();
+    const onVisibility = () => {
+      if (document.hidden) el.pause();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+      releaseActiveVideo(el);
+      el.pause();
+    };
   }, [src]);
+
 
   const togglePlay = useCallback(() => {
     const el = videoRef.current;

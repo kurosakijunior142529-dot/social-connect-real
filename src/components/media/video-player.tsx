@@ -199,13 +199,20 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         playsInline
         loop
         muted={muted}
-        preload="auto"
+        preload="metadata"
         className="h-full w-full object-cover transition-transform duration-500 ease-out will-change-transform"
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
           setLoading(false);
         }}
-        onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+        onTimeUpdate={(e) => {
+          const t = e.currentTarget.currentTime;
+          // throttle: só atualiza o estado ~4x/s para não re-renderizar o feed
+          if (Math.abs(t - lastTime.current) < 0.25) return;
+          lastTime.current = t;
+          setCurrent(t);
+        }}
+
         onWaiting={() => setLoading(true)}
         onPlaying={() => setLoading(false)}
         onCanPlay={() => setLoading(false)}

@@ -43,6 +43,7 @@ type Burst = { id: number; x: number; y: number };
  */
 export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, watermarkUsername }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const thinBarRef = useRef<HTMLDivElement>(null);
   const lastTime = useRef(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({

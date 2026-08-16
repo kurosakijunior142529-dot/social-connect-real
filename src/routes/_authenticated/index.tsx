@@ -43,7 +43,7 @@ function FeedPage() {
         .select("*")
         .neq("post_kind", "reel")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(24);
       if (followingIds.length > 0) q = q.in("author_id", authors);
       return q;
     },

@@ -67,6 +67,8 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
   }, []);
 
   const reveal = useCallback(() => {
+    const el = videoRef.current;
+    if (el) setCurrent(el.currentTime);
     setShowControls(true);
     armAutoHide();
   }, [armAutoHide]);

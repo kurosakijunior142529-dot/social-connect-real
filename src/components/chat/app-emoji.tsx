@@ -19,12 +19,19 @@ export function EmojiText({ text, className }: { text: string; className?: strin
             src={t.emoji.src}
             alt={t.emoji.label}
             loading="lazy"
-            className={cn("inline-block align-[-0.25em] object-contain", size)}
+            decoding="async"
+            style={{ animationDelay: `${Math.min(i, 6) * 60}ms` }}
+            className={cn(
+              "inline-block align-[-0.25em] object-contain",
+              size,
+              onlyEmojis ? "emoji-anim emoji-anim-lg" : "emoji-anim",
+            )}
           />
         ),
       )}
     </span>
   );
+
 }
 
 /** Compact picker that inserts an app emoji shortcode into the composer. */

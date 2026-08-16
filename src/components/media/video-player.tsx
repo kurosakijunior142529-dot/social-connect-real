@@ -43,6 +43,7 @@ type Burst = { id: number; x: number; y: number };
  */
 export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, watermarkUsername }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const thinBarRef = useRef<HTMLDivElement>(null);
   const lastTime = useRef(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
@@ -66,6 +67,8 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
   }, []);
 
   const reveal = useCallback(() => {
+    const el = videoRef.current;
+    if (el) setCurrent(el.currentTime);
     setShowControls(true);
     armAutoHide();
   }, [armAutoHide]);
@@ -201,14 +204,20 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         loop
         muted={muted}
         preload="metadata"
-        className="h-full w-full object-cover transition-transform duration-500 ease-out will-change-transform"
+        className="h-full w-full object-cover"
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
           setLoading(false);
         }}
         onTimeUpdate={(e) => {
           const t = e.currentTarget.currentTime;
-          // throttle: só atualiza o estado ~4x/s para não re-renderizar o feed
+          const d = e.currentTarget.duration || 0;
+          // barra fina: atualizada direto no DOM (sem re-render do feed)
+          if (thinBarRef.current && d > 0) {
+            thinBarRef.current.style.width = `${(t / d) * 100}%`;
+          }
+          // estado só é atualizado quando os controles estão visíveis
+          if (!showControls) return;
           if (Math.abs(t - lastTime.current) < 0.25) return;
           lastTime.current = t;
           setCurrent(t);
@@ -220,6 +229,7 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
+
 
       {/* nextSrc é usado apenas como dica; sem preload de vídeo para não saturar a rede */}
 
@@ -344,17 +354,9 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         onPointerEnter={() => setScrubberActive(true)}
         onPointerLeave={() => setScrubberActive(false)}
       >
-        <div className="h-full bg-primary/80" style={{ width: `${progress}%` }} />
+        <div ref={thinBarRef} className="h-full bg-primary/80" style={{ width: `${progress}%` }} />
       </div>
 
-      <style>{`
-        @keyframes reel-heart {
-          0%   { transform: translate(-50%,-50%) scale(0.6) rotate(-12deg); opacity: 0; }
-          25%  { transform: translate(-50%,-50%) scale(1.25) rotate(-4deg); opacity: 1; }
-          55%  { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-          100% { transform: translate(-50%,-95%) scale(0.9); opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }

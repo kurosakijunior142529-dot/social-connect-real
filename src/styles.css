@@ -199,20 +199,29 @@
   75%      { transform: translateY(-1px) rotate(-2deg) scale(1.03); }
 }
 .emoji-anim {
-  animation: emoji-pop 0.42s var(--ease-out-quart) both, emoji-idle 3.2s ease-in-out 0.42s infinite;
+  /* idle roda poucas vezes: animação infinita em cada emoji custava muito no mobile */
+  animation: emoji-pop 0.42s var(--ease-out-quart) both, emoji-idle 3.2s ease-in-out 0.42s 2;
   transform-origin: center bottom;
-  will-change: transform;
 }
 .emoji-anim-lg {
-  animation: emoji-pop 0.5s var(--ease-out-quart) both, emoji-idle 2.4s ease-in-out 0.5s infinite;
+  animation: emoji-pop 0.5s var(--ease-out-quart) both, emoji-idle 2.4s ease-in-out 0.5s 3;
 }
 .emoji-anim-hover {
   transition: transform 0.2s var(--ease-out-quart);
 }
 .emoji-anim-hover:hover img, .emoji-anim-hover:active img,
 .emoji-anim-hover:hover .emoji-char, .emoji-anim-hover:active .emoji-char {
-  animation: emoji-idle 0.9s ease-in-out infinite;
+  animation: emoji-idle 0.9s ease-in-out 2;
 }
+
+/* Coração do duplo-toque no player de vídeo (global: evita <style> por player) */
+@keyframes reel-heart {
+  0%   { transform: translate(-50%,-50%) scale(0.6) rotate(-12deg); opacity: 0; }
+  25%  { transform: translate(-50%,-50%) scale(1.25) rotate(-4deg); opacity: 1; }
+  55%  { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%,-95%) scale(0.9); opacity: 0; }
+}
+
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }

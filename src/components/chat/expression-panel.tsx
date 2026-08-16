@@ -212,10 +212,11 @@ const EmojiButton = memo(function EmojiButton({
         if (long.current) return;
         onPick(char);
       }}
-      className="grid h-10 w-full place-items-center rounded-xl text-[26px] leading-none transition active:scale-90 active:bg-muted"
+      className="emoji-anim-hover grid h-10 w-full place-items-center rounded-xl text-[26px] leading-none transition active:scale-90 active:bg-muted"
     >
-      {char}
+      <span className="emoji-char inline-block">{char}</span>
     </button>
+
   );
 });
 
@@ -279,17 +280,25 @@ function EmojiTab({ onEmoji }: { onEmoji: (t: string) => void }) {
                 ✨ Exclusivos do app
               </h3>
               <div className="grid grid-cols-8 gap-1">
-                {APP_EMOJIS.map((e) => (
+                {APP_EMOJIS.map((e, i) => (
                   <button
                     key={e.code}
                     type="button"
                     aria-label={e.label}
                     onClick={() => pick(`:${e.code}:`)}
-                    className="grid h-10 w-full place-items-center rounded-xl transition active:scale-90 active:bg-muted"
+                    className="emoji-anim-hover grid h-10 w-full place-items-center rounded-xl transition active:scale-90 active:bg-muted"
                   >
-                    <img src={e.src} alt={e.label} loading="lazy" className="h-7 w-7 object-contain" />
+                    <img
+                      src={e.src}
+                      alt={e.label}
+                      loading="lazy"
+                      decoding="async"
+                      style={{ animationDelay: `${i * 45}ms` }}
+                      className="emoji-anim h-7 w-7 object-contain"
+                    />
                   </button>
                 ))}
+
               </div>
             </section>
 

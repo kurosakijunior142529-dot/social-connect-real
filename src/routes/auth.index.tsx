@@ -28,9 +28,54 @@ const signUpSchema = signInSchema.extend({
     .regex(/^[a-z0-9_]{3,24}$/, { message: "3-24 letras/números/underscore" }),
 });
 
+const phoneSchema = z
+  .string()
+  .trim()
+  .transform((v) => v.replace(/[^\d+]/g, ""))
+  .refine((v) => /^\+\d{10,15}$/.test(v), { message: "Use o formato +5511999999999" });
+
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [code, setCode] = useState("");
+
+  async function handleSendOtp(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const parsed = phoneSchema.safeParse(phone);
+    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ phone: parsed.data });
+    setLoading(false);
+    if (error) {
+      return toast.error(
+        /provider|disabled|unsupported/i.test(error.message)
+          ? "Login por telefone ainda não está ativo. Configure o envio de SMS."
+          : error.message,
+      );
+    }
+    setOtpSent(true);
+    toast.success("Código enviado por SMS");
+  }
+
+  async function handleVerifyOtp(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const parsed = phoneSchema.safeParse(phone);
+    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    if (!/^\d{4,8}$/.test(code.trim())) return toast.error("Código inválido");
+    setLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      phone: parsed.data,
+      token: code.trim(),
+      type: "sms",
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Telefone verificado!");
+    navigate({ to: "/" });
+  }
+
 
   async function handleSignIn(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

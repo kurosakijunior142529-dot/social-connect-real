@@ -3,12 +3,25 @@ import { Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoWatermark } from "@/components/media/watermark";
 
+/** Garante que só um vídeo toque por vez (evita travamento do feed). */
+let activeVideo: HTMLVideoElement | null = null;
+function claimActiveVideo(el: HTMLVideoElement) {
+  if (activeVideo && activeVideo !== el) {
+    try { activeVideo.pause(); } catch { /* noop */ }
+  }
+  activeVideo = el;
+}
+function releaseActiveVideo(el: HTMLVideoElement) {
+  if (activeVideo === el) activeVideo = null;
+}
+
 function fmt(s: number) {
   if (!Number.isFinite(s) || s < 0) s = 0;
   const m = Math.floor(s / 60);
   const r = Math.floor(s % 60);
   return `${m}:${String(r).padStart(2, "0")}`;
 }
+
 
 type Props = {
   src: string;
@@ -30,6 +43,7 @@ type Burst = { id: number; x: number; y: number };
  */
 export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, watermarkUsername }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const lastTime = useRef(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
     last: 0, timer: null, longTimer: null, startY: 0, moved: false,
@@ -63,22 +77,35 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
   }, []);
 
   // Autoplay (muted) when scrolled into view, pause when out.
+  // Only ONE video plays at a time in the whole app — evita travamento no feed.
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.6 && !document.hidden) {
+          claimActiveVideo(el);
           el.play().catch(() => {});
         } else {
           el.pause();
+          releaseActiveVideo(el);
         }
       },
       { threshold: [0, 0.6, 1] },
     );
     io.observe(el);
-    return () => io.disconnect();
+    const onVisibility = () => {
+      if (document.hidden) el.pause();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+      releaseActiveVideo(el);
+      el.pause();
+    };
   }, [src]);
+
 
   const togglePlay = useCallback(() => {
     const el = videoRef.current;
@@ -173,13 +200,20 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         playsInline
         loop
         muted={muted}
-        preload="auto"
+        preload="metadata"
         className="h-full w-full object-cover transition-transform duration-500 ease-out will-change-transform"
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
           setLoading(false);
         }}
-        onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
+        onTimeUpdate={(e) => {
+          const t = e.currentTarget.currentTime;
+          // throttle: só atualiza o estado ~4x/s para não re-renderizar o feed
+          if (Math.abs(t - lastTime.current) < 0.25) return;
+          lastTime.current = t;
+          setCurrent(t);
+        }}
+
         onWaiting={() => setLoading(true)}
         onPlaying={() => setLoading(false)}
         onCanPlay={() => setLoading(false)}
@@ -187,9 +221,8 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         onPause={() => setPlaying(false)}
       />
 
-      {nextSrc ? (
-        <link rel="preload" as="video" href={nextSrc} />
-      ) : null}
+      {/* nextSrc é usado apenas como dica; sem preload de vídeo para não saturar a rede */}
+
 
       {/* Depth gradient at the edges */}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.35),transparent_22%,transparent_70%,rgba(0,0,0,0.55))]" />

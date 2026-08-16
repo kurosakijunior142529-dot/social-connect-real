@@ -227,7 +227,11 @@ export function LazyPostCard({
   }, [visible]);
 
   return (
-    <div ref={ref} className="min-h-[360px]">
+    <div
+      ref={ref}
+      className="min-h-[360px]"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "520px" } as React.CSSProperties}
+    >
       {visible ? (
         <PostCard post={post} currentUserId={currentUserId} />
       ) : (
@@ -257,6 +261,9 @@ export function usePostsQuery(opts: {
   return useQuery({
     queryKey: [...opts.key, "blocks", hidden ? hidden.size : 0],
     enabled: !opts.currentUserId || !!blocks.data,
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await opts.fetchPosts();
       if (error) throw error;

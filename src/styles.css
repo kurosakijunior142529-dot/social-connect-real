@@ -186,6 +186,34 @@
 }
 .animate-heart-pop { animation: heart-pop 0.4s var(--ease-out-quart); }
 
+/* ============ Emojis animados ============ */
+@keyframes emoji-pop {
+  0%   { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+  60%  { transform: scale(1.18) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes emoji-idle {
+  0%, 100% { transform: translateY(0) rotate(-3deg) scale(1); }
+  25%      { transform: translateY(-2px) rotate(3deg) scale(1.05); }
+  50%      { transform: translateY(0) rotate(0deg) scale(1); }
+  75%      { transform: translateY(-1px) rotate(-2deg) scale(1.03); }
+}
+.emoji-anim {
+  animation: emoji-pop 0.42s var(--ease-out-quart) both, emoji-idle 3.2s ease-in-out 0.42s infinite;
+  transform-origin: center bottom;
+  will-change: transform;
+}
+.emoji-anim-lg {
+  animation: emoji-pop 0.5s var(--ease-out-quart) both, emoji-idle 2.4s ease-in-out 0.5s infinite;
+}
+.emoji-anim-hover {
+  transition: transform 0.2s var(--ease-out-quart);
+}
+.emoji-anim-hover:hover img, .emoji-anim-hover:active img,
+.emoji-anim-hover:hover .emoji-char, .emoji-anim-hover:active .emoji-char {
+  animation: emoji-idle 0.9s ease-in-out infinite;
+}
+
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }

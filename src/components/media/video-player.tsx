@@ -43,6 +43,7 @@ type Burst = { id: number; x: number; y: number };
  */
 export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, watermarkUsername }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const lastTime = useRef(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
     last: 0, timer: null, longTimer: null, startY: 0, moved: false,
@@ -220,9 +221,8 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         onPause={() => setPlaying(false)}
       />
 
-      {nextSrc ? (
-        <link rel="preload" as="video" href={nextSrc} />
-      ) : null}
+      {/* nextSrc é usado apenas como dica; sem preload de vídeo para não saturar a rede */}
+
 
       {/* Depth gradient at the edges */}
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.35),transparent_22%,transparent_70%,rgba(0,0,0,0.55))]" />

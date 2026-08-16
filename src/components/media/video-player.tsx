@@ -3,12 +3,25 @@ import { Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoWatermark } from "@/components/media/watermark";
 
+/** Garante que só um vídeo toque por vez (evita travamento do feed). */
+let activeVideo: HTMLVideoElement | null = null;
+function claimActiveVideo(el: HTMLVideoElement) {
+  if (activeVideo && activeVideo !== el) {
+    try { activeVideo.pause(); } catch { /* noop */ }
+  }
+  activeVideo = el;
+}
+function releaseActiveVideo(el: HTMLVideoElement) {
+  if (activeVideo === el) activeVideo = null;
+}
+
 function fmt(s: number) {
   if (!Number.isFinite(s) || s < 0) s = 0;
   const m = Math.floor(s / 60);
   const r = Math.floor(s % 60);
   return `${m}:${String(r).padStart(2, "0")}`;
 }
+
 
 type Props = {
   src: string;

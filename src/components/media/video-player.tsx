@@ -352,17 +352,9 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         onPointerEnter={() => setScrubberActive(true)}
         onPointerLeave={() => setScrubberActive(false)}
       >
-        <div className="h-full bg-primary/80" style={{ width: `${progress}%` }} />
+        <div ref={thinBarRef} className="h-full bg-primary/80" style={{ width: `${progress}%` }} />
       </div>
 
-      <style>{`
-        @keyframes reel-heart {
-          0%   { transform: translate(-50%,-50%) scale(0.6) rotate(-12deg); opacity: 0; }
-          25%  { transform: translate(-50%,-50%) scale(1.25) rotate(-4deg); opacity: 1; }
-          55%  { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-          100% { transform: translate(-50%,-95%) scale(0.9); opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }

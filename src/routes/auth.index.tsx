@@ -147,10 +147,77 @@ function AuthPage() {
       <div className="md:w-1/2 flex items-center justify-center p-6 md:p-16 bg-background">
         <div className="w-full max-w-md">
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid grid-cols-2 mb-6 w-full">
+            <TabsList className="grid grid-cols-3 mb-6 w-full">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
+              <TabsTrigger value="phone">Telefone</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="phone">
+              {!otpSent ? (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ph-number">Número de telefone</Label>
+                    <Input
+                      id="ph-number"
+                      name="phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="+5511999999999"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Inclua o código do país. Enviaremos um código por SMS.
+                    </p>
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-brand hover:opacity-90 rounded-full h-11"
+                  >
+                    Enviar código
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ph-code">Código de verificação</Label>
+                    <Input
+                      id="ph-code"
+                      name="code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={8}
+                      placeholder="123456"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">Enviado para {phone}</p>
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-brand hover:opacity-90 rounded-full h-11"
+                  >
+                    Verificar e entrar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={loading}
+                    onClick={() => { setOtpSent(false); setCode(""); }}
+                    className="w-full rounded-full h-10"
+                  >
+                    Usar outro número
+                  </Button>
+                </form>
+              )}
+            </TabsContent>
+
 
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">

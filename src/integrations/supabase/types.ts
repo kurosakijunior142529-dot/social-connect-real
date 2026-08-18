@@ -148,6 +148,30 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_hashes: {
+        Row: {
+          created_at: string
+          hash: string
+          id: string
+          kind: string
+          note: string | null
+        }
+        Insert: {
+          created_at?: string
+          hash: string
+          id?: string
+          kind?: string
+          note?: string | null
+        }
+        Update: {
+          created_at?: string
+          hash?: string
+          id?: string
+          kind?: string
+          note?: string | null
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -576,6 +600,51 @@ export type Database = {
           },
         ]
       }
+      content_moderation: {
+        Row: {
+          content_id: string | null
+          content_type: string
+          created_at: string
+          hash: string | null
+          id: string
+          labels: Json
+          owner_id: string | null
+          reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number
+          status: string
+        }
+        Insert: {
+          content_id?: string | null
+          content_type: string
+          created_at?: string
+          hash?: string | null
+          id?: string
+          labels?: Json
+          owner_id?: string | null
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          status?: string
+        }
+        Update: {
+          content_id?: string | null
+          content_type?: string
+          created_at?: string
+          hash?: string | null
+          id?: string
+          labels?: Json
+          owner_id?: string | null
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          status?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
@@ -640,6 +709,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_flags: {
+        Row: {
+          enabled: boolean
+          key: string
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          key: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          key?: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       follows: {
         Row: {
@@ -1389,6 +1482,45 @@ export type Database = {
           },
         ]
       }
+      moderation_actions: {
+        Row: {
+          action: string
+          content_id: string | null
+          content_type: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          reason: string
+          report_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          content_id?: string | null
+          content_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          reason: string
+          report_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          content_id?: string | null
+          content_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          reason?: string
+          report_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       muted_chats: {
         Row: {
           chat_id: string
@@ -1643,17 +1775,23 @@ export type Database = {
         Row: {
           avatar_url: string | null
           badge_variant: string | null
+          banned_at: string | null
           bio: string | null
+          birthdate: string | null
           cover_url: string | null
           created_at: string
           display_name: string
+          dm_privacy: string
           id: string
           is_creator: boolean
+          is_minor: boolean
           is_verified: boolean
           location: string | null
           pronouns: string | null
           read_receipts: boolean
           show_online: boolean
+          strikes: number
+          suspended_until: string | null
           updated_at: string
           username: string
           username_changed_at: string | null
@@ -1662,17 +1800,23 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           badge_variant?: string | null
+          banned_at?: string | null
           bio?: string | null
+          birthdate?: string | null
           cover_url?: string | null
           created_at?: string
           display_name: string
+          dm_privacy?: string
           id: string
           is_creator?: boolean
+          is_minor?: boolean
           is_verified?: boolean
           location?: string | null
           pronouns?: string | null
           read_receipts?: boolean
           show_online?: boolean
+          strikes?: number
+          suspended_until?: string | null
           updated_at?: string
           username: string
           username_changed_at?: string | null
@@ -1681,17 +1825,23 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           badge_variant?: string | null
+          banned_at?: string | null
           bio?: string | null
+          birthdate?: string | null
           cover_url?: string | null
           created_at?: string
           display_name?: string
+          dm_privacy?: string
           id?: string
           is_creator?: boolean
+          is_minor?: boolean
           is_verified?: boolean
           location?: string | null
           pronouns?: string | null
           read_receipts?: boolean
           show_online?: boolean
+          strikes?: number
+          suspended_until?: string | null
           updated_at?: string
           username?: string
           username_changed_at?: string | null
@@ -1699,35 +1849,71 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          count: number
+          scope: string
+          subject: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          scope: string
+          subject: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          scope?: string
+          subject?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
+          category: string | null
           created_at: string
           details: string | null
           id: string
+          moderator_note: string | null
           reason: string
           reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
           status: Database["public"]["Enums"]["report_status"]
           target_id: string
           target_type: Database["public"]["Enums"]["report_target"]
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           details?: string | null
           id?: string
+          moderator_note?: string | null
           reason: string
           reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
           status?: Database["public"]["Enums"]["report_status"]
           target_id: string
           target_type: Database["public"]["Enums"]["report_target"]
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           details?: string | null
           id?: string
+          moderator_note?: string | null
           reason?: string
           reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
           status?: Database["public"]["Enums"]["report_status"]
           target_id?: string
           target_type?: Database["public"]["Enums"]["report_target"]
@@ -1849,6 +2035,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          ip: string | null
+          metadata: Json
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          ip?: string | null
+          metadata?: Json
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       stickers: {
         Row: {
@@ -2302,22 +2521,55 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      account_state: { Args: { _user: string }; Returns: string }
+      admin_moderate: {
+        Args: {
+          _action: string
+          _content_id?: string
+          _content_type?: string
+          _duration_hours?: number
+          _reason: string
+          _report_id?: string
+          _user_id: string
+        }
+        Returns: string
+      }
+      admin_resolve_report: {
+        Args: { _note?: string; _report_id: string; _status: string }
+        Returns: undefined
+      }
+      admin_review_content: {
+        Args: { _id: string; _status: string }
+        Returns: undefined
+      }
+      admin_set_flag: {
+        Args: { _enabled: boolean; _key: string }
+        Returns: undefined
+      }
       admin_update_withdrawal: {
         Args: { _new_status: string; _note?: string; _withdrawal_id: string }
         Returns: undefined
       }
+      can_interact: { Args: { _user: string }; Returns: boolean }
+      can_message: { Args: { _user: string }; Returns: boolean }
+      can_publish: { Args: { _user: string }; Returns: boolean }
       can_view_live: {
         Args: { _live: string; _user: string }
         Returns: boolean
       }
       change_username: { Args: { _new_username: string }; Returns: string }
       chat_role: { Args: { _chat: string; _user: string }; Returns: string }
+      check_rate_limit: {
+        Args: { _limit: number; _scope: string; _window_seconds: number }
+        Returns: boolean
+      }
       coins_to_brl: { Args: { _coins: number }; Returns: number }
       credit_coins: {
         Args: { _amount: number; _user: string }
         Returns: number
       }
       deliver_scheduled_messages: { Args: never; Returns: number }
+      flag_enabled: { Args: { _key: string }; Returns: boolean }
       get_or_create_conversation: {
         Args: { _other_user: string }
         Returns: string
@@ -2351,6 +2603,17 @@ export type Database = {
         Returns: {
           room_id: string
         }[]
+      }
+      log_security_event: {
+        Args: {
+          _event: string
+          _ip?: string
+          _metadata?: Json
+          _severity?: string
+          _user?: string
+          _user_agent?: string
+        }
+        Returns: undefined
       }
       notify_user: {
         Args: {
@@ -2407,6 +2670,15 @@ export type Database = {
         Args: { _game: string; _score: number }
         Returns: number
       }
+      submit_report: {
+        Args: {
+          _category: string
+          _details?: string
+          _target_id: string
+          _target_type: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user"
@@ -2420,7 +2692,15 @@ export type Database = {
       call_type: "audio" | "video"
       media_type: "image" | "video"
       report_status: "pending" | "reviewed" | "dismissed" | "actioned"
-      report_target: "user" | "post" | "message"
+      report_target:
+        | "user"
+        | "post"
+        | "message"
+        | "comment"
+        | "story"
+        | "live"
+        | "chat"
+        | "listing"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2560,7 +2840,16 @@ export const Constants = {
       call_type: ["audio", "video"],
       media_type: ["image", "video"],
       report_status: ["pending", "reviewed", "dismissed", "actioned"],
-      report_target: ["user", "post", "message"],
+      report_target: [
+        "user",
+        "post",
+        "message",
+        "comment",
+        "story",
+        "live",
+        "chat",
+        "listing",
+      ],
     },
   },
 } as const

@@ -27,6 +27,9 @@ export function UserActionsMenu({
   targetUsername,
   postId,
   messageId,
+  commentId,
+  storyId,
+  liveId,
   className,
 }: {
   targetUserId: string;
@@ -35,6 +38,12 @@ export function UserActionsMenu({
   postId?: string;
   /** If provided, a "Denunciar mensagem" option is shown */
   messageId?: string;
+  /** If provided, a "Denunciar comentário" option is shown */
+  commentId?: string;
+  /** If provided, a "Denunciar story" option is shown */
+  storyId?: string;
+  /** If provided, a "Denunciar live" option is shown */
+  liveId?: string;
   className?: string;
 }) {
   const { user } = useAuth();
@@ -83,6 +92,36 @@ export function UserActionsMenu({
               }}
             >
               <Flag className="h-4 w-4 mr-2" /> Denunciar mensagem
+            </DropdownMenuItem>
+          ) : null}
+          {commentId ? (
+            <DropdownMenuItem
+              onClick={() => {
+                setReportTarget({ type: "comment", id: commentId, label: "comentário" });
+                setReportOpen(true);
+              }}
+            >
+              <Flag className="h-4 w-4 mr-2" /> Denunciar comentário
+            </DropdownMenuItem>
+          ) : null}
+          {storyId ? (
+            <DropdownMenuItem
+              onClick={() => {
+                setReportTarget({ type: "story", id: storyId, label: "story" });
+                setReportOpen(true);
+              }}
+            >
+              <Flag className="h-4 w-4 mr-2" /> Denunciar story
+            </DropdownMenuItem>
+          ) : null}
+          {liveId ? (
+            <DropdownMenuItem
+              onClick={() => {
+                setReportTarget({ type: "live", id: liveId, label: "live" });
+                setReportOpen(true);
+              }}
+            >
+              <Flag className="h-4 w-4 mr-2" /> Denunciar live
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem

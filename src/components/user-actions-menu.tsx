@@ -94,6 +94,36 @@ export function UserActionsMenu({
               <Flag className="h-4 w-4 mr-2" /> Denunciar mensagem
             </DropdownMenuItem>
           ) : null}
+          {commentId ? (
+            <DropdownMenuItem
+              onClick={() => {
+                setReportTarget({ type: "comment", id: commentId, label: "comentário" });
+                setReportOpen(true);
+              }}
+            >
+              <Flag className="h-4 w-4 mr-2" /> Denunciar comentário
+            </DropdownMenuItem>
+          ) : null}
+          {storyId ? (
+            <DropdownMenuItem
+              onClick={() => {
+                setReportTarget({ type: "story", id: storyId, label: "story" });
+                setReportOpen(true);
+              }}
+            >
+              <Flag className="h-4 w-4 mr-2" /> Denunciar story
+            </DropdownMenuItem>
+          ) : null}
+          {liveId ? (
+            <DropdownMenuItem
+              onClick={() => {
+                setReportTarget({ type: "live", id: liveId, label: "live" });
+                setReportOpen(true);
+              }}
+            >
+              <Flag className="h-4 w-4 mr-2" /> Denunciar live
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem
             onClick={() => {
               setReportTarget({

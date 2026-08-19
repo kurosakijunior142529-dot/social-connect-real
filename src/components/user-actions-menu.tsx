@@ -35,6 +35,12 @@ export function UserActionsMenu({
   postId?: string;
   /** If provided, a "Denunciar mensagem" option is shown */
   messageId?: string;
+  /** If provided, a "Denunciar comentário" option is shown */
+  commentId?: string;
+  /** If provided, a "Denunciar story" option is shown */
+  storyId?: string;
+  /** If provided, a "Denunciar live" option is shown */
+  liveId?: string;
   className?: string;
 }) {
   const { user } = useAuth();

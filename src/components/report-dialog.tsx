@@ -20,18 +20,31 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { ShieldAlert } from "lucide-react";
 
-export type ReportTargetType = "user" | "post" | "message";
+export type ReportTargetType =
+  | "user"
+  | "post"
+  | "message"
+  | "comment"
+  | "story"
+  | "live"
+  | "chat"
+  | "listing";
 
-const REASONS = [
-  "Spam",
-  "Assédio ou bullying",
-  "Discurso de ódio",
-  "Nudez ou conteúdo sexual",
-  "Violência",
-  "Informação falsa",
-  "Golpe ou fraude",
-  "Outro",
+const CATEGORIES: Array<{ value: string; label: string; critical?: boolean }> = [
+  { value: "child_exploitation", label: "Exploração ou abuso infantil", critical: true },
+  { value: "ncii", label: "Conteúdo íntimo sem consentimento", critical: true },
+  { value: "threat", label: "Ameaça", critical: true },
+  { value: "illegal", label: "Conteúdo ilegal", critical: true },
+  { value: "sexual_public", label: "Pornografia / conteúdo sexual público" },
+  { value: "harassment", label: "Assédio ou bullying" },
+  { value: "violence", label: "Violência" },
+  { value: "hate", label: "Discurso de ódio" },
+  { value: "scam", label: "Golpe ou fraude" },
+  { value: "spam", label: "Spam" },
+  { value: "fake_account", label: "Conta falsa" },
+  { value: "other", label: "Outro" },
 ];
 
 export function ReportDialog({
@@ -48,25 +61,30 @@ export function ReportDialog({
   targetLabel?: string;
 }) {
   const { user } = useAuth();
-  const [reason, setReason] = useState<string>("");
+  const [category, setCategory] = useState<string>("");
   const [details, setDetails] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
+  const critical = CATEGORIES.find((c) => c.value === category)?.critical;
+
   async function submit() {
     if (!user) return toast.error("Faça login");
-    if (!reason) return toast.error("Selecione um motivo");
+    if (!category) return toast.error("Selecione um motivo");
     setSubmitting(true);
-    const { error } = await supabase.from("reports").insert({
-      reporter_id: user.id,
-      target_type: targetType,
-      target_id: targetId,
-      reason,
-      details: details.trim() ? details.trim().slice(0, 1000) : null,
+    const { error } = await supabase.rpc("submit_report", {
+      _target_type: targetType,
+      _target_id: targetId,
+      _category: category,
+      _details: details.trim() ? details.trim().slice(0, 1000) : null,
     });
     setSubmitting(false);
     if (error) return toast.error(error.message);
-    toast.success("Denúncia enviada. Obrigado!");
-    setReason("");
+    toast.success(
+      critical
+        ? "Denúncia enviada com prioridade máxima. Nossa equipe será notificada imediatamente."
+        : "Denúncia enviada. Obrigado!",
+    );
+    setCategory("");
     setDetails("");
     onOpenChange(false);
   }
@@ -83,17 +101,31 @@ export function ReportDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Motivo</Label>
-            <Select value={reason} onValueChange={setReason}>
+            <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="rounded-full">
                 <SelectValue placeholder="Selecione um motivo" />
               </SelectTrigger>
-              <SelectContent>
-                {REASONS.map((r) => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
+              <SelectContent className="z-[120]">
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {critical ? (
+            <div className="flex gap-2 rounded-2xl border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <span>
+                Denúncias desta categoria têm prioridade máxima e são registradas para
+                análise imediata. Em caso de risco imediato a uma criança ou adolescente,
+                acione também as autoridades (Disque 100).
+              </span>
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label>Detalhes (opcional)</Label>
             <Textarea
@@ -112,7 +144,7 @@ export function ReportDialog({
           </Button>
           <Button
             onClick={submit}
-            disabled={submitting || !reason}
+            disabled={submitting || !category}
             className="rounded-full bg-gradient-brand hover:opacity-90"
           >
             {submitting ? "Enviando…" : "Enviar denúncia"}

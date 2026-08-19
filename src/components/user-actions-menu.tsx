@@ -27,6 +27,9 @@ export function UserActionsMenu({
   targetUsername,
   postId,
   messageId,
+  commentId,
+  storyId,
+  liveId,
   className,
 }: {
   targetUserId: string;

@@ -48,6 +48,7 @@ import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authenticated/ai.$threadId'
 import { Route as AuthenticatedAdminWithdrawalsRouteImport } from './routes/_authenticated/admin.withdrawals'
+import { Route as AuthenticatedAdminSecurityRouteImport } from './routes/_authenticated/admin.security'
 import { Route as AuthenticatedAccountSupportRouteImport } from './routes/_authenticated/account.support'
 import { Route as AuthenticatedAccountSecurityRouteImport } from './routes/_authenticated/account.security'
 import { Route as AuthenticatedAccountPrivacyRouteImport } from './routes/_authenticated/account.privacy'
@@ -265,6 +266,12 @@ const AuthenticatedAdminWithdrawalsRoute =
     path: '/admin/withdrawals',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSecurityRoute =
+  AuthenticatedAdminSecurityRouteImport.update({
+    id: '/admin/security',
+    path: '/admin/security',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccountSupportRoute =
   AuthenticatedAccountSupportRouteImport.update({
     id: '/account/support',
@@ -350,6 +357,7 @@ export interface FileRoutesByFullPath {
   '/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/account/security': typeof AuthenticatedAccountSecurityRoute
   '/account/support': typeof AuthenticatedAccountSupportRoute
+  '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
@@ -401,6 +409,7 @@ export interface FileRoutesByTo {
   '/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/account/security': typeof AuthenticatedAccountSecurityRoute
   '/account/support': typeof AuthenticatedAccountSupportRoute
+  '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
@@ -453,6 +462,7 @@ export interface FileRoutesById {
   '/_authenticated/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/_authenticated/account/security': typeof AuthenticatedAccountSecurityRoute
   '/_authenticated/account/support': typeof AuthenticatedAccountSupportRoute
+  '/_authenticated/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/_authenticated/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/_authenticated/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
@@ -506,6 +516,7 @@ export interface FileRouteTypes {
     | '/account/privacy'
     | '/account/security'
     | '/account/support'
+    | '/admin/security'
     | '/admin/withdrawals'
     | '/ai/$threadId'
     | '/chats/$id'
@@ -557,6 +568,7 @@ export interface FileRouteTypes {
     | '/account/privacy'
     | '/account/security'
     | '/account/support'
+    | '/admin/security'
     | '/admin/withdrawals'
     | '/ai/$threadId'
     | '/chats/$id'
@@ -608,6 +620,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account/privacy'
     | '/_authenticated/account/security'
     | '/_authenticated/account/support'
+    | '/_authenticated/admin/security'
     | '/_authenticated/admin/withdrawals'
     | '/_authenticated/ai/$threadId'
     | '/_authenticated/chats/$id'
@@ -926,6 +939,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminWithdrawalsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/security': {
+      id: '/_authenticated/admin/security'
+      path: '/admin/security'
+      fullPath: '/admin/security'
+      preLoaderRoute: typeof AuthenticatedAdminSecurityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/account/support': {
       id: '/_authenticated/account/support'
       path: '/account/support'
@@ -1051,6 +1071,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountPrivacyRoute: typeof AuthenticatedAccountPrivacyRoute
   AuthenticatedAccountSecurityRoute: typeof AuthenticatedAccountSecurityRoute
   AuthenticatedAccountSupportRoute: typeof AuthenticatedAccountSupportRoute
+  AuthenticatedAdminSecurityRoute: typeof AuthenticatedAdminSecurityRoute
   AuthenticatedAdminWithdrawalsRoute: typeof AuthenticatedAdminWithdrawalsRoute
   AuthenticatedAiThreadIdRoute: typeof AuthenticatedAiThreadIdRoute
   AuthenticatedChatsIdRoute: typeof AuthenticatedChatsIdRoute
@@ -1095,6 +1116,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountPrivacyRoute: AuthenticatedAccountPrivacyRoute,
   AuthenticatedAccountSecurityRoute: AuthenticatedAccountSecurityRoute,
   AuthenticatedAccountSupportRoute: AuthenticatedAccountSupportRoute,
+  AuthenticatedAdminSecurityRoute: AuthenticatedAdminSecurityRoute,
   AuthenticatedAdminWithdrawalsRoute: AuthenticatedAdminWithdrawalsRoute,
   AuthenticatedAiThreadIdRoute: AuthenticatedAiThreadIdRoute,
   AuthenticatedChatsIdRoute: AuthenticatedChatsIdRoute,

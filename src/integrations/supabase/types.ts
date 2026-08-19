@@ -2654,6 +2654,13 @@ export type Database = {
         Args: { _amount_coins: number; _bank_account_id: string }
         Returns: string
       }
+      send_live_gift: {
+        Args: { _gift_id: string; _live_id: string; _message?: string }
+        Returns: {
+          balance: number
+          coins_spent: number
+        }[]
+      }
       set_chat_meta: {
         Args: { _chat: string; _meta: Json }
         Returns: undefined

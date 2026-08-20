@@ -243,9 +243,14 @@ export function VideoPlayer({
         src={src}
         poster={poster}
         playsInline
-        loop
+        loop={autoPlayInView}
         muted={muted}
-        preload="metadata"
+        preload="none"
+        controls={false}
+        disablePictureInPicture
+        disableRemotePlayback
+        controlsList="nodownload noplaybackrate noremoteplayback"
+        x-webkit-airplay="deny"
         className="h-full w-full object-cover"
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);

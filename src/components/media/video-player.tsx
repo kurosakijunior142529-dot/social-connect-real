@@ -100,7 +100,14 @@ export function VideoPlayer({
     if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.6 && !document.hidden) {
+        const near = entry.isIntersecting;
+        // Só busca os metadados quando o vídeo chega perto da tela (rede/CPU).
+        if (near && el.preload === "none") el.preload = "metadata";
+        if (!autoPlayInView) {
+          if (!near && !el.paused) el.pause();
+          return;
+        }
+        if (near && entry.intersectionRatio > 0.6 && !document.hidden) {
           claimActiveVideo(el);
           el.play().catch(() => {});
         } else {
@@ -108,7 +115,7 @@ export function VideoPlayer({
           releaseActiveVideo(el);
         }
       },
-      { threshold: [0, 0.6, 1] },
+      { threshold: [0, 0.6, 1], rootMargin: "200px 0px" },
     );
     io.observe(el);
     const onVisibility = () => {

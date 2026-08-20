@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import { ImagePlus, Video, X } from "lucide-react";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
 import { exportVideo, needsReencode } from "@/lib/video-export";
+import { useServerFn } from "@tanstack/react-start";
+import { moderateMedia, moderateText } from "@/lib/moderation.functions";
+import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
 
 export const Route = createFileRoute("/_authenticated/create")({
   component: CreatePage,
@@ -22,6 +25,8 @@ function CreatePage() {
   const [busy, setBusy] = useState(false);
   const [trim, setTrim] = useState<TrimState>(defaultTrim);
   const [progress, setProgress] = useState(0);
+  const moderate = useServerFn(moderateMedia);
+  const moderateCaption = useServerFn(moderateText);
 
   const isVideo = !!file?.type.startsWith("video/");
 
@@ -64,6 +69,30 @@ function CreatePage() {
             toast.message("Não foi possível aplicar o corte — enviando o vídeo original");
           }
         }
+      }
+
+      // Segurança: validação real do arquivo + moderação no servidor antes de publicar.
+      const check = await checkFile(toUpload);
+      if (!check.ok) throw new Error(check.error);
+
+      const [dataUrl, sha256] = await Promise.all([previewDataUrl(toUpload), sha256Hex(toUpload)]);
+      const verdict = await moderate({
+        data: {
+          dataUrl,
+          sha256,
+          mime: check.mime,
+          size: toUpload.size,
+          surface: "public",
+          contentType: "post",
+        },
+      });
+      if (!verdict.allow) throw new Error(verdict.reason || "Conteúdo bloqueado pelas regras da comunidade");
+
+      if (caption.trim()) {
+        const textVerdict = await moderateCaption({
+          data: { text: caption.trim(), surface: "public", contentType: "post_caption" },
+        });
+        if (!textVerdict.allow) throw new Error(textVerdict.reason || "Legenda bloqueada pelas regras da comunidade");
       }
 
       const path = await uploadMedia("posts", user.id, toUpload);

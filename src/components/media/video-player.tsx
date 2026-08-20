@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Download, Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoWatermark } from "@/components/media/watermark";
 
@@ -33,6 +33,10 @@ type Props = {
   onDoubleTapLike?: () => void;
   /** Autor exibido na marca d'água do app. */
   watermarkUsername?: string | null;
+  /** Toca sozinho (sem som) quando entra na tela. Desligue em superfícies leves como o chat. */
+  autoPlayInView?: boolean;
+  /** Nome sugerido do arquivo ao baixar. */
+  downloadName?: string;
 };
 
 type Burst = { id: number; x: number; y: number };
@@ -41,10 +45,20 @@ type Burst = { id: number; x: number; y: number };
  * Premium, immersive video player (TikTok / Reels style).
  * Everything is contained inside the video container — no external layout impact.
  */
-export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, watermarkUsername }: Props) {
+export function VideoPlayer({
+  src,
+  className,
+  poster,
+  nextSrc,
+  onDoubleTapLike,
+  watermarkUsername,
+  autoPlayInView = true,
+  downloadName,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const thinBarRef = useRef<HTMLDivElement>(null);
   const lastTime = useRef(0);
+  const [downloading, setDownloading] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
     last: 0, timer: null, longTimer: null, startY: 0, moved: false,
@@ -86,7 +100,14 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
     if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.6 && !document.hidden) {
+        const near = entry.isIntersecting;
+        // Só busca os metadados quando o vídeo chega perto da tela (rede/CPU).
+        if (near && el.preload === "none") el.preload = "metadata";
+        if (!autoPlayInView) {
+          if (!near && !el.paused) el.pause();
+          return;
+        }
+        if (near && entry.intersectionRatio > 0.6 && !document.hidden) {
           claimActiveVideo(el);
           el.play().catch(() => {});
         } else {
@@ -94,7 +115,7 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
           releaseActiveVideo(el);
         }
       },
-      { threshold: [0, 0.6, 1] },
+      { threshold: [0, 0.6, 1], rootMargin: "200px 0px" },
     );
     io.observe(el);
     const onVisibility = () => {
@@ -107,7 +128,28 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
       releaseActiveVideo(el);
       el.pause();
     };
-  }, [src]);
+  }, [src, autoPlayInView]);
+
+  const download = useCallback(async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = downloadName ?? `vibely-${Date.now()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch {
+      window.open(src, "_blank", "noopener");
+    } finally {
+      setDownloading(false);
+    }
+  }, [src, downloadName, downloading]);
 
 
   const togglePlay = useCallback(() => {
@@ -171,7 +213,7 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
     tapRef.current.last = now;
     tapRef.current.timer = window.setTimeout(() => {
       // Single tap: if controls are visible, toggle play; otherwise reveal controls.
-      if (showControls) togglePlay();
+      if (showControls || !autoPlayInView) togglePlay();
       else reveal();
       tapRef.current.timer = null;
     }, 280);
@@ -201,9 +243,14 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
         src={src}
         poster={poster}
         playsInline
-        loop
+        loop={autoPlayInView}
         muted={muted}
-        preload="metadata"
+        preload="none"
+        controls={false}
+        disablePictureInPicture
+        disableRemotePlayback
+        controlsList="nodownload noplaybackrate noremoteplayback"
+        x-webkit-airplay="deny"
         className="h-full w-full object-cover"
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
@@ -341,6 +388,21 @@ export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, 
             aria-label={muted ? "Ativar som" : "Silenciar"}
           >
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void download();
+              reveal();
+            }}
+            className="grid h-7 w-7 place-items-center rounded-full text-white/90 transition hover:scale-110 active:scale-95 disabled:opacity-50"
+            disabled={downloading}
+            aria-label="Baixar vídeo"
+          >
+            <Download className={cn("h-4 w-4", downloading && "animate-pulse")} />
           </button>
         </div>
       </div>

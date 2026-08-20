@@ -213,7 +213,7 @@ export function VideoPlayer({
     tapRef.current.last = now;
     tapRef.current.timer = window.setTimeout(() => {
       // Single tap: if controls are visible, toggle play; otherwise reveal controls.
-      if (showControls) togglePlay();
+      if (showControls || !autoPlayInView) togglePlay();
       else reveal();
       tapRef.current.timer = null;
     }, 280);

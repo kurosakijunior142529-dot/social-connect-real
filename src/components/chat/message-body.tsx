@@ -6,6 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { FileText, MapPin, Download, Pause, Play, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmojiText } from "@/components/chat/app-emoji";
+import { VideoPlayer } from "@/components/media/video-player";
 
 type Msg = {
   id: string;

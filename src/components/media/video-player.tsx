@@ -389,6 +389,21 @@ export function VideoPlayer({
           >
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void download();
+              reveal();
+            }}
+            className="grid h-7 w-7 place-items-center rounded-full text-white/90 transition hover:scale-110 active:scale-95 disabled:opacity-50"
+            disabled={downloading}
+            aria-label="Baixar vídeo"
+          >
+            <Download className={cn("h-4 w-4", downloading && "animate-pulse")} />
+          </button>
         </div>
       </div>
 

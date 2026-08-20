@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import { ImagePlus, Video, X } from "lucide-react";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
 import { exportVideo, needsReencode } from "@/lib/video-export";
+import { useServerFn } from "@tanstack/react-start";
+import { moderateMedia, moderateText } from "@/lib/moderation.functions";
+import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
 
 export const Route = createFileRoute("/_authenticated/create")({
   component: CreatePage,

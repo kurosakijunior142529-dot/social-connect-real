@@ -2615,6 +2615,49 @@ export type Database = {
         }
         Returns: undefined
       }
+      my_account_state: {
+        Args: never
+        Returns: {
+          banned_at: string
+          is_minor: boolean
+          strikes: number
+          suspended_until: string
+        }[]
+      }
+      my_profile: {
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          badge_variant: string | null
+          banned_at: string | null
+          bio: string | null
+          birthdate: string | null
+          cover_url: string | null
+          created_at: string
+          display_name: string
+          dm_privacy: string
+          id: string
+          is_creator: boolean
+          is_minor: boolean
+          is_verified: boolean
+          location: string | null
+          pronouns: string | null
+          read_receipts: boolean
+          show_online: boolean
+          strikes: number
+          suspended_until: string | null
+          updated_at: string
+          username: string
+          username_changed_at: string | null
+          website: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       notify_user: {
         Args: {
           _actor: string

@@ -25,6 +25,8 @@ function CreatePage() {
   const [busy, setBusy] = useState(false);
   const [trim, setTrim] = useState<TrimState>(defaultTrim);
   const [progress, setProgress] = useState(0);
+  const moderate = useServerFn(moderateMedia);
+  const moderateCaption = useServerFn(moderateText);
 
   const isVideo = !!file?.type.startsWith("video/");
 

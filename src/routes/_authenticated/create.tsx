@@ -66,6 +66,30 @@ function CreatePage() {
         }
       }
 
+      // Segurança: validação real do arquivo + moderação no servidor antes de publicar.
+      const check = await checkFile(toUpload);
+      if (!check.ok) throw new Error(check.error);
+
+      const [dataUrl, sha256] = await Promise.all([previewDataUrl(toUpload), sha256Hex(toUpload)]);
+      const verdict = await moderate({
+        data: {
+          dataUrl,
+          sha256,
+          mime: check.mime,
+          size: toUpload.size,
+          surface: "public",
+          contentType: "post",
+        },
+      });
+      if (!verdict.allow) throw new Error(verdict.reason || "Conteúdo bloqueado pelas regras da comunidade");
+
+      if (caption.trim()) {
+        const textVerdict = await moderateCaption({
+          data: { text: caption.trim(), surface: "public", contentType: "post_caption" },
+        });
+        if (!textVerdict.allow) throw new Error(textVerdict.reason || "Legenda bloqueada pelas regras da comunidade");
+      }
+
       const path = await uploadMedia("posts", user.id, toUpload);
       const { error } = await supabase.from("posts").insert({
         author_id: user.id,

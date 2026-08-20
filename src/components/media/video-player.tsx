@@ -45,10 +45,20 @@ type Burst = { id: number; x: number; y: number };
  * Premium, immersive video player (TikTok / Reels style).
  * Everything is contained inside the video container — no external layout impact.
  */
-export function VideoPlayer({ src, className, poster, nextSrc, onDoubleTapLike, watermarkUsername }: Props) {
+export function VideoPlayer({
+  src,
+  className,
+  poster,
+  nextSrc,
+  onDoubleTapLike,
+  watermarkUsername,
+  autoPlayInView = true,
+  downloadName,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const thinBarRef = useRef<HTMLDivElement>(null);
   const lastTime = useRef(0);
+  const [downloading, setDownloading] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
     last: 0, timer: null, longTimer: null, startY: 0, moved: false,

@@ -148,13 +148,12 @@ function VideoBody({ msg }: { msg: Msg }) {
   if (!src) return <div className="w-56 h-40 rounded-xl bg-black/20 animate-pulse" />;
   return (
     <div>
-      <video
+      <VideoPlayer
         src={src}
         poster={poster.data ?? undefined}
-        controls
-        className="rounded-xl max-h-80 w-full bg-black"
-        preload="metadata"
-        playsInline
+        autoPlayInView={false}
+        downloadName={msg.media_name ?? undefined}
+        className="max-h-80 w-full"
       />
       {msg.content ? <div className="mt-1 text-[13px]">{msg.content}</div> : null}
     </div>

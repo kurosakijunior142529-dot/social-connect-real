@@ -33,6 +33,10 @@ type Props = {
   onDoubleTapLike?: () => void;
   /** Autor exibido na marca d'água do app. */
   watermarkUsername?: string | null;
+  /** Toca sozinho (sem som) quando entra na tela. Desligue em superfícies leves como o chat. */
+  autoPlayInView?: boolean;
+  /** Nome sugerido do arquivo ao baixar. */
+  downloadName?: string;
 };
 
 type Burst = { id: number; x: number; y: number };

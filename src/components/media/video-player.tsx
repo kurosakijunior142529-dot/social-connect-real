@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Download, Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoWatermark } from "@/components/media/watermark";
 

@@ -97,7 +97,7 @@ function ConversationPage() {
         .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false })
-        .limit(120);
+        .limit(40);
       if (error) throw error;
       return ((data ?? []) as any[]).slice().reverse();
     },
@@ -119,11 +119,11 @@ function ConversationPage() {
       .eq("conversation_id", conversationId)
       .lt("created_at", oldest.created_at)
       .order("created_at", { ascending: false })
-      .limit(120);
+      .limit(40);
     setLoadingOlder(false);
     if (error) return;
     const older = ((data ?? []) as any[]).slice().reverse();
-    if (older.length < 120) setHasOlder(false);
+    if (older.length < 40) setHasOlder(false);
     if (!older.length) return;
     skipScroll.current = true;
     queryClient.setQueryData<any[]>(["messages", conversationId], (prev) => {

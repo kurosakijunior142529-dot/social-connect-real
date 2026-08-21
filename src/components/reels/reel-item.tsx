@@ -38,17 +38,19 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   const [speeding, setSpeeding] = useState(false);
   const [scrubberActive, setScrubberActive] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const progressRef = useRef<HTMLDivElement | null>(null);
 
 
   const { data: url } = useSignedUrl("posts", post.media_url);
 
-  // Autoplay when visible
+  // Keep only the current reel decoding. Mounting 30 active video sources was
+  // saturating mobile decoders/network and made playback stutter.
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
       (entries) => {
-        for (const e of entries) setVisible(e.intersectionRatio >= 0.7);
+        for (const e of entries) setVisible(e.isIntersecting && e.intersectionRatio >= 0.65);
       },
       { threshold: [0, 0.7, 1] },
     );
@@ -61,6 +63,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     if (!v) return;
     v.muted = muted;
     if (visible && !paused) {
+      v.preload = "auto";
       v.play().catch(() => {});
     } else {
       v.pause();
@@ -207,7 +210,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      {url ? (
+      {url && visible ? (
         <video
           ref={videoRef}
           src={url}
@@ -218,7 +221,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           preload="auto"
           onTimeUpdate={(e) => {
             const v = e.currentTarget;
-            if (v.duration > 0) setProgress(v.currentTime / v.duration);
+            if (v.duration > 0) {
+              const next = v.currentTime / v.duration;
+              if (progressRef.current) progressRef.current.style.transform = `scaleX(${next})`;
+            }
           }}
         />
       ) : (
@@ -226,7 +232,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           <div className="h-10 w-10 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
         </div>
       )}
-      {nextSrc ? <link rel="preload" as="video" href={nextSrc} /> : null}
+      {nextSrc && visible ? <link rel="preload" as="video" href={nextSrc} /> : null}
 
       {/* Top + bottom gradients */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/55 via-black/10 to-transparent" />
@@ -369,19 +375,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
         onPointerLeave={() => setScrubberActive(false)}
       >
         <div
-          className="h-full rounded-r-full bg-gradient-to-r from-white/70 to-primary shadow-[0_0_10px_rgba(255,255,255,0.35)]"
-          style={{ width: `${progress * 100}%` }}
+          ref={progressRef}
+          className="h-full origin-left scale-x-0 rounded-r-full bg-gradient-to-r from-white/70 to-primary shadow-[0_0_10px_rgba(255,255,255,0.35)]"
         />
       </div>
-
-      <style>{`
-        @keyframes reel-heart {
-          0%   { transform: translate(-50%,-50%) scale(0.6) rotate(-12deg); opacity: 0; }
-          25%  { transform: translate(-50%,-50%) scale(1.25) rotate(-4deg); opacity: 1; }
-          55%  { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-          100% { transform: translate(-50%,-95%) scale(0.9); opacity: 0; }
-        }
-      `}</style>
 
       <ShareSheet
         open={shareOpen}

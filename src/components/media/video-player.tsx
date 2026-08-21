@@ -75,6 +75,25 @@ export function VideoPlayer({
   const [speeding, setSpeeding] = useState(false);
   const [scrubberActive, setScrubberActive] = useState(false);
 
+  const playVideo = useCallback(async () => {
+    const el = videoRef.current;
+    if (!el) return;
+    claimActiveVideo(el);
+    // A user pressing play must promote this video from metadata-only to a
+    // buffered stream. Calling load first avoids the first-frame stall seen in
+    // Android WebViews when preload was still "none".
+    if (el.preload !== "auto") {
+      el.preload = "auto";
+      el.load();
+    }
+    setLoading(el.readyState < HTMLMediaElement.HAVE_FUTURE_DATA);
+    try {
+      await el.play();
+    } catch {
+      setLoading(false);
+    }
+  }, []);
+
   const armAutoHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setShowControls(false), 2600);
@@ -102,20 +121,22 @@ export function VideoPlayer({
       ([entry]) => {
         const near = entry.isIntersecting;
         // Só busca os metadados quando o vídeo chega perto da tela (rede/CPU).
-        if (near && el.preload === "none") el.preload = "metadata";
+        if (near && el.preload === "none") {
+          el.preload = autoPlayInView ? "auto" : "metadata";
+          el.load();
+        }
         if (!autoPlayInView) {
           if (!near && !el.paused) el.pause();
           return;
         }
         if (near && entry.intersectionRatio > 0.6 && !document.hidden) {
-          claimActiveVideo(el);
-          el.play().catch(() => {});
+          void playVideo();
         } else {
           el.pause();
           releaseActiveVideo(el);
         }
       },
-      { threshold: [0, 0.6, 1], rootMargin: "200px 0px" },
+      { threshold: [0, 0.65, 1], rootMargin: "0px" },
     );
     io.observe(el);
     const onVisibility = () => {
@@ -128,7 +149,7 @@ export function VideoPlayer({
       releaseActiveVideo(el);
       el.pause();
     };
-  }, [src, autoPlayInView]);
+  }, [src, autoPlayInView, playVideo]);
 
   const download = useCallback(async () => {
     if (downloading) return;
@@ -156,10 +177,10 @@ export function VideoPlayer({
     const el = videoRef.current;
     if (!el) return;
     setPulse((p) => p + 1);
-    if (el.paused) el.play().catch(() => {});
+    if (el.paused) void playVideo();
     else el.pause();
     reveal();
-  }, [reveal]);
+  }, [playVideo, reveal]);
 
   const spawnBurst = (x: number, y: number) => {
     const id = Date.now() + Math.random();
@@ -271,6 +292,7 @@ export function VideoPlayer({
         }}
 
         onWaiting={() => setLoading(true)}
+        onStalled={() => setLoading(true)}
         onPlaying={() => setLoading(false)}
         onCanPlay={() => setLoading(false)}
         onPlay={() => setPlaying(true)}

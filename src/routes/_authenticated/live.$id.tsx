@@ -378,19 +378,15 @@ function LiveRoom() {
 
   const sendGift = async (gift: any) => {
     if (!live) return;
-    await (supabase as any).from("live_gifts").insert({
-      live_id: liveId,
-      sender_id: user.id,
-      recipient_id: live.host_id,
-      gift_id: gift.id,
-      coins_spent: gift.cost_coins,
+    const { error } = await supabase.rpc("send_live_gift", {
+      _live_id: liveId,
+      _gift_id: gift.id,
+      _message: `${gift.name} ${gift.emoji}`,
     });
-    await (supabase as any).from("live_chat_messages").insert({
-      live_id: liveId,
-      sender_id: user.id,
-      content: `enviou ${gift.name} ${gift.emoji}`,
-      is_highlighted: true,
-    });
+    if (error) {
+      toast.error(error.message || "Não foi possível enviar o presente");
+      return;
+    }
     toast.success(`${gift.emoji} ${gift.name} enviado!`);
   };
 

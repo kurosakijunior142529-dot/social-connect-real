@@ -26,9 +26,9 @@ function SettingsPage() {
   const profile = useQuery({
     queryKey: ["me-profile", user.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      const { data, error } = await supabase.rpc("my_profile");
       if (error) throw error;
-      return data as any;
+      return ((data as any[])?.[0] ?? null) as any;
     },
   });
 

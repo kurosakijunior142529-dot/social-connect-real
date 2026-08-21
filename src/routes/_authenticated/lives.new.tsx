@@ -11,6 +11,8 @@ import { Radio, Sparkles, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
+import { moderateMedia, moderateText } from "@/lib/moderation.functions";
+import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
 
 export const Route = createFileRoute("/_authenticated/lives/new")({
   head: () => ({
@@ -40,6 +42,8 @@ const CATEGORIES = [
 function NewLive() {
   const navigate = useNavigate();
   const create = useServerFn(createLive);
+  const moderate = useServerFn(moderateMedia);
+  const moderateCopy = useServerFn(moderateText);
   const [busy, setBusy] = useState(false);
   const [thumbFile, setThumbFile] = useState<File | null>(null);
   const [thumbPreview, setThumbPreview] = useState<string | null>(null);
@@ -69,16 +73,24 @@ function NewLive() {
     }
     setBusy(true);
     try {
+      const copy = [form.title.trim(), form.description.trim(), form.tags.trim()].filter(Boolean).join("\n");
+      const textVerdict = await moderateCopy({ data: { text: copy, surface: "public", contentType: "live_metadata" } });
+      if (!textVerdict.allow) throw new Error(textVerdict.reason || "Informações da live bloqueadas pelas regras da comunidade");
       let thumbnail_url: string | undefined;
       if (thumbFile) {
         const { data: u } = await supabase.auth.getUser();
         if (u.user) {
           try {
+            const check = await checkFile(thumbFile);
+            if (!check.ok) throw new Error(check.error);
+            const [dataUrl, sha256] = await Promise.all([previewDataUrl(thumbFile), sha256Hex(thumbFile)]);
+            const verdict = await moderate({ data: { dataUrl, sha256, mime: check.mime, size: thumbFile.size, surface: "public", contentType: "live_thumbnail" } });
+            if (!verdict.allow) throw new Error(verdict.reason || "Miniatura bloqueada pelas regras da comunidade");
             const path = await uploadMedia("covers", u.user.id, thumbFile);
             const { data: signed } = await supabase.storage.from("covers").createSignedUrl(path, 60 * 60 * 24 * 30);
             thumbnail_url = signed?.signedUrl;
-          } catch {
-            /* skip thumb */
+          } catch (error) {
+            throw error;
           }
         }
       }

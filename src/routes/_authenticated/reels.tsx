@@ -29,7 +29,7 @@ function ReelsPage() {
         .eq("media_type", "video")
         .eq("post_kind", "reel")
         .order("created_at", { ascending: false })
-        .limit(30);
+        .limit(12);
       if (error) throw error;
       let posts = (data ?? []) as any[];
       if (hidden && hidden.size > 0) posts = posts.filter((p) => !hidden.has(p.author_id));

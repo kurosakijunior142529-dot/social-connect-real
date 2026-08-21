@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowLeft, ImagePlus } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { moderateMedia, moderateText } from "@/lib/moderation.functions";
+import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
 
 export const Route = createFileRoute("/_authenticated/stories/new")({
   component: NewStoryPage,
@@ -17,6 +20,8 @@ function NewStoryPage() {
   const [file, setFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
+  const moderate = useServerFn(moderateMedia);
+  const moderateCaption = useServerFn(moderateText);
   const preview = file ? URL.createObjectURL(file) : null;
   const isVideo = file?.type.startsWith("video/");
 
@@ -25,6 +30,15 @@ function NewStoryPage() {
     if (file.size > 25 * 1024 * 1024) return toast.error("Arquivo maior que 25MB");
     setBusy(true);
     try {
+      const check = await checkFile(file);
+      if (!check.ok) throw new Error(check.error);
+      const [dataUrl, sha256] = await Promise.all([previewDataUrl(file), sha256Hex(file)]);
+      const verdict = await moderate({ data: { dataUrl, sha256, mime: check.mime, size: file.size, surface: "public", contentType: "story" } });
+      if (!verdict.allow) throw new Error(verdict.reason || "Conteúdo bloqueado pelas regras da comunidade");
+      if (caption.trim()) {
+        const textVerdict = await moderateCaption({ data: { text: caption.trim(), surface: "public", contentType: "story_caption" } });
+        if (!textVerdict.allow) throw new Error(textVerdict.reason || "Legenda bloqueada pelas regras da comunidade");
+      }
       const path = await uploadMedia("stories", user.id, file);
       const { error } = await (supabase as any).from("stories").insert({
         user_id: user.id,

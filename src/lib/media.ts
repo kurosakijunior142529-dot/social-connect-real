@@ -10,7 +10,9 @@ export async function uploadMedia(
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
   const path = `${userId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: "3600",
+    // O caminho contém um UUID único, então o conteúdo é imutável:
+    // cache agressivo no browser e na CDN (antes eram só 3600s).
+    cacheControl: "31536000, immutable",
     upsert: false,
     contentType: file.type,
   });

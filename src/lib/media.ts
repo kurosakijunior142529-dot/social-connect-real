@@ -64,14 +64,63 @@ function flush(bucketKey: string, bucket: MediaBucket, expiresIn: number) {
   })();
 }
 
+/**
+ * URLs assinadas eram recriadas a cada sessão (1h de validade). Como o token
+ * faz parte da URL, toda nova assinatura vira uma chave de cache diferente:
+ * MISS na CDN e download do zero no browser. Agora a assinatura vale 7 dias e
+ * é persistida, então o mesmo arquivo reusa exatamente a mesma URL — HIT na
+ * CDN e reaproveitamento do cache HTTP local.
+ */
+const SIGNED_TTL = 7 * 24 * 60 * 60;
+const SAFETY_WINDOW = 60 * 60 * 1000; // renova 1h antes de expirar
+const memoryCache = new Map<string, { url: string; exp: number }>();
+
+function storeKey(bucket: MediaBucket, path: string) {
+  return `su:${bucket}:${path}`;
+}
+
+function readCache(bucket: MediaBucket, path: string): string | null {
+  const key = storeKey(bucket, path);
+  const mem = memoryCache.get(key);
+  const now = Date.now();
+  if (mem && mem.exp - SAFETY_WINDOW > now) return mem.url;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { url: string; exp: number };
+    if (!parsed?.url || parsed.exp - SAFETY_WINDOW <= now) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    memoryCache.set(key, parsed);
+    return parsed.url;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(bucket: MediaBucket, path: string, url: string) {
+  const key = storeKey(bucket, path);
+  const entry = { url, exp: Date.now() + SIGNED_TTL * 1000 };
+  memoryCache.set(key, entry);
+  try {
+    localStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+    /* quota cheia: cache em memória já ajuda */
+  }
+}
+
 export async function createSignedUrl(
   bucket: MediaBucket,
   path: string,
-  expiresIn = 60 * 60,
+  expiresIn = SIGNED_TTL,
 ): Promise<string | null> {
   if (!path) return null;
+  const cached = readCache(bucket, path);
+  if (cached) return cached;
+
   const bucketKey = `${bucket}:${expiresIn}`;
-  return new Promise<string | null>((resolve, reject) => {
+  const url = await new Promise<string | null>((resolve, reject) => {
     const batch = pending.get(bucketKey);
     if (batch) {
       batch.push({ path, resolve, reject });
@@ -80,5 +129,7 @@ export async function createSignedUrl(
     pending.set(bucketKey, [{ path, resolve, reject }]);
     setTimeout(() => flush(bucketKey, bucket, expiresIn), 16);
   });
+  if (url) writeCache(bucket, path, url);
+  return url;
 }
 

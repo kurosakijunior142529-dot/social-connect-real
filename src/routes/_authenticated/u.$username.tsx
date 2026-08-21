@@ -52,7 +52,11 @@ function ProfilePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        // Somente colunas públicas: `*` falha por permissão desde o
+        // endurecimento de segurança (colunas sensíveis não são legíveis).
+        .select(
+          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at",
+        )
         .eq("username", username)
         .maybeSingle();
       if (error) throw error;

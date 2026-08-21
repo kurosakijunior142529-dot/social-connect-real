@@ -36,11 +36,13 @@ export function useAccountStatus() {
     enabled: !!user,
     staleTime: 60_000,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("strikes, suspended_until, banned_at, is_minor")
-        .eq("id", user!.id)
-        .maybeSingle();
+      // Colunas de moderação não são legíveis via tabela (grants por coluna);
+      // a RPC `my_profile` devolve a linha completa do próprio usuário.
+      const { data: rows } = await supabase.rpc("my_profile");
+      const data = (Array.isArray(rows) ? rows[0] : rows) as
+        | { strikes?: number | null; suspended_until?: string | null; banned_at?: string | null; is_minor?: boolean | null }
+        | null
+        | undefined;
       const banned = !!data?.banned_at;
       const suspended = !!data?.suspended_until && new Date(data.suspended_until) > new Date();
       return {

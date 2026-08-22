@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { LazyPostCard, usePostsQuery } from "@/components/post-card";
@@ -120,6 +121,7 @@ function FeedPage() {
           {query.data.map((p, i) => (
             <LazyPostCard key={p.id} post={p} currentUserId={user.id} eager={i < 2} />
           ))}
+          <div ref={sentinel} className="h-8" aria-hidden />
         </div>
       ) : (
         <EmptyFeed />

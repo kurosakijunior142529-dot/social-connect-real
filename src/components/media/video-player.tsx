@@ -325,12 +325,30 @@ export function VideoPlayer({
           setCurrent(t);
         }}
 
-        onWaiting={() => setLoading(true)}
+        onWaiting={() => {
+          metrics.current.stalls += 1;
+          setLoading(true);
+        }}
         onStalled={() => setLoading(true)}
-        onPlaying={() => setLoading(false)}
+        onPlaying={() => {
+          setLoading(false);
+          const m = metrics.current;
+          if (!m.reported && m.requestedAt) {
+            m.reported = true;
+            if (import.meta.env.DEV) {
+              console.info(
+                `[video] início em ${Math.round(performance.now() - m.requestedAt)}ms · rebuffers: ${m.stalls}`,
+              );
+            }
+          }
+        }}
         onCanPlay={() => setLoading(false)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
+        onError={() => {
+          setLoading(false);
+          console.error("[video] falha ao carregar", src.slice(0, 80));
+        }}
       />
 
 

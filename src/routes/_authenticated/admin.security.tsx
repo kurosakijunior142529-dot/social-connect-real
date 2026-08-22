@@ -119,7 +119,7 @@ function AdminSecurity() {
   const resolve = useMutation({
     mutationFn: async ({ id, status, note }: { id: string; status: string; note?: string }) => {
       const { error } = await supabase.rpc("admin_resolve_report", {
-        _report_id: id, _status: status, _note: note ?? null,
+        _report_id: id, _status: status, _note: note ?? undefined,
       });
       if (error) throw error;
     },
@@ -133,7 +133,7 @@ function AdminSecurity() {
   const moderate = useMutation({
     mutationFn: async (v: { user: string; action: string; reason: string; reportId?: string }) => {
       const { data, error } = await supabase.rpc("admin_moderate", {
-        _user_id: v.user, _action: v.action, _reason: v.reason, _report_id: v.reportId ?? null,
+        _user_id: v.user, _action: v.action, _reason: v.reason, _report_id: v.reportId ?? undefined,
       });
       if (error) throw error;
       return data as string;

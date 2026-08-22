@@ -75,7 +75,7 @@ export function ReportDialog({
       _target_type: targetType,
       _target_id: targetId,
       _category: category,
-      _details: details.trim() ? details.trim().slice(0, 1000) : null,
+      _details: details.trim() ? details.trim().slice(0, 1000) : undefined,
     });
     setSubmitting(false);
     if (error) return toast.error(error.message);

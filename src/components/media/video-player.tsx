@@ -75,16 +75,20 @@ export function VideoPlayer({
   const [speeding, setSpeeding] = useState(false);
   const [scrubberActive, setScrubberActive] = useState(false);
 
+  const metrics = useRef({ requestedAt: 0, stalls: 0, reported: false });
+
   const playVideo = useCallback(async () => {
     const el = videoRef.current;
     if (!el) return;
     claimActiveVideo(el);
-    // A user pressing play must promote this video from metadata-only to a
-    // buffered stream. Calling load first avoids the first-frame stall seen in
-    // Android WebViews when preload was still "none".
+    metrics.current.requestedAt = performance.now();
+    metrics.current.reported = false;
+    // Promove para download completo. `load()` só é chamado quando o elemento
+    // ainda não tem nada em buffer — chamá-lo com dados já baixados descartava
+    // o buffer e reiniciava o download (causa direta do "trava ao dar play").
     if (el.preload !== "auto") {
       el.preload = "auto";
-      el.load();
+      if (el.readyState === 0 && !el.currentSrc) el.load();
     }
     setLoading(el.readyState < HTMLMediaElement.HAVE_FUTURE_DATA);
     try {

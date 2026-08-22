@@ -28,8 +28,11 @@ function FeedPage() {
     },
   });
 
+  // Carregamento progressivo: 6 posts por vez em vez de 24 de uma vez.
+  const [limit, setLimit] = useState(6);
+
   const query = usePostsQuery({
-    key: ["feed", user.id],
+    key: ["feed", user.id, limit],
     currentUserId: user.id,
     fetchPosts: async () => {
       const { data: follows } = await supabase
@@ -43,11 +46,28 @@ function FeedPage() {
         .select("*")
         .neq("post_kind", "reel")
         .order("created_at", { ascending: false })
-        .limit(24);
+        .limit(limit);
       if (followingIds.length > 0) q = q.in("author_id", authors);
       return q;
     },
   });
+
+  const loadedCount = query.data?.length ?? 0;
+  const canLoadMore = loadedCount >= limit;
+  const sentinel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !canLoadMore || query.isFetching) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setLimit((l) => l + 6);
+      },
+      { rootMargin: "600px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [canLoadMore, query.isFetching, loadedCount]);
 
   return (
     <div>

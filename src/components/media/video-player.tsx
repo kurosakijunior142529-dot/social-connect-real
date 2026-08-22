@@ -295,7 +295,7 @@ export function VideoPlayer({
     >
       <video
         ref={videoRef}
-        src={src}
+        // `src` é gerenciado pelo observer (anexa perto da tela, desanexa longe).
         poster={poster}
         playsInline
         loop={autoPlayInView}

@@ -267,7 +267,7 @@ export async function exportVideo(
 
   const mime = pickVideoMime();
   const rec = mime
-    ? new MediaRecorder(canvasStream, { mimeType: mime, videoBitsPerSecond: 6_000_000, audioBitsPerSecond: 192_000 })
+    ? new MediaRecorder(canvasStream, { mimeType: mime, videoBitsPerSecond: targetBitrate(w, h), audioBitsPerSecond: 160_000 })
     : new MediaRecorder(canvasStream, { audioBitsPerSecond: 192_000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);

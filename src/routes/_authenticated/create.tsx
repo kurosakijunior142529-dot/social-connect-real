@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ImagePlus, Video, X } from "lucide-react";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
-import { exportVideo, needsReencode } from "@/lib/video-export";
+import { exportVideo, needsReencode, shouldCompress } from "@/lib/video-export";
 import { useServerFn } from "@tanstack/react-start";
 import { moderateMedia, moderateText } from "@/lib/moderation.functions";
 import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
@@ -60,7 +60,9 @@ function CreatePage() {
           music: trim.music,
           onProgress: setProgress,
         };
-        if (needsReencode(opts, trim.duration)) {
+        // Reprocessa quando o usuário editou OU quando o arquivo original é
+        // pesado demais para streaming fluido no feed.
+        if (needsReencode(opts, trim.duration) || shouldCompress(file, trim.duration)) {
           try {
             const out = await exportVideo(preview, opts);
             toUpload = new File([out.blob], `video-${Date.now()}.${out.ext}`, { type: out.blob.type });

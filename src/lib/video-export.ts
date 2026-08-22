@@ -61,6 +61,28 @@ export function needsReencode(opts: ExportOptions, duration: number): boolean {
   return false;
 }
 
+/**
+ * Vídeos vindos direto da câmera chegavam com 8–28 MB e bitrate de 10–20 Mbps.
+ * Além do tamanho, muitos têm o índice (`moov`) no fim do arquivo, o que obriga
+ * o player a baixar o arquivo inteiro antes do primeiro frame. Reprocessar no
+ * device resolve os dois problemas (o MediaRecorder sempre escreve o índice no
+ * começo) sem perda visual perceptível até 1080p.
+ */
+export function shouldCompress(file: File, duration: number): boolean {
+  if (!file.type.startsWith("video/")) return false;
+  if (file.size > 6 * 1024 * 1024) return true;
+  if (duration > 0) {
+    const bitrate = (file.size * 8) / duration;
+    if (bitrate > 3_000_000) return true;
+  }
+  return false;
+}
+
+/** Bitrate alvo proporcional à resolução (~3,3 Mbps em 1080p, ~1,5 em 720p). */
+function targetBitrate(w: number, h: number): number {
+  return Math.min(4_500_000, Math.max(1_200_000, Math.round(w * h * 1.6)));
+}
+
 /** Grabs a single frame (used as cover thumbnail) as a JPEG blob. */
 export async function captureFrame(srcUrl: string, at: number): Promise<Blob | null> {
   try {
@@ -245,7 +267,7 @@ export async function exportVideo(
 
   const mime = pickVideoMime();
   const rec = mime
-    ? new MediaRecorder(canvasStream, { mimeType: mime, videoBitsPerSecond: 6_000_000, audioBitsPerSecond: 192_000 })
+    ? new MediaRecorder(canvasStream, { mimeType: mime, videoBitsPerSecond: targetBitrate(w, h), audioBitsPerSecond: 160_000 })
     : new MediaRecorder(canvasStream, { audioBitsPerSecond: 192_000 });
   const chunks: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);

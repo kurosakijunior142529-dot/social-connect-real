@@ -75,16 +75,20 @@ export function VideoPlayer({
   const [speeding, setSpeeding] = useState(false);
   const [scrubberActive, setScrubberActive] = useState(false);
 
+  const metrics = useRef({ requestedAt: 0, stalls: 0, reported: false });
+
   const playVideo = useCallback(async () => {
     const el = videoRef.current;
     if (!el) return;
     claimActiveVideo(el);
-    // A user pressing play must promote this video from metadata-only to a
-    // buffered stream. Calling load first avoids the first-frame stall seen in
-    // Android WebViews when preload was still "none".
+    metrics.current.requestedAt = performance.now();
+    metrics.current.reported = false;
+    // Promove para download completo. `load()` só é chamado quando o elemento
+    // ainda não tem nada em buffer — chamá-lo com dados já baixados descartava
+    // o buffer e reiniciava o download (causa direta do "trava ao dar play").
     if (el.preload !== "auto") {
       el.preload = "auto";
-      el.load();
+      if (el.readyState === 0 && !el.currentSrc) el.load();
     }
     setLoading(el.readyState < HTMLMediaElement.HAVE_FUTURE_DATA);
     try {
@@ -112,39 +116,69 @@ export function VideoPlayer({
     if (tapRef.current.longTimer) window.clearTimeout(tapRef.current.longTimer);
   }, []);
 
-  // Autoplay (muted) when scrolled into view, pause when out.
-  // Only ONE video plays at a time in the whole app — evita travamento no feed.
+  // Escada de carregamento em 3 níveis, como TikTok/Reels:
+  //   longe   -> nada em memória (src desanexado, decoder liberado)
+  //   perto   -> só metadados / início do buffer (prepara o próximo vídeo)
+  //   visível -> download completo + play
+  // Antes existia um único observer que promovia tudo que chegava perto para
+  // `preload="auto"` e chamava `load()` a cada mudança: vários downloads
+  // concorrentes disputavam a mesma banda e o vídeo em tela ficava em buffering.
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(
+
+    const detach = () => {
+      if (!el.getAttribute("src")) return;
+      el.pause();
+      el.removeAttribute("src");
+      el.load(); // libera o decoder e a memória do buffer
+      el.preload = "none";
+    };
+
+    const attach = (level: "metadata" | "auto") => {
+      if (el.getAttribute("src") !== src) {
+        el.setAttribute("src", src);
+        el.preload = level;
+        el.load();
+        return;
+      }
+      if (level === "auto" && el.preload !== "auto") el.preload = "auto";
+    };
+
+    // Nível "perto": prepara o próximo vídeo com antecedência (700px).
+    const nearIO = new IntersectionObserver(
       ([entry]) => {
-        const near = entry.isIntersecting;
-        // Só busca os metadados quando o vídeo chega perto da tela (rede/CPU).
-        if (near && el.preload === "none") {
-          el.preload = autoPlayInView ? "auto" : "metadata";
-          el.load();
-        }
-        if (!autoPlayInView) {
-          if (!near && !el.paused) el.pause();
-          return;
-        }
-        if (near && entry.intersectionRatio > 0.6 && !document.hidden) {
-          void playVideo();
+        if (entry.isIntersecting) attach("metadata");
+        else detach();
+      },
+      { rootMargin: "700px 0px", threshold: 0 },
+    );
+
+    // Nível "ativo": só o vídeo realmente visível baixa e reproduz.
+    const activeIO = new IntersectionObserver(
+      ([entry]) => {
+        const active = entry.isIntersecting && entry.intersectionRatio >= 0.6;
+        if (active) {
+          attach("auto");
+          if (autoPlayInView && !document.hidden) void playVideo();
         } else {
           el.pause();
           releaseActiveVideo(el);
         }
       },
-      { threshold: [0, 0.65, 1], rootMargin: "0px" },
+      { threshold: [0, 0.6, 1] },
     );
-    io.observe(el);
+
+    nearIO.observe(el);
+    activeIO.observe(el);
+
     const onVisibility = () => {
       if (document.hidden) el.pause();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      io.disconnect();
+      nearIO.disconnect();
+      activeIO.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       releaseActiveVideo(el);
       el.pause();
@@ -261,7 +295,7 @@ export function VideoPlayer({
     >
       <video
         ref={videoRef}
-        src={src}
+        // `src` é gerenciado pelo observer (anexa perto da tela, desanexa longe).
         poster={poster}
         playsInline
         loop={autoPlayInView}
@@ -291,12 +325,30 @@ export function VideoPlayer({
           setCurrent(t);
         }}
 
-        onWaiting={() => setLoading(true)}
+        onWaiting={() => {
+          metrics.current.stalls += 1;
+          setLoading(true);
+        }}
         onStalled={() => setLoading(true)}
-        onPlaying={() => setLoading(false)}
+        onPlaying={() => {
+          setLoading(false);
+          const m = metrics.current;
+          if (!m.reported && m.requestedAt) {
+            m.reported = true;
+            if (import.meta.env.DEV) {
+              console.info(
+                `[video] início em ${Math.round(performance.now() - m.requestedAt)}ms · rebuffers: ${m.stalls}`,
+              );
+            }
+          }
+        }}
         onCanPlay={() => setLoading(false)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
+        onError={() => {
+          setLoading(false);
+          console.error("[video] falha ao carregar", src.slice(0, 80));
+        }}
       />
 
 

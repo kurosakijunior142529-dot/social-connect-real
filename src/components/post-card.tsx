@@ -264,6 +264,9 @@ export function usePostsQuery(opts: {
     staleTime: 30_000,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
+    // Mantém a lista anterior visível enquanto a próxima página carrega
+    // (evita colapso para skeletons e perda da posição de scroll).
+    placeholderData: (prev: any) => prev,
     queryFn: async () => {
       const { data, error } = await opts.fetchPosts();
       if (error) throw error;

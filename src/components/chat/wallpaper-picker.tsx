@@ -198,7 +198,7 @@ export function useCustomWallpaperUrl(
     if (!key) {
       setUrl(null);
     } else {
-      void createSignedUrl("chats", key, 60 * 60).then((u) => setUrl(u));
+      void createSignedUrl("chats", key).then((u) => setUrl(u));
     }
   }
   return url;

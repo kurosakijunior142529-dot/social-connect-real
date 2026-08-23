@@ -42,7 +42,8 @@ export const moderateText = createServerFn({ method: "POST" })
     });
     if (allowed === false) return { allow: false, action: "block" as const, labels: ["rate_limit"], score: 1, reason: "Muitas ações em pouco tempo" };
 
-    const { data: profile } = await supabase.from("profiles").select("is_minor").eq("id", userId).maybeSingle();
+    const { data: stateRows } = await supabase.rpc("my_account_state");
+    const profile = (Array.isArray(stateRows) ? stateRows[0] : stateRows) as { is_minor?: boolean | null } | null | undefined;
     const { classifyText, decide } = await import("@/lib/moderation.server");
     let verdict;
     try {
@@ -93,7 +94,8 @@ export const moderateMedia = createServerFn({ method: "POST" })
       return { allow: false, action: "block" as const, labels: ["illegal_hash"], score: 1, reason: "Conteúdo proibido" };
     }
 
-    const { data: profile } = await supabase.from("profiles").select("is_minor").eq("id", userId).maybeSingle();
+    const { data: stateRows } = await supabase.rpc("my_account_state");
+    const profile = (Array.isArray(stateRows) ? stateRows[0] : stateRows) as { is_minor?: boolean | null } | null | undefined;
     const { classifyImage, decide } = await import("@/lib/moderation.server");
     let verdict;
     try {

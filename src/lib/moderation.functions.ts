@@ -36,7 +36,7 @@ export const moderateText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => textInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { supabase } = context;
     const { data: allowed } = await supabase.rpc("check_rate_limit", {
       _scope: "moderate_text", _limit: 120, _window_seconds: 300,
     });

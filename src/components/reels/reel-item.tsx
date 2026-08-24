@@ -43,32 +43,88 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
 
   const { data: url } = useSignedUrl("posts", post.media_url);
 
-  // Keep only the current reel decoding. Mounting 30 active video sources was
-  // saturating mobile decoders/network and made playback stutter.
+  // Dois níveis, como TikTok: "perto" prepara metadados, "ativo" baixa e toca.
+  // O elemento <video> nunca é desmontado — só o `src` entra/sai — para que o
+  // decoder e o buffer não sejam destruídos a cada rolagem.
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) setVisible(e.isIntersecting && e.intersectionRatio >= 0.65);
-      },
-      { threshold: [0, 0.7, 1] },
+    const nearIO = new IntersectionObserver(
+      ([e]) => setNear(e.isIntersecting),
+      { rootMargin: "800px 0px", threshold: 0 },
     );
-    io.observe(el);
-    return () => io.disconnect();
+    const activeIO = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          // Histerese: entra com 65%, só sai abaixo de 40% (evita oscilação).
+          setVisible((prev) =>
+            e.intersectionRatio >= 0.65 ? true : e.intersectionRatio < 0.4 ? false : prev,
+          );
+        }
+      },
+      { threshold: [0, 0.4, 0.65, 1] },
+    );
+    nearIO.observe(el);
+    activeIO.observe(el);
+    return () => {
+      nearIO.disconnect();
+      activeIO.disconnect();
+    };
   }, []);
+
+  // Anexa / desanexa a fonte conforme a proximidade.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !url) return;
+    if (near) {
+      if (v.getAttribute("src") !== url) {
+        v.setAttribute("src", url);
+        v.preload = visible ? "auto" : "metadata";
+        v.load();
+      } else if (visible && v.preload !== "auto") {
+        v.preload = "auto";
+      }
+    } else if (v.getAttribute("src")) {
+      v.pause();
+      v.removeAttribute("src");
+      v.preload = "none";
+      v.load(); // libera decoder + memória
+      setReady(false);
+    }
+  }, [near, visible, url]);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
     v.muted = muted;
-    if (visible && !paused) {
-      v.preload = "auto";
+  }, [muted]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !url) return;
+    if (visible && near && !paused) {
       v.play().catch(() => {});
     } else {
       v.pause();
     }
-  }, [visible, paused, muted, url]);
+  }, [visible, near, paused, url]);
+
+  // Estado de buffer sem re-render por frame.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const on = () => setReady(true);
+    const off = () => setReady(false);
+    v.addEventListener("canplay", on);
+    v.addEventListener("playing", on);
+    v.addEventListener("waiting", off);
+    return () => {
+      v.removeEventListener("canplay", on);
+      v.removeEventListener("playing", on);
+      v.removeEventListener("waiting", off);
+    };
+  }, [url]);
+
 
   useEffect(() => {
     const v = videoRef.current;

@@ -210,15 +210,16 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
-      {url && visible ? (
+      {url ? (
         <video
           ref={videoRef}
-          src={url}
+          // `src` é anexado/desanexado pelo efeito — o elemento nunca desmonta,
+          // então o decoder e o buffer sobrevivem à rolagem.
           className="absolute inset-0 h-full w-full object-cover"
           loop
           playsInline
           muted={muted}
-          preload="auto"
+          preload="none"
           onTimeUpdate={(e) => {
             const v = e.currentTarget;
             if (v.duration > 0) {
@@ -227,12 +228,13 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
             }
           }}
         />
-      ) : (
+      ) : null}
+      {!url || !ready ? (
         <div className="absolute inset-0 grid place-items-center">
           <div className="h-10 w-10 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
         </div>
-      )}
-      {nextSrc && visible ? <link rel="preload" as="video" href={nextSrc} /> : null}
+      ) : null}
+
 
       {/* Top + bottom gradients */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/55 via-black/10 to-transparent" />

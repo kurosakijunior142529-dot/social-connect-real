@@ -288,7 +288,10 @@ export async function exportVideo(
   const rects = dewatermark.map((c) => cornerRect(c, w, h));
 
   let raf = 0;
-  const draw = () => {
+  let vfc = 0;
+  const hasVFC = typeof (src as any).requestVideoFrameCallback === "function";
+
+  const paint = () => {
     ctx.save();
     (ctx as any).filter = filterCss || "none";
     ctx.drawImage(src, dx, dy, dw, dh);
@@ -297,23 +300,59 @@ export async function exportVideo(
       for (const r of rects) cleanRegion(ctx, scratch, sctx, r, w, h, dewatermarkStrength);
     }
     onProgress?.(Math.min(1, (src.currentTime - from) / total));
-    raf = requestAnimationFrame(draw);
+  };
+
+  // Desenhar por frame *do vídeo* (não por frame da tela) mantém a cadência
+  // idêntica à origem; com rAF o canvas repetia/perdia quadros e o áudio,
+  // gravado em tempo real, saía dessincronizado.
+  const startDrawLoop = () => {
+    if (hasVFC) {
+      const step = () => {
+        paint();
+        vfc = (src as any).requestVideoFrameCallback(step);
+      };
+      vfc = (src as any).requestVideoFrameCallback(step);
+    } else {
+      const step = () => {
+        paint();
+        raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }
+  };
+  const stopDrawLoop = () => {
+    if (raf) cancelAnimationFrame(raf);
+    if (vfc && typeof (src as any).cancelVideoFrameCallback === "function") {
+      (src as any).cancelVideoFrameCallback(vfc);
+    }
   };
 
   const done = new Promise<Blob>((res) => {
     rec.onstop = () => res(new Blob(chunks, { type: rec.mimeType || "video/webm" }));
   });
 
-  rec.start(200);
-  raf = requestAnimationFrame(draw);
+  // Primeiro quadro no canvas antes de gravar: evita um trecho preto inicial.
+  paint();
+
   try {
     await src.play();
     if (musicEl) await musicEl.play().catch(() => undefined);
   } catch (err) {
-    cancelAnimationFrame(raf);
-    rec.stop();
     throw new Error("Não foi possível processar o vídeo neste dispositivo");
   }
+
+  // Só começa a gravar quando o vídeo realmente está rolando, para que o
+  // relógio do áudio e o do vídeo partam do mesmo instante.
+  await new Promise<void>((res) => {
+    if (src.readyState >= 2 && !src.paused && src.currentTime > from) return res();
+    const on = () => { src.removeEventListener("timeupdate", on); res(); };
+    src.addEventListener("timeupdate", on);
+    setTimeout(res, 500);
+  });
+
+  startDrawLoop();
+  rec.start(200);
+
 
   await new Promise<void>((res) => {
     const check = () => {

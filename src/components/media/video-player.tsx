@@ -127,7 +127,17 @@ export function VideoPlayer({
     const el = videoRef.current;
     if (!el) return;
 
-    const detach = () => {
+    let detachTimer: ReturnType<typeof setTimeout> | null = null;
+    let active = false;
+
+    const cancelDetach = () => {
+      if (detachTimer) {
+        clearTimeout(detachTimer);
+        detachTimer = null;
+      }
+    };
+
+    const detachNow = () => {
       if (!el.getAttribute("src")) return;
       el.pause();
       el.removeAttribute("src");
@@ -135,7 +145,16 @@ export function VideoPlayer({
       el.preload = "none";
     };
 
+    // Só desanexa depois de um tempo longe da tela. Antes, uma oscilação de
+    // poucos pixels na borda do observer destruía o buffer e obrigava o vídeo
+    // a baixar tudo de novo — a causa principal do travamento ao rolar.
+    const scheduleDetach = () => {
+      cancelDetach();
+      detachTimer = setTimeout(detachNow, 4000);
+    };
+
     const attach = (level: "metadata" | "auto") => {
+      cancelDetach();
       if (el.getAttribute("src") !== src) {
         el.setAttribute("src", src);
         el.preload = level;
@@ -145,19 +164,23 @@ export function VideoPlayer({
       if (level === "auto" && el.preload !== "auto") el.preload = "auto";
     };
 
-    // Nível "perto": prepara o próximo vídeo com antecedência (700px).
+    // Nível "perto": prepara o próximo vídeo com antecedência.
     const nearIO = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) attach("metadata");
-        else detach();
+        if (entry.isIntersecting) attach(active ? "auto" : "metadata");
+        else scheduleDetach();
       },
-      { rootMargin: "700px 0px", threshold: 0 },
+      { rootMargin: "900px 0px", threshold: 0 },
     );
 
     // Nível "ativo": só o vídeo realmente visível baixa e reproduz.
+    // Histerese: ativa em 60%, só desativa abaixo de 35%.
     const activeIO = new IntersectionObserver(
       ([entry]) => {
-        const active = entry.isIntersecting && entry.intersectionRatio >= 0.6;
+        const r = entry.intersectionRatio;
+        const next = r >= 0.6 ? true : r < 0.35 ? false : active;
+        if (next === active) return;
+        active = next;
         if (active) {
           attach("auto");
           if (autoPlayInView && !document.hidden) void playVideo();
@@ -166,7 +189,7 @@ export function VideoPlayer({
           releaseActiveVideo(el);
         }
       },
-      { threshold: [0, 0.6, 1] },
+      { threshold: [0, 0.35, 0.6, 1] },
     );
 
     nearIO.observe(el);
@@ -177,6 +200,7 @@ export function VideoPlayer({
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      cancelDetach();
       nearIO.disconnect();
       activeIO.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
@@ -184,6 +208,7 @@ export function VideoPlayer({
       el.pause();
     };
   }, [src, autoPlayInView, playVideo]);
+
 
   const download = useCallback(async () => {
     if (downloading) return;

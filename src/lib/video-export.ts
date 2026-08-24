@@ -364,8 +364,9 @@ export async function exportVideo(
 
   src.pause();
   musicEl?.pause();
-  cancelAnimationFrame(raf);
+  stopDrawLoop();
   rec.stop();
+
   const blob = await done;
   try {
     await audioCtx?.close();

@@ -32,6 +32,9 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [paused, setPaused] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [near, setNear] = useState(false);
+  const [ready, setReady] = useState(false);
+
   const [progress, setProgress] = useState(0);
   const [expandCaption, setExpandCaption] = useState(false);
   const [bursts, setBursts] = useState<Burst[]>([]);

@@ -860,12 +860,31 @@ export function usePongMatch(
   }, []);
 
 
+  /* ---------------- modo VS IA (offline, mesmo motor) ---------------- */
+  useEffect(() => {
+    if (!aiMode) return;
+    setConnected(true);
+    setPeers({
+      [meRef.current.id]: {
+        id: meRef.current.id, name: meRef.current.name, avatar: meRef.current.avatar,
+        joinedAt: 0, power: null, ready: true,
+      },
+      __ai__: {
+        id: "__ai__", name: `IA · ${AI_LEVELS[aiLevel].name}`, avatar: null,
+        joinedAt: 1, power: null, ready: true,
+      },
+    });
+    return () => { setConnected(false); stopMusic(); };
+  }, [aiMode, aiLevel]);
+
   /* ---------------- canal realtime ---------------- */
   useEffect(() => {
+    if (aiMode) return;
     const ch = supabase.channel(`pong:${room}`, {
       config: { presence: { key: me.id }, broadcast: { self: false } },
     });
     chRef.current = ch;
+
 
     ch.on("presence", { event: "sync" }, () => {
       const raw = ch.presenceState() as Record<string, any[]>;

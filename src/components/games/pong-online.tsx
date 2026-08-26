@@ -10,6 +10,8 @@ import {
   type PowerId,
 } from "@/lib/pong/config";
 import { ensureAudio, setArenaTrack, setIntensity, sfx, startMusic, stopMusic } from "@/lib/pong/audio";
+import { rarityOf, styleOf } from "@/lib/pong/fx";
+
 
 /* ------------------------------------------------------------------ */
 /* tipos                                                               */

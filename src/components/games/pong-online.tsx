@@ -871,8 +871,19 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
 
     ch.on("broadcast", { event: "pw" }, ({ payload }) => {
       if (!isHostRef.current) return;
-      applyPower(simRef.current, 1, payload.id as PowerId, pushImpact);
+      const pid = payload.id as PowerId;
+      applyPower(simRef.current, 1, pid, pushImpact);
+      announce(pid, 1);
     });
+
+    // clarão/feed do poder usado pelo anfitrião, visto pelo convidado
+    ch.on("broadcast", { event: "pwfx" }, ({ payload }) => {
+      if (isHostRef.current) return;
+      const pid = payload.id as PowerId;
+      powerFlare(simRef.current, 0, pid, pushImpact);
+      announce(pid, 0);
+    });
+
 
     ch.on("broadcast", { event: "start" }, () => {
       const s = simRef.current;

@@ -10,6 +10,8 @@ import {
   type PowerId,
 } from "@/lib/pong/config";
 import { ensureAudio, setArenaTrack, setIntensity, sfx, startMusic, stopMusic } from "@/lib/pong/audio";
+import { rarityOf, styleOf } from "@/lib/pong/fx";
+
 
 /* ------------------------------------------------------------------ */
 /* tipos                                                               */
@@ -60,7 +62,7 @@ type Sim = {
 
 export type Peer = { id: string; name: string; avatar: string | null; joinedAt: number; power: PowerId | null; ready: boolean };
 
-export type Impact = { x: number; y: number; t: number; color: string; big?: boolean; kind?: "hit" | "goal" | "power" | "rewind" };
+export type Impact = { x: number; y: number; t: number; color: string; big?: boolean; kind?: "hit" | "goal" | "power" | "rewind"; power?: PowerId };
 
 /* ------------------------------------------------------------------ */
 /* motor                                                               */
@@ -575,6 +577,19 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
   }
 }
 
+/** clarão elemental garantido para QUALQUER poder ativado */
+function powerFlare(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) => void) {
+  const st = styleOf(id);
+  const rare = rarityOf(id);
+  const big = rare !== "comum";
+  const t = performance.now();
+  const py = side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset;
+  const px = side === 0 ? sim.p0 : sim.p1;
+  onImpact?.({ x: px, y: py, t, color: st.color, big: true, kind: "power", power: id });
+  onImpact?.({ x: sim.bx, y: sim.by, t: t + 0.01, color: st.color2, big, kind: "power", power: id });
+  sfx(st.sfx);
+}
+
 function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) => void) {
   const fx = sim.fx[side];
   const foeSide: 0 | 1 = side === 0 ? 1 : 0;
@@ -582,7 +597,7 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
   const base = POWER_MAP[id];
   if (!base) return;
   // Silenciar bloqueia poderes do lado afetado
-  if (dur(fx, "silence") > 0) { sfx("wall"); return; }
+  if (dur(fx, "silence") > 0) { sfx("block"); return; }
   // Sobrecarga: o próximo poder dura o dobro
   let def = base;
   if (dur(fx, "overload") > 0 && id !== "overload" && base.duration > 0) {
@@ -590,8 +605,11 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
     def = { ...base, duration: base.duration * 2 };
   }
 
-  const at = (y: number, color = def.color, big = true) =>
-    onImpact?.({ x: sim.bx, y, t: performance.now(), color, big, kind: "power" });
+  powerFlare(sim, side, id, onImpact);
+
+  const at = (y: number, color = styleOf(id).color, big = true) =>
+    onImpact?.({ x: sim.bx, y, t: performance.now(), color, big, kind: "power", power: id });
+
 
   switch (id) {
     /* instantâneos */
@@ -736,8 +754,11 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
       foe[id] = def.duration;
       break;
   }
-  at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
-  if (id !== "freeze" && id !== "quake") sfx("power");
+  // efeitos que recaem no adversário ganham um clarão no campo dele
+  if (base.target === "enemy") {
+    at(foeSide === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset, styleOf(id).color2);
+  }
+
 }
 
 /* ------------------------------------------------------------------ */
@@ -761,6 +782,8 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
   const [cooldown, setCooldown] = useState(0);
   const [opponentGone, setOpponentGone] = useState(false);
   const [lag, setLag] = useState(0);
+  const [powerFeed, setPowerFeed] = useState<{ id: PowerId; side: 0 | 1; t: number } | null>(null);
+
 
   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const simRef = useRef<Sim>(newSim());
@@ -789,6 +812,11 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     impactsRef.current.push(i);
     if (impactsRef.current.length > 40) impactsRef.current.shift();
   }, []);
+
+  const announce = useCallback((id: PowerId, side: 0 | 1) => {
+    setPowerFeed({ id, side, t: Date.now() });
+  }, []);
+
 
   /* ---------------- canal realtime ---------------- */
   useEffect(() => {
@@ -850,8 +878,19 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
 
     ch.on("broadcast", { event: "pw" }, ({ payload }) => {
       if (!isHostRef.current) return;
-      applyPower(simRef.current, 1, payload.id as PowerId, pushImpact);
+      const pid = payload.id as PowerId;
+      applyPower(simRef.current, 1, pid, pushImpact);
+      announce(pid, 1);
     });
+
+    // clarão/feed do poder usado pelo anfitrião, visto pelo convidado
+    ch.on("broadcast", { event: "pwfx" }, ({ payload }) => {
+      if (isHostRef.current) return;
+      const pid = payload.id as PowerId;
+      powerFlare(simRef.current, 0, pid, pushImpact);
+      announce(pid, 0);
+    });
+
 
     ch.on("broadcast", { event: "start" }, () => {
       const s = simRef.current;
@@ -1054,7 +1093,7 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     if (simRef.current.phase !== "playing") return;
     ensureAudio();
     const mine = simRef.current.fx[mySideRef.current] ?? {};
-    if (dur(mine, "silence") > 0) { sfx("wall"); return; }
+    if (dur(mine, "silence") > 0) { sfx("block"); return; }
     let factor = 1;
     if (dur(mine, "overdrive") > 0) factor *= 0.5;
     if (dur(mine, "gambit") > 0) factor *= 0.5;
@@ -1064,12 +1103,14 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     cooldownUntilRef.current = Date.now() + total * 1000;
     setCooldown(total);
     if (id === "secondwind") swArmed.current = true;
+    announce(id, mySideRef.current);
     if (isHostRef.current) {
       applyPower(simRef.current, 0, id, pushImpact);
+      chRef.current?.send({ type: "broadcast", event: "pwfx", payload: { id } });
     } else {
       chRef.current?.send({ type: "broadcast", event: "pw", payload: { id } });
-      pushImpact({ x: simRef.current.p1, y: FIELD.paddleInset, t: performance.now(), color: POWER_MAP[id].color, big: true, kind: "power" });
-      sfx("power");
+      powerFlare(simRef.current, 1, id, pushImpact);
+
       if (id === "teleport") {
         const cur = simRef.current.p1;
         const dx = Math.max(-0.4, Math.min(0.4, simRef.current.bx - cur));

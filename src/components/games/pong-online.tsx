@@ -577,6 +577,19 @@ function step(sim: Sim, dt: number, onImpact: (i: Impact) => void) {
   }
 }
 
+/** clarão elemental garantido para QUALQUER poder ativado */
+function powerFlare(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) => void) {
+  const st = styleOf(id);
+  const rare = rarityOf(id);
+  const big = rare !== "comum";
+  const t = performance.now();
+  const py = side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset;
+  const px = side === 0 ? sim.p0 : sim.p1;
+  onImpact?.({ x: px, y: py, t, color: st.color, big: true, kind: "power", power: id });
+  onImpact?.({ x: sim.bx, y: sim.by, t: t + 0.01, color: st.color2, big, kind: "power", power: id });
+  sfx(st.sfx);
+}
+
 function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) => void) {
   const fx = sim.fx[side];
   const foeSide: 0 | 1 = side === 0 ? 1 : 0;
@@ -584,7 +597,7 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
   const base = POWER_MAP[id];
   if (!base) return;
   // Silenciar bloqueia poderes do lado afetado
-  if (dur(fx, "silence") > 0) { sfx("wall"); return; }
+  if (dur(fx, "silence") > 0) { sfx("block"); return; }
   // Sobrecarga: o próximo poder dura o dobro
   let def = base;
   if (dur(fx, "overload") > 0 && id !== "overload" && base.duration > 0) {
@@ -592,8 +605,11 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
     def = { ...base, duration: base.duration * 2 };
   }
 
-  const at = (y: number, color = def.color, big = true) =>
-    onImpact?.({ x: sim.bx, y, t: performance.now(), color, big, kind: "power" });
+  powerFlare(sim, side, id, onImpact);
+
+  const at = (y: number, color = styleOf(id).color, big = true) =>
+    onImpact?.({ x: sim.bx, y, t: performance.now(), color, big, kind: "power", power: id });
+
 
   switch (id) {
     /* instantâneos */

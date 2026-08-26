@@ -1045,9 +1045,53 @@ export function usePongMatch(
       if (swArmed.current && dur(fxMe, "secondwind") <= 0) {
         swArmed.current = false;
         cooldownUntilRef.current = 0;
+        cdMapRef.current = {};
         setCooldown(0);
         sfx("power");
       }
+
+      /* ---- adversário controlado pela IA ---- */
+      if (aiModeRef.current && sim.phase === "playing") {
+        const tune = AI_TUNE[aiLevelRef.current];
+        const foeFx = sim.fx[1] ?? emptyFx();
+        const ai = aiRef.current;
+        const nowS = now / 1000;
+        if (nowS >= ai.nextThink) {
+          ai.nextThink = nowS + tune.react;
+          // previsão simples: onde a bola cruza a linha da raquete de cima
+          let px = sim.bx;
+          if (sim.vy < 0) {
+            const tHit = Math.max(0, (sim.by - FIELD.paddleInset) / Math.max(0.05, -sim.vy));
+            px = sim.bx + sim.vx * tHit;
+            // rebate nas laterais
+            const span = FIELD.w;
+            px = Math.abs(((px % (2 * span)) + 2 * span) % (2 * span));
+            if (px > span) px = 2 * span - px;
+          } else {
+            px = FIELD.w / 2 + (sim.bx - FIELD.w / 2) * 0.35;
+          }
+          ai.target = px + (Math.random() - 0.5) * tune.err * 2;
+        }
+        if (dur(foeFx, "freeze") <= 0 && dur(foeFx, "root") <= 0 && !sim.stick) {
+          const half = paddleHalf(foeFx, sim.mom[1]);
+          const spd = FIELD.paddleSpeed * tune.speed * (dur(foeFx, "speed") > 0 ? 1.7 : 1);
+          const tgt = Math.max(half, Math.min(FIELD.w - half, ai.target));
+          const d = tgt - sim.p1;
+          sim.p1 += Math.sign(d) * Math.min(Math.abs(d), spd * dt);
+        }
+        if (nowS >= ai.nextPower) {
+          if (ai.nextPower === 0) {
+            ai.nextPower = nowS + tune.powerEvery;
+          } else {
+            ai.nextPower = nowS + tune.powerEvery * (0.7 + Math.random() * 0.7);
+            const pick = AI_POOL[Math.floor(Math.random() * AI_POOL.length)];
+            applyPower(sim, 1, pick, pushImpact);
+            announce(pick, 1);
+          }
+        }
+      }
+
+
 
 
       if (isHostRef.current) {

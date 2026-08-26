@@ -782,6 +782,8 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
   const [cooldown, setCooldown] = useState(0);
   const [opponentGone, setOpponentGone] = useState(false);
   const [lag, setLag] = useState(0);
+  const [powerFeed, setPowerFeed] = useState<{ id: PowerId; side: 0 | 1; t: number } | null>(null);
+
 
   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const simRef = useRef<Sim>(newSim());

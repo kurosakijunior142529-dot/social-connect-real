@@ -771,7 +771,40 @@ const fxEq = (a: Fx, b: Fx) => {
   return ka.every((k) => Math.abs(((a as any)[k] || 0) - ((b as any)[k] || 0)) < 0.24 || (a as any)[k] === (b as any)[k]);
 };
 
-export function usePongMatch(room: string, me: { id: string; name: string; avatar: string | null }) {
+export type AiLevel = 0 | 1 | 2 | 3 | 4 | 5;
+
+export const AI_LEVELS: { id: AiLevel; name: string; desc: string }[] = [
+  { id: 0, name: "Fácil", desc: "Reage devagar e erra bastante." },
+  { id: 1, name: "Normal", desc: "Joga limpo, usa poderes de vez em quando." },
+  { id: 2, name: "Difícil", desc: "Boa leitura da bola e poderes frequentes." },
+  { id: 3, name: "Expert", desc: "Prevê a trajetória e pune erros." },
+  { id: 4, name: "Mestre", desc: "Quase não erra e encadeia poderes." },
+  { id: 5, name: "Lendário", desc: "Reação instantânea e agressividade máxima." },
+];
+
+const AI_TUNE: Record<AiLevel, { react: number; err: number; speed: number; powerEvery: number }> = {
+  0: { react: 0.34, err: 0.20, speed: 0.62, powerEvery: 16 },
+  1: { react: 0.24, err: 0.13, speed: 0.78, powerEvery: 12 },
+  2: { react: 0.16, err: 0.085, speed: 0.9, powerEvery: 9 },
+  3: { react: 0.10, err: 0.05, speed: 1, powerEvery: 7 },
+  4: { react: 0.06, err: 0.03, speed: 1.08, powerEvery: 5.5 },
+  5: { react: 0.03, err: 0.015, speed: 1.16, powerEvery: 4.5 },
+};
+
+/** poderes que a IA sabe usar (todos com efeito real e sem depender de UI) */
+const AI_POOL: PowerId[] = [
+  "speed", "fury", "freeze", "shrink", "curve", "shield", "magnet", "reflex",
+  "teleport", "dash", "laser", "spikes", "clone", "wall", "hyper", "slowmo",
+  "quake", "vortex", "fog", "invert", "sticky", "counter", "parry", "sentinel",
+];
+
+export function usePongMatch(
+  room: string,
+  me: { id: string; name: string; avatar: string | null },
+  opts?: { ai?: boolean; aiLevel?: AiLevel },
+) {
+  const aiMode = !!opts?.ai;
+  const aiLevel: AiLevel = opts?.aiLevel ?? 2;
   const [peers, setPeers] = useState<Record<string, Peer>>({});
   const [connected, setConnected] = useState(false);
   const [phase, setPhase] = useState<Phase>("lobby");
@@ -780,6 +813,7 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
   const [fxView, setFxView] = useState<[Fx, Fx]>([emptyFx(), emptyFx()]);
   const [myPower, setMyPower] = useState<PowerId | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const [cooldowns, setCooldowns] = useState<Partial<Record<PowerId, number>>>({});
   const [opponentGone, setOpponentGone] = useState(false);
   const [lag, setLag] = useState(0);
   const [powerFeed, setPowerFeed] = useState<{ id: PowerId; side: 0 | 1; t: number } | null>(null);
@@ -792,9 +826,17 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
   const lastRemoteRef = useRef<number>(0);
   const cooldownUntilRef = useRef<number>(0);
   const cooldownTotalRef = useRef<number>(1);
+  /** recarga individual de cada poder (timestamp de liberação) */
+  const cdMapRef = useRef<Partial<Record<PowerId, number>>>({});
   const myPowerRef = useRef<PowerId | null>(null);
+  const aiRef = useRef({ target: FIELD.w / 2, nextThink: 0, nextPower: 0 });
+  const aiModeRef = useRef(aiMode);
+  aiModeRef.current = aiMode;
+  const aiLevelRef = useRef<AiLevel>(aiLevel);
+  aiLevelRef.current = aiLevel;
   const meRef = useRef(me);
   meRef.current = me;
+
 
   const sorted = useMemo(
     () => Object.values(peers).sort((a, b) => a.joinedAt - b.joinedAt || a.id.localeCompare(b.id)).slice(0, 2),

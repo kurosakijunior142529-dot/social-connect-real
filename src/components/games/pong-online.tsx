@@ -754,8 +754,11 @@ function applyPower(sim: Sim, side: 0 | 1, id: PowerId, onImpact?: (i: Impact) =
       foe[id] = def.duration;
       break;
   }
-  at(side === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset);
-  if (id !== "freeze" && id !== "quake") sfx("power");
+  // efeitos que recaem no adversário ganham um clarão no campo dele
+  if (base.target === "enemy") {
+    at(foeSide === 0 ? FIELD.h - FIELD.paddleInset : FIELD.paddleInset, styleOf(id).color2);
+  }
+
 }
 
 /* ------------------------------------------------------------------ */

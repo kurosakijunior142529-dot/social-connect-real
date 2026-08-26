@@ -231,12 +231,98 @@ export function sfx(name: SfxName, strength = 1) {
       );
       sub(90, 40, 1.0, 0.14, 0.3);
       break;
+    case "fire":
+      sweep(140, 900, 0.4, 0.09, "sawtooth");
+      noise(0.5, 0.11, 700, "bandpass", 3400);
+      sub(80, 44, 0.45, 0.16, 0.05);
+      break;
+    case "ice":
+      [0, 0.05, 0.1, 0.16].forEach((d, i) =>
+        tone({ freq: 2600 - i * 420, dur: 0.22, type: "sine", gain: 0.06, delay: d }),
+      );
+      chord(1318, [0, 7, 12], 0.45, 0.035, "triangle", 0.05);
+      noise(0.4, 0.05, 7200, "highpass");
+      break;
+    case "thunder":
+      tone({ freq: 3200, to: 260, dur: 0.16, type: "square", gain: 0.12 });
+      noise(0.28, 0.14, 4200, "highpass", 500);
+      sub(120, 40, 0.5, 0.22, 0.05);
+      break;
+    case "wind":
+      noise(0.75, 0.1, 500, "bandpass", 3200);
+      sweep(320, 1100, 0.5, 0.05, "sine");
+      break;
+    case "water":
+      tone({ freq: 700, to: 180, dur: 0.28, type: "sine", gain: 0.11 });
+      tone({ freq: 320, to: 90, dur: 0.34, type: "triangle", gain: 0.07, delay: 0.04 });
+      noise(0.3, 0.06, 1400, "lowpass");
+      break;
+    case "voidfx":
+      sweep(900, 90, 0.7, 0.09, "sine");
+      chord(110, [0, 6, 11], 0.8, 0.05, "sawtooth", 0.1);
+      noise(0.6, 0.05, 400, "lowpass");
+      break;
+    case "earth":
+      sub(90, 32, 0.8, 0.28);
+      noise(0.55, 0.12, 320, "lowpass");
+      tone({ freq: 160, to: 60, dur: 0.4, type: "square", gain: 0.08, delay: 0.03 });
+      break;
+    case "light":
+      chord(1046, [0, 4, 7, 12], 0.5, 0.06, "sine", 0.035);
+      sweep(600, 2600, 0.3, 0.06, "sine");
+      break;
+    case "shadow":
+      sweep(520, 70, 0.6, 0.1, "sawtooth");
+      chord(98, [0, 1, 6], 0.7, 0.06, "square", 0.08);
+      noise(0.5, 0.06, 800, "lowpass");
+      break;
+    case "tech":
+      [0, 0.04, 0.08].forEach((d, i) =>
+        tone({ freq: 900 + i * 480, dur: 0.06, type: "square", gain: 0.07, delay: d }),
+      );
+      noise(0.12, 0.05, 5200, "highpass");
+      break;
+    case "gravity":
+      sweep(760, 60, 0.8, 0.1, "sine");
+      sub(70, 30, 0.9, 0.24, 0.05);
+      noise(0.6, 0.05, 300, "lowpass");
+      break;
+    case "combo":
+      [0, 4, 7, 12, 16].forEach((iv, i) =>
+        tone({ freq: 523.25 * Math.pow(2, iv / 12), dur: 0.32, type: "triangle", gain: 0.1, delay: i * 0.05 }),
+      );
+      sub(110, 55, 0.5, 0.2);
+      noise(0.4, 0.06, 2600, "bandpass", 9000);
+      break;
+    case "counter":
+      tone({ freq: 1800, to: 240, dur: 0.2, type: "sawtooth", gain: 0.14 });
+      chord(392, [0, 7, 12], 0.35, 0.07, "square", 0.03);
+      sub(130, 50, 0.32, 0.2);
+      break;
+    case "block":
+      tone({ freq: 260, to: 150, dur: 0.16, type: "square", gain: 0.12 });
+      noise(0.14, 0.1, 2400, "bandpass", 600);
+      sub(110, 60, 0.24, 0.16);
+      break;
+    case "ultimate":
+      sweep(120, 2200, 0.9, 0.12, "sawtooth");
+      [0, 7, 12, 19, 24].forEach((iv, i) =>
+        tone({ freq: 261.6 * Math.pow(2, iv / 12), dur: 0.9, type: "triangle", gain: 0.09, delay: 0.55 + i * 0.06 }),
+      );
+      sub(60, 30, 1.4, 0.3, 0.5);
+      noise(0.9, 0.09, 1200, "bandpass", 9000);
+      break;
+    case "ready":
+      tone({ freq: 1046, dur: 0.1, type: "sine", gain: 0.07 });
+      tone({ freq: 1568, dur: 0.12, type: "triangle", gain: 0.05, delay: 0.07 });
+      break;
     case "select":
       tone({ freq: 880, to: 1480, dur: 0.07, type: "square", gain: 0.07 });
       tone({ freq: 1760, dur: 0.05, type: "sine", gain: 0.04, delay: 0.03 });
       break;
   }
 }
+
 
 
 /* ------------------------------------------------------------------ */

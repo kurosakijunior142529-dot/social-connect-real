@@ -1093,7 +1093,7 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     if (simRef.current.phase !== "playing") return;
     ensureAudio();
     const mine = simRef.current.fx[mySideRef.current] ?? {};
-    if (dur(mine, "silence") > 0) { sfx("wall"); return; }
+    if (dur(mine, "silence") > 0) { sfx("block"); return; }
     let factor = 1;
     if (dur(mine, "overdrive") > 0) factor *= 0.5;
     if (dur(mine, "gambit") > 0) factor *= 0.5;
@@ -1103,12 +1103,14 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     cooldownUntilRef.current = Date.now() + total * 1000;
     setCooldown(total);
     if (id === "secondwind") swArmed.current = true;
+    announce(id, mySideRef.current);
     if (isHostRef.current) {
       applyPower(simRef.current, 0, id, pushImpact);
+      chRef.current?.send({ type: "broadcast", event: "pwfx", payload: { id } });
     } else {
       chRef.current?.send({ type: "broadcast", event: "pw", payload: { id } });
-      pushImpact({ x: simRef.current.p1, y: FIELD.paddleInset, t: performance.now(), color: POWER_MAP[id].color, big: true, kind: "power" });
-      sfx("power");
+      powerFlare(simRef.current, 1, id, pushImpact);
+
       if (id === "teleport") {
         const cur = simRef.current.p1;
         const dx = Math.max(-0.4, Math.min(0.4, simRef.current.bx - cur));

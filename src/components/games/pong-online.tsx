@@ -811,6 +811,11 @@ export function usePongMatch(room: string, me: { id: string; name: string; avata
     if (impactsRef.current.length > 40) impactsRef.current.shift();
   }, []);
 
+  const announce = useCallback((id: PowerId, side: 0 | 1) => {
+    setPowerFeed({ id, side, t: Date.now() });
+  }, []);
+
+
   /* ---------------- canal realtime ---------------- */
   useEffect(() => {
     const ch = supabase.channel(`pong:${room}`, {

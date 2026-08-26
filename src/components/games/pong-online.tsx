@@ -62,7 +62,7 @@ type Sim = {
 
 export type Peer = { id: string; name: string; avatar: string | null; joinedAt: number; power: PowerId | null; ready: boolean };
 
-export type Impact = { x: number; y: number; t: number; color: string; big?: boolean; kind?: "hit" | "goal" | "power" | "rewind" };
+export type Impact = { x: number; y: number; t: number; color: string; big?: boolean; kind?: "hit" | "goal" | "power" | "rewind"; power?: PowerId };
 
 /* ------------------------------------------------------------------ */
 /* motor                                                               */

@@ -110,7 +110,13 @@ function noise(dur: number, gain = 0.12, filter = 1800, type: BiquadFilterType =
 export type SfxName =
   | "hit" | "hitHard" | "wall" | "goal" | "concede" | "power" | "rewind"
   | "shield" | "count" | "go" | "win" | "lose" | "select" | "portal"
-  | "freeze" | "laser" | "quake" | "sticky";
+  | "freeze" | "laser" | "quake" | "sticky"
+  // elementos
+  | "fire" | "ice" | "thunder" | "wind" | "water" | "voidfx" | "earth"
+  | "light" | "shadow" | "tech" | "gravity"
+  // sistema
+  | "combo" | "counter" | "block" | "ultimate" | "ready";
+
 
 /** varredura de frequência com brilho — usada nos poderes */
 function sweep(from: number, to: number, dur: number, gain = 0.1, type: OscillatorType = "sawtooth", delay = 0) {

@@ -92,7 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Compartilhe fotos e vídeos, siga amigos, converse em tempo real. Tudo em um só lugar." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/df934fd2-d3de-41b2-9e63-d055c0e2a707/id-preview-4a00225b--1ba4969f-0e25-4120-b942-2fecf308cde3.lovable.app-1783460781736.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/df934fd2-d3de-41b2-9e63-d055c0e2a707/id-preview-4a00225b--1ba4969f-0e25-4120-b942-2fecf308cde3.lovable.app-1783460781736.png" },
-      { name: "theme-color", content: "#E8436B" },
+      { name: "theme-color", content: "#22E06A" },
       { name: "background-color", content: "#FEFDFB" },
       { name: "application-name", content: "Vibely" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -100,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "Vibely" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "format-detection", content: "telephone=no" },
-      { name: "msapplication-TileColor", content: "#E8436B" },
+      { name: "msapplication-TileColor", content: "#22E06A" },
       { name: "msapplication-TileImage", content: "/icon-192.png" },
     ],
     links: [

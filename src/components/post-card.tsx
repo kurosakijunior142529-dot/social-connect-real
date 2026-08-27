@@ -106,6 +106,8 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             targetUsername={author?.username}
             postId={post.id}
           />
+        ) : currentUserId === post.author_id ? (
+          <PostOwnerMenu postId={post.id} authorId={post.author_id} />
         ) : null}
       </header>
 

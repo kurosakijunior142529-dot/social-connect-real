@@ -140,6 +140,27 @@ function RootComponent() {
     registerPWA();
   }, []);
 
+  // Bloqueia menu de contexto / "pesquisar no Google" ao pressionar e segurar,
+  // exceto em campos de digitação. Não interfere em rolagem nem em vídeos.
+  useEffect(() => {
+    const editable = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null;
+      return !!el?.closest?.('input, textarea, [contenteditable="true"], [contenteditable=""], .allow-select');
+    };
+    const onContextMenu = (e: Event) => {
+      if (!editable(e.target)) e.preventDefault();
+    };
+    const onDragStart = (e: Event) => {
+      if (!editable(e.target)) e.preventDefault();
+    };
+    document.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("dragstart", onDragStart);
+    return () => {
+      document.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("dragstart", onDragStart);
+    };
+  }, []);
+
   useEffect(() => {
     // Refresh router + query cache on auth state changes
     let unsub: (() => void) | undefined;

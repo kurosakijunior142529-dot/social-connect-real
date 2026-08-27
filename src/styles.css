@@ -348,3 +348,25 @@
   0%, 100% { transform: scale(1) rotate(-4deg); }
   50%      { transform: scale(1.12) rotate(4deg); }
 }
+
+/* ============ App-like touch behavior ============ */
+/* Remove seleção de texto, callout e menu de contexto nativo (WebView/Chrome),
+   sem afetar rolagem, gestos ou controles de mídia. */
+html, body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Campos de digitação continuam com seleção normal */
+input, textarea, select, [contenteditable="true"], [contenteditable=""], .allow-select {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* Impede arrastar/salvar mídia via long-press, mantendo reprodução e controles */
+img, video {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}

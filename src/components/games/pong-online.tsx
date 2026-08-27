@@ -1191,10 +1191,14 @@ export function usePongMatch(
     });
   }, [peers, me.id]);
 
-  const usePower = useCallback(() => {
-    const id = myPowerRef.current;
+  const usePower = useCallback((pid?: PowerId) => {
+    const id = pid ?? myPowerRef.current;
     if (!id) return;
-    if (Date.now() < cooldownUntilRef.current) return;
+    if (pid && pid !== myPowerRef.current) {
+      setMyPower(pid);
+      myPowerRef.current = pid;
+    }
+    if (Date.now() < (cdMapRef.current[id] ?? 0)) return;
     if (simRef.current.phase !== "playing") return;
     ensureAudio();
     const mine = simRef.current.fx[mySideRef.current] ?? {};
@@ -1206,7 +1210,9 @@ export function usePongMatch(
     const total = POWER_MAP[id].cooldown * factor;
     cooldownTotalRef.current = total;
     cooldownUntilRef.current = Date.now() + total * 1000;
+    cdMapRef.current[id] = Date.now() + total * 1000;
     setCooldown(total);
+    setCooldowns({ ...cdMapRef.current });
     if (id === "secondwind") swArmed.current = true;
     announce(id, mySideRef.current);
     if (isHostRef.current) {
@@ -1263,6 +1269,7 @@ export function usePongMatch(
     peers: sorted, opponent, connected, lag, opponentGone,
     phase, score, countdown, fxView, mySide, isHost,
     myPower, cooldown, cooldownTotal: cooldownTotalRef.current,
+    cooldowns, cooldownsRef: cdMapRef, powerFeed, aiMode,
     setTarget, choosePower, usePower, startMatch,
   };
 }

@@ -1210,7 +1210,9 @@ export function usePongMatch(
     const total = POWER_MAP[id].cooldown * factor;
     cooldownTotalRef.current = total;
     cooldownUntilRef.current = Date.now() + total * 1000;
+    cdMapRef.current[id] = Date.now() + total * 1000;
     setCooldown(total);
+    setCooldowns({ ...cdMapRef.current });
     if (id === "secondwind") swArmed.current = true;
     announce(id, mySideRef.current);
     if (isHostRef.current) {

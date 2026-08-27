@@ -6,7 +6,7 @@
   "lang": "pt-BR",
   "dir": "ltr",
   "theme_color": "#E8436B",
-  "background_color": "#FEFDFB",
+  "background_color": "#000000",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait",

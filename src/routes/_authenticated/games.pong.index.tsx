@@ -35,7 +35,7 @@ function PongLobby() {
   const [searching, setSearching] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const open = (room: string) => navigate({ to: "/games/pong/$room", params: { room } });
+  const open = (room: string) => navigate({ to: "/games/pong/$room", params: { room }, search: {} });
 
   const stats = useQuery({
     queryKey: ["pong-stats", user.id],

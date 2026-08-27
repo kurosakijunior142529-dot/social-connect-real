@@ -1269,6 +1269,7 @@ export function usePongMatch(
     peers: sorted, opponent, connected, lag, opponentGone,
     phase, score, countdown, fxView, mySide, isHost,
     myPower, cooldown, cooldownTotal: cooldownTotalRef.current,
+    cooldowns, cooldownsRef: cdMapRef, powerFeed, aiMode,
     setTarget, choosePower, usePower, startMatch,
   };
 }

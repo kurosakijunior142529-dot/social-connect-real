@@ -7,8 +7,12 @@ const KEY = "vibely:video-sound-on";
 
 let soundOn = true;
 if (typeof window !== "undefined") {
-  const saved = window.localStorage.getItem(KEY);
-  soundOn = saved === null ? true : saved === "1";
+  try {
+    const saved = window.localStorage.getItem(KEY);
+    soundOn = saved === null ? true : saved === "1";
+  } catch {
+    /* storage bloqueado: mantém o padrão com som */
+  }
 }
 
 const listeners = new Set<(on: boolean) => void>();

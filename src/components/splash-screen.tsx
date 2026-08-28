@@ -2,28 +2,29 @@ import { useEffect, useState } from "react";
 
 /**
  * Splash de abertura do app: logo completa do Vibely (símbolo + palavra)
- * centralizada sobre fundo preto. Some suavemente após a primeira renderização.
+ * centralizada sobre fundo preto. Só renderiza no cliente (evita divergência
+ * de hidratação) e some suavemente após a primeira renderização.
  */
 export function SplashScreen() {
-  const [hidden, setHidden] = useState(false);
-  const [gone, setGone] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "show" | "fade" | "gone">("idle");
 
   useEffect(() => {
-    const t1 = window.setTimeout(() => setHidden(true), 900);
-    const t2 = window.setTimeout(() => setGone(true), 1500);
+    setPhase("show");
+    const t1 = window.setTimeout(() => setPhase("fade"), 900);
+    const t2 = window.setTimeout(() => setPhase("gone"), 1500);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
   }, []);
 
-  if (gone) return null;
+  if (phase === "idle" || phase === "gone") return null;
 
   return (
     <div
       aria-hidden
       className="pointer-events-none fixed inset-0 z-[9999] grid place-items-center bg-black transition-opacity duration-500"
-      style={{ opacity: hidden ? 0 : 1 }}
+      style={{ opacity: phase === "fade" ? 0 : 1 }}
     >
       <img
         src="/logo-vibely.png"

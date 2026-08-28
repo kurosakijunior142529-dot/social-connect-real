@@ -11,6 +11,11 @@ import { exportVideo, needsReencode, shouldCompress } from "@/lib/video-export";
 import { useServerFn } from "@tanstack/react-start";
 import { moderateMedia, moderateText } from "@/lib/moderation.functions";
 import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
+import { PollComposer, emptyPollDraft } from "@/components/polls/poll-composer";
+import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
+import { cn } from "@/lib/utils";
+
+type Mode = "media" | "text" | "poll";
 
 export const Route = createFileRoute("/_authenticated/create")({
   component: CreatePage,
@@ -25,6 +30,8 @@ function CreatePage() {
   const [busy, setBusy] = useState(false);
   const [trim, setTrim] = useState<TrimState>(defaultTrim);
   const [progress, setProgress] = useState(0);
+  const [mode, setMode] = useState<Mode>("media");
+  const [poll, setPoll] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
   const moderate = useServerFn(moderateMedia);
   const moderateCaption = useServerFn(moderateText);
 
@@ -42,8 +49,53 @@ function CreatePage() {
     setPreview(URL.createObjectURL(f));
   }
 
+  /** Post de texto e/ou enquete — sem upload de mídia. */
+  async function submitTextOrPoll() {
+    const text = caption.trim();
+    if (mode === "text" && text.length < 1) return toast.error("Escreva algo para publicar");
+    if (mode === "poll") {
+      const err = validateDraft(poll);
+      if (err) return toast.error(err);
+    }
+    setBusy(true);
+    try {
+      if (text) {
+        const verdict = await moderateCaption({
+          data: { text, surface: "public", contentType: "post_caption" },
+        });
+        if (!verdict.allow) throw new Error(verdict.reason || "Texto bloqueado pelas regras da comunidade");
+      }
+      if (mode === "poll") {
+        const pollText = [poll.question, ...poll.options].join(" \n ").trim();
+        const verdict = await moderateCaption({
+          data: { text: pollText, surface: "public", contentType: "post_caption" },
+        });
+        if (!verdict.allow) throw new Error(verdict.reason || "Enquete bloqueada pelas regras da comunidade");
+      }
+
+      const pollId = mode === "poll" ? await createPoll(poll, user.id) : null;
+      const { error } = await supabase.from("posts").insert({
+        author_id: user.id,
+        media_url: null,
+        media_type: "text" as any,
+        post_kind: "post",
+        caption: text,
+        poll_id: pollId,
+      } as any);
+      if (error) throw error;
+      toast.success(mode === "poll" ? "Enquete publicada!" : "Publicado!");
+      navigate({ to: "/" });
+    } catch (err: any) {
+      console.error("[create] publish text/poll failed", err);
+      toast.error(err?.message ?? "Falha ao publicar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (mode !== "media") return submitTextOrPoll();
     if (!file) return toast.error("Escolha uma foto ou vídeo");
     if (caption.length > 500) return toast.error("Legenda longa demais");
     setBusy(true);

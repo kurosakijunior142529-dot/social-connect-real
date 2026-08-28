@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectionIndicator } from "@/components/connection-indicator";
+import { SplashScreen } from "@/components/splash-screen";
 
 
 
@@ -197,6 +198,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <SplashScreen />
       <ConnectionIndicator />
       <Outlet />
       <Toaster position="top-center" richColors />

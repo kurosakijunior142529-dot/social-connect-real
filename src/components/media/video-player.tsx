@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoWatermark } from "@/components/media/watermark";
+import { isSoundOn, setSoundOn, subscribeSound } from "@/lib/media/sound-pref";
 
 /** Garante que só um vídeo toque por vez (evita travamento do feed). */
 let activeVideo: HTMLVideoElement | null = null;
@@ -65,7 +66,7 @@ export function VideoPlayer({
   });
 
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(() => !isSoundOn());
   const [loading, setLoading] = useState(true);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -94,8 +95,25 @@ export function VideoPlayer({
     try {
       await el.play();
     } catch {
+      // Autoplay com áudio bloqueado pelo navegador: cai para mudo e tenta de novo,
+      // sem alterar a preferência de som do usuário.
+      if (!el.muted) {
+        el.muted = true;
+        setMuted(true);
+        try {
+          await el.play();
+        } catch {
+          /* noop */
+        }
+      }
       setLoading(false);
     }
+  }, []);
+
+  // Mantém todos os players em sincronia com a preferência global de som.
+  useEffect(() => {
+    const unsub = subscribeSound((on) => setMuted(!on));
+    return () => { unsub(); };
   }, []);
 
   const armAutoHide = useCallback(() => {
@@ -480,7 +498,7 @@ export function VideoPlayer({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              setMuted((m) => !m);
+              setSoundOn(muted);
               reveal();
             }}
             className="grid h-7 w-7 place-items-center rounded-full text-white/90 transition hover:scale-110 active:scale-95"

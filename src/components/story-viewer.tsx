@@ -24,7 +24,8 @@ type Grouped = {
   stories: StoryRow[];
 };
 
-const DURATION = 5000;
+/** Duração mínima de cada story: 1min20. */
+const DURATION = 80000;
 
 export function StoryViewer({
   groups,

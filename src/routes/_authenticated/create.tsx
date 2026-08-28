@@ -243,26 +243,44 @@ function CreatePage() {
           </label>
         )}
 
-        {isVideo && preview ? (
+        {mode === "media" && isVideo && preview ? (
           <VideoTrimmer src={preview} value={trim} onChange={setTrim} />
+        ) : null}
+
+        {mode === "poll" ? (
+          <div className="rounded-3xl border border-white/10 p-4">
+            <PollComposer value={poll} onChange={setPoll} />
+          </div>
         ) : null}
 
         <Textarea
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
-          placeholder="Escreva uma legenda…"
+          placeholder={
+            mode === "text"
+              ? "O que você quer dizer?"
+              : mode === "poll"
+                ? "Contexto da enquete (opcional)…"
+                : "Escreva uma legenda…"
+          }
           maxLength={500}
-          rows={4}
+          rows={mode === "text" ? 6 : 4}
           className="rounded-2xl resize-none"
         />
         <div className="text-right text-xs text-muted-foreground">{caption.length}/500</div>
 
         <Button
           type="submit"
-          disabled={busy || !file}
+          disabled={busy || (mode === "media" && !file)}
           className="w-full h-12 rounded-full bg-gradient-brand hover:opacity-90 text-base font-semibold"
         >
-          {busy ? (progress > 0 && progress < 1 ? `Processando ${Math.round(progress * 100)}%` : "Publicando…") : "Publicar"}
+          {busy
+            ? progress > 0 && progress < 1
+              ? `Processando ${Math.round(progress * 100)}%`
+              : "Publicando…"
+            : mode === "poll"
+              ? "Publicar enquete"
+              : "Publicar"}
         </Button>
       </form>
     </div>

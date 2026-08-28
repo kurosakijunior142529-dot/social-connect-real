@@ -14,13 +14,15 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useBlocks } from "@/hooks/use-blocks";
+import { PollCard } from "@/components/polls/poll-card";
 
 export type FeedPost = {
   id: string;
   author_id: string;
-  media_url: string;
-  media_type: "image" | "video";
+  media_url: string | null;
+  media_type: "image" | "video" | "text";
   caption: string | null;
+  poll_id?: string | null;
   created_at: string;
   author: { username: string; display_name: string; avatar_url: string | null; is_verified?: boolean | null; badge_variant?: string | null } | null;
   likes_count: number;
@@ -112,17 +114,33 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         ) : null}
       </header>
 
-      {post.media_type === "video" ? (
-        <div className="overflow-hidden rounded-2xl bg-black">
-          <SignedVideo
-            bucket="posts"
-            path={post.media_url}
-            className="w-full aspect-[4/5] object-cover"
-            watermarkUsername={author?.username}
-            onDoubleTapLike={() => {
-              if (!post.liked_by_me) toggleLike.mutate();
-            }}
-          />
+      {post.media_type === "text" ? (
+        <div className="space-y-3">
+          {post.caption ? (
+            <Link
+              to="/p/$id"
+              params={{ id: post.id }}
+              className="grid min-h-[180px] place-items-center overflow-hidden rounded-2xl bg-gradient-brand p-6 text-center"
+            >
+              <p className="text-[19px] font-semibold leading-snug text-white">{post.caption}</p>
+            </Link>
+          ) : null}
+          {post.poll_id ? <PollCard pollId={post.poll_id} currentUserId={currentUserId} /> : null}
+        </div>
+      ) : post.media_type === "video" ? (
+        <div className="space-y-3">
+          <div className="overflow-hidden rounded-2xl bg-black">
+            <SignedVideo
+              bucket="posts"
+              path={post.media_url ?? ""}
+              className="w-full aspect-[4/5] object-cover"
+              watermarkUsername={author?.username}
+              onDoubleTapLike={() => {
+                if (!post.liked_by_me) toggleLike.mutate();
+              }}
+            />
+          </div>
+          {post.poll_id ? <PollCard pollId={post.poll_id} currentUserId={currentUserId} /> : null}
         </div>
       ) : (
         <Link
@@ -132,7 +150,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         >
           <SignedImage
             bucket="posts"
-            path={post.media_url}
+            path={post.media_url ?? ""}
             alt={post.caption ?? "post"}
             className="w-full aspect-square object-cover"
           />
@@ -167,7 +185,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             {currentUserId ? <SavePostButton postId={post.id} userId={currentUserId} /> : null}
           </div>
         </div>
-        {post.caption ? (
+        {post.caption && post.media_type !== "text" ? (
           <p className="text-[14px] leading-snug text-foreground/90">
             <Link
               to="/u/$username"
@@ -191,6 +209,7 @@ export const PostCard = memo(PostCardBase, (a, b) =>
   a.post.likes_count === b.post.likes_count &&
   a.post.comments_count === b.post.comments_count &&
   a.post.caption === b.post.caption &&
+  a.post.poll_id === b.post.poll_id &&
   a.post.author?.avatar_url === b.post.author?.avatar_url &&
   a.post.author?.username === b.post.author?.username &&
   a.post.author?.display_name === b.post.author?.display_name,

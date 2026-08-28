@@ -11,6 +11,11 @@ import { exportVideo, needsReencode, shouldCompress } from "@/lib/video-export";
 import { useServerFn } from "@tanstack/react-start";
 import { moderateMedia, moderateText } from "@/lib/moderation.functions";
 import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
+import { PollComposer, emptyPollDraft } from "@/components/polls/poll-composer";
+import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
+import { cn } from "@/lib/utils";
+
+type Mode = "media" | "text" | "poll";
 
 export const Route = createFileRoute("/_authenticated/create")({
   component: CreatePage,
@@ -25,6 +30,8 @@ function CreatePage() {
   const [busy, setBusy] = useState(false);
   const [trim, setTrim] = useState<TrimState>(defaultTrim);
   const [progress, setProgress] = useState(0);
+  const [mode, setMode] = useState<Mode>("media");
+  const [poll, setPoll] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
   const moderate = useServerFn(moderateMedia);
   const moderateCaption = useServerFn(moderateText);
 
@@ -42,8 +49,53 @@ function CreatePage() {
     setPreview(URL.createObjectURL(f));
   }
 
+  /** Post de texto e/ou enquete — sem upload de mídia. */
+  async function submitTextOrPoll() {
+    const text = caption.trim();
+    if (mode === "text" && text.length < 1) return toast.error("Escreva algo para publicar");
+    if (mode === "poll") {
+      const err = validateDraft(poll);
+      if (err) return toast.error(err);
+    }
+    setBusy(true);
+    try {
+      if (text) {
+        const verdict = await moderateCaption({
+          data: { text, surface: "public", contentType: "post_caption" },
+        });
+        if (!verdict.allow) throw new Error(verdict.reason || "Texto bloqueado pelas regras da comunidade");
+      }
+      if (mode === "poll") {
+        const pollText = [poll.question, ...poll.options].join(" \n ").trim();
+        const verdict = await moderateCaption({
+          data: { text: pollText, surface: "public", contentType: "post_caption" },
+        });
+        if (!verdict.allow) throw new Error(verdict.reason || "Enquete bloqueada pelas regras da comunidade");
+      }
+
+      const pollId = mode === "poll" ? await createPoll(poll, user.id) : null;
+      const { error } = await supabase.from("posts").insert({
+        author_id: user.id,
+        media_url: null,
+        media_type: "text" as any,
+        post_kind: "post",
+        caption: text,
+        poll_id: pollId,
+      } as any);
+      if (error) throw error;
+      toast.success(mode === "poll" ? "Enquete publicada!" : "Publicado!");
+      navigate({ to: "/" });
+    } catch (err: any) {
+      console.error("[create] publish text/poll failed", err);
+      toast.error(err?.message ?? "Falha ao publicar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (mode !== "media") return submitTextOrPoll();
     if (!file) return toast.error("Escolha uma foto ou vídeo");
     if (caption.length > 500) return toast.error("Legenda longa demais");
     setBusy(true);
@@ -135,8 +187,30 @@ function CreatePage() {
       </Link>
 
 
+      <div className="flex gap-2">
+        {([
+          { id: "media", label: "Foto/Vídeo" },
+          { id: "text", label: "Texto" },
+          { id: "poll", label: "Enquete" },
+        ] as { id: Mode; label: string }[]).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setMode(t.id)}
+            className={cn(
+              "rounded-full border px-4 py-1.5 text-[13px] font-medium transition",
+              mode === t.id
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-white/10 text-muted-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <form onSubmit={submit} className="space-y-4">
-        {preview ? (
+        {mode !== "media" ? null : preview ? (
           <div className="relative rounded-3xl overflow-hidden bg-black">
             {isVideo ? (
               <video src={preview} controls playsInline className="w-full aspect-square object-cover" />
@@ -169,26 +243,44 @@ function CreatePage() {
           </label>
         )}
 
-        {isVideo && preview ? (
+        {mode === "media" && isVideo && preview ? (
           <VideoTrimmer src={preview} value={trim} onChange={setTrim} />
+        ) : null}
+
+        {mode === "poll" ? (
+          <div className="rounded-3xl border border-white/10 p-4">
+            <PollComposer value={poll} onChange={setPoll} />
+          </div>
         ) : null}
 
         <Textarea
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
-          placeholder="Escreva uma legenda…"
+          placeholder={
+            mode === "text"
+              ? "O que você quer dizer?"
+              : mode === "poll"
+                ? "Contexto da enquete (opcional)…"
+                : "Escreva uma legenda…"
+          }
           maxLength={500}
-          rows={4}
+          rows={mode === "text" ? 6 : 4}
           className="rounded-2xl resize-none"
         />
         <div className="text-right text-xs text-muted-foreground">{caption.length}/500</div>
 
         <Button
           type="submit"
-          disabled={busy || !file}
+          disabled={busy || (mode === "media" && !file)}
           className="w-full h-12 rounded-full bg-gradient-brand hover:opacity-90 text-base font-semibold"
         >
-          {busy ? (progress > 0 && progress < 1 ? `Processando ${Math.round(progress * 100)}%` : "Publicando…") : "Publicar"}
+          {busy
+            ? progress > 0 && progress < 1
+              ? `Processando ${Math.round(progress * 100)}%`
+              : "Publicando…"
+            : mode === "poll"
+              ? "Publicar enquete"
+              : "Publicar"}
         </Button>
       </form>
     </div>

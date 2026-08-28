@@ -16,7 +16,8 @@ function ReelsPage() {
   const { user } = Route.useRouteContext();
   const blocks = useBlocks();
   const hidden = blocks.data?.hidden;
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(() => !isSoundOn());
+  useEffect(() => subscribeSound((on) => setMuted(!on)), []);
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
 
   const query = useQuery({

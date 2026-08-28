@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import logo from "/logo-vibely.png?url";
 
 /**
  * Splash de abertura do app: logo completa do Vibely (símbolo + palavra)
@@ -27,7 +26,7 @@ export function SplashScreen() {
       style={{ opacity: hidden ? 0 : 1 }}
     >
       <img
-        src={logo}
+        src="/logo-vibely.png"
         alt=""
         className="w-[62vw] max-w-[320px] animate-[splash-in_600ms_ease-out]"
       />

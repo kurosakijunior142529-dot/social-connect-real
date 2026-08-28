@@ -18,7 +18,10 @@ function ReelsPage() {
   const blocks = useBlocks();
   const hidden = blocks.data?.hidden;
   const [muted, setMuted] = useState(() => !isSoundOn());
-  useEffect(() => subscribeSound((on) => setMuted(!on)), []);
+  useEffect(() => {
+    const unsub = subscribeSound((on) => setMuted(!on));
+    return () => { unsub(); };
+  }, []);
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
 
   const query = useQuery({

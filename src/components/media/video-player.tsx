@@ -111,7 +111,10 @@ export function VideoPlayer({
   }, []);
 
   // Mantém todos os players em sincronia com a preferência global de som.
-  useEffect(() => subscribeSound((on) => setMuted(!on)), []);
+  useEffect(() => {
+    const unsub = subscribeSound((on) => setMuted(!on));
+    return () => { unsub(); };
+  }, []);
 
   const armAutoHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);

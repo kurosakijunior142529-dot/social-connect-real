@@ -454,7 +454,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
             kind: "reel",
             caption: post.caption ?? null,
             mediaBucket: "posts",
-            mediaPath: post.media_url,
+            mediaPath: post.media_url ?? "",
             posterPath: (post as any).thumbnail_url ?? null,
             mediaType: "video",
             authorUsername: post.author?.username ?? null,
@@ -463,7 +463,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           },
           media: {
             bucket: "posts",
-            path: post.media_url,
+            path: post.media_url ?? "",
             filename: `vibely-${post.id}.mp4`,
             posterPath: (post as any).thumbnail_url ?? null,
             mimeType: "video/mp4",

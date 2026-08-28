@@ -150,7 +150,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         >
           <SignedImage
             bucket="posts"
-            path={post.media_url}
+            path={post.media_url ?? ""}
             alt={post.caption ?? "post"}
             className="w-full aspect-square object-cover"
           />
@@ -185,7 +185,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             {currentUserId ? <SavePostButton postId={post.id} userId={currentUserId} /> : null}
           </div>
         </div>
-        {post.caption ? (
+        {post.caption && post.media_type !== "text" ? (
           <p className="text-[14px] leading-snug text-foreground/90">
             <Link
               to="/u/$username"
@@ -209,6 +209,7 @@ export const PostCard = memo(PostCardBase, (a, b) =>
   a.post.likes_count === b.post.likes_count &&
   a.post.comments_count === b.post.comments_count &&
   a.post.caption === b.post.caption &&
+  a.post.poll_id === b.post.poll_id &&
   a.post.author?.avatar_url === b.post.author?.avatar_url &&
   a.post.author?.username === b.post.author?.username &&
   a.post.author?.display_name === b.post.author?.display_name,

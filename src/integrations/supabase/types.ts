@@ -555,31 +555,34 @@ export type Database = {
       comments: {
         Row: {
           author_id: string
-          content: string
+          content: string | null
           created_at: string
           edited_at: string | null
           id: string
           parent_id: string | null
+          poll_id: string | null
           post_id: string
           sticker_url: string | null
         }
         Insert: {
           author_id: string
-          content: string
+          content?: string | null
           created_at?: string
           edited_at?: string | null
           id?: string
           parent_id?: string | null
+          poll_id?: string | null
           post_id: string
           sticker_url?: string | null
         }
         Update: {
           author_id?: string
-          content?: string
+          content?: string | null
           created_at?: string
           edited_at?: string | null
           id?: string
           parent_id?: string | null
+          poll_id?: string | null
           post_id?: string
           sticker_url?: string | null
         }
@@ -589,6 +592,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
             referencedColumns: ["id"]
           },
           {
@@ -1624,6 +1634,62 @@ export type Database = {
         }
         Relationships: []
       }
+      poll_votes: {
+        Row: {
+          created_at: string
+          option_index: number
+          poll_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          option_index: number
+          poll_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          option_index?: number
+          poll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polls: {
+        Row: {
+          author_id: string
+          closes_at: string
+          created_at: string
+          id: string
+          options: Json
+          question: string
+        }
+        Insert: {
+          author_id: string
+          closes_at: string
+          created_at?: string
+          id?: string
+          options: Json
+          question: string
+        }
+        Update: {
+          author_id?: string
+          closes_at?: string
+          created_at?: string
+          id?: string
+          options?: Json
+          question?: string
+        }
+        Relationships: []
+      }
       pong_matches: {
         Row: {
           arena: string | null
@@ -1742,7 +1808,8 @@ export type Database = {
           created_at: string
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
-          media_url: string
+          media_url: string | null
+          poll_id: string | null
           post_kind: string
           thumbnail_url: string | null
           view_count: number
@@ -1753,7 +1820,8 @@ export type Database = {
           created_at?: string
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
-          media_url: string
+          media_url?: string | null
+          poll_id?: string | null
           post_kind?: string
           thumbnail_url?: string | null
           view_count?: number
@@ -1764,12 +1832,21 @@ export type Database = {
           created_at?: string
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
-          media_url?: string
+          media_url?: string | null
+          poll_id?: string | null
           post_kind?: string
           thumbnail_url?: string | null
           view_count?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "posts_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -2669,6 +2746,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      owns_post: {
+        Args: { _post_id: string; _user_id: string }
+        Returns: boolean
+      }
+      poll_counts: {
+        Args: { _poll_id: string }
+        Returns: {
+          option_index: number
+          votes: number
+        }[]
+      }
       pong_find_match: {
         Args: never
         Returns: {
@@ -2740,7 +2828,7 @@ export type Database = {
         | "missed"
         | "canceled"
       call_type: "audio" | "video"
-      media_type: "image" | "video"
+      media_type: "image" | "video" | "text"
       report_status: "pending" | "reviewed" | "dismissed" | "actioned"
       report_target:
         | "user"
@@ -2888,7 +2976,7 @@ export const Constants = {
         "canceled",
       ],
       call_type: ["audio", "video"],
-      media_type: ["image", "video"],
+      media_type: ["image", "video", "text"],
       report_status: ["pending", "reviewed", "dismissed", "actioned"],
       report_target: [
         "user",

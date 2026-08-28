@@ -187,8 +187,30 @@ function CreatePage() {
       </Link>
 
 
+      <div className="flex gap-2">
+        {([
+          { id: "media", label: "Foto/Vídeo" },
+          { id: "text", label: "Texto" },
+          { id: "poll", label: "Enquete" },
+        ] as { id: Mode; label: string }[]).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setMode(t.id)}
+            className={cn(
+              "rounded-full border px-4 py-1.5 text-[13px] font-medium transition",
+              mode === t.id
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-white/10 text-muted-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <form onSubmit={submit} className="space-y-4">
-        {preview ? (
+        {mode !== "media" ? null : preview ? (
           <div className="relative rounded-3xl overflow-hidden bg-black">
             {isVideo ? (
               <video src={preview} controls playsInline className="w-full aspect-square object-cover" />

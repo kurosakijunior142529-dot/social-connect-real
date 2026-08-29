@@ -2503,40 +2503,52 @@ export type Database = {
       }
       watch_rooms: {
         Row: {
+          category: string | null
           closed_at: string | null
+          cover_url: string | null
           created_at: string
           host_id: string
           id: string
           invite_code: string
           is_private: boolean
+          max_members: number
           provider: string
           title: string | null
           updated_at: string
           video_id: string | null
+          visibility: string
         }
         Insert: {
+          category?: string | null
           closed_at?: string | null
+          cover_url?: string | null
           created_at?: string
           host_id: string
           id?: string
           invite_code?: string
           is_private?: boolean
+          max_members?: number
           provider?: string
           title?: string | null
           updated_at?: string
           video_id?: string | null
+          visibility?: string
         }
         Update: {
+          category?: string | null
           closed_at?: string | null
+          cover_url?: string | null
           created_at?: string
           host_id?: string
           id?: string
           invite_code?: string
           is_private?: boolean
+          max_members?: number
           provider?: string
           title?: string | null
           updated_at?: string
           video_id?: string | null
+          visibility?: string
         }
         Relationships: []
       }
@@ -2675,10 +2687,30 @@ export type Database = {
         Args: { _room: string; _user: string }
         Returns: boolean
       }
+      join_watch_room: { Args: { _room: string }; Returns: string }
       join_watch_room_by_code: {
         Args: { _code: string }
         Returns: {
           room_id: string
+        }[]
+      }
+      join_watch_room_impl: { Args: { _room: string }; Returns: string }
+      list_public_watch_rooms: {
+        Args: { _category?: string; _limit?: number; _search?: string }
+        Returns: {
+          category: string
+          cover_url: string
+          created_at: string
+          host_avatar_url: string
+          host_display_name: string
+          host_id: string
+          host_username: string
+          id: string
+          max_members: number
+          member_count: number
+          provider: string
+          title: string
+          video_id: string
         }[]
       }
       log_security_event: {
@@ -2735,6 +2767,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      normalize_invite_code: { Args: { _code: string }; Returns: string }
       notify_user: {
         Args: {
           _actor: string
@@ -2816,6 +2849,24 @@ export type Database = {
           _target_type: string
         }
         Returns: string
+      }
+      watch_room_invite_preview: {
+        Args: { _code: string }
+        Returns: {
+          category: string
+          closed: boolean
+          cover_url: string
+          host_avatar_url: string
+          host_display_name: string
+          host_username: string
+          id: string
+          max_members: number
+          member_count: number
+          provider: string
+          title: string
+          video_id: string
+          visibility: string
+        }[]
       }
     }
     Enums: {

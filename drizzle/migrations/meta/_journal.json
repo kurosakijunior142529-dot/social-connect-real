@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1787972970220,
+      "tag": "0000_watch_rooms_public_and_invites",
+      "breakpoints": true
+    }
+  ]
+}

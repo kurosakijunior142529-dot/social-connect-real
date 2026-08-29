@@ -10,8 +10,10 @@ export function SplashScreen() {
 
   useEffect(() => {
     setPhase("show");
-    const t1 = window.setTimeout(() => setPhase("fade"), 900);
-    const t2 = window.setTimeout(() => setPhase("gone"), 1500);
+    // Curto de propósito: a splash cobre só o primeiro frame e nunca segura a
+    // interface. No Android o WebView já pinta o fundo escuro por baixo.
+    const t1 = window.setTimeout(() => setPhase("fade"), 320);
+    const t2 = window.setTimeout(() => setPhase("gone"), 700);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);

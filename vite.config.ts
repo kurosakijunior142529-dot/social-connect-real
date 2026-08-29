@@ -12,12 +12,9 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
-    // Force client-only build for Capacitor (no SSR)
-    prerender: {
-      crawlLinks: false,
-      autoSubfolderIndex: false,
-      ignore: [],
-    },
+    // Prerender fica desligado: este app depende de server functions (LiveKit,
+    // IA, moderação, pagamentos), então o HTML é servido pelo runtime SSR.
+
   },
   vite: {
     plugins: [
@@ -50,15 +47,11 @@ export default defineConfig({
       }),
     ],
     build: {
-      outDir: 'dist',
+      // outDir padrão do template (dist/client + dist/server). Não sobrescrever o
+      // input do rollup: o TanStack Start gera o documento HTML, não existe um
+      // index.html manual como entrada.
       emptyOutDir: true,
-      rollupOptions: {
-        input: 'index.html',
-      },
-      ssrManifest: false,
     },
-    server: {
-      middlewareMode: false,
-    },
+
   },
 });

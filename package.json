@@ -9,10 +9,18 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:sync:android": "npx cap sync android",
+    "cap:open:android": "npx cap open android",
+    "cap:build": "npm run build && npm run cap:sync:android"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.5",
+    "@capacitor/app": "^5.0.8",
+    "@capacitor/core": "^5.7.0",
+    "@capacitor/keyboard": "^5.0.8",
     "@fontsource-variable/geist": "^5.2.9",
     "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
     "@fontsource/geist-mono": "^5.2.8",
@@ -86,6 +94,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^5.7.0",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.13.1",
     "@types/node": "^22.16.5",

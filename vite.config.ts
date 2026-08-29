@@ -12,12 +12,10 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
-    // Force client-only build for Capacitor (no SSR)
-    prerender: {
-      crawlLinks: false,
-      autoSubfolderIndex: false,
-      ignore: [],
-    },
+    // Gera um index.html estático (shell do app) para o pacote Android/Capacitor.
+    // O shell é leve: o app hidrata no cliente e não depende do servidor para pintar.
+    prerender: { enabled: true, crawlLinks: false, autoSubfolderIndex: false },
+    pages: [{ path: "/" }],
   },
   vite: {
     plugins: [

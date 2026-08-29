@@ -15,9 +15,19 @@ export const Route = createFileRoute("/_authenticated")({
     if (typeof document === "undefined") {
       return { user: null as any };
     }
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) return { user: null as any };
-    return { user: data.user };
+    // getSession() lê a sessão do armazenamento local (síncrono, sem rede).
+    // getUser() faria uma ida ao servidor Auth ANTES da primeira pintura —
+    // era isso que deixava a abertura em branco por segundos numa rede lenta.
+    // A validação real do token continua acontecendo: em background aqui e em
+    // toda requisição protegida (RLS + middleware de bearer).
+    const { data, error } = await supabase.auth.getSession();
+    const user = error ? null : (data.session?.user ?? null);
+    if (user) {
+      void supabase.auth.getUser().then(({ data: fresh, error: freshError }) => {
+        if (freshError || !fresh.user) void supabase.auth.signOut();
+      });
+    }
+    return { user: user as any };
   },
   component: AuthenticatedLayout,
 });

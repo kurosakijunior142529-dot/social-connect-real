@@ -48,15 +48,11 @@ export default defineConfig({
       }),
     ],
     build: {
-      outDir: 'dist',
+      // outDir padrão do template (dist/client + dist/server). Não sobrescrever o
+      // input do rollup: o TanStack Start gera o documento HTML, não existe um
+      // index.html manual como entrada.
       emptyOutDir: true,
-      rollupOptions: {
-        input: 'index.html',
-      },
-      ssrManifest: false,
     },
-    server: {
-      middlewareMode: false,
-    },
+
   },
 });

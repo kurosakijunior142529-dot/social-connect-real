@@ -55,7 +55,7 @@ function ProfilePage() {
         // Somente colunas públicas: `*` falha por permissão desde o
         // endurecimento de segurança (colunas sensíveis não são legíveis).
         .select(
-          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at",
+          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, favorite_track",
         )
         .eq("username", username)
         .maybeSingle();
@@ -268,6 +268,29 @@ function ProfilePage() {
         </div>
       </div>
 
+      {/* 6b. INTERESSES + MÚSICA FAVORITA */}
+      {(profile.interests?.length ?? 0) > 0 || profile.favorite_track ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(profile.interests ?? []).map((tag: string) => (
+            <span
+              key={tag}
+              className="rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px] capitalize text-muted-foreground"
+            >
+              {tag}
+            </span>
+          ))}
+          {profile.favorite_track ? (
+            <Link
+              to="/music"
+              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-medium text-primary"
+            >
+              <Music2 className="h-3 w-3" />
+              {MUSIC_VIBES.find((v) => v.id === profile.favorite_track)?.name ?? profile.favorite_track}
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* 7. STATS: Seguidores · Seguindo · Curtidas · Views */}
       <div className="grid grid-cols-4 gap-2">
         <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "followers" }}>
@@ -279,6 +302,9 @@ function ProfilePage() {
         <StatCard label="Curtidas" value={stats.data?.likesReceived ?? 0} />
         <StatCard label="Views" value={stats.data?.viewsTotal ?? 0} />
       </div>
+
+      {/* 7b. CONQUISTAS E NÍVEL */}
+      <AchievementsCard userId={profile.id} isMe={isMe} />
 
       {/* 8. BOTÕES: Seguir · Mensagem · Compartilhar · Editar */}
       <div className="flex gap-2">

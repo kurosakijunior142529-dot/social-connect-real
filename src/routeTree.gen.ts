@@ -20,6 +20,7 @@ import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedReelsRouteImport } from './routes/_authenticated/reels'
 import { Route as AuthenticatedProRouteImport } from './routes/_authenticated/pro'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
 import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticated/explore'
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
 import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
@@ -29,6 +30,7 @@ import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedLivesIndexRouteImport } from './routes/_authenticated/lives.index'
 import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authenticated/games.index'
 import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as ApiPublicGifRouteImport } from './routes/api/public/gif'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
@@ -116,6 +118,11 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMusicRoute = AuthenticatedMusicRouteImport.update({
+  id: '/music',
+  path: '/music',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedExploreRoute = AuthenticatedExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
@@ -161,6 +168,11 @@ const AuthenticatedGamesIndexRoute = AuthenticatedGamesIndexRouteImport.update({
 const AuthenticatedAiIndexRoute = AuthenticatedAiIndexRouteImport.update({
   id: '/ai/',
   path: '/ai/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAccountIndexRoute =
@@ -343,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
+  '/music': typeof AuthenticatedMusicRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pro': typeof AuthenticatedProRoute
   '/reels': typeof AuthenticatedReelsRoute
@@ -377,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/ai/': typeof AuthenticatedAiIndexRoute
   '/games/': typeof AuthenticatedGamesIndexRoute
   '/lives/': typeof AuthenticatedLivesIndexRoute
@@ -394,6 +408,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
+  '/music': typeof AuthenticatedMusicRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pro': typeof AuthenticatedProRoute
   '/reels': typeof AuthenticatedReelsRoute
@@ -428,6 +443,7 @@ export interface FileRoutesByTo {
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/account': typeof AuthenticatedAccountIndexRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/ai': typeof AuthenticatedAiIndexRoute
   '/games': typeof AuthenticatedGamesIndexRoute
   '/lives': typeof AuthenticatedLivesIndexRoute
@@ -447,6 +463,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/create': typeof AuthenticatedCreateRoute
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
+  '/_authenticated/music': typeof AuthenticatedMusicRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pro': typeof AuthenticatedProRoute
   '/_authenticated/reels': typeof AuthenticatedReelsRoute
@@ -482,6 +499,7 @@ export interface FileRoutesById {
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/games/': typeof AuthenticatedGamesIndexRoute
   '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
@@ -502,6 +520,7 @@ export interface FileRouteTypes {
     | '/'
     | '/create'
     | '/explore'
+    | '/music'
     | '/notifications'
     | '/pro'
     | '/reels'
@@ -536,6 +555,7 @@ export interface FileRouteTypes {
     | '/watch/$roomId'
     | '/api/public/gif'
     | '/account/'
+    | '/admin/'
     | '/ai/'
     | '/games/'
     | '/lives/'
@@ -553,6 +573,7 @@ export interface FileRouteTypes {
   to:
     | '/create'
     | '/explore'
+    | '/music'
     | '/notifications'
     | '/pro'
     | '/reels'
@@ -587,6 +608,7 @@ export interface FileRouteTypes {
     | '/watch/$roomId'
     | '/api/public/gif'
     | '/account'
+    | '/admin'
     | '/ai'
     | '/games'
     | '/lives'
@@ -605,6 +627,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/create'
     | '/_authenticated/explore'
+    | '/_authenticated/music'
     | '/_authenticated/notifications'
     | '/_authenticated/pro'
     | '/_authenticated/reels'
@@ -640,6 +663,7 @@ export interface FileRouteTypes {
     | '/_authenticated/watch/$roomId'
     | '/api/public/gif'
     | '/_authenticated/account/'
+    | '/_authenticated/admin/'
     | '/_authenticated/ai/'
     | '/_authenticated/games/'
     | '/_authenticated/lives/'
@@ -743,6 +767,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/music': {
+      id: '/_authenticated/music'
+      path: '/music'
+      fullPath: '/music'
+      preLoaderRoute: typeof AuthenticatedMusicRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/explore': {
       id: '/_authenticated/explore'
       path: '/explore'
@@ -804,6 +835,13 @@ declare module '@tanstack/react-router' {
       path: '/ai'
       fullPath: '/ai/'
       preLoaderRoute: typeof AuthenticatedAiIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/account/': {
@@ -1059,6 +1097,7 @@ const AuthenticatedUUsernameRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCreateRoute: typeof AuthenticatedCreateRoute
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
+  AuthenticatedMusicRoute: typeof AuthenticatedMusicRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProRoute: typeof AuthenticatedProRoute
   AuthenticatedReelsRoute: typeof AuthenticatedReelsRoute
@@ -1090,6 +1129,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVoiceIdRoute: typeof AuthenticatedVoiceIdRoute
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
   AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
   AuthenticatedGamesIndexRoute: typeof AuthenticatedGamesIndexRoute
   AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
@@ -1104,6 +1144,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCreateRoute: AuthenticatedCreateRoute,
   AuthenticatedExploreRoute: AuthenticatedExploreRoute,
+  AuthenticatedMusicRoute: AuthenticatedMusicRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProRoute: AuthenticatedProRoute,
   AuthenticatedReelsRoute: AuthenticatedReelsRoute,
@@ -1136,6 +1177,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVoiceIdRoute: AuthenticatedVoiceIdRoute,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
   AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
   AuthenticatedGamesIndexRoute: AuthenticatedGamesIndexRoute,
   AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,

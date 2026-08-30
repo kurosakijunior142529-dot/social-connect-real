@@ -20,6 +20,7 @@ import { Route as AuthenticatedSavedRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedReelsRouteImport } from './routes/_authenticated/reels'
 import { Route as AuthenticatedProRouteImport } from './routes/_authenticated/pro'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
 import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticated/explore'
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
 import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
@@ -116,6 +117,11 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMusicRoute = AuthenticatedMusicRouteImport.update({
+  id: '/music',
+  path: '/music',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedExploreRoute = AuthenticatedExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
@@ -343,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
+  '/music': typeof AuthenticatedMusicRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pro': typeof AuthenticatedProRoute
   '/reels': typeof AuthenticatedReelsRoute
@@ -394,6 +401,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
+  '/music': typeof AuthenticatedMusicRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pro': typeof AuthenticatedProRoute
   '/reels': typeof AuthenticatedReelsRoute
@@ -447,6 +455,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/create': typeof AuthenticatedCreateRoute
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
+  '/_authenticated/music': typeof AuthenticatedMusicRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pro': typeof AuthenticatedProRoute
   '/_authenticated/reels': typeof AuthenticatedReelsRoute
@@ -502,6 +511,7 @@ export interface FileRouteTypes {
     | '/'
     | '/create'
     | '/explore'
+    | '/music'
     | '/notifications'
     | '/pro'
     | '/reels'
@@ -553,6 +563,7 @@ export interface FileRouteTypes {
   to:
     | '/create'
     | '/explore'
+    | '/music'
     | '/notifications'
     | '/pro'
     | '/reels'
@@ -605,6 +616,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/_authenticated/create'
     | '/_authenticated/explore'
+    | '/_authenticated/music'
     | '/_authenticated/notifications'
     | '/_authenticated/pro'
     | '/_authenticated/reels'
@@ -741,6 +753,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/music': {
+      id: '/_authenticated/music'
+      path: '/music'
+      fullPath: '/music'
+      preLoaderRoute: typeof AuthenticatedMusicRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/explore': {
@@ -1059,6 +1078,7 @@ const AuthenticatedUUsernameRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCreateRoute: typeof AuthenticatedCreateRoute
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
+  AuthenticatedMusicRoute: typeof AuthenticatedMusicRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProRoute: typeof AuthenticatedProRoute
   AuthenticatedReelsRoute: typeof AuthenticatedReelsRoute
@@ -1104,6 +1124,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCreateRoute: AuthenticatedCreateRoute,
   AuthenticatedExploreRoute: AuthenticatedExploreRoute,
+  AuthenticatedMusicRoute: AuthenticatedMusicRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProRoute: AuthenticatedProRoute,
   AuthenticatedReelsRoute: AuthenticatedReelsRoute,

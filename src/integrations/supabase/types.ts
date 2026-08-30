@@ -2686,6 +2686,52 @@ export type Database = {
           value: number
         }[]
       }
+      admin_delete_content: {
+        Args: { _id: string; _kind: string; _reason: string }
+        Returns: undefined
+      }
+      admin_list_content: {
+        Args: { _kind?: string; _limit?: number; _search?: string }
+        Returns: {
+          created_at: string
+          id: string
+          kind: string
+          owner_id: string
+          owner_username: string
+          status: string
+          title: string
+        }[]
+      }
+      admin_list_transactions: {
+        Args: { _limit?: number }
+        Returns: {
+          amount: number
+          coins: number
+          created_at: string
+          id: string
+          kind: string
+          status: string
+          username: string
+        }[]
+      }
+      admin_list_users: {
+        Args: { _filter?: string; _limit?: number; _search?: string }
+        Returns: {
+          avatar_url: string
+          banned_at: string
+          coins: number
+          created_at: string
+          display_name: string
+          followers: number
+          id: string
+          is_admin: boolean
+          is_minor: boolean
+          posts: number
+          strikes: number
+          suspended_until: string
+          username: string
+        }[]
+      }
       admin_moderate: {
         Args: {
           _action: string
@@ -2698,6 +2744,7 @@ export type Database = {
         }
         Returns: string
       }
+      admin_overview: { Args: never; Returns: Json }
       admin_resolve_report: {
         Args: { _note?: string; _report_id: string; _status: string }
         Returns: undefined

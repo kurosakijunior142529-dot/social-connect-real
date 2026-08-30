@@ -30,6 +30,7 @@ import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedLivesIndexRouteImport } from './routes/_authenticated/lives.index'
 import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authenticated/games.index'
 import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as ApiPublicGifRouteImport } from './routes/api/public/gif'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
@@ -167,6 +168,11 @@ const AuthenticatedGamesIndexRoute = AuthenticatedGamesIndexRouteImport.update({
 const AuthenticatedAiIndexRoute = AuthenticatedAiIndexRouteImport.update({
   id: '/ai/',
   path: '/ai/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAccountIndexRoute =
@@ -384,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/ai/': typeof AuthenticatedAiIndexRoute
   '/games/': typeof AuthenticatedGamesIndexRoute
   '/lives/': typeof AuthenticatedLivesIndexRoute
@@ -436,6 +443,7 @@ export interface FileRoutesByTo {
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/account': typeof AuthenticatedAccountIndexRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/ai': typeof AuthenticatedAiIndexRoute
   '/games': typeof AuthenticatedGamesIndexRoute
   '/lives': typeof AuthenticatedLivesIndexRoute
@@ -491,6 +499,7 @@ export interface FileRoutesById {
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/games/': typeof AuthenticatedGamesIndexRoute
   '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
@@ -546,6 +555,7 @@ export interface FileRouteTypes {
     | '/watch/$roomId'
     | '/api/public/gif'
     | '/account/'
+    | '/admin/'
     | '/ai/'
     | '/games/'
     | '/lives/'
@@ -598,6 +608,7 @@ export interface FileRouteTypes {
     | '/watch/$roomId'
     | '/api/public/gif'
     | '/account'
+    | '/admin'
     | '/ai'
     | '/games'
     | '/lives'
@@ -652,6 +663,7 @@ export interface FileRouteTypes {
     | '/_authenticated/watch/$roomId'
     | '/api/public/gif'
     | '/_authenticated/account/'
+    | '/_authenticated/admin/'
     | '/_authenticated/ai/'
     | '/_authenticated/games/'
     | '/_authenticated/lives/'
@@ -823,6 +835,13 @@ declare module '@tanstack/react-router' {
       path: '/ai'
       fullPath: '/ai/'
       preLoaderRoute: typeof AuthenticatedAiIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/account/': {
@@ -1110,6 +1129,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVoiceIdRoute: typeof AuthenticatedVoiceIdRoute
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
   AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
   AuthenticatedGamesIndexRoute: typeof AuthenticatedGamesIndexRoute
   AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
@@ -1157,6 +1177,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVoiceIdRoute: AuthenticatedVoiceIdRoute,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
   AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
   AuthenticatedGamesIndexRoute: AuthenticatedGamesIndexRoute,
   AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,

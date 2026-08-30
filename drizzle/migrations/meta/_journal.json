@@ -15,6 +15,20 @@
       "when": 1787973868170,
       "tag": "0001_secure_stickers_reads_and_live_gifts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788060888967,
+      "tag": "0002_profile_interests_and_gamification",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788060942716,
+      "tag": "0003_admin_console_rpcs",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          description: string
+          emoji: string
+          id: string
+          metric: string
+          name: string
+          points: number
+          position: number
+          threshold: number
+          tier: string
+        }
+        Insert: {
+          description: string
+          emoji?: string
+          id: string
+          metric: string
+          name: string
+          points?: number
+          position?: number
+          threshold?: number
+          tier?: string
+        }
+        Update: {
+          description?: string
+          emoji?: string
+          id?: string
+          metric?: string
+          name?: string
+          points?: number
+          position?: number
+          threshold?: number
+          tier?: string
+        }
+        Relationships: []
+      }
       ai_messages: {
         Row: {
           content: string
@@ -1859,7 +1895,9 @@ export type Database = {
           created_at: string
           display_name: string
           dm_privacy: string
+          favorite_track: string | null
           id: string
+          interests: string[]
           is_creator: boolean
           is_minor: boolean
           is_verified: boolean
@@ -1884,7 +1922,9 @@ export type Database = {
           created_at?: string
           display_name: string
           dm_privacy?: string
+          favorite_track?: string | null
           id: string
+          interests?: string[]
           is_creator?: boolean
           is_minor?: boolean
           is_verified?: boolean
@@ -1909,7 +1949,9 @@ export type Database = {
           created_at?: string
           display_name?: string
           dm_privacy?: string
+          favorite_track?: string | null
           id?: string
+          interests?: string[]
           is_creator?: boolean
           is_minor?: boolean
           is_verified?: boolean
@@ -2312,6 +2354,32 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_coins: {
         Row: {
           balance: number
@@ -2611,6 +2679,13 @@ export type Database = {
     }
     Functions: {
       account_state: { Args: { _user: string }; Returns: string }
+      achievement_progress: {
+        Args: { _user: string }
+        Returns: {
+          metric: string
+          value: number
+        }[]
+      }
       admin_moderate: {
         Args: {
           _action: string
@@ -2745,7 +2820,9 @@ export type Database = {
           created_at: string
           display_name: string
           dm_privacy: string
+          favorite_track: string | null
           id: string
+          interests: string[]
           is_creator: boolean
           is_minor: boolean
           is_verified: boolean
@@ -2849,6 +2926,14 @@ export type Database = {
           _target_type: string
         }
         Returns: string
+      }
+      sync_achievements: {
+        Args: { _user?: string }
+        Returns: {
+          level: number
+          points: number
+          unlocked: number
+        }[]
       }
       watch_room_invite_preview: {
         Args: { _code: string }

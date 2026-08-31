@@ -20,17 +20,24 @@ function AdminLink({ pathname }: { pathname: string }) {
     });
   }, []);
   if (!isAdmin) return null;
+  const cls = (active: boolean) =>
+    cn(
+      "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+      active
+        ? "bg-[color:var(--surface-2)] text-foreground"
+        : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
+    );
   return (
-    <Link
-      to="/admin/withdrawals"
-      className={cn(
-        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-        pathname.startsWith("/admin") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
-      )}
-    >
-      <Shield className="h-[18px] w-[18px]" strokeWidth={1.6} />
-      Admin · Saques
-    </Link>
+    <>
+      <Link to="/admin" className={cls(pathname === "/admin")}>
+        <Shield className="h-[18px] w-[18px]" strokeWidth={1.6} />
+        Painel admin
+      </Link>
+      <Link to="/admin/withdrawals" className={cls(pathname.startsWith("/admin/withdrawals"))}>
+        <Shield className="h-[18px] w-[18px]" strokeWidth={1.6} />
+        Admin · Saques
+      </Link>
+    </>
   );
 }
 

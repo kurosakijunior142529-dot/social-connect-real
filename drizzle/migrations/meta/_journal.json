@@ -29,6 +29,13 @@
       "when": 1788060942716,
       "tag": "0003_admin_console_rpcs",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788170901007,
+      "tag": "0004_profile_mention_and_hidden_posts",
+      "breakpoints": true
     }
   ]
 }

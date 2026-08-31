@@ -193,6 +193,16 @@ export function AppShell({
             Canais de voz
           </Link>
           <Link
+            to="/music"
+            className={cn(
+              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              pathname.startsWith("/music") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
+            )}
+          >
+            <Music2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            Música
+          </Link>
+          <Link
             to="/ai"
             className={cn(
               "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",

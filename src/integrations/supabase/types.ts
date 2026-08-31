@@ -858,6 +858,35 @@ export type Database = {
         }
         Relationships: []
       }
+      hidden_posts: {
+        Row: {
+          created_at: string
+          post_id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          reason?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hidden_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       likes: {
         Row: {
           created_at: string
@@ -1896,6 +1925,7 @@ export type Database = {
           display_name: string
           dm_privacy: string
           favorite_track: string | null
+          featured_username: string | null
           id: string
           interests: string[]
           is_creator: boolean
@@ -1923,6 +1953,7 @@ export type Database = {
           display_name: string
           dm_privacy?: string
           favorite_track?: string | null
+          featured_username?: string | null
           id: string
           interests?: string[]
           is_creator?: boolean
@@ -1950,6 +1981,7 @@ export type Database = {
           display_name?: string
           dm_privacy?: string
           favorite_track?: string | null
+          featured_username?: string | null
           id?: string
           interests?: string[]
           is_creator?: boolean
@@ -2868,6 +2900,7 @@ export type Database = {
           display_name: string
           dm_privacy: string
           favorite_track: string | null
+          featured_username: string | null
           id: string
           interests: string[]
           is_creator: boolean

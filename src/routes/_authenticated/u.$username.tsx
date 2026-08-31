@@ -24,7 +24,10 @@ import {
   Loader2,
   Menu,
   Pencil,
+  Music2,
 } from "lucide-react";
+import { MUSIC_VIBES } from "@/lib/music-catalog";
+import { AchievementsCard } from "@/components/profile/achievements-card";
 
 import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";

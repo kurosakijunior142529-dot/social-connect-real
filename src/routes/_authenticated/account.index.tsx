@@ -19,6 +19,8 @@ import {
   Users,
   ChevronRight,
   ChevronLeft,
+  Music2,
+  Gamepad2,
 } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
 
@@ -57,6 +59,20 @@ function AccountHubPage() {
   const coins = wallet.data?.coins ?? 0;
   const brl = coins * (wallet.data?.rate ?? 0.0645);
 
+  const admin = useQuery({
+    queryKey: ["is-admin", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    staleTime: 300_000,
+  });
+
   const groups: { title: string; rows: Row[] }[] = [
     {
       title: "Premium",
@@ -75,6 +91,25 @@ function AccountHubPage() {
         { to: "/account/monetization", icon: TrendingUp, label: "Monetização", hint: "Ganhos por lives, presentes e inscritos" },
       ],
     },
+    {
+      title: "Criador",
+      rows: [
+        { to: "/music", icon: Music2, label: "Música", hint: "Vibes para publicações e perfil" },
+        { to: "/games", icon: Gamepad2, label: "Jogos & conquistas", hint: "Progresso e níveis" },
+      ],
+    },
+    ...(admin.data
+      ? [
+          {
+            title: "Administração",
+            rows: [
+              { to: "/admin", icon: ShieldCheck, label: "Painel admin", hint: "Usuários, conteúdo, transações e logs", accent: true },
+              { to: "/admin/withdrawals", icon: ArrowDownToLine, label: "Saques pendentes", hint: "Aprovar e recusar pagamentos" },
+              { to: "/admin/security", icon: ShieldOff, label: "Segurança & moderação", hint: "Denúncias e controles de emergência" },
+            ] as Row[],
+          },
+        ]
+      : []),
     {
       title: "Preferências",
       rows: [

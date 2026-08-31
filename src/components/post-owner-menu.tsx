@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { EyeOff, MoreHorizontal, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -90,5 +90,39 @@ export function PostOwnerMenu({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+export function PostViewerMenu({ postId, className }: { postId: string; className?: string }) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+
+  async function hide(reason: "not_interested" | "hidden") {
+    setBusy(true);
+    const { error } = await supabase.from("hidden_posts").upsert({ post_id: postId, reason });
+    setBusy(false);
+    if (error) return toast.error("Não foi possível ocultar esta publicação");
+    qc.setQueriesData<any[] | undefined>({ queryKey: ["feed"] }, (old) =>
+      Array.isArray(old) ? old.filter((p) => p?.id !== postId) : old,
+    );
+    toast.success(reason === "not_interested" ? "Vamos mostrar menos conteúdos assim" : "Publicação ocultada");
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className={cn("grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-[color:var(--surface-2)]", className)} aria-label="Opções da publicação">
+          <MoreHorizontal className="h-5 w-5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem disabled={busy} onSelect={() => void hide("not_interested")}>
+          <EyeOff className="mr-2 h-4 w-4" /> Não tenho interesse
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={busy} onSelect={() => void hide("hidden")}>
+          <EyeOff className="mr-2 h-4 w-4" /> Ocultar publicação
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

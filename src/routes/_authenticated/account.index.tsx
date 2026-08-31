@@ -19,7 +19,6 @@ import {
   Users,
   ChevronRight,
   ChevronLeft,
-  Music2,
   Gamepad2,
 } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
@@ -94,7 +93,6 @@ function AccountHubPage() {
     {
       title: "Criador",
       rows: [
-        { to: "/music", icon: Music2, label: "Música", hint: "Vibes para publicações e perfil" },
         { to: "/games", icon: Gamepad2, label: "Jogos & conquistas", hint: "Progresso e níveis" },
       ],
     },

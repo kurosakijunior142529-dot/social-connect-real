@@ -36,10 +36,10 @@ function FeedPage() {
     key: ["feed", user.id, limit],
     currentUserId: user.id,
     fetchPosts: async () => {
-      const { data: follows } = await supabase
-        .from("follows")
-        .select("following_id")
-        .eq("follower_id", user.id);
+      const [{ data: follows }, { data: hidden }] = await Promise.all([
+        supabase.from("follows").select("following_id").eq("follower_id", user.id),
+        supabase.from("hidden_posts").select("post_id").eq("user_id", user.id),
+      ]);
       const followingIds = (follows ?? []).map((f) => f.following_id);
       const authors = [...followingIds, user.id];
       let q = supabase
@@ -49,7 +49,10 @@ function FeedPage() {
         .order("created_at", { ascending: false })
         .limit(limit);
       if (followingIds.length > 0) q = q.in("author_id", authors);
-      return q;
+      const result = await q;
+      if (result.error) return result;
+      const hiddenIds = new Set((hidden ?? []).map((row) => row.post_id));
+      return { ...result, data: (result.data ?? []).filter((post) => !hiddenIds.has(post.id)) };
     },
   });
 

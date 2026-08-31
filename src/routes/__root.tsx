@@ -121,8 +121,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className="dark" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("vibely-theme")==="light"?"light":"dark";document.documentElement.classList.remove("light","dark");document.documentElement.classList.add(t);document.documentElement.style.colorScheme=t}catch(e){}`,
+          }}
+        />
         <HeadContent />
       </head>
       <body>

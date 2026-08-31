@@ -19,6 +19,8 @@ import {
   Users,
   ChevronRight,
   ChevronLeft,
+  Music2,
+  Gamepad2,
 } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
 

@@ -57,6 +57,20 @@ function AccountHubPage() {
   const coins = wallet.data?.coins ?? 0;
   const brl = coins * (wallet.data?.rate ?? 0.0645);
 
+  const admin = useQuery({
+    queryKey: ["is-admin", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    staleTime: 300_000,
+  });
+
   const groups: { title: string; rows: Row[] }[] = [
     {
       title: "Premium",

@@ -24,9 +24,7 @@ import {
   Loader2,
   Menu,
   Pencil,
-  Music2,
 } from "lucide-react";
-import { MUSIC_VIBES } from "@/lib/music-catalog";
 import { AchievementsCard } from "@/components/profile/achievements-card";
 
 import { VerifiedBadge } from "@/components/verified-badge";
@@ -58,7 +56,7 @@ function ProfilePage() {
         // Somente colunas públicas: `*` falha por permissão desde o
         // endurecimento de segurança (colunas sensíveis não são legíveis).
         .select(
-          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, favorite_track",
+          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, featured_username",
         )
         .eq("username", username)
         .maybeSingle();
@@ -251,6 +249,15 @@ function ProfilePage() {
           ) : null}
         </div>
         <div className="text-sm text-muted-foreground">@{profile.username}</div>
+        {profile.featured_username ? (
+          <Link
+            to="/u/$username"
+            params={{ username: profile.featured_username }}
+            className="inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            com @{profile.featured_username}
+          </Link>
+        ) : null}
         {profile.bio ? <p className="text-sm whitespace-pre-wrap">{profile.bio}</p> : null}
         <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground pt-1">
           {profile.location ? (
@@ -271,8 +278,8 @@ function ProfilePage() {
         </div>
       </div>
 
-      {/* 6b. INTERESSES + MÚSICA FAVORITA */}
-      {(profile.interests?.length ?? 0) > 0 || profile.favorite_track ? (
+      {/* 6b. INTERESSES */}
+      {(profile.interests?.length ?? 0) > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5">
           {(profile.interests ?? []).map((tag: string) => (
             <span
@@ -282,15 +289,6 @@ function ProfilePage() {
               {tag}
             </span>
           ))}
-          {profile.favorite_track ? (
-            <Link
-              to="/music"
-              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-medium text-primary"
-            >
-              <Music2 className="h-3 w-3" />
-              {MUSIC_VIBES.find((v) => v.id === profile.favorite_track)?.name ?? profile.favorite_track}
-            </Link>
-          ) : null}
         </div>
       ) : null}
 

@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Sparkles, Radio, Crown, Wallet, Shield, Headphones, Music2 } from "lucide-react";
+import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Sparkles, Radio, Crown, Wallet, Shield, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
@@ -191,16 +191,6 @@ export function AppShell({
           >
             <Headphones className="h-[18px] w-[18px]" strokeWidth={1.6} />
             Canais de voz
-          </Link>
-          <Link
-            to="/music"
-            className={cn(
-              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-              pathname.startsWith("/music") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
-            )}
-          >
-            <Music2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Música
           </Link>
           <Link
             to="/ai"

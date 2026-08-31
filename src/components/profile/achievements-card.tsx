@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAchievements, useSyncAchievements } from "@/lib/gamification";
 import { cn } from "@/lib/utils";
 import { Trophy, Sparkles } from "lucide-react";
+import { AchievementIcon } from "@/components/profile/achievement-icon";
 
 const TIER_STYLE: Record<string, { ring: string; glow: string; label: string }> = {
   bronze: {
@@ -91,7 +92,7 @@ export function AchievementsCard({ userId, isMe }: { userId: string; isMe: boole
               )}
             >
               {done ? <span aria-hidden className="achv-sweep" /> : null}
-              <div className={cn("relative text-2xl leading-none", done ? "achv-float" : "grayscale")}>{a.emoji}</div>
+              <AchievementIcon emoji={a.emoji} unlocked={done} />
               <div className="relative mt-1 text-[10px] font-semibold leading-tight line-clamp-2">{a.name}</div>
               <div className={cn("relative text-[9px] tabular", done ? tier.label : "text-muted-foreground")}>
                 {done ? `+${a.points}` : `${Math.min(a.current, a.threshold)}/${a.threshold}`}

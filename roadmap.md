@@ -1,0 +1,6 @@
+- [ ] Finalizar perfil/gamificação e ocultação de conteúdo pendentes
+- [ ] Adicionar modo claro/escuro nas configurações
+- [ ] Transformar ícones de conquistas em animações 3D
+- [ ] Remover temporariamente Música dos atalhos e perfil
+- [ ] Corrigir findings de segurança obrigatórios
+- [ ] Validar build e interface

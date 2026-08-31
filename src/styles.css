@@ -51,7 +51,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Minimal Escuro Premium */
+/* Minimal premium — dark remains the default, light is opt-in. */
 :root {
   --radius: 16px;
 
@@ -100,6 +100,39 @@
 
 .dark { }
 
+.light {
+  --background: #F6F7F8;
+  --surface: #FFFFFF;
+  --surface-2: #ECEFF1;
+  --foreground: #121416;
+  --card: #FFFFFF;
+  --card-foreground: #121416;
+  --popover: #FFFFFF;
+  --popover-foreground: #121416;
+  --primary: #16B957;
+  --primary-foreground: #04170B;
+  --secondary: #ECEFF1;
+  --secondary-foreground: #121416;
+  --muted: #ECEFF1;
+  --muted-foreground: #62676C;
+  --accent: #E4E8EA;
+  --accent-foreground: #121416;
+  --destructive: #D92D25;
+  --destructive-foreground: #FFFFFF;
+  --hairline: rgba(13, 20, 16, 0.08);
+  --border: rgba(13, 20, 16, 0.12);
+  --input: rgba(13, 20, 16, 0.12);
+  --ring: #16B957;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #121416;
+  --sidebar-primary: #16B957;
+  --sidebar-primary-foreground: #04170B;
+  --sidebar-accent: #ECEFF1;
+  --sidebar-accent-foreground: #121416;
+  --sidebar-border: rgba(13, 20, 16, 0.08);
+  --sidebar-ring: #16B957;
+}
+
 @layer base {
   * { border-color: var(--hairline); }
   html {
@@ -109,6 +142,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  html.light { color-scheme: light; }
   body {
     background-color: var(--background);
     color: var(--foreground);
@@ -212,6 +246,92 @@
 .emoji-anim-hover:hover img, .emoji-anim-hover:active img,
 .emoji-anim-hover:hover .emoji-char, .emoji-anim-hover:active .emoji-char {
   animation: emoji-idle 0.9s ease-in-out 2;
+}
+
+/* ============ Conquistas 3D, com custo baixo no WebView ============ */
+@keyframes achv-pulse-keyframes {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.08); filter: brightness(1.2); }
+}
+@keyframes achv-shine-keyframes {
+  0% { background-position: 180% 0; }
+  100% { background-position: -80% 0; }
+}
+@keyframes achv-float-keyframes {
+  0%, 100% { transform: translateY(0) rotateY(-10deg) rotateX(5deg); }
+  50% { transform: translateY(-5px) rotateY(12deg) rotateX(-3deg); }
+}
+@keyframes achv-orbit-keyframes { to { transform: rotateX(68deg) rotateZ(360deg); } }
+@keyframes achv-sweep-keyframes {
+  0%, 35% { transform: translateX(-160%) skewX(-20deg); opacity: 0; }
+  50% { opacity: .75; }
+  70%, 100% { transform: translateX(240%) skewX(-20deg); opacity: 0; }
+}
+.achv-pulse { animation: achv-pulse-keyframes 2.4s ease-in-out infinite; }
+.achv-shine {
+  background-image: linear-gradient(90deg, var(--primary), color-mix(in oklab, var(--primary) 45%, var(--foreground)), var(--primary));
+  background-size: 220% 100%;
+  animation: achv-shine-keyframes 2.8s linear infinite;
+}
+.achv-sweep {
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 34%;
+  background: color-mix(in oklab, var(--foreground) 38%, transparent);
+  filter: blur(5px);
+  animation: achv-sweep-keyframes 4s ease-in-out infinite;
+}
+.achievement-3d-scene {
+  position: relative;
+  display: inline-grid;
+  width: 46px;
+  height: 42px;
+  place-items: center;
+  perspective: 160px;
+  transform-style: preserve-3d;
+}
+.achievement-3d-face {
+  z-index: 2;
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 5px 4px color-mix(in oklab, var(--foreground) 25%, transparent));
+  animation: achv-float-keyframes 2.6s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+.achievement-3d-shadow {
+  position: absolute;
+  bottom: 2px;
+  width: 25px;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--foreground) 20%, transparent);
+  filter: blur(3px);
+}
+.achievement-3d-orbit {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  border: 1px solid color-mix(in oklab, var(--primary) 55%, transparent);
+  border-radius: 999px;
+  transform: rotateX(68deg);
+  animation: achv-orbit-keyframes 4s linear infinite;
+}
+.achievement-3d-spark {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 0;
+  color: var(--primary);
+  font-size: 12px;
+  animation: achv-pulse-keyframes 1.4s ease-in-out infinite;
+}
+.achievement-3d-locked { filter: grayscale(1); opacity: .62; }
+.achievement-3d-locked .achievement-3d-face,
+.achievement-3d-locked .achievement-3d-orbit { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .achv-pulse, .achv-shine, .achv-sweep,
+  .achievement-3d-face, .achievement-3d-orbit, .achievement-3d-spark { animation: none; }
 }
 
 /* Coração do duplo-toque no player de vídeo (global: evita <style> por player) */

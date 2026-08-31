@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Bell, Bookmark, Camera, ImagePlus, LogOut, Shield, Store, Tv } from "lucide-react";
+import { Bell, Bookmark, Camera, ImagePlus, LogOut, Moon, Shield, Store, Sun, Tv } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
 import { AvatarEditor } from "@/components/user/avatar-editor";
+import { InterestsEditor } from "@/components/profile/interests-editor";
+import { useAppTheme } from "@/lib/theme";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -43,6 +45,8 @@ function SettingsPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [usernameInput, setUsernameInput] = useState("");
   const [changingUsername, setChangingUsername] = useState(false);
+  const [featuredUsername, setFeaturedUsername] = useState("");
+  const { theme, setTheme } = useAppTheme();
 
   const { data: coverUrl } = useSignedUrl("covers", profile.data?.cover_url ?? null);
 
@@ -54,6 +58,7 @@ function SettingsPage() {
       setLocation(profile.data.location ?? "");
       setPronouns(profile.data.pronouns ?? "");
       setUsernameInput(profile.data.username ?? "");
+      setFeaturedUsername(profile.data.featured_username ?? "");
     }
   }, [profile.data]);
 
@@ -93,6 +98,8 @@ function SettingsPage() {
     e.preventDefault();
     if (displayName.trim().length < 2) return toast.error("Nome muito curto");
     if (bio.length > 300) return toast.error("Bio longa demais");
+    const featured = featuredUsername.trim().toLowerCase().replace(/^@/, "");
+    if (featured && !/^[a-z0-9_.]{3,20}$/.test(featured)) return toast.error("O @ em destaque é inválido");
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
@@ -102,6 +109,7 @@ function SettingsPage() {
         website: website.trim() || null,
         location: location.trim() || null,
         pronouns: pronouns.trim() || null,
+        featured_username: featured || null,
       } as any)
       .eq("id", user.id);
     setSaving(false);
@@ -210,6 +218,18 @@ function SettingsPage() {
           <Label htmlFor="dn">Nome</Label>
           <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={50} className="rounded-xl" />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="featured">@ em destaque</Label>
+          <Input
+            id="featured"
+            value={featuredUsername}
+            onChange={(e) => setFeaturedUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.@]/g, ""))}
+            maxLength={21}
+            placeholder="@alguem"
+            className="rounded-xl"
+          />
+          <p className="text-xs text-muted-foreground">Mostre uma pessoa especial no seu perfil.</p>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="pr">Pronomes</Label>
@@ -234,6 +254,29 @@ function SettingsPage() {
           {saving ? "Salvando…" : "Salvar"}
         </Button>
       </form>
+
+      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+        <div>
+          <h2 className="text-base font-semibold">Aparência</h2>
+          <p className="text-[13px] text-muted-foreground">Escolha como o Vibely aparece neste dispositivo.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[color:var(--surface-2)] p-1">
+          <Button type="button" variant={theme === "dark" ? "default" : "ghost"} className="rounded-xl gap-2" onClick={() => setTheme("dark")}>
+            <Moon className="h-4 w-4" /> Escuro
+          </Button>
+          <Button type="button" variant={theme === "light" ? "default" : "ghost"} className="rounded-xl gap-2" onClick={() => setTheme("light")}>
+            <Sun className="h-4 w-4" /> Claro
+          </Button>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+        <div>
+          <h2 className="text-base font-semibold">Interesses</h2>
+          <p className="text-[13px] text-muted-foreground">Personalize recomendações ou escolha não informar.</p>
+        </div>
+        <InterestsEditor userId={user.id} initial={profile.data?.interests ?? []} />
+      </section>
 
       <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>

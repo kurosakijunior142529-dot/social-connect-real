@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
 import { UserActionsMenu } from "@/components/user-actions-menu";
-import { PostOwnerMenu } from "@/components/post-owner-menu";
+import { PostOwnerMenu, PostViewerMenu } from "@/components/post-owner-menu";
 import { SavePostButton } from "@/components/save-post-button";
 import { RepostButton } from "@/components/repost-button";
 import { cn } from "@/lib/utils";
@@ -104,11 +104,14 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
           </div>
         </div>
         {currentUserId && currentUserId !== post.author_id ? (
-          <UserActionsMenu
-            targetUserId={post.author_id}
-            targetUsername={author?.username}
-            postId={post.id}
-          />
+          <div className="flex items-center gap-1">
+            <PostViewerMenu postId={post.id} />
+            <UserActionsMenu
+              targetUserId={post.author_id}
+              targetUsername={author?.username}
+              postId={post.id}
+            />
+          </div>
         ) : currentUserId === post.author_id ? (
           <PostOwnerMenu postId={post.id} authorId={post.author_id} />
         ) : null}

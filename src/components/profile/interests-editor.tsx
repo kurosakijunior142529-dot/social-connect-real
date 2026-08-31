@@ -39,6 +39,14 @@ export function InterestsEditor({ userId, initial }: { userId: string; initial: 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-1.5">
+        <Button
+          type="button"
+          variant={picked.length === 0 ? "default" : "outline"}
+          onClick={() => setPicked([])}
+          className="h-auto rounded-full px-3 py-1.5 text-xs"
+        >
+          Sem interesses
+        </Button>
         {INTEREST_OPTIONS.map((tag) => {
           const active = picked.includes(tag);
           return (

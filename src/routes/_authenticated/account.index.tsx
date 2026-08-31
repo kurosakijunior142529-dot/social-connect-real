@@ -90,6 +90,25 @@ function AccountHubPage() {
       ],
     },
     {
+      title: "Criador",
+      rows: [
+        { to: "/music", icon: Music2, label: "Música", hint: "Vibes para publicações e perfil" },
+        { to: "/games", icon: Gamepad2, label: "Jogos & conquistas", hint: "Progresso e níveis" },
+      ],
+    },
+    ...(admin.data
+      ? [
+          {
+            title: "Administração",
+            rows: [
+              { to: "/admin", icon: ShieldCheck, label: "Painel admin", hint: "Usuários, conteúdo, transações e logs", accent: true },
+              { to: "/admin/withdrawals", icon: ArrowDownToLine, label: "Saques pendentes", hint: "Aprovar e recusar pagamentos" },
+              { to: "/admin/security", icon: ShieldOff, label: "Segurança & moderação", hint: "Denúncias e controles de emergência" },
+            ] as Row[],
+          },
+        ]
+      : []),
+    {
       title: "Preferências",
       rows: [
         { to: "/notifications", icon: Bell, label: "Notificações", hint: "Central de alertas" },

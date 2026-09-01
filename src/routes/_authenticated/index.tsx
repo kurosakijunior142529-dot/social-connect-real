@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { PlusSquare, Tv, Gamepad2, Radio, Bell } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/_authenticated/")({
   ssr: false,
@@ -86,6 +87,7 @@ function FeedPage() {
             <span className="block truncate text-[11px] text-muted-foreground tabular">@{meProfile.data?.username ?? "…"}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <ThemeToggle />
             <HeaderAction to="/lives" label="Lives" icon={<Radio className="h-4 w-4" />} />
             <HeaderAction to="/watch" label="Streaming" icon={<Tv className="h-4 w-4" />} />
             <HeaderAction to="/games" label="Jogos" icon={<Gamepad2 className="h-4 w-4" />} />

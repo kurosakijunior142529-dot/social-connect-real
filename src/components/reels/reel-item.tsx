@@ -274,7 +274,9 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           ref={videoRef}
           // `src` é anexado/desanexado pelo efeito — o elemento nunca desmonta,
           // então o decoder e o buffer sobrevivem à rolagem.
-          className="absolute inset-0 h-full w-full object-cover"
+          // object-contain: o vídeo inteiro aparece (estilo Instagram Reels) —
+          // nada é cortado; as sobras ficam pretas sobre o fundo.
+          className="absolute inset-0 h-full w-full object-contain"
           loop
           playsInline
           muted={muted}

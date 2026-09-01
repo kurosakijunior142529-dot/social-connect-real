@@ -98,6 +98,13 @@ export function AchievementIcon({
         {unlocked ? <Icon className="h-[17px] w-[17px]" strokeWidth={2.2} /> : <Lock className="h-4 w-4" strokeWidth={2.2} />}
       </span>
       {unlocked ? <span className="achv-medal-sheen" /> : null}
+      {unlocked ? (
+        <span className="achv-orbit">
+          <i />
+          <i />
+          <i />
+        </span>
+      ) : null}
       {unlocked && (tier === "diamante" || tier === "lendario") ? (
         <span className="achv-medal-star">
           <Award className="h-3 w-3" />

@@ -92,7 +92,7 @@ export function AchievementsCard({ userId, isMe }: { userId: string; isMe: boole
               )}
             >
               {done ? <span aria-hidden className="achv-sweep" /> : null}
-              <AchievementIcon emoji={a.emoji} unlocked={done} />
+              <AchievementIcon metric={a.metric} tier={a.tier} unlocked={done} />
               <div className="relative mt-1 text-[10px] font-semibold leading-tight line-clamp-2">{a.name}</div>
               <div className={cn("relative text-[9px] tabular", done ? tier.label : "text-muted-foreground")}>
                 {done ? `+${a.points}` : `${Math.min(a.current, a.threshold)}/${a.threshold}`}

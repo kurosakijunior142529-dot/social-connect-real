@@ -42,9 +42,9 @@ const METRIC_ICON: Record<string, LucideIcon> = {
 const TIER_METAL: Record<string, { from: string; via: string; to: string; rim: string }> = {
   bronze: { from: "#F0C08A", via: "#C87F35", to: "#7A4715", rim: "#FFE0B8" },
   prata: { from: "#F4F7FA", via: "#B9C3CE", to: "#6E7A88", rim: "#FFFFFF" },
-  ouro: { from: "#FFF0B0", via: "#E8B countedown", to: "#8A5F09", rim: "#FFF7D6" },
+  ouro: { from: "#FFF0B0", via: "#E8B824", to: "#8A5F09", rim: "#FFF7D6" },
   diamante: { from: "#E8FEFF", via: "#7FE6F5", to: "#1E7F98", rim: "#FFFFFF" },
-  lendario: { from: "#FFE3FB", via: "#D museum", to: "#6D1E86", rim: "#FFEAFF" },
+  lendario: { from: "#FFE3FB", via: "#D46BF0", to: "#6D1E86", rim: "#FFEAFF" },
 };
 
 export function AchievementIcon({

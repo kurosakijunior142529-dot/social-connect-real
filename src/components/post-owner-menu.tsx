@@ -99,9 +99,16 @@ export function PostViewerMenu({ postId, className }: { postId: string; classNam
 
   async function hide(reason: "not_interested" | "hidden") {
     setBusy(true);
-    const { error } = await supabase.from("hidden_posts").upsert({ post_id: postId, reason });
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (!uid) {
+      setBusy(false);
+      return toast.error("Faça login para ocultar publicações");
+    }
+    const { error } = await supabase.from("hidden_posts").upsert({ user_id: uid, post_id: postId, reason });
     setBusy(false);
     if (error) return toast.error("Não foi possível ocultar esta publicação");
+
     qc.setQueriesData<any[] | undefined>({ queryKey: ["feed"] }, (old) =>
       Array.isArray(old) ? old.filter((p) => p?.id !== postId) : old,
     );

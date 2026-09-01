@@ -326,8 +326,71 @@
 .achv-medal-off { opacity: .5; filter: grayscale(1); }
 .achv-medal-off .achv-medal-glyph { color: color-mix(in oklab, var(--foreground) 70%, transparent); }
 
+/* --- conquistas animadas (figurinhas) --- */
+.achv-medal-on { animation: achv-float 3.6s ease-in-out infinite; }
+.achv-medal-on svg { animation: achv-tilt 5s ease-in-out infinite; transform-origin: 50% 50%; }
+.achv-medal-on .achv-medal-glyph { animation: achv-pop 3.6s ease-in-out infinite; }
+@keyframes achv-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes achv-tilt {
+  0%, 100% { transform: rotate(-3deg) scale(1); }
+  50% { transform: rotate(3deg) scale(1.04); }
+}
+@keyframes achv-pop {
+  0%, 82%, 100% { transform: scale(1); }
+  88% { transform: scale(1.22) rotate(-6deg); }
+  94% { transform: scale(.94) rotate(4deg); }
+}
+.achv-aura {
+  position: absolute;
+  inset: -7px;
+  z-index: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  background: conic-gradient(from 0deg, transparent 0deg, var(--achv-aura, #ffd77a) 60deg, transparent 140deg, var(--achv-aura, #ffd77a) 240deg, transparent 320deg);
+  filter: blur(6px);
+  opacity: .55;
+  animation: achv-spin 6s linear infinite;
+}
+@keyframes achv-spin { to { transform: rotate(360deg); } }
+.achv-orbit {
+  position: absolute;
+  inset: -6px;
+  z-index: 5;
+  pointer-events: none;
+  animation: achv-spin 4.5s linear infinite;
+}
+.achv-orbit i {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 8px 2px var(--achv-aura, #ffd77a);
+  animation: achv-twinkle 1.6s ease-in-out infinite;
+}
+.achv-orbit i:nth-child(2) { top: auto; bottom: 0; animation-delay: .5s; }
+.achv-orbit i:nth-child(3) { top: 50%; left: 0; margin: -2.5px 0 0 0; animation-delay: 1s; }
+@keyframes achv-twinkle {
+  0%, 100% { opacity: .35; transform: scale(.7); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+.achv-medal-star { animation: achv-badge-bounce 2.4s ease-in-out infinite; }
+@keyframes achv-badge-bounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40% { transform: translateY(-2px) rotate(-12deg); }
+  70% { transform: translateY(0) rotate(10deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .achv-pulse, .achv-shine, .achv-sweep, .achv-medal-sheen { animation: none; }
+  .achv-pulse, .achv-shine, .achv-sweep, .achv-medal-sheen,
+  .achv-medal-on, .achv-medal-on svg, .achv-medal-on .achv-medal-glyph,
+  .achv-aura, .achv-orbit, .achv-orbit i, .achv-medal-star { animation: none; }
 }
 
 /* Coração do duplo-toque no player de vídeo (global: evita <style> por player) */

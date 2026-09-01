@@ -61,7 +61,12 @@ export function AchievementIcon({
   const id = `medal-${tier}`;
 
   return (
-    <span className={cn("achv-medal", unlocked ? "achv-medal-on" : "achv-medal-off")} aria-hidden>
+    <span
+      className={cn("achv-medal", unlocked ? "achv-medal-on" : "achv-medal-off")}
+      style={{ ["--achv-aura" as string]: metal.via }}
+      aria-hidden
+    >
+      {unlocked ? <span className="achv-aura" /> : null}
       <svg viewBox="0 0 48 48" className="h-[46px] w-[46px]">
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0.6" y2="1">
@@ -93,6 +98,13 @@ export function AchievementIcon({
         {unlocked ? <Icon className="h-[17px] w-[17px]" strokeWidth={2.2} /> : <Lock className="h-4 w-4" strokeWidth={2.2} />}
       </span>
       {unlocked ? <span className="achv-medal-sheen" /> : null}
+      {unlocked ? (
+        <span className="achv-orbit">
+          <i />
+          <i />
+          <i />
+        </span>
+      ) : null}
       {unlocked && (tier === "diamante" || tier === "lendario") ? (
         <span className="achv-medal-star">
           <Award className="h-3 w-3" />

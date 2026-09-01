@@ -61,7 +61,12 @@ export function AchievementIcon({
   const id = `medal-${tier}`;
 
   return (
-    <span className={cn("achv-medal", unlocked ? "achv-medal-on" : "achv-medal-off")} aria-hidden>
+    <span
+      className={cn("achv-medal", unlocked ? "achv-medal-on" : "achv-medal-off")}
+      style={{ ["--achv-aura" as string]: metal.via }}
+      aria-hidden
+    >
+      {unlocked ? <span className="achv-aura" /> : null}
       <svg viewBox="0 0 48 48" className="h-[46px] w-[46px]">
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0.6" y2="1">

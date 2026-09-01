@@ -136,7 +136,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             <SignedVideo
               bucket="posts"
               path={post.media_url ?? ""}
-              className="w-full aspect-[4/5] object-cover"
+              className="w-full aspect-[9/16] max-h-[80dvh] object-cover"
               watermarkUsername={author?.username}
               onDoubleTapLike={() => {
                 if (!post.liked_by_me) toggleLike.mutate();

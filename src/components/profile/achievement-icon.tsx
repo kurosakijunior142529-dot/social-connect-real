@@ -123,7 +123,8 @@ export function AchievementIcon({
   tier: string;
   unlocked: boolean;
 }) {
-  const Icon = METRIC_ICON[metric] ?? (tier === "lendario" ? Crown : tier === "diamante" ? Gem : Trophy);
+  const key = EMBLEM_ALIAS[metric] ?? metric;
+  const glyph = EMBLEM[key] ?? EMBLEM.default!;
   const metal = TIER_METAL[tier] ?? TIER_METAL.ouro!;
   const id = `medal-${tier}`;
 

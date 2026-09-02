@@ -1,6 +1,5 @@
-- [ ] Finalizar perfil/gamificação e ocultação de conteúdo pendentes
-- [ ] Adicionar modo claro/escuro nas configurações
-- [ ] Transformar ícones de conquistas em animações 3D
-- [ ] Remover temporariamente Música dos atalhos e perfil
-- [ ] Corrigir findings de segurança obrigatórios
-- [ ] Validar build e interface
+- [ ] Aplicar direção visual Midnight neon social ao shell e feed
+- [ ] Preservar marca escrita “vibely” no topo
+- [ ] Refinar posts, stories, navegação e estados responsivos sem alterar funções
+- [ ] Corrigir finding obrigatório de segurança de live gifts
+- [ ] Validar build, acessibilidade básica e interface móvel/desktop

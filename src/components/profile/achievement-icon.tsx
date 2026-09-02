@@ -163,7 +163,7 @@ export function AchievementIcon({
         <circle cx="24" cy="24" r="12.4" fill="none" stroke={metal.rim} strokeOpacity="0.5" strokeWidth="0.9" />
       </svg>
       <span className="achv-medal-glyph">
-        {unlocked ? <Icon className="h-[17px] w-[17px]" strokeWidth={2.2} /> : <Lock className="h-4 w-4" strokeWidth={2.2} />}
+        <Emblem d={unlocked ? glyph : LOCK_EMBLEM} className="h-[18px] w-[18px]" />
       </span>
       {unlocked ? <span className="achv-medal-sheen" /> : null}
       {unlocked ? (

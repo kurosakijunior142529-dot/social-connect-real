@@ -1,5 +1,5 @@
-- [ ] Aplicar direção visual Midnight neon social ao shell e feed
-- [ ] Preservar marca escrita “vibely” no topo
-- [ ] Refinar posts, stories, navegação e estados responsivos sem alterar funções
-- [ ] Corrigir finding obrigatório de segurança de live gifts
-- [ ] Validar build, acessibilidade básica e interface móvel/desktop
+- [x] Aplicar direção visual Midnight neon social ao shell e feed
+- [x] Preservar marca escrita “vibely” no topo
+- [x] Refinar posts, stories, navegação e estados responsivos sem alterar funções
+- [x] Corrigir finding obrigatório de segurança de live gifts
+- [x] Validar build, acessibilidade básica e interface móvel/desktop

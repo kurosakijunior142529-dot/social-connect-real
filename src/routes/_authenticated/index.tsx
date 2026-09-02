@@ -78,11 +78,11 @@ function FeedPage() {
     <div>
       {/* Sticky slim header */}
       <header className="sticky top-0 z-20 glass-heavy hairline-b">
-        <div className="grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4">
+        <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4">
           <div className="min-w-0">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-[20px] font-display font-semibold tracking-tight">vibely</span>
-              <span className="h-1 w-1 rounded-full bg-primary" />
+              <span className="text-[22px] font-display font-semibold">vibely</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_12px_var(--primary)]" />
             </div>
             <span className="block truncate text-[11px] text-muted-foreground tabular">@{meProfile.data?.username ?? "…"}</span>
           </div>
@@ -99,7 +99,7 @@ function FeedPage() {
         </div>
       </header>
 
-      <div className="pt-4 pb-2">
+      <div className="pb-4 pt-3">
         <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
       </div>
 
@@ -122,7 +122,7 @@ function FeedPage() {
           ))}
         </div>
       ) : query.data && query.data.length > 0 ? (
-        <div className="divide-y divide-[color:var(--hairline)]">
+         <div>
           {query.data.map((p, i) => (
             <LazyPostCard key={p.id} post={p} currentUserId={user.id} eager={i < 2} />
           ))}

@@ -22,7 +22,7 @@ function AdminLink({ pathname }: { pathname: string }) {
   if (!isAdmin) return null;
   const cls = (active: boolean) =>
     cn(
-      "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+      "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
       active
         ? "bg-[color:var(--surface-2)] text-foreground"
         : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
@@ -114,11 +114,11 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-60 md:flex-col md:border-r md:border-[color:var(--hairline)] md:bg-sidebar">
-        <div className="px-6 pt-8 pb-6">
+      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-64 md:flex-col md:border-r md:border-[color:var(--hairline)] md:bg-sidebar">
+        <div className="px-6 pt-8 pb-7">
           <Link to="/" className="inline-flex items-center gap-2">
-            <span className="text-2xl font-display font-semibold tracking-tight">vibely</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="text-[26px] font-display font-semibold">vibely</span>
+            <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_16px_var(--primary)]" />
           </Link>
         </div>
         <nav className="flex-1 space-y-0.5 px-3">
@@ -130,8 +130,8 @@ export function AppShell({
                 key={to}
                 to={to}
                 className={cn(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  active ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
+                   "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                   active ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-muted-foreground hover:text-foreground hover:bg-surface-2",
                 )}
               >
                 <span className="relative">
@@ -242,14 +242,14 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="md:pl-60 pb-24 md:pb-8">
-        <div className="mx-auto max-w-2xl md:px-4 md:pt-6">{content}</div>
+      <main className="pb-24 md:pl-64 md:pb-8">
+        <div className="mx-auto max-w-2xl md:px-5 md:pt-6">{content}</div>
       </main>
 
       {/* Mobile bottom nav — floating pill */}
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none">
-        <div className="mx-4 mb-3 pointer-events-auto glass-heavy rounded-full">
-          <div className="flex items-center justify-between px-2 py-1.5">
+        <div className="pointer-events-auto mx-3 mb-3 overflow-hidden rounded-[24px] glass-heavy">
+          <div className="flex items-center justify-between px-2 py-2">
             {mobileItems.map(({ to, label, Icon }) => {
               const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
               const isCreate = to === "/create";
@@ -260,7 +260,7 @@ export function AppShell({
                     key={to}
                     to={to}
                     aria-label={label}
-                    className="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
+                    className="grid h-11 w-11 place-items-center rounded-[15px] bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_var(--primary)] transition-transform active:scale-95"
                   >
                     <Icon className="h-5 w-5" strokeWidth={2.2} />
                   </Link>
@@ -272,15 +272,15 @@ export function AppShell({
                   to={to}
                   aria-label={label}
                   className={cn(
-                    "relative grid h-11 w-11 place-items-center rounded-full transition-colors",
-                    active ? "text-foreground" : "text-muted-foreground",
+                    "relative grid h-11 w-11 place-items-center rounded-[15px] transition-colors",
+                    active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
                   )}
                 >
                   <span className="relative">
                     <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.6} />
                     {isNotif ? <Badge /> : null}
                   </span>
-                  {active ? <span className="absolute bottom-1 h-1 w-1 rounded-full bg-primary" /> : null}
+                  {active ? <span className="absolute bottom-1 h-1 w-3 rounded-full bg-primary" /> : null}
                 </Link>
               );
             })}

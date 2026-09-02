@@ -43,6 +43,13 @@
       "when": 1788250538296,
       "tag": "0005_restrict_profiles_public_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788349459857,
+      "tag": "0006_secure_live_gift_transactions",
+      "breakpoints": true
     }
   ]
 }

@@ -76,8 +76,8 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
   const author = post.author;
 
   return (
-    <article className="px-4 pb-2">
-      <header className="flex items-center gap-3 py-3">
+    <article className="social-card mx-3 mb-4 overflow-hidden rounded-[24px]">
+      <header className="flex items-center gap-3 px-4 py-3.5">
         <Link to="/u/$username" params={{ username: author?.username ?? "" }}>
           <UserAvatar
             avatarPath={author?.avatar_url}
@@ -123,16 +123,16 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             <Link
               to="/p/$id"
               params={{ id: post.id }}
-              className="grid min-h-[180px] place-items-center overflow-hidden rounded-2xl bg-gradient-brand p-6 text-center"
+               className="mx-3 grid min-h-[180px] place-items-center overflow-hidden rounded-[18px] bg-gradient-brand p-6 text-center"
             >
-              <p className="text-[19px] font-semibold leading-snug text-white">{post.caption}</p>
+              <p className="text-[19px] font-semibold leading-snug text-primary-foreground">{post.caption}</p>
             </Link>
           ) : null}
           {post.poll_id ? <PollCard pollId={post.poll_id} currentUserId={currentUserId} /> : null}
         </div>
       ) : post.media_type === "video" ? (
         <div className="space-y-3">
-          <div className="overflow-hidden rounded-2xl bg-black">
+           <div className="overflow-hidden bg-background">
             <SignedVideo
               bucket="posts"
               path={post.media_url ?? ""}
@@ -149,7 +149,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         <Link
           to="/p/$id"
           params={{ id: post.id }}
-          className="block overflow-hidden rounded-2xl bg-[color:var(--surface)]"
+           className="block overflow-hidden bg-surface"
         >
           <SignedImage
             bucket="posts"
@@ -160,7 +160,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         </Link>
       )}
 
-      <div className="pt-3 space-y-2">
+      <div className="space-y-2 px-4 pb-4 pt-3">
         <div className="flex items-center gap-5">
           <button
             onClick={() => toggleLike.mutate()}
@@ -260,15 +260,15 @@ export function LazyPostCard({
       {visible ? (
         <PostCard post={post} currentUserId={currentUserId} />
       ) : (
-        <article className="px-4 pb-2">
-          <div className="flex items-center gap-3 py-3">
+         <article className="social-card mx-3 mb-4 overflow-hidden rounded-[24px]">
+           <div className="flex items-center gap-3 px-4 py-3.5">
             <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
             <div className="flex-1 space-y-2">
               <div className="h-3 w-32 rounded bg-muted animate-pulse" />
               <div className="h-3 w-20 rounded bg-muted animate-pulse" />
             </div>
           </div>
-          <div className="aspect-square rounded-2xl bg-muted animate-pulse" />
+           <div className="aspect-square bg-muted animate-pulse" />
         </article>
       )}
     </div>

@@ -1,15 +1,16 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/dm-sans";
 @import "@fontsource/geist-mono/400.css";
 @import "@fontsource/geist-mono/500.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Geist Variable", "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Geist Variable", "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
 
   --radius-sm: 8px;
@@ -55,28 +56,28 @@
 :root {
   --radius: 16px;
 
-  --background: #0A0A0B;
-  --surface: #111113;
-  --surface-2: #17171A;
-  --foreground: #F5F5F7;
+  --background: oklch(0.13 0.008 155);
+  --surface: oklch(0.165 0.009 155);
+  --surface-2: oklch(0.205 0.011 155);
+  --foreground: oklch(0.97 0.006 155);
 
-  --card: #111113;
-  --card-foreground: #F5F5F7;
-  --popover: #17171A;
-  --popover-foreground: #F5F5F7;
+  --card: oklch(0.165 0.009 155);
+  --card-foreground: oklch(0.97 0.006 155);
+  --popover: oklch(0.205 0.011 155);
+  --popover-foreground: oklch(0.97 0.006 155);
 
   /* Emerald green 💚 */
-  --primary: #22E06A;
-  --primary-foreground: #06170D;
+  --primary: oklch(0.79 0.2 147);
+  --primary-foreground: oklch(0.15 0.035 150);
 
-  --secondary: #17171A;
-  --secondary-foreground: #F5F5F7;
+  --secondary: oklch(0.205 0.011 155);
+  --secondary-foreground: oklch(0.97 0.006 155);
 
-  --muted: #17171A;
-  --muted-foreground: #8E8E93;
+  --muted: oklch(0.205 0.011 155);
+  --muted-foreground: oklch(0.68 0.015 155);
 
-  --accent: #1F1F23;
-  --accent-foreground: #F5F5F7;
+  --accent: oklch(0.245 0.014 155);
+  --accent-foreground: oklch(0.97 0.006 155);
 
   --destructive: #FF453A;
   --destructive-foreground: #FFFFFF;
@@ -84,14 +85,14 @@
   --hairline: rgba(255, 255, 255, 0.06);
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.10);
-  --ring: #22E06A;
+  --ring: oklch(0.79 0.2 147);
 
-  --sidebar: #0F0F11;
-  --sidebar-foreground: #F5F5F7;
-  --sidebar-primary: #22E06A;
-  --sidebar-primary-foreground: #06170D;
-  --sidebar-accent: #17171A;
-  --sidebar-accent-foreground: #F5F5F7;
+  --sidebar: oklch(0.145 0.008 155);
+  --sidebar-foreground: oklch(0.97 0.006 155);
+  --sidebar-primary: oklch(0.79 0.2 147);
+  --sidebar-primary-foreground: oklch(0.15 0.035 150);
+  --sidebar-accent: oklch(0.205 0.011 155);
+  --sidebar-accent-foreground: oklch(0.97 0.006 155);
   --sidebar-border: rgba(255, 255, 255, 0.06);
   --sidebar-ring: #22E06A;
 
@@ -148,14 +149,14 @@
     color: var(--foreground);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01", "ss03";
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     min-height: 100vh;
     overscroll-behavior-y: none;
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
   }
 
   /* Premium tactile feedback on every interactive element */
@@ -186,14 +187,18 @@
 @utility glass {
   background-color: color-mix(in oklab, var(--surface) 78%, transparent);
   backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid var(--hairline);
 }
 @utility glass-heavy {
   background-color: color-mix(in oklab, var(--surface) 92%, transparent);
   backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
   border: 1px solid var(--hairline);
+  box-shadow: 0 18px 50px -28px color-mix(in oklab, var(--primary) 28%, transparent);
+}
+@utility social-card {
+  background: linear-gradient(145deg, color-mix(in oklab, var(--surface-2) 42%, var(--surface)), var(--surface));
+  border: 1px solid var(--hairline);
+  box-shadow: 0 18px 55px -38px color-mix(in oklab, var(--primary) 24%, transparent);
 }
 @utility text-gradient-brand {
   color: var(--foreground);

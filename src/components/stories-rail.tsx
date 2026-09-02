@@ -62,13 +62,13 @@ export function StoriesRail({ currentUserId, currentProfile }: {
 
   return (
     <>
-      <div className="px-4">
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+      <div className="px-3">
+        <div className="social-card no-scrollbar flex gap-3 overflow-x-auto rounded-[22px] px-3 py-3">
           {/* Your story: either add or view */}
           {myGroup ? (
             <button
               onClick={() => setViewing({ groups, index: 0 })}
-              className="shrink-0 flex flex-col items-center gap-1.5 w-16"
+              className="flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl py-1 transition-colors hover:bg-surface-2"
             >
               <UserAvatar
                 avatarPath={currentProfile?.avatar_url}
@@ -81,16 +81,16 @@ export function StoriesRail({ currentUserId, currentProfile }: {
           ) : (
             <Link
               to="/stories/new"
-              className="shrink-0 flex flex-col items-center gap-1.5 w-16"
+              className="flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl py-1 transition-colors hover:bg-surface-2"
             >
-              <div className="relative rounded-full p-[2px] bg-white/10">
+              <div className="relative rounded-full bg-surface-2 p-[2px]">
                 <UserAvatar
                   avatarPath={currentProfile?.avatar_url}
                   displayName={currentProfile?.display_name ?? "?"}
                   className="h-14 w-14"
                 />
                 <span className="absolute -bottom-0 -right-0 grid place-items-center h-5 w-5 rounded-full bg-gradient-brand ring-2 ring-background">
-                  <Plus className="h-3 w-3 text-white" />
+                   <Plus className="h-3 w-3 text-primary-foreground" />
                 </span>
               </div>
               <span className="text-[11px] text-muted-foreground truncate w-full text-center">Adicionar</span>
@@ -101,7 +101,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
             <button
               key={g.userId}
               onClick={() => setViewing({ groups, index: myGroup ? idx + 1 : idx })}
-              className="shrink-0 flex flex-col items-center gap-1.5 w-16"
+              className="flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl py-1 transition-colors hover:bg-surface-2"
             >
               <UserAvatar
                 avatarPath={g.profile?.avatar_url}

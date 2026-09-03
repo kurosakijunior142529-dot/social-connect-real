@@ -215,14 +215,15 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
     );
   }
   return (
-    <ul className="divide-y divide-[color:var(--hairline)]">
+    <ul className="px-2 pb-4 space-y-1">
       {query.data.map((c: any) => (
         <li key={c.id}>
           <Link
             to="/chats/$id"
             params={{ id: c.id }}
-            className="flex items-center gap-3 px-4 py-3 active:bg-[color:var(--surface)] transition-colors"
+            className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors hover:bg-[color:var(--surface)] active:bg-[color:var(--surface-2)]"
           >
+
             {c.avatar_url ? (
               <div className="h-12 w-12 rounded-full overflow-hidden bg-[color:var(--surface-2)]">
                 <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />

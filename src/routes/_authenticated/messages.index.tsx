@@ -144,13 +144,13 @@ function DirectList({ userId }: { userId: string }) {
     );
   }
   return (
-    <ul className="divide-y divide-[color:var(--hairline)]">
+    <ul className="px-2 pb-4 space-y-1">
       {query.data.map((c) => (
         <li key={c.id}>
           <Link
             to="/messages/$conversationId"
             params={{ conversationId: c.id }}
-            className="flex items-center gap-3 px-4 py-3 active:bg-[color:var(--surface)] transition-colors"
+            className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors hover:bg-[color:var(--surface)] active:bg-[color:var(--surface-2)]"
           >
             <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12" />
             <div className="flex-1 min-w-0">
@@ -168,6 +168,7 @@ function DirectList({ userId }: { userId: string }) {
         </li>
       ))}
     </ul>
+
   );
 }
 

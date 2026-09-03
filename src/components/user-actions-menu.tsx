@@ -107,11 +107,11 @@ export function UserActionsMenu({
           {storyId ? (
             <DropdownMenuItem
               onClick={() => {
-                setReportTarget({ type: "story", id: storyId, label: "story" });
+                 setReportTarget({ type: "story", id: storyId, label: "Vibe" });
                 setReportOpen(true);
               }}
             >
-              <Flag className="h-4 w-4 mr-2" /> Denunciar story
+               <Flag className="h-4 w-4 mr-2" /> Denunciar Vibe
             </DropdownMenuItem>
           ) : null}
           {liveId ? (

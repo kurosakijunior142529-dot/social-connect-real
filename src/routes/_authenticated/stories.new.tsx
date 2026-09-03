@@ -47,7 +47,7 @@ function NewStoryPage() {
         caption: caption.trim() || null,
       });
       if (error) throw error;
-      toast.success("Story publicado!");
+       toast.success("Vibe publicada!");
       navigate({ to: "/" });
     } catch (err: any) {
       toast.error(err.message ?? "Falha ao publicar");
@@ -62,7 +62,7 @@ function NewStoryPage() {
         <button onClick={() => navigate({ to: "/" })} className="grid h-10 w-10 place-items-center rounded-full bg-white/5" aria-label="Voltar">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold">Novo story</h1>
+         <h1 className="text-2xl font-bold">Nova Vibe</h1>
       </header>
 
       <label className="block relative aspect-[9/16] rounded-3xl overflow-hidden border border-dashed border-white/15 bg-gradient-to-br from-secondary to-background cursor-pointer">

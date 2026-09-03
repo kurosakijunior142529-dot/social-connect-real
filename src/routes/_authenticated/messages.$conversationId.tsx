@@ -656,7 +656,7 @@ function ConversationPage() {
 
       <form
         onSubmit={send}
-        className="p-3 hairline-t bg-background flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className="p-3 hairline-t glass-heavy flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
         <button

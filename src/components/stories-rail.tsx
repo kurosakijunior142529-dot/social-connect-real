@@ -76,7 +76,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
                 className="h-14 w-14"
                 ring="story"
               />
-              <span className="text-[11px] text-muted-foreground truncate w-full text-center">Seu story</span>
+               <span className="text-[11px] text-muted-foreground truncate w-full text-center">Sua Vibe</span>
             </button>
           ) : (
             <Link
@@ -93,7 +93,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
                    <Plus className="h-3 w-3 text-primary-foreground" />
                 </span>
               </div>
-              <span className="text-[11px] text-muted-foreground truncate w-full text-center">Adicionar</span>
+               <span className="text-[11px] text-muted-foreground truncate w-full text-center">Nova Vibe</span>
             </Link>
           )}
 

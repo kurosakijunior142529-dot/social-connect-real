@@ -82,7 +82,7 @@ export function StoryViewer({
     if (!story) return;
     const { error } = await (supabase as any).from("stories").delete().eq("id", story.id);
     if (error) return toast.error(error.message);
-    toast.success("Story apagado");
+     toast.success("Vibe apagada");
     queryClient.invalidateQueries({ queryKey: ["stories-rail"] });
     onClose();
   }

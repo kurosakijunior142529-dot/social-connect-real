@@ -243,7 +243,7 @@ export function AppShell({
       </aside>
 
       <main className="pb-24 md:pl-64 md:pb-8">
-        <div className="mx-auto max-w-2xl md:px-5 md:pt-6">{content}</div>
+        <div className={cn("mx-auto md:px-5 md:pt-6", pathname.startsWith("/u/") ? "max-w-6xl" : "max-w-2xl")}>{content}</div>
       </main>
 
       {/* Mobile bottom nav — floating pill */}

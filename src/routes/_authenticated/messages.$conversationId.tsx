@@ -830,7 +830,7 @@ const MessageRow = memo(
                 ...(mine ? { borderBottomRightRadius: tail } : { borderBottomLeftRadius: tail }),
               }}
               className={cn(
-                "px-3.5 py-2 text-[14px] leading-snug break-words shadow-sm transition-[border-radius] duration-200",
+                "px-3.5 py-2 text-[14px] leading-snug break-words shadow-[0_10px_30px_-24px_rgba(0,0,0,0.9)] transition-[border-radius] duration-200",
                 mine ? p.bubbleMine : p.bubbleTheirs,
               )}
             >

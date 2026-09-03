@@ -656,7 +656,7 @@ function ConversationPage() {
 
       <form
         onSubmit={send}
-        className="p-3 hairline-t bg-background flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className="p-3 hairline-t glass-heavy flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
         <button
@@ -669,7 +669,7 @@ function ConversationPage() {
           <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
-        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
+        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2 border border-[color:var(--hairline)] transition-colors focus-within:border-primary/40">
           <Input
             value={draft}
             onChange={(e) => {
@@ -830,7 +830,7 @@ const MessageRow = memo(
                 ...(mine ? { borderBottomRightRadius: tail } : { borderBottomLeftRadius: tail }),
               }}
               className={cn(
-                "px-3.5 py-2 text-[14px] leading-snug break-words shadow-sm transition-[border-radius] duration-200",
+                "px-3.5 py-2 text-[14px] leading-snug break-words shadow-[0_10px_30px_-24px_rgba(0,0,0,0.9)] transition-[border-radius] duration-200",
                 mine ? p.bubbleMine : p.bubbleTheirs,
               )}
             >

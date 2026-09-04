@@ -57,27 +57,43 @@ function NewStoryPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto w-full max-w-md space-y-5">
       <header className="flex items-center gap-3">
-        <button onClick={() => navigate({ to: "/" })} className="grid h-10 w-10 place-items-center rounded-full bg-white/5" aria-label="Voltar">
+        <button onClick={() => navigate({ to: "/" })} className="grid h-10 w-10 place-items-center rounded-full bg-white/5 transition hover:bg-white/10" aria-label="Voltar">
           <ArrowLeft className="h-5 w-5" />
         </button>
-         <h1 className="text-2xl font-bold">Nova Vibe</h1>
+        <div>
+          <p className="text-xs font-bold uppercase text-primary">Momento</p>
+          <h1 className="text-2xl font-bold">Nova Vibe</h1>
+        </div>
       </header>
 
-      <label className="block relative aspect-[9/16] rounded-3xl overflow-hidden border border-dashed border-white/15 bg-gradient-to-br from-secondary to-background cursor-pointer">
+      <label className="group relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-[28px] border border-white/10 bg-[color:var(--surface-2)] shadow-[0_24px_70px_-30px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
         {preview ? (
-          isVideo ? (
-            <video src={preview} className="h-full w-full object-cover" muted autoPlay loop playsInline />
-          ) : (
-            <img src={preview} alt="" className="h-full w-full object-cover" />
-          )
+          <>
+            {isVideo ? (
+              <video src={preview} className="h-full w-full object-cover" muted autoPlay loop playsInline />
+            ) : (
+              <img src={preview} alt="" className="h-full w-full object-cover" />
+            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
+            <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white backdrop-blur">
+              Toque para trocar
+            </span>
+          </>
         ) : (
-          <div className="absolute inset-0 grid place-items-center text-center gap-2">
-            <div className="grid h-14 w-14 mx-auto place-items-center rounded-full bg-gradient-brand">
-              <ImagePlus className="h-6 w-6 text-white" />
+          <div className="absolute inset-0 grid place-items-center gap-3 text-center">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-70 [background:radial-gradient(60%_45%_at_50%_35%,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_70%)]"
+            />
+            <div className="relative space-y-2">
+              <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-brand shadow-[0_0_28px_-4px_color-mix(in_oklab,var(--primary)_80%,transparent)] transition-transform group-hover:scale-105">
+                <ImagePlus className="h-7 w-7 text-primary-foreground" />
+              </div>
+              <div className="text-sm font-medium">Escolha foto ou vídeo</div>
+              <div className="text-xs text-muted-foreground">Sua Vibe fica no ar por 24 horas</div>
             </div>
-            <div className="text-sm text-muted-foreground">Toque para escolher foto ou vídeo</div>
           </div>
         )}
         <input
@@ -88,23 +104,26 @@ function NewStoryPage() {
         />
       </label>
 
-      <Textarea
-        value={caption}
-        onChange={(e) => setCaption(e.target.value)}
-        maxLength={200}
-        rows={2}
-        placeholder="Legenda (opcional)"
-        className="rounded-2xl resize-none glass"
-      />
-      <div className="text-right text-xs text-muted-foreground">{caption.length}/200</div>
+      <div className="social-card space-y-2 rounded-2xl p-3">
+        <Textarea
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          maxLength={200}
+          rows={2}
+          placeholder="Escreva uma legenda (opcional)"
+          className="resize-none rounded-xl border-white/10 bg-transparent focus-visible:ring-primary/40"
+        />
+        <div className="text-right text-xs text-muted-foreground">{caption.length}/200</div>
+      </div>
 
       <Button
         disabled={busy || !file}
         onClick={submit}
-        className="w-full h-12 rounded-full bg-gradient-brand hover:opacity-90"
+        className="h-12 w-full rounded-full bg-gradient-brand shadow-[0_14px_40px_-18px_color-mix(in_oklab,var(--primary)_85%,transparent)] hover:opacity-90"
       >
         {busy ? "Publicando…" : "Publicar por 24h"}
       </Button>
     </div>
   );
 }
+

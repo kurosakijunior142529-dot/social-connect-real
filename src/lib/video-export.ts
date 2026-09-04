@@ -46,6 +46,8 @@ export type ExportOptions = {
   /** strength 0..1 of the watermark removal patch */
   dewatermarkStrength?: number;
   music?: MusicTrack | null;
+  /** grava a marca d'água do Vibely no vídeo final (downloads/compartilhamento) */
+  watermark?: { username?: string | null } | null;
   onProgress?: (p: number) => void;
 };
 

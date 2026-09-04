@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
 import { toast } from "sonner";
 import { Check, Copy, Download, Loader2, Send, Share2 } from "lucide-react";
+import { drawVibelyWatermark, exportVideo } from "@/lib/video-export";
 
 export type ShareTarget = {
   /** Public link to the content (post / reel / profile). */

@@ -90,14 +90,17 @@ export function StoryViewer({
   if (!story || !group) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
-      <div className="relative w-full max-w-md h-full md:h-[90vh] md:rounded-3xl overflow-hidden bg-black">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--surface-0,#050A07)]/95 backdrop-blur-xl">
+      {/* Ambient glow */}
+      <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(60%_50%_at_50%_0%,color-mix(in_oklab,var(--primary)_22%,transparent),transparent_70%)]" />
+
+      <div className="relative h-full w-full max-w-md overflow-hidden bg-black md:h-[92vh] md:rounded-[28px] md:ring-1 md:ring-[color:color-mix(in_oklab,var(--primary)_25%,transparent)] md:shadow-[0_30px_90px_-30px_color-mix(in_oklab,var(--primary)_45%,transparent)]">
         {/* Progress bars */}
-        <div className="absolute top-3 inset-x-3 z-10 flex gap-1">
+        <div className="absolute top-3 inset-x-3 z-20 flex gap-1.5">
           {group.stories.map((_, i) => (
-            <div key={i} className="h-0.5 flex-1 rounded-full bg-white/25 overflow-hidden">
+            <div key={i} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/20">
               <div
-                className="h-full bg-white origin-left"
+                className="h-full origin-left rounded-full bg-gradient-brand shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_70%,transparent)]"
                 style={{
                   transform: i < sIdx ? "scaleX(1)" : i > sIdx ? "scaleX(0)" : undefined,
                   animation: i === sIdx ? `story-progress ${DURATION}ms linear forwards` : undefined,
@@ -107,21 +110,39 @@ export function StoryViewer({
           ))}
         </div>
 
+        {/* Top gradient scrim */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-black/75 to-transparent" />
+
         {/* Header */}
-        <div className="absolute top-6 inset-x-3 z-10 pt-3 flex items-center gap-3">
-          <UserAvatar avatarPath={group.profile?.avatar_url} displayName={group.profile?.display_name ?? "?"} className="h-9 w-9" />
-          <div className="flex-1 min-w-0 text-white">
-            <div className="text-sm font-semibold truncate">{group.profile?.display_name}</div>
-            <div className="text-xs opacity-80">
+        <div className="absolute top-6 inset-x-3 z-20 flex items-center gap-3 pt-3">
+          <span className="rounded-full bg-gradient-brand p-[2px] shadow-[0_0_18px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
+            <UserAvatar
+              avatarPath={group.profile?.avatar_url}
+              displayName={group.profile?.display_name ?? "?"}
+              className="h-9 w-9 ring-2 ring-black"
+            />
+          </span>
+          <div className="min-w-0 flex-1 text-white">
+            <div className="truncate text-sm font-semibold tracking-tight">{group.profile?.display_name}</div>
+            <div className="flex items-center gap-1.5 text-[11px] text-white/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
               {formatDistanceToNowStrict(new Date(story.created_at), { locale: ptBR, addSuffix: true })}
             </div>
           </div>
           {isOwn ? (
-            <button onClick={deleteStory} className="grid place-items-center h-9 w-9 rounded-full bg-white/10 text-white" aria-label="Apagar">
+            <button
+              onClick={deleteStory}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20 active:scale-95"
+              aria-label="Apagar"
+            >
               <Trash2 className="h-4 w-4" />
             </button>
           ) : null}
-          <button onClick={onClose} className="grid place-items-center h-9 w-9 rounded-full bg-white/10 text-white" aria-label="Fechar">
+          <button
+            onClick={onClose}
+            className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20 active:scale-95"
+            aria-label="Fechar"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -130,21 +151,28 @@ export function StoryViewer({
         <div className="absolute inset-0 grid place-items-center">
           {url ? (
             story.media_type === "video" ? (
-              <video src={url} className="max-h-full max-w-full" autoPlay muted playsInline />
+              <video key={story.id} src={url} className="max-h-full max-w-full animate-in fade-in duration-300" autoPlay muted playsInline />
             ) : (
-              <img src={url} alt="" className="max-h-full max-w-full object-contain" />
+              <img key={story.id} src={url} alt="" className="max-h-full max-w-full object-contain animate-in fade-in duration-300" />
             )
           ) : (
-            <div className="text-white/60 text-sm">Carregando…</div>
+            <div className="flex flex-col items-center gap-3">
+              <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-primary" />
+              <span className="text-sm text-white/60">Carregando…</span>
+            </div>
           )}
         </div>
 
+        {/* Bottom gradient scrim */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-48 bg-gradient-to-t from-black/85 to-transparent" />
+
         {/* Caption */}
         {story.caption ? (
-          <div className="absolute bottom-24 inset-x-4 z-10 rounded-2xl bg-black/40 backdrop-blur px-4 py-3 text-white text-sm">
+          <div className="absolute bottom-24 inset-x-4 z-20 rounded-2xl border border-white/10 bg-black/45 px-4 py-3 text-sm leading-relaxed text-white backdrop-blur-md">
             {story.caption}
           </div>
         ) : null}
+
 
         {/* Reactions bar (only for others' stories) */}
         {!isOwn ? (

@@ -360,6 +360,7 @@ export async function exportVideo(
     if (sctx) {
       for (const r of rects) cleanRegion(ctx, scratch, sctx, r, w, h, dewatermarkStrength);
     }
+    if (watermark) drawVibelyWatermark(ctx, w, h, watermark.username);
     onProgress?.(Math.min(1, (src.currentTime - from) / total));
   };
 

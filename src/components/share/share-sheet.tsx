@@ -187,6 +187,31 @@ export function ShareSheet({
     }
   }
 
+  /** Aplica a marca d'água do Vibely numa imagem baixada. */
+  async function brandImage(blob: Blob, username?: string | null): Promise<Blob> {
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return blob;
+      ctx.drawImage(img, 0, 0);
+      drawVibelyWatermark(ctx, canvas.width, canvas.height, username);
+      const out = await new Promise<Blob | null>((res) =>
+        canvas.toBlob((b) => res(b), "image/jpeg", 0.92),
+      );
+      return out ?? blob;
+    } catch {
+      return blob;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
   async function download() {
     if (!target.media) return;
     setDownloading(true);
@@ -194,11 +219,35 @@ export function ShareSheet({
       const signed = await createSignedUrl(target.media.bucket, target.media.path);
       if (!signed) throw new Error("Não foi possível gerar o arquivo");
       const res = await fetch(signed);
-      const blob = await res.blob();
+      let blob = await res.blob();
+      const name = target.media.filename ?? target.media.path.split("/").pop() ?? "video.mp4";
+      const username = target.post?.authorUsername ?? null;
+      const isVideo =
+        (target.media.mimeType ?? blob.type).startsWith("video/") ||
+        /\.(mp4|webm|mov|m4v)$/i.test(name);
+      let filename = name;
+
+      // Marca d'água gravada no arquivo baixado (vídeo e imagem).
+      if (isVideo) {
+        const srcUrl = URL.createObjectURL(blob);
+        try {
+          const out = await exportVideo(srcUrl, { watermark: { username } });
+          blob = out.blob;
+          filename = name.replace(/\.[^.]+$/, "") + "." + out.ext;
+        } catch (err) {
+          console.warn("[share-sheet] watermark burn failed", err);
+        } finally {
+          URL.revokeObjectURL(srcUrl);
+        }
+      } else if (blob.type.startsWith("image/")) {
+        blob = await brandImage(blob, username);
+        filename = name.replace(/\.[^.]+$/, "") + ".jpg";
+      }
+
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;
-      a.download = target.media.filename ?? target.media.path.split("/").pop() ?? "video.mp4";
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -210,6 +259,7 @@ export function ShareSheet({
       setDownloading(false);
     }
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

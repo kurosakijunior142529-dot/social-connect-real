@@ -51,6 +51,7 @@ import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authenticated/ai.$threadId'
 import { Route as AuthenticatedAdminWithdrawalsRouteImport } from './routes/_authenticated/admin.withdrawals'
 import { Route as AuthenticatedAdminSecurityRouteImport } from './routes/_authenticated/admin.security'
+import { Route as AuthenticatedAchievementsUsernameRouteImport } from './routes/_authenticated/achievements.$username'
 import { Route as AuthenticatedAccountSupportRouteImport } from './routes/_authenticated/account.support'
 import { Route as AuthenticatedAccountSecurityRouteImport } from './routes/_authenticated/account.security'
 import { Route as AuthenticatedAccountPrivacyRouteImport } from './routes/_authenticated/account.privacy'
@@ -284,6 +285,12 @@ const AuthenticatedAdminSecurityRoute =
     path: '/admin/security',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAchievementsUsernameRoute =
+  AuthenticatedAchievementsUsernameRouteImport.update({
+    id: '/achievements/$username',
+    path: '/achievements/$username',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccountSupportRoute =
   AuthenticatedAccountSupportRouteImport.update({
     id: '/account/support',
@@ -370,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/account/security': typeof AuthenticatedAccountSecurityRoute
   '/account/support': typeof AuthenticatedAccountSupportRoute
+  '/achievements/$username': typeof AuthenticatedAchievementsUsernameRoute
   '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
@@ -424,6 +432,7 @@ export interface FileRoutesByTo {
   '/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/account/security': typeof AuthenticatedAccountSecurityRoute
   '/account/support': typeof AuthenticatedAccountSupportRoute
+  '/achievements/$username': typeof AuthenticatedAchievementsUsernameRoute
   '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
@@ -479,6 +488,7 @@ export interface FileRoutesById {
   '/_authenticated/account/privacy': typeof AuthenticatedAccountPrivacyRoute
   '/_authenticated/account/security': typeof AuthenticatedAccountSecurityRoute
   '/_authenticated/account/support': typeof AuthenticatedAccountSupportRoute
+  '/_authenticated/achievements/$username': typeof AuthenticatedAchievementsUsernameRoute
   '/_authenticated/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/_authenticated/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/_authenticated/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/account/privacy'
     | '/account/security'
     | '/account/support'
+    | '/achievements/$username'
     | '/admin/security'
     | '/admin/withdrawals'
     | '/ai/$threadId'
@@ -589,6 +600,7 @@ export interface FileRouteTypes {
     | '/account/privacy'
     | '/account/security'
     | '/account/support'
+    | '/achievements/$username'
     | '/admin/security'
     | '/admin/withdrawals'
     | '/ai/$threadId'
@@ -643,6 +655,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account/privacy'
     | '/_authenticated/account/security'
     | '/_authenticated/account/support'
+    | '/_authenticated/achievements/$username'
     | '/_authenticated/admin/security'
     | '/_authenticated/admin/withdrawals'
     | '/_authenticated/ai/$threadId'
@@ -984,6 +997,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSecurityRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/achievements/$username': {
+      id: '/_authenticated/achievements/$username'
+      path: '/achievements/$username'
+      fullPath: '/achievements/$username'
+      preLoaderRoute: typeof AuthenticatedAchievementsUsernameRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/account/support': {
       id: '/_authenticated/account/support'
       path: '/account/support'
@@ -1110,6 +1130,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountPrivacyRoute: typeof AuthenticatedAccountPrivacyRoute
   AuthenticatedAccountSecurityRoute: typeof AuthenticatedAccountSecurityRoute
   AuthenticatedAccountSupportRoute: typeof AuthenticatedAccountSupportRoute
+  AuthenticatedAchievementsUsernameRoute: typeof AuthenticatedAchievementsUsernameRoute
   AuthenticatedAdminSecurityRoute: typeof AuthenticatedAdminSecurityRoute
   AuthenticatedAdminWithdrawalsRoute: typeof AuthenticatedAdminWithdrawalsRoute
   AuthenticatedAiThreadIdRoute: typeof AuthenticatedAiThreadIdRoute
@@ -1157,6 +1178,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountPrivacyRoute: AuthenticatedAccountPrivacyRoute,
   AuthenticatedAccountSecurityRoute: AuthenticatedAccountSecurityRoute,
   AuthenticatedAccountSupportRoute: AuthenticatedAccountSupportRoute,
+  AuthenticatedAchievementsUsernameRoute:
+    AuthenticatedAchievementsUsernameRoute,
   AuthenticatedAdminSecurityRoute: AuthenticatedAdminSecurityRoute,
   AuthenticatedAdminWithdrawalsRoute: AuthenticatedAdminWithdrawalsRoute,
   AuthenticatedAiThreadIdRoute: AuthenticatedAiThreadIdRoute,

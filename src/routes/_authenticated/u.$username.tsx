@@ -328,7 +328,21 @@ function ProfilePage() {
           <StatCard label="Republicações" value={stats.data?.repostedPosts?.length ?? 0} />
         </div>
 
-        <AchievementsCard userId={profile.id} isMe={isMe} />
+        <Link
+          to="/achievements/$username"
+          params={{ username: profile.username }}
+          className="social-card flex items-center gap-3 rounded-2xl px-4 py-3 transition hover:bg-surface-2"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
+            <Trophy className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">Conquistas</span>
+            <span className="block truncate text-xs text-muted-foreground">Insígnias e pontos deste perfil</span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </Link>
+
 
       {/* 9. ABAS + GRADE */}
       {isBlockedPair ? (

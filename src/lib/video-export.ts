@@ -111,20 +111,24 @@ export async function captureFrame(srcUrl: string, at: number): Promise<Blob | n
   }
 }
 
-/** Region (in canvas px) covered by a corner watermark. */
+/**
+ * Region (in canvas px) covered by a corner watermark.
+ * Área enxuta: cobre apenas o selo/@ típico dos apps (TikTok, Kwai, CapCut),
+ * sem invadir o conteúdo do vídeo.
+ */
 function cornerRect(corner: WatermarkCorner, w: number, h: number) {
-  const rw = Math.round(w * 0.34);
-  const rh = Math.round(h * 0.12);
-  const m = Math.round(Math.min(w, h) * 0.015);
+  const rw = Math.round(Math.min(w * 0.22, h * 0.16));
+  const rh = Math.round(Math.min(h * 0.055, w * 0.09));
+  const m = Math.round(Math.min(w, h) * 0.012);
   const x = corner === "br" || corner === "tr" ? w - rw - m : m;
   const y = corner === "br" || corner === "bl" ? h - rh - m : m;
   return { x, y, w: rw, h: rh };
 }
 
 /**
- * Content-aware clean-up: replaces the watermark area with a reconstruction
- * built from neighbouring pixels (clone + mirrored blend + blur), so logos and
- * usernames dissolve into the background instead of being covered by a box.
+ * Content-aware clean-up: reconstrói apenas o retângulo da marca d'água com os
+ * pixels vizinhos e mistura as bordas com um degradê, para que nada além da
+ * marca seja tocado (sem borrão espalhado pelo vídeo).
  */
 function cleanRegion(
   ctx: CanvasRenderingContext2D,
@@ -138,37 +142,91 @@ function cleanRegion(
   const { x, y, w, h } = rect;
   if (w <= 2 || h <= 2) return;
 
-  // pick a donor strip just outside the region (above when possible)
-  const donorY = y - h >= 0 ? y - h : Math.min(canvasH - h, y + h);
+  // faixas doadoras coladas na região (acima e abaixo quando existirem)
+  const topY = y - h >= 0 ? y - h : y;
+  const bottomY = y + h + h <= canvasH ? y + h : y;
   const donorX = Math.max(0, Math.min(canvasW - w, x));
 
   scratch.width = w;
   scratch.height = h;
   sctx.clearRect(0, 0, w, h);
 
-  // 1. clone the donor strip
-  sctx.drawImage(ctx.canvas, donorX, donorY, w, h, 0, 0, w, h);
-  // 2. blend a vertically mirrored copy to kill visible seams
+  // 1. clona a faixa de cima, espelhada verticalmente (continuidade natural)
   sctx.save();
-  sctx.globalAlpha = 0.5;
   sctx.translate(0, h);
   sctx.scale(1, -1);
-  sctx.drawImage(ctx.canvas, donorX, donorY, w, h, 0, 0, w, h);
+  sctx.drawImage(ctx.canvas, donorX, topY, w, h, 0, 0, w, h);
   sctx.restore();
-  // 3. low-pass the patch so residual texture matches a soft background
+  // 2. mistura a faixa de baixo para completar a textura
   sctx.save();
-  sctx.filter = `blur(${Math.max(2, Math.round(Math.min(w, h) * 0.12))}px)`;
-  sctx.globalAlpha = 0.9;
+  sctx.globalAlpha = 0.5;
+  sctx.drawImage(ctx.canvas, donorX, bottomY, w, h, 0, 0, w, h);
+  sctx.restore();
+  // 3. suavização leve e limitada, só para apagar o resto da textura clonada
+  sctx.save();
+  sctx.filter = `blur(${Math.min(4, Math.max(1.5, Math.round(Math.min(w, h) * 0.05)))}px)`;
   sctx.drawImage(scratch, 0, 0);
   sctx.restore();
+  // 4. degradê nas bordas do patch para não deixar emenda visível
+  sctx.save();
+  sctx.globalCompositeOperation = "destination-in";
+  const fx = Math.max(2, Math.round(w * 0.12));
+  const fy = Math.max(2, Math.round(h * 0.18));
+  const gx = sctx.createLinearGradient(0, 0, w, 0);
+  gx.addColorStop(0, "rgba(0,0,0,0)");
+  gx.addColorStop(fx / w, "rgba(0,0,0,1)");
+  gx.addColorStop(1 - fx / w, "rgba(0,0,0,1)");
+  gx.addColorStop(1, "rgba(0,0,0,0)");
+  sctx.fillStyle = gx;
+  sctx.fillRect(0, 0, w, h);
+  sctx.globalCompositeOperation = "destination-in";
+  const gy = sctx.createLinearGradient(0, 0, 0, h);
+  gy.addColorStop(0, "rgba(0,0,0,0)");
+  gy.addColorStop(fy / h, "rgba(0,0,0,1)");
+  gy.addColorStop(1 - fy / h, "rgba(0,0,0,1)");
+  gy.addColorStop(1, "rgba(0,0,0,0)");
+  sctx.fillStyle = gy;
+  sctx.fillRect(0, 0, w, h);
+  sctx.restore();
 
-  // 4. feathered composite over the watermark
+  // 5. aplica somente sobre o retângulo da marca d'água
   ctx.save();
-  ctx.globalAlpha = Math.max(0.5, Math.min(1, strength));
-  ctx.filter = "blur(0.4px)";
+  ctx.globalAlpha = Math.max(0.6, Math.min(1, strength));
   ctx.drawImage(scratch, x, y, w, h);
   ctx.restore();
 }
+
+/** Desenha a marca d'água do Vibely (canto inferior direito) no canvas. */
+export function drawVibelyWatermark(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  username?: string | null,
+) {
+  const base = Math.max(14, Math.round(Math.min(w, h) * 0.042));
+  const m = Math.round(Math.min(w, h) * 0.035);
+  ctx.save();
+  ctx.textAlign = "right";
+  ctx.textBaseline = "bottom";
+  ctx.shadowColor = "rgba(0,0,0,0.65)";
+  ctx.shadowBlur = Math.round(base * 0.5);
+  ctx.globalAlpha = 0.85;
+  if (username) {
+    const small = Math.round(base * 0.62);
+    ctx.font = `500 ${small}px "DM Sans", system-ui, sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.82)";
+    ctx.fillText(`@${username}`, w - m, h - m);
+    ctx.font = `600 ${base}px "Space Grotesk", system-ui, sans-serif`;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Vibely", w - m, h - m - small * 1.25);
+  } else {
+    ctx.font = `600 ${base}px "Space Grotesk", system-ui, sans-serif`;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("Vibely", w - m, h - m);
+  }
+  ctx.restore();
+}
+
 
 export async function exportVideo(
   srcUrl: string,

@@ -176,24 +176,29 @@ export function StoryViewer({
 
         {/* Reactions bar (only for others' stories) */}
         {!isOwn ? (
-          <div className="absolute bottom-6 inset-x-4 z-20 flex justify-center gap-2">
-            {["❤️","🔥","😂","😮","😢","👏"].map((e) => (
-              <button
-                key={e}
-                onClick={async (ev) => {
-                  ev.stopPropagation();
-                  const { error } = await (supabase as any).from("story_reactions").insert({
-                    story_id: story.id, user_id: viewerId, emoji: e,
-                  });
-                  if (error && !String(error.message).includes("duplicate")) toast.error(error.message);
-                  else toast.success(`Reagiu com ${e}`);
-                }}
-                className="h-11 w-11 rounded-full bg-white/15 backdrop-blur text-xl grid place-items-center hover:scale-110 active:scale-95 transition"
-                aria-label={`Reagir ${e}`}
-              >{e}</button>
-            ))}
+          <div className="absolute bottom-6 inset-x-4 z-20 flex justify-center">
+            <div className="flex items-center gap-1 rounded-full border border-white/12 bg-black/45 px-2 py-1.5 backdrop-blur-xl shadow-[0_10px_40px_-12px_color-mix(in_oklab,var(--primary)_50%,transparent)]">
+              {["❤️", "🔥", "😂", "😮", "😢", "👏"].map((e) => (
+                <button
+                  key={e}
+                  onClick={async (ev) => {
+                    ev.stopPropagation();
+                    const { error } = await (supabase as any).from("story_reactions").insert({
+                      story_id: story.id, user_id: viewerId, emoji: e,
+                    });
+                    if (error && !String(error.message).includes("duplicate")) toast.error(error.message);
+                    else toast.success(`Reagiu com ${e}`);
+                  }}
+                  className="grid h-10 w-10 place-items-center rounded-full text-xl transition hover:-translate-y-1 hover:bg-white/12 active:scale-90"
+                  aria-label={`Reagir ${e}`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
+
 
         {/* Touch zones */}
         <button aria-label="Anterior" onClick={prev} className="absolute inset-y-0 left-0 w-1/3" />

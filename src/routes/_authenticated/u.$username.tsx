@@ -26,8 +26,10 @@ import {
   Pencil,
   Plus,
   Eye,
+  Trophy,
+  ChevronRight,
 } from "lucide-react";
-import { AchievementsCard } from "@/components/profile/achievements-card";
+
 
 import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";

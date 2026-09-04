@@ -5,3 +5,5 @@
 - [x] Validar build, acessibilidade básica e interface móvel/desktop
 - [x] Redesenhar perfil na direção imersiva neon preservando funções
 - [x] Renomear Story/Stories para Vibe/Vibes na interface
+- [x] Refinar interface das Vibes (visualizador, trilho, publicação)
+- [x] Mover conquistas para página dedicada

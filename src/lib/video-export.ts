@@ -241,6 +241,7 @@ export async function exportVideo(
     dewatermark = [],
     dewatermarkStrength = 1,
     music = null,
+    watermark = null,
     onProgress,
   } = opts;
 

@@ -301,6 +301,12 @@ function AIThread() {
           <Button className="w-full" onClick={() => newThread.mutate()} disabled={newThread.isPending}>
             <Plus className="h-4 w-4 mr-2" /> Nova conversa
           </Button>
+          <Link
+            to="/ai/memory"
+            className="flex items-center gap-2 rounded-xl px-2 py-2 text-xs text-muted-foreground hover:bg-[color:var(--surface)] hover:text-foreground"
+          >
+            <Brain className="h-4 w-4" /> Memória da IA
+          </Link>
         </div>
         <div className="px-2 pb-4 overflow-y-auto h-[calc(100%-6rem)]">
           {(threads.data ?? []).map((t) => (
@@ -316,6 +322,21 @@ function AIThread() {
             >
               <MessageSquare className={cn("h-4 w-4 shrink-0", t.id === threadId ? "text-primary" : "text-muted-foreground")} />
               <span className="flex-1 truncate">{t.title}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const title = prompt("Novo nome da conversa", t.title)?.trim();
+                  if (title) {
+                    rename({ data: { id: t.id, title: title.slice(0, 120) } })
+                      .then(() => qc.invalidateQueries({ queryKey: ["ai-threads"] }))
+                      .catch(() => toast.error("Não consegui renomear"));
+                  }
+                }}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+                aria-label="Renomear"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
               <button
                 onClick={(e) => { e.stopPropagation(); if (confirm("Excluir conversa?")) removeThread.mutate(t.id); }}
                 className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400"
@@ -365,7 +386,16 @@ function AIThread() {
             <MsgBubble
               key={m.id}
               m={m}
-              onRetry={m.role === "assistant" && i === msgs.length - 1 && lastPrompt && !sending ? () => submit(lastPrompt) : undefined}
+              onRetry={
+                m.role === "assistant" && i === msgs.length - 1 && lastPrompt && !sending
+                  ? () => regenerate(m.id)
+                  : undefined
+              }
+              onEdit={
+                m.role === "user" && !sending
+                  ? (text) => editAndResend(m.id, text)
+                  : undefined
+              }
             />
           ))}
           {pending ? <MsgBubble m={{ id: "pending", role: "user", content: pending, image_url: null }} /> : null}
@@ -391,6 +421,36 @@ function AIThread() {
               </button>
             ))}
           </div>
+          {attachments.length ? (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {attachments.map((f, i) => (
+                <span
+                  key={`${f.name}-${i}`}
+                  className="flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-xs"
+                >
+                  {f.kind === "image" ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                  <span className="max-w-[140px] truncate">{f.name}</span>
+                  <button
+                    onClick={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                    aria-label="Remover anexo"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            accept={AI_FILE_ACCEPT}
+            className="hidden"
+            onChange={(e) => pickFiles(e.target.files)}
+          />
+
           <div className="rounded-3xl bg-[color:var(--surface)] ring-1 ring-[color:var(--hairline)] focus-within:ring-primary/40 p-2 pl-4 flex items-end gap-2 transition-shadow">
             <Textarea
               ref={inputRef}
@@ -403,12 +463,39 @@ function AIThread() {
               rows={1}
               className="min-h-[48px] max-h-40 resize-none border-0 bg-transparent px-0 py-3 focus-visible:ring-0 focus-visible:outline-none"
             />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full shrink-0"
+              onClick={() => fileRef.current?.click()}
+              disabled={sending || attaching}
+              title="Anexar arquivo ou imagem"
+            >
+              {attaching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+            </Button>
             <Button size="icon" variant="ghost" className="rounded-full shrink-0" onClick={askImage} disabled={sending} title="Gerar imagem">
               <ImageIcon className="h-4 w-4" />
             </Button>
-            <Button size="icon" className="rounded-full shrink-0" onClick={() => submit()} disabled={sending || !input.trim()}>
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+            {sending ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="rounded-full shrink-0 text-red-400"
+                onClick={stopGeneration}
+                title="Parar geração"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                className="rounded-full shrink-0"
+                onClick={() => submit()}
+                disabled={!input.trim() && !attachments.length}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center mt-2">
@@ -420,9 +507,11 @@ function AIThread() {
   );
 }
 
-function MsgBubble({ m, onRetry }: { m: Msg; onRetry?: () => void }) {
+function MsgBubble({ m, onRetry, onEdit }: { m: Msg; onRetry?: () => void; onEdit?: (text: string) => void }) {
   const isUser = m.role === "user";
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(m.content);
 
   function copy() {
     navigator.clipboard?.writeText(m.content).then(() => {

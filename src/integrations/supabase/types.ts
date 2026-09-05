@@ -2523,6 +2523,100 @@ export type Database = {
         }
         Relationships: []
       }
+      vibe_collection_items: {
+        Row: {
+          bucket: string
+          caption: string | null
+          collection_id: string
+          created_at: string
+          id: string
+          media_path: string
+          media_type: string
+          position: number
+          story_id: string | null
+        }
+        Insert: {
+          bucket?: string
+          caption?: string | null
+          collection_id: string
+          created_at?: string
+          id?: string
+          media_path: string
+          media_type?: string
+          position?: number
+          story_id?: string | null
+        }
+        Update: {
+          bucket?: string
+          caption?: string | null
+          collection_id?: string
+          created_at?: string
+          id?: string
+          media_path?: string
+          media_type?: string
+          position?: number
+          story_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vibe_collections: {
+        Row: {
+          accent: string
+          cover_bucket: string
+          cover_path: string | null
+          created_at: string
+          id: string
+          is_pinned: boolean
+          position: number
+          title: string
+          updated_at: string
+          user_id: string
+          view_count: number
+        }
+        Insert: {
+          accent?: string
+          cover_bucket?: string
+          cover_path?: string | null
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          position?: number
+          title: string
+          updated_at?: string
+          user_id: string
+          view_count?: number
+        }
+        Update: {
+          accent?: string
+          cover_bucket?: string
+          cover_path?: string | null
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          position?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_collections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       voice_channels: {
         Row: {
           created_at: string

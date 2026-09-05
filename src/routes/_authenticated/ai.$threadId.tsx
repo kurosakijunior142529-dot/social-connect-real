@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Sparkles, Trash2, Image as ImageIcon, Loader2, MessageSquare } from "lucide-react";
+import { ArrowLeft, Plus, Send, Sparkles, Trash2, Image as ImageIcon, Loader2, MessageSquare, X } from "lucide-react";
 import {
   listThreads, listMessages, sendMessage, generateImage,
   createThread, deleteThread,
@@ -255,7 +255,7 @@ function MsgBubble({ m }: { m: { id: string; role: string; content: string; imag
         {m.image_url ? <AiImage path={m.image_url} /> : null}
         {m.content ? (
           <div className={cn("prose prose-sm dark:prose-invert max-w-none", isUser ? "prose-invert" : "")}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD}>{m.content}</ReactMarkdown>
           </div>
         ) : null}
       </div>
@@ -263,11 +263,33 @@ function MsgBubble({ m }: { m: { id: string; role: string; content: string; imag
   );
 }
 
+const MD = {
+  a: ({ href, children }: any) => {
+    const internal = typeof href === "string" && href.startsWith("/");
+    if (internal) {
+      return (
+        <Link to={href} className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-primary no-underline font-medium">
+          {children}
+        </Link>
+      );
+    }
+    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+  },
+};
+
 function AiImage({ path }: { path: string }) {
   const url = useSignedUrl("posts", path);
   if (!url.data) return <div className="h-56 w-full rounded-xl bg-white/5 animate-pulse mb-2" />;
   return <img src={url.data} alt="Imagem gerada" className="rounded-xl mb-2 max-h-80 w-auto" />;
 }
+
+const QUICK = [
+  { label: "🔥 Bombando agora", prompt: "Quais são as publicações do momento no Vibely?" },
+  { label: "📊 Criar enquete", prompt: "Crie uma enquete divertida para o meu perfil" },
+  { label: "📝 Publicar texto", prompt: "Escreva e publique um post curto e criativo para mim" },
+  { label: "🎬 Postar vídeo", prompt: "Quero postar um vídeo, me ajude passo a passo" },
+  { label: "🎨 Gerar imagem", prompt: "/imagem paisagem neon futurista, ultra detalhada" },
+];
 
 const EXAMPLES = [
   { icon: "💡", label: "Explique um conceito", prompt: "Me explique como funciona o WebRTC de forma simples" },

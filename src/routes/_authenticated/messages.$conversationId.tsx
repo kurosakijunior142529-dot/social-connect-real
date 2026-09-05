@@ -681,7 +681,7 @@ function ConversationPage() {
 
       <form
         onSubmit={send}
-        className="relative px-3 pt-3 glass-heavy flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[color:var(--chat-mine)]/35 before:to-transparent"
+        className="relative px-3 pt-3 flex items-end gap-1 bg-background border-t border-border/40 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
         <button
@@ -694,7 +694,7 @@ function ConversationPage() {
           <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
-        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-3xl bg-[color:var(--surface-2)]/90 px-4 py-2.5 border border-[color:var(--hairline)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all focus-within:border-[color:var(--chat-mine)]/70 focus-within:shadow-[0_0_18px_var(--chat-mine-glow)]">
+        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)]/60 px-4 py-2.5 border border-[color:var(--hairline)] transition-colors focus-within:border-primary/40">
           <Input
             value={draft}
             onChange={(e) => {
@@ -721,7 +721,7 @@ function ConversationPage() {
             type="submit"
             disabled={sending}
             size="icon"
-            className="rounded-full bg-chat-mine text-chat-mine-foreground hover:bg-chat-mine/90 glow-chat h-10 w-10 shrink-0"
+            className="rounded-xl bg-chat-mine text-chat-mine-foreground hover:bg-chat-mine/90 h-10 w-10 shrink-0"
           >
             <Send className="h-4 w-4" strokeWidth={2.2} />
           </Button>

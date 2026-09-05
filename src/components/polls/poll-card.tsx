@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Check, Timer } from "lucide-react";
+import { BarChart3, Check, Crown, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchPoll, pollTimeLeft, votePoll } from "@/lib/polls";

@@ -20,6 +20,12 @@ import {
 } from "lucide-react";
 import { resolveSource } from "@/lib/watch/provider";
 import {
+  PROVIDER_OPTIONS,
+  PROVIDER_LABEL,
+  PREMIUM_PROVIDERS,
+  type StreamingProvider,
+} from "@/lib/watch/adapters/types";
+import {
   ROOM_CATEGORIES,
   VISIBILITY_OPTIONS,
   categoryEmoji,

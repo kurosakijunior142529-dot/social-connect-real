@@ -60,6 +60,7 @@ export function VideoPlayer({
   const thinBarRef = useRef<HTMLDivElement>(null);
   const lastTime = useRef(0);
   const [downloading, setDownloading] = useState(false);
+  const [dlPct, setDlPct] = useState(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
     last: 0, timer: null, longTimer: null, startY: 0, moved: false,

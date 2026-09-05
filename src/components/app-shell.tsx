@@ -1,4 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import vibelyMascot from "@/assets/vibely-mascot.png";
 import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Sparkles, Radio, Crown, Wallet, Shield, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -212,7 +213,7 @@ export function AppShell({
               pathname.startsWith("/ai") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
             )}
           >
-            <Sparkles className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            <img src={vibelyMascot} alt="" loading="lazy" width={816} height={816} className="h-[20px] w-[20px] object-contain" />
             Vibely AI
           </Link>
           <Link

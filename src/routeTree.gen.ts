@@ -43,6 +43,7 @@ import { Route as AuthenticatedMarketplaceNewRouteImport } from './routes/_authe
 import { Route as AuthenticatedMarketplaceIdRouteImport } from './routes/_authenticated/marketplace.$id'
 import { Route as AuthenticatedLivesNewRouteImport } from './routes/_authenticated/lives.new'
 import { Route as AuthenticatedLiveIdRouteImport } from './routes/_authenticated/live.$id'
+import { Route as AuthenticatedGamesXcloudRouteImport } from './routes/_authenticated/games.xcloud'
 import { Route as AuthenticatedGamesOnlineRouteImport } from './routes/_authenticated/games.online'
 import { Route as AuthenticatedGamesIdRouteImport } from './routes/_authenticated/games.$id'
 import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create_.video'
@@ -241,6 +242,12 @@ const AuthenticatedLiveIdRoute = AuthenticatedLiveIdRouteImport.update({
   path: '/live/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGamesXcloudRoute =
+  AuthenticatedGamesXcloudRouteImport.update({
+    id: '/games/xcloud',
+    path: '/games/xcloud',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGamesOnlineRoute =
   AuthenticatedGamesOnlineRouteImport.update({
     id: '/games/online',
@@ -386,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
   '/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
+  '/games/xcloud': typeof AuthenticatedGamesXcloudRoute
   '/live/$id': typeof AuthenticatedLiveIdRoute
   '/lives/new': typeof AuthenticatedLivesNewRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
@@ -440,6 +448,7 @@ export interface FileRoutesByTo {
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
+  '/games/xcloud': typeof AuthenticatedGamesXcloudRoute
   '/live/$id': typeof AuthenticatedLiveIdRoute
   '/lives/new': typeof AuthenticatedLivesNewRoute
   '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
@@ -497,6 +506,7 @@ export interface FileRoutesById {
   '/_authenticated/create_/video': typeof AuthenticatedCreateVideoRoute
   '/_authenticated/games/$id': typeof AuthenticatedGamesIdRoute
   '/_authenticated/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
+  '/_authenticated/games/xcloud': typeof AuthenticatedGamesXcloudRoute
   '/_authenticated/live/$id': typeof AuthenticatedLiveIdRoute
   '/_authenticated/lives/new': typeof AuthenticatedLivesNewRoute
   '/_authenticated/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
@@ -554,6 +564,7 @@ export interface FileRouteTypes {
     | '/create/video'
     | '/games/$id'
     | '/games/online'
+    | '/games/xcloud'
     | '/live/$id'
     | '/lives/new'
     | '/marketplace/$id'
@@ -608,6 +619,7 @@ export interface FileRouteTypes {
     | '/chats/new'
     | '/create/video'
     | '/games/$id'
+    | '/games/xcloud'
     | '/live/$id'
     | '/lives/new'
     | '/marketplace/$id'
@@ -664,6 +676,7 @@ export interface FileRouteTypes {
     | '/_authenticated/create_/video'
     | '/_authenticated/games/$id'
     | '/_authenticated/games/online'
+    | '/_authenticated/games/xcloud'
     | '/_authenticated/live/$id'
     | '/_authenticated/lives/new'
     | '/_authenticated/marketplace/$id'
@@ -941,6 +954,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLiveIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/games/xcloud': {
+      id: '/_authenticated/games/xcloud'
+      path: '/games/xcloud'
+      fullPath: '/games/xcloud'
+      preLoaderRoute: typeof AuthenticatedGamesXcloudRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/games/online': {
       id: '/_authenticated/games/online'
       path: '/games/online'
@@ -1139,6 +1159,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCreateVideoRoute: typeof AuthenticatedCreateVideoRoute
   AuthenticatedGamesIdRoute: typeof AuthenticatedGamesIdRoute
   AuthenticatedGamesOnlineRoute: typeof AuthenticatedGamesOnlineRouteWithChildren
+  AuthenticatedGamesXcloudRoute: typeof AuthenticatedGamesXcloudRoute
   AuthenticatedLiveIdRoute: typeof AuthenticatedLiveIdRoute
   AuthenticatedLivesNewRoute: typeof AuthenticatedLivesNewRoute
   AuthenticatedMarketplaceIdRoute: typeof AuthenticatedMarketplaceIdRoute
@@ -1188,6 +1209,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCreateVideoRoute: AuthenticatedCreateVideoRoute,
   AuthenticatedGamesIdRoute: AuthenticatedGamesIdRoute,
   AuthenticatedGamesOnlineRoute: AuthenticatedGamesOnlineRouteWithChildren,
+  AuthenticatedGamesXcloudRoute: AuthenticatedGamesXcloudRoute,
   AuthenticatedLiveIdRoute: AuthenticatedLiveIdRoute,
   AuthenticatedLivesNewRoute: AuthenticatedLivesNewRoute,
   AuthenticatedMarketplaceIdRoute: AuthenticatedMarketplaceIdRoute,

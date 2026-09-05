@@ -85,6 +85,20 @@ function GamesIndex() {
       </Link>
 
       <Link
+        to="/games/xcloud"
+        className="mt-3 flex items-center gap-4 rounded-3xl bg-gradient-to-br from-emerald-500/25 via-emerald-500/10 to-transparent border border-primary/25 p-4 shadow-elegant active:scale-[0.99] transition-transform"
+      >
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
+          <Gamepad2 className="h-6 w-6" />
+        </div>
+        <div className="flex-1">
+          <div className="text-base font-semibold">Xbox Cloud Gaming</div>
+          <div className="text-xs text-muted-foreground">Jogos do Xbox na nuvem · sem baixar nada</div>
+        </div>
+        <span className="text-[10px] px-2 py-1 rounded-full bg-primary text-primary-foreground font-semibold">Novo</span>
+      </Link>
+
+      <Link
         to="/games/online"
         className="mt-3 flex items-center gap-4 rounded-3xl bg-[color:var(--surface)] p-4 active:scale-[0.99] transition-transform"
       >

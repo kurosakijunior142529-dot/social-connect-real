@@ -36,6 +36,7 @@ import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/compon
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
 import { parseVibelyMention } from "@/lib/vibely-mention";
+import vibelyMascot from "@/assets/vibely-mascot.png";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,
@@ -814,99 +815,158 @@ type RowProps = {
   onToggleReaction: (id: string, emoji: string, mine: boolean) => void;
 };
 
+function stripAiPrefix(content: string): string {
+  return content.replace(/^🤖\s*/, "").trim();
+}
+
 const MessageRow = memo(
   function MessageRow(p: RowProps) {
     const { m, mine, first, last, daySep } = p;
     const bigRadius = p.radius;
-    const tail = last ? 6 : bigRadius;
+    const tail = last ? 4 : bigRadius;
+    const isAi =
+      m.kind === "text" &&
+      typeof m.content === "string" &&
+      m.content.startsWith("🤖");
+    const metaRow = last ? (
+      <div
+        className={cn(
+          "mt-1 flex items-center gap-1 text-[10px] leading-none text-muted-foreground",
+          mine ? "justify-end mr-1" : "justify-start ml-1",
+        )}
+      >
+        {m.edited_at ? <span>editado</span> : null}
+        <span>{timeFmt.format(new Date(m.created_at))}</span>
+        {mine ? (
+          m.read_at ? (
+            <CheckCheck className="h-3 w-3 text-[#7ad9ff]" />
+          ) : (
+            <Check className="h-3 w-3" />
+          )
+        ) : null}
+      </div>
+    ) : null;
     return (
       <>
         {daySep ? (
           <div className="relative flex justify-center py-3">
-            <span className="rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface-2)]/80 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur-sm">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
               {dayLabel(m.created_at)}
             </span>
           </div>
         ) : null}
-        <div
-          className={cn(
-            "relative flex group items-end gap-2",
-            mine ? "justify-end" : "justify-start",
-            first ? "mt-2" : "mt-0.5",
-          )}
-        >
-          {mine ? (
-            <MessageActions
-              message={m}
-              ctx={{ scope: "dm", ownerId: p.userId }}
-              mine
-              onReply={p.onReply}
-              onEdit={p.onEdit}
-              onDelete={p.onDelete}
-              onTranslated={p.onTranslated}
-              onForward={p.onForward}
-              onPinToggle={p.onPinToggle}
-            />
-          ) : null}
-          <div className="max-w-[78%]">
-            <div
-              style={{
-                borderRadius: bigRadius,
-                ...(mine ? { borderBottomRightRadius: tail } : { borderBottomLeftRadius: tail }),
-              }}
-              className={cn(
-                "px-3.5 py-2 text-[14px] leading-snug break-words shadow-[0_10px_30px_-24px_rgba(0,0,0,0.9)] transition-[border-radius] duration-200",
-                mine ? p.bubbleMine : p.bubbleTheirs,
-              )}
-            >
-              {p.replied ? <ReplyQuote text={p.replied.content} /> : null}
-              <MessageBody msg={m} mine={mine} />
-              {p.translated ? (
-                <div
-                  className={cn(
-                    "mt-1 pt-1 border-t text-[12px]",
-                    mine ? "border-black/20 opacity-90" : "border-white/10 text-muted-foreground",
-                  )}
-                >
-                  🌐 {p.translated}
+        {isAi ? (
+          <div
+            className={cn(
+              "relative flex flex-col items-start gap-1.5 max-w-[85%]",
+              first ? "mt-3" : "mt-1",
+            )}
+          >
+            <div className="flex items-center gap-1.5 ml-0.5">
+              <img
+                src={vibelyMascot}
+                alt="Vibely AI"
+                className="h-4 w-4 rounded-sm object-contain"
+              />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                Vibely AI
+              </span>
+            </div>
+            <div className="group flex items-end gap-2">
+              <div className="min-w-0">
+                <div className="border-l-2 border-primary bg-[color:var(--surface-2)] text-foreground/90 px-4 py-3 rounded-tr-2xl rounded-br-2xl rounded-tl-sm rounded-bl-sm text-[14px] leading-relaxed break-words shadow-lg">
+                  <MessageBody msg={{ ...m, content: stripAiPrefix(m.content) }} mine={false} />
+                  {p.translated ? (
+                    <div className="mt-1 pt-1 border-t border-white/10 text-[12px] text-muted-foreground">
+                      🌐 {p.translated}
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+                {metaRow}
+                <ReactionsBar
+                  reactions={p.reactions}
+                  onToggle={(emoji, mineR) => p.onToggleReaction(m.id, emoji, mineR)}
+                />
+              </div>
+              <MessageActions
+                message={m}
+                ctx={{ scope: "dm", ownerId: p.userId }}
+                mine={false}
+                onReply={p.onReply}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                onTranslated={p.onTranslated}
+                onForward={p.onForward}
+                onPinToggle={p.onPinToggle}
+              />
+            </div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "relative flex group items-end gap-2",
+              mine ? "justify-end" : "justify-start",
+              first ? "mt-2" : "mt-0.5",
+            )}
+          >
+            {mine ? (
+              <MessageActions
+                message={m}
+                ctx={{ scope: "dm", ownerId: p.userId }}
+                mine
+                onReply={p.onReply}
+                onEdit={p.onEdit}
+                onDelete={p.onDelete}
+                onTranslated={p.onTranslated}
+                onForward={p.onForward}
+                onPinToggle={p.onPinToggle}
+              />
+            ) : null}
+            <div className="max-w-[78%]">
               <div
+                style={{
+                  borderRadius: bigRadius,
+                  ...(mine ? { borderBottomRightRadius: tail } : { borderBottomLeftRadius: tail }),
+                }}
                 className={cn(
-                  "mt-0.5 flex items-center gap-1 text-[10px] leading-none",
-                  mine ? "justify-end opacity-70" : "justify-end text-muted-foreground",
+                  "px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
+                  mine ? p.bubbleMine : p.bubbleTheirs,
                 )}
               >
-                {m.edited_at ? <span>editado</span> : null}
-                <span>{timeFmt.format(new Date(m.created_at))}</span>
-                {mine ? (
-                  m.read_at ? (
-                    <CheckCheck className="h-3 w-3 text-[#7ad9ff]" />
-                  ) : (
-                    <Check className="h-3 w-3" />
-                  )
+                {p.replied ? <ReplyQuote text={p.replied.content} /> : null}
+                <MessageBody msg={m} mine={mine} />
+                {p.translated ? (
+                  <div
+                    className={cn(
+                      "mt-1 pt-1 border-t text-[12px]",
+                      mine ? "border-black/20 opacity-90" : "border-white/10 text-muted-foreground",
+                    )}
+                  >
+                    🌐 {p.translated}
+                  </div>
                 ) : null}
               </div>
+              {metaRow}
+              <ReactionsBar
+                reactions={p.reactions}
+                onToggle={(emoji, mineR) => p.onToggleReaction(m.id, emoji, mineR)}
+              />
             </div>
-            <ReactionsBar
-              reactions={p.reactions}
-              onToggle={(emoji, mineR) => p.onToggleReaction(m.id, emoji, mineR)}
-            />
+            {!mine ? (
+              <MessageActions
+                message={m}
+                ctx={{ scope: "dm", ownerId: p.userId }}
+                mine={false}
+                onReply={p.onReply}
+                onEdit={() => {}}
+                onDelete={() => {}}
+                onTranslated={p.onTranslated}
+                onForward={p.onForward}
+                onPinToggle={p.onPinToggle}
+              />
+            ) : null}
           </div>
-          {!mine ? (
-            <MessageActions
-              message={m}
-              ctx={{ scope: "dm", ownerId: p.userId }}
-              mine={false}
-              onReply={p.onReply}
-              onEdit={() => {}}
-              onDelete={() => {}}
-              onTranslated={p.onTranslated}
-              onForward={p.onForward}
-              onPinToggle={p.onPinToggle}
-            />
-          ) : null}
-        </div>
+        )}
       </>
     );
   },

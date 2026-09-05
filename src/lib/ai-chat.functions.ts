@@ -190,9 +190,9 @@ export const generateImage = createServerFn({ method: "POST" })
     const b64 = json?.data?.[0]?.b64_json;
     if (!b64) throw new Error("A IA não retornou imagem");
 
-    // Upload to posts bucket under ai/<uid>/
+    // Upload to posts bucket under <uid>/ai/ (storage RLS requires the first folder to be the user id)
     const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const path = `ai/${context.userId}/${crypto.randomUUID()}.png`;
+    const path = `${context.userId}/ai/${crypto.randomUUID()}.png`;
     const { error: upErr } = await (context.supabase as any).storage
       .from("posts")
       .upload(path, buf, { contentType: "image/png", upsert: false });

@@ -227,6 +227,28 @@
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }
+/* Cartão de post de texto — sem bloco verde chapado */
+@utility text-post {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 60%),
+    radial-gradient(110% 80% at 100% 100%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 62%),
+    linear-gradient(160deg, color-mix(in oklab, var(--surface-2) 70%, var(--surface)), var(--surface));
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, var(--hairline));
+  box-shadow: 0 24px 60px -42px color-mix(in oklab, var(--primary) 55%, transparent);
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 14%;
+    bottom: 14%;
+    width: 3px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--primary), transparent);
+    opacity: 0.85;
+  }
+}
 
 /* ============ Neon Lime chat ============ */
 @utility bubble-chat-mine {

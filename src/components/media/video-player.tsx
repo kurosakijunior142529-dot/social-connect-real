@@ -232,12 +232,21 @@ export function VideoPlayer({
     if (downloading) return;
     setDownloading(true);
     try {
-      const res = await fetch(src);
-      const blob = await res.blob();
+      let blob: Blob;
+      let ext = "mp4";
+      try {
+        const { exportVideo } = await import("@/lib/video-export");
+        const out = await exportVideo(src, { watermark: { username: null } });
+        blob = out.blob;
+        ext = out.ext || "mp4";
+      } catch {
+        const res = await fetch(src);
+        blob = await res.blob();
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = downloadName ?? `vibely-${Date.now()}.mp4`;
+      a.download = downloadName ?? `vibely-${Date.now()}.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();

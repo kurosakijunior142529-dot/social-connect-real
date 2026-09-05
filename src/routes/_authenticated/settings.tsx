@@ -256,6 +256,8 @@ function SettingsPage() {
         </Button>
       </form>
 
+      <PushSettings userId={user.id} />
+
       <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>
           <h2 className="text-base font-semibold">Aparência</h2>

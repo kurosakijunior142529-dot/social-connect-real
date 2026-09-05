@@ -471,18 +471,32 @@ function ConversationPage() {
         </Link>
         {other ? (
           <>
-            <Link to="/u/$username" params={{ username: other.username }} className="flex items-center gap-2 min-w-0 flex-1">
-              <UserAvatar
-                avatarPath={other.avatar_url}
-                displayName={other.display_name}
-                verified={!!(other as any).is_verified}
-                badgeVariant={((other as any).badge_variant) ?? null}
-                className="h-9 w-9"
-              />
+            <Link to="/u/$username" params={{ username: other.username }} className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="relative shrink-0">
+                <div className="rounded-full ring-chat p-[2px]">
+                  <UserAvatar
+                    avatarPath={other.avatar_url}
+                    displayName={other.display_name}
+                    verified={!!(other as any).is_verified}
+                    badgeVariant={((other as any).badge_variant) ?? null}
+                    className="h-9 w-9 rounded-full ring-2 ring-background"
+                  />
+                </div>
+                <span
+                  className={cn(
+                    "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-chat-mine border-2 border-background",
+                    presence.others !== "idle" && "animate-pulse",
+                  )}
+                />
+              </div>
               <div className="min-w-0 leading-tight">
                 <div className="font-semibold text-[15px] truncate"><VerifiedName name={other.display_name} verified={(other as any).is_verified} badgeVariant={(other as any).badge_variant} /></div>
-                <div className="text-[11px] text-muted-foreground truncate">
-                  @{other.username}
+                <div className={cn("text-[11px] truncate", presence.others !== "idle" ? "text-primary font-medium" : "text-muted-foreground")}>
+                  {presence.others === "typing"
+                    ? "digitando…"
+                    : presence.others === "recording"
+                    ? "gravando áudio…"
+                    : `@${other.username}`}
                 </div>
               </div>
             </Link>
@@ -669,7 +683,7 @@ function ConversationPage() {
           <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
-        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2 border border-[color:var(--hairline)] transition-colors focus-within:border-primary/40">
+        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2 border border-[color:var(--hairline)] transition-all focus-within:border-primary/60 focus-within:shadow-[0_0_14px_var(--chat-mine-glow)]">
           <Input
             value={draft}
             onChange={(e) => {
@@ -696,7 +710,7 @@ function ConversationPage() {
             type="submit"
             disabled={sending}
             size="icon"
-            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 shrink-0"
+            className="rounded-full bg-chat-mine text-chat-mine-foreground hover:bg-chat-mine/90 glow-chat h-10 w-10 shrink-0"
           >
             <Send className="h-4 w-4" strokeWidth={2.2} />
           </Button>
@@ -798,7 +812,7 @@ const MessageRow = memo(
       <>
         {daySep ? (
           <div className="relative flex justify-center py-3">
-            <span className="rounded-full bg-[color:var(--surface-2)]/80 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur-sm">
+            <span className="rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface-2)]/80 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur-sm">
               {dayLabel(m.created_at)}
             </span>
           </div>

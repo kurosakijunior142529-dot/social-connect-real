@@ -71,7 +71,7 @@ function MessagesPage() {
                   className={cn(
                     "flex-1 rounded-xl py-2 text-[13px] transition-all",
                     active
-                      ? "bg-primary font-bold text-primary-foreground shadow-[0_4px_12px_-2px_var(--primary)]"
+                      ? "bg-chat-mine font-bold text-chat-mine-foreground glow-chat"
                       : "font-medium text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -154,14 +154,16 @@ function DirectList({ userId }: { userId: string }) {
             <Link
               to="/messages/$conversationId"
               params={{ conversationId: c.id }}
-              className={cn(
-                "flex items-center gap-3.5 p-3.5 transition-all active:scale-[0.98]",
-                featured
-                  ? "rounded-[24px] border-l-4 border-primary bg-[color:var(--surface)] shadow-lg shadow-black/30"
-                  : "rounded-[24px] hover:bg-[color:var(--surface)]/60",
-              )}
-            >
-              <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className={cn("h-14 w-14 rounded-2xl", featured && "ring-2 ring-primary/25")} />
+               className={cn(
+                 "flex items-center gap-3.5 p-3.5 rounded-[24px] border transition-all active:scale-[0.98]",
+                 featured
+                   ? "border-primary/40 bg-[color:var(--surface)] shadow-[0_0_24px_-4px_var(--chat-mine-glow)]"
+                   : "border-[color:var(--hairline)] bg-[color:var(--surface)]/70 hover:border-primary/25 hover:bg-[color:var(--surface)]",
+               )}
+             >
+               <div className={cn("shrink-0 rounded-[20px] p-[2px]", featured ? "ring-chat" : "bg-[color:var(--hairline)]")}>
+                 <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-14 w-14 rounded-[18px]" />
+               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
                   <div className={cn("truncate text-[15px]", featured ? "font-bold" : "font-semibold")}><VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} /></div>
@@ -233,22 +235,24 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
             <Link
               to="/chats/$id"
               params={{ id: c.id }}
-              className={cn(
-                "flex items-center gap-3.5 p-3.5 transition-all active:scale-[0.98]",
-                featured
-                  ? "rounded-[24px] border-l-4 border-primary bg-[color:var(--surface)] shadow-lg shadow-black/30"
-                  : "rounded-[24px] hover:bg-[color:var(--surface)]/60",
-              )}
-            >
-              {c.avatar_url ? (
-                <div className={cn("h-14 w-14 rounded-2xl overflow-hidden bg-[color:var(--surface-2)]", featured && "ring-2 ring-primary/25")}>
-                  <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
-                </div>
-              ) : (
-                <div className={cn("grid h-14 w-14 place-items-center rounded-2xl bg-[color:var(--surface-2)] text-foreground", featured && "ring-2 ring-primary/25")}>
-                  {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
-                </div>
-              )}
+               className={cn(
+                 "flex items-center gap-3.5 p-3.5 rounded-[24px] border transition-all active:scale-[0.98]",
+                 featured
+                   ? "border-primary/40 bg-[color:var(--surface)] shadow-[0_0_24px_-4px_var(--chat-mine-glow)]"
+                   : "border-[color:var(--hairline)] bg-[color:var(--surface)]/70 hover:border-primary/25 hover:bg-[color:var(--surface)]",
+               )}
+             >
+               <div className={cn("shrink-0 rounded-[20px] p-[2px]", featured ? "ring-chat" : "bg-[color:var(--hairline)]")}>
+                 {c.avatar_url ? (
+                   <div className="h-14 w-14 rounded-[18px] overflow-hidden bg-[color:var(--surface-2)]">
+                     <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
+                   </div>
+                 ) : (
+                   <div className="grid h-14 w-14 place-items-center rounded-[18px] bg-[color:var(--surface-2)] text-foreground">
+                     {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
+                   </div>
+                 )}
+               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
                   <div className={cn("truncate text-[15px]", featured ? "font-bold" : "font-semibold")}>{c.title}</div>

@@ -25,10 +25,10 @@ export type BubbleTheme = {
 export const BUBBLE_THEMES: BubbleTheme[] = [
   {
     id: "classic",
-    label: "Clássico",
-    swatch: "linear-gradient(135deg,#22E06A,#0BA85B)",
-    mine: "bg-primary text-primary-foreground rounded-br-[6px]",
-    theirs: "bg-[color:var(--surface-2)] text-foreground rounded-bl-[6px]",
+    label: "Neon Lime",
+    swatch: "linear-gradient(135deg,#A3E635,#0BA85B)",
+    mine: "bubble-chat-mine rounded-br-[6px]",
+    theirs: "bubble-chat-theirs rounded-bl-[6px]",
   },
   {
     id: "modern",

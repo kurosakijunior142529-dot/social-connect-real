@@ -80,12 +80,17 @@ export function SmartReplyBar({ scope, id, onPick }: { scope: Scope; id: string;
   }, [scope, id]);
   if (!suggestions.length) return null;
   return (
-    <div className="flex gap-2 px-3 pb-2 overflow-x-auto">
-      {suggestions.map((s, i) => (
-        <button key={i} onClick={() => onPick(s)} className="text-xs px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 hover:bg-primary/20 whitespace-nowrap">
-          {s}
-        </button>
-      ))}
+    <div className="mx-3 mb-2 rounded-r-2xl border-l-2 border-primary bg-gradient-to-r from-primary/10 to-transparent p-3">
+      <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+        <Sparkles className="h-3.5 w-3.5" /> Respostas da IA
+      </div>
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        {suggestions.map((s, i) => (
+          <button key={i} onClick={() => onPick(s)} className="text-xs px-3 py-1.5 rounded-lg bg-[color:var(--surface-2)] border border-[color:var(--hairline)] hover:border-primary/40 whitespace-nowrap">
+            {s}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

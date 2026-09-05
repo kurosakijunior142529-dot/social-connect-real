@@ -50,6 +50,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-chat-mine: var(--chat-mine);
+  --color-chat-mine-foreground: var(--chat-mine-foreground);
 }
 
 /* Minimal premium — dark remains the default, light is opt-in. */
@@ -97,6 +99,11 @@
   --sidebar-ring: #22E06A;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* Neon Lime chat */
+  --chat-mine: #A3E635;
+  --chat-mine-foreground: #0D1A05;
+  --chat-mine-glow: rgba(163, 230, 53, 0.38);
 }
 
 .dark { }
@@ -132,6 +139,9 @@
   --sidebar-accent-foreground: #121416;
   --sidebar-border: rgba(13, 20, 16, 0.08);
   --sidebar-ring: #16B957;
+  --chat-mine: #84CC16;
+  --chat-mine-foreground: #162404;
+  --chat-mine-glow: rgba(132, 204, 22, 0.30);
 }
 
 @layer base {
@@ -216,6 +226,25 @@
 }
 @utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* ============ Neon Lime chat ============ */
+@utility bubble-chat-mine {
+  background-color: var(--chat-mine);
+  color: var(--chat-mine-foreground);
+  box-shadow: 0 0 20px var(--chat-mine-glow);
+}
+@utility bubble-chat-theirs {
+  background-color: color-mix(in oklab, var(--surface-2) 85%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hairline);
+  color: var(--foreground);
+}
+@utility glow-chat {
+  box-shadow: 0 0 16px var(--chat-mine-glow);
+}
+@utility ring-chat {
+  background: conic-gradient(from 210deg, var(--chat-mine), color-mix(in oklab, var(--chat-mine) 25%, transparent) 45%, var(--chat-mine));
 }
 
 @keyframes heart-pop {

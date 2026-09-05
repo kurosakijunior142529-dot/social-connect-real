@@ -53,8 +53,6 @@ type RoomState = {
   updated_by: string | null;
 };
 
-const DRIFT_THRESHOLD = 1.5;
-
 function WatchRoomPage() {
   const { roomId } = Route.useParams();
   const { user } = Route.useRouteContext();
@@ -62,13 +60,17 @@ function WatchRoomPage() {
   const queryClient = useQueryClient();
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<WatchProviderPlayer | null>(null);
-  const lastStateAppliedRef = useRef<{ playing: boolean; position: number; at: number } | null>(null);
+  const adapterRef = useRef<StreamingProviderAdapter | null>(null);
   const suppressBroadcastRef = useRef(false);
   const [playerReady, setPlayerReady] = useState(false);
+  const [providerError, setProviderError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("connected");
+  const [hostControlsOnly, setHostControlsOnly] = useState(true);
   const [tab, setTab] = useState<"chat" | "people">("chat");
   const [chatInput, setChatInput] = useState("");
   const [copied, setCopied] = useState(false);
+
 
   // Ensure membership
   useEffect(() => {

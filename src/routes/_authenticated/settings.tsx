@@ -275,6 +275,21 @@ function SettingsPage() {
 
       <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>
+          <h2 className="text-base font-semibold">Respostas da IA no chat</h2>
+          <p className="text-[13px] text-muted-foreground">Sugestões automáticas de resposta dentro das conversas.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[color:var(--surface-2)] p-1">
+          <Button type="button" variant={smartReplies ? "default" : "ghost"} className="rounded-xl gap-2" onClick={() => setSmartReplies(true)}>
+            <Sparkles className="h-4 w-4" /> Ativadas
+          </Button>
+          <Button type="button" variant={!smartReplies ? "default" : "ghost"} className="rounded-xl gap-2" onClick={() => setSmartReplies(false)}>
+            <SparklesIcon className="h-4 w-4" /> Desativadas
+          </Button>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+        <div>
           <h2 className="text-base font-semibold">Interesses</h2>
           <p className="text-[13px] text-muted-foreground">Personalize recomendações ou escolha não informar.</p>
         </div>

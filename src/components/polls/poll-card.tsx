@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Check, Timer } from "lucide-react";
+import { BarChart3, Check, Crown, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { fetchPoll, pollTimeLeft, votePoll } from "@/lib/polls";
@@ -68,6 +68,27 @@ export function PollCard({
         {poll.question}
       </div>
 
+      {/* Destaque da vencedora após revelar */}
+      {revealed && total > 0 ? (() => {
+        const winnerIdx = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+        const winnerVotes = winnerIdx !== undefined ? counts.get(winnerIdx) ?? 0 : 0;
+        const winnerPct = total > 0 ? Math.round((winnerVotes / total) * 100) : 0;
+        if (winnerIdx === undefined || winnerVotes === 0) return null;
+        return (
+          <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-black shadow-[0_0_14px_-2px_color-mix(in_oklab,var(--primary)_70%,transparent)]">
+              <Crown className="h-4 w-4" strokeWidth={2.5} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-bold leading-tight">{poll.options[winnerIdx]?.text}</div>
+              <div className="text-[11px] text-muted-foreground">
+                {time.closed ? "Opção vencedora" : "Na frente até agora"} · {winnerPct}% dos votos
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
+
       <div className="space-y-2">
         {poll.options.map((opt, i) => {
           const votes = counts.get(i) ?? 0;
@@ -118,13 +139,18 @@ export function PollCard({
                   </span>
                 ) : null}
                 {revealed ? (
-                  <span
-                    className={cn(
-                      "tabular-nums text-[13px] font-bold",
-                      mine ? "text-primary" : leader ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    {pct}%
+                  <span className="flex shrink-0 flex-col items-end leading-none">
+                    <span
+                      className={cn(
+                        "tabular-nums text-[13px] font-bold",
+                        mine ? "text-primary" : leader ? "text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {pct}%
+                    </span>
+                    <span className="mt-0.5 tabular-nums text-[10px] text-muted-foreground">
+                      {votes} voto{votes === 1 ? "" : "s"}
+                    </span>
                   </span>
                 ) : null}
               </span>

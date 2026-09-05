@@ -99,6 +99,13 @@
       "when": 1788649061034,
       "tag": "0013_guard_profiles_sensitive_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788650406761,
+      "tag": "0014_restrict_profile_sensitive_columns",
+      "breakpoints": true
     }
   ]
 }

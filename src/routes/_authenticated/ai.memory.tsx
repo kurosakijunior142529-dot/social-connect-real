@@ -46,7 +46,7 @@ function AiMemoryPage() {
   });
 
   const wipe = useMutation({
-    mutationFn: () => clear({}),
+    mutationFn: () => clear(),
     onSuccess: () => { toast.success("Memória apagada"); refresh(); },
   });
 
@@ -69,7 +69,7 @@ function AiMemoryPage() {
             variant="ghost"
             size="sm"
             className="text-red-400"
-            onClick={() => { if (confirm("Apagar todas as memórias?")) wipe.mutate({}); }}
+            onClick={() => { if (confirm("Apagar todas as memórias?")) wipe.mutate(); }}
           >
             Apagar tudo
           </Button>

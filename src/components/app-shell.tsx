@@ -246,6 +246,17 @@ export function AppShell({
         <div className={cn("mx-auto md:px-5 md:pt-6", pathname.startsWith("/u/") ? "max-w-6xl" : "max-w-2xl")}>{content}</div>
       </main>
 
+      {/* Atalho flutuante para a IA (mobile) */}
+      {!(pathname.startsWith("/ai") || pathname.startsWith("/reels") || pathname.startsWith("/messages/") || pathname.startsWith("/chats/") || pathname.startsWith("/create") || pathname.startsWith("/live")) ? (
+        <Link
+          to="/ai"
+          aria-label="Vibely AI"
+          className="md:hidden fixed right-4 bottom-[92px] z-30 grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[0_12px_30px_-12px_var(--primary)] transition-transform active:scale-95"
+        >
+          <Sparkles className="h-5 w-5" strokeWidth={2} />
+        </Link>
+      ) : null}
+
       {/* Mobile bottom nav — floating pill */}
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none">
         <div className="pointer-events-auto mx-3 mb-3 overflow-hidden rounded-[24px] glass-heavy">

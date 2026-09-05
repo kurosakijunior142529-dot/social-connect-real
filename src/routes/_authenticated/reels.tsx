@@ -27,6 +27,9 @@ function ReelsPage() {
   const query = useQuery({
     queryKey: ["reels", user.id, "blocks", hidden ? hidden.size : 0],
     enabled: !!blocks.data,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    placeholderData: (prev: any) => prev,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posts")
@@ -81,6 +84,9 @@ function ReelsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <span className="text-[17px] font-display font-semibold tracking-tight drop-shadow">Reels</span>
+        <span className="ml-auto rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold backdrop-blur-md ring-1 ring-white/15">
+          Para você
+        </span>
       </header>
 
       <div

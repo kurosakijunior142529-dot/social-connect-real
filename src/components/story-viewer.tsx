@@ -25,7 +25,7 @@ type Grouped = {
 };
 
 /** Duração mínima de cada story: 1min20. */
-const DURATION = 80000;
+const IMAGE_DURATION = 5000;
 
 export function StoryViewer({
   groups,

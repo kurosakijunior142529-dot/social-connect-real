@@ -289,13 +289,50 @@ function WatchIndex() {
               </div>
 
               <form onSubmit={createRoom} className="space-y-2">
-                <Input
-                  placeholder="Cole o link do YouTube ou Twitch"
-                  value={videoInput}
-                  onChange={(e) => setVideoInput(e.target.value)}
-                  required
-                  className="h-12 rounded-2xl bg-background"
-                />
+                <div className="grid grid-cols-4 gap-1.5">
+                  {PROVIDER_OPTIONS.map((p) => {
+                    const premium = PREMIUM_PROVIDERS.includes(p);
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setNewProvider(p)}
+                        className={cn(
+                          "rounded-2xl px-1 py-2 text-[11px] font-medium transition leading-tight",
+                          newProvider === p
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-[color:var(--surface-2)] text-muted-foreground",
+                        )}
+                      >
+                        {PROVIDER_LABEL[p]}
+                        {premium ? (
+                          <span
+                            className={cn(
+                              "mt-0.5 block text-[9px] font-normal",
+                              newProvider === p ? "text-primary-foreground/80" : "text-muted-foreground/70",
+                            )}
+                          >
+                            assinatura
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                {PREMIUM_PROVIDERS.includes(newProvider) ? (
+                  <p className="rounded-2xl bg-primary/10 px-3 py-2 text-[11px] text-primary">
+                    Cada participante precisa ter assinatura ativa do {PROVIDER_LABEL[newProvider]} e assiste
+                    pelo app/site oficial — a sala sincroniza o play, a pausa e o chat de todo mundo.
+                  </p>
+                ) : (
+                  <Input
+                    placeholder="Cole o link do YouTube ou Twitch"
+                    value={videoInput}
+                    onChange={(e) => setVideoInput(e.target.value)}
+                    required
+                    className="h-12 rounded-2xl bg-background"
+                  />
+                )}
                 <Input
                   placeholder="Título da sala (opcional)"
                   value={title}

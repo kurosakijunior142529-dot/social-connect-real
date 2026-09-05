@@ -263,7 +263,7 @@ export function AppShell({
       </main>
 
       {/* Atalho flutuante para a IA — apenas na aba de Conversas */}
-      {pathname === "/messages" && aiChatEnabled ? (
+      {pathname === "/messages" ? (
         <Link
           to="/ai"
           aria-label="Vibely AI"

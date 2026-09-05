@@ -323,11 +323,11 @@ function ProfilePage() {
           </div>
         </section>
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="social-card grid grid-cols-4 rounded-xl px-2 py-2">
           <StatCard label="Curtidas" value={stats.data?.likesReceived ?? 0} />
-          <StatCard label="Visualizações" value={stats.data?.viewsTotal ?? 0} icon={<Eye className="h-4 w-4" />} />
-          <StatCard label="Publicações" value={allPosts.length} />
-          <StatCard label="Republicações" value={stats.data?.repostedPosts?.length ?? 0} />
+          <StatCard label="Views" value={stats.data?.viewsTotal ?? 0} />
+          <StatCard label="Posts" value={allPosts.length} />
+          <StatCard label="Reposts" value={stats.data?.repostedPosts?.length ?? 0} />
         </div>
 
         <Link
@@ -412,11 +412,11 @@ function StatInline({ label, value }: { label: string; value: number }) {
   return <span className="block"><strong className="block text-lg font-bold tabular text-foreground">{formatCount(value)}</strong><span className="text-xs text-muted-foreground">{label}</span></span>;
 }
 
-function StatCard({ label, value, icon }: { label: string; value: number; icon?: React.ReactNode }) {
+function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="social-card rounded-xl px-3 py-4 text-left">
-      <div className="flex items-center justify-between"><div className="text-2xl font-display font-bold tabular">{formatCount(value)}</div>{icon ? <span className="text-primary">{icon}</span> : null}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+    <div className="px-1 py-1 text-center">
+      <div className="text-sm font-semibold tabular leading-tight">{formatCount(value)}</div>
+      <div className="text-[10px] text-muted-foreground leading-tight">{label}</div>
     </div>
   );
 }

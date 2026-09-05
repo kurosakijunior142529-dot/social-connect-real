@@ -816,7 +816,7 @@ type RowProps = {
 };
 
 function stripAiPrefix(content: string): string {
-  return content.replace(/^🤖\s*/, "").trim();
+  return content.replace(/^🤖\s*(Vibely AI)?\s*/, "").trim();
 }
 
 const MessageRow = memo(

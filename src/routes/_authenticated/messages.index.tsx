@@ -146,29 +146,37 @@ function DirectList({ userId }: { userId: string }) {
     );
   }
   return (
-    <ul className="px-2 pb-4 space-y-1">
-      {query.data.map((c) => (
-        <li key={c.id}>
-          <Link
-            to="/messages/$conversationId"
-            params={{ conversationId: c.id }}
-            className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors hover:bg-[color:var(--surface)] active:bg-[color:var(--surface-2)]"
-          >
-            <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="font-semibold text-[15px] truncate"><VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} /></div>
-                {c.last ? (
-                  <div className="text-[11px] text-muted-foreground shrink-0 tabular">
-                    {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
-                  </div>
-                ) : null}
+    <ul className="px-3 pb-4 space-y-2 pt-2">
+      {query.data.map((c, i) => {
+        const featured = i === 0;
+        return (
+          <li key={c.id}>
+            <Link
+              to="/messages/$conversationId"
+              params={{ conversationId: c.id }}
+              className={cn(
+                "flex items-center gap-3.5 p-3.5 transition-all active:scale-[0.98]",
+                featured
+                  ? "rounded-[24px] border-l-4 border-primary bg-[color:var(--surface)] shadow-lg shadow-black/30"
+                  : "rounded-[24px] hover:bg-[color:var(--surface)]/60",
+              )}
+            >
+              <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className={cn("h-14 w-14 rounded-2xl", featured && "ring-2 ring-primary/25")} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <div className={cn("truncate text-[15px]", featured ? "font-bold" : "font-semibold")}><VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} /></div>
+                  {c.last ? (
+                    <div className={cn("text-[11px] shrink-0 tabular uppercase tracking-wide", featured ? "font-bold text-primary" : "text-muted-foreground")}>
+                      {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
+                    </div>
+                  ) : null}
+                </div>
+                <div className={cn("text-[13px] truncate leading-snug", featured ? "text-foreground/80" : "text-muted-foreground")}>{c.last?.content ?? "Diga oi 👋"}</div>
               </div>
-              <div className="text-[13px] text-muted-foreground truncate leading-snug">{c.last?.content ?? "Diga oi 👋"}</div>
-            </div>
-          </Link>
-        </li>
-      ))}
+            </Link>
+          </li>
+        );
+      })}
     </ul>
 
   );

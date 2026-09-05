@@ -541,7 +541,11 @@ export function VideoPlayer({
             disabled={downloading}
             aria-label="Baixar vídeo"
           >
-            <Download className={cn("h-4 w-4", downloading && "animate-pulse")} />
+            {downloading && dlPct > 0 ? (
+              <span className="text-[10px] font-semibold tabular-nums">{dlPct}%</span>
+            ) : (
+              <Download className={cn("h-4 w-4", downloading && "animate-pulse")} />
+            )}
           </button>
         </div>
       </div>

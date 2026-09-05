@@ -235,10 +235,20 @@ export function VideoPlayer({
       let blob: Blob;
       let ext = "mp4";
       try {
-        const { exportVideo } = await import("@/lib/video-export");
-        const out = await exportVideo(src, { watermark: { username: null } });
-        blob = out.blob;
-        ext = out.ext || "mp4";
+        const { exportVideo, canBurnWatermark } = await import("@/lib/video-export");
+        // Gravar a marca d'água acontece em tempo real: só vale para clipes curtos
+        // e quando o navegador consegue gerar MP4 (galerias não abrem .webm).
+        if (await canBurnWatermark(src)) {
+          const out = await exportVideo(src, {
+            watermark: { username: null },
+            onProgress: (p) => setDlPct(Math.round(p * 100)),
+          });
+          blob = out.blob;
+          ext = out.ext || "mp4";
+        } else {
+          const res = await fetch(src);
+          blob = await res.blob();
+        }
       } catch {
         const res = await fetch(src);
         blob = await res.blob();

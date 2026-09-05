@@ -60,24 +60,26 @@ function MessagesPage() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <div className="px-4 pb-3 flex gap-1">
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={cn(
-                  "relative px-3 py-1.5 text-[13px] font-medium rounded-full transition-colors",
-                  active
-                    ? "bg-[color:var(--surface-2)] text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t.label}
-              </button>
-            );
-          })}
+        <div className="px-4 pb-3">
+          <div className="flex gap-1 rounded-2xl bg-[color:var(--surface)] p-1.5">
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "flex-1 rounded-xl py-2 text-[13px] transition-all",
+                    active
+                      ? "bg-primary font-bold text-primary-foreground shadow-[0_4px_12px_-2px_var(--primary)]"
+                      : "font-medium text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </header>
 

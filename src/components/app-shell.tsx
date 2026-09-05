@@ -55,6 +55,19 @@ export function AppShell({
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id));
   }, []);
+  // Mantém o registro de push válido quando o usuário já autorizou os avisos.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      const { enablePush, isNativeApp, pushPermission } = await import("@/lib/push");
+      if (cancelled) return;
+      if (isNativeApp() || pushPermission() === "granted") await enablePush();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
   const unread = useUnreadNotifications(userId);
   const unreadCount = unread.data ?? 0;
 

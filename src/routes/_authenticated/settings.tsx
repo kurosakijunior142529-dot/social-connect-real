@@ -15,6 +15,7 @@ import { signOutAndClearSession } from "@/lib/auth-session";
 import { AvatarEditor } from "@/components/user/avatar-editor";
 import { InterestsEditor } from "@/components/profile/interests-editor";
 import { useAppTheme } from "@/lib/theme";
+import { PushSettings } from "@/components/settings/push-settings";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -254,6 +255,8 @@ function SettingsPage() {
           {saving ? "Salvando…" : "Salvar"}
         </Button>
       </form>
+
+      <PushSettings userId={user.id} />
 
       <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>

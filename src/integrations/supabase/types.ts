@@ -112,6 +112,24 @@ export type Database = {
         }
         Relationships: []
       }
+      app_private_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           coin_to_brl_rate: number
@@ -2000,6 +2018,36 @@ export type Database = {
         }
         Relationships: []
       }
+      push_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          token: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform?: string
+          token: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           count: number
@@ -2970,6 +3018,10 @@ export type Database = {
           xp: number
           xp_gained: number
         }[]
+      }
+      push_dispatch: {
+        Args: { _id: string; _kind: string }
+        Returns: undefined
       }
       request_withdrawal: {
         Args: { _amount_coins: number; _bank_account_id: string }

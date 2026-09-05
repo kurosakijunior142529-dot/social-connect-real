@@ -43,6 +43,7 @@ export async function toggleReaction(scope: Scope, messageId: string, userId: st
 
 export function SummarizeButton({ scope, id }: { scope: Scope; id: string }) {
   const ai = useAiActions();
+  const [enabled] = useSmartRepliesEnabled();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState<string | null>(null);
   async function run() {
@@ -51,6 +52,7 @@ export function SummarizeButton({ scope, id }: { scope: Scope; id: string }) {
     const s = await ai.summarize(scope, id);
     setText(s);
   }
+  if (!enabled) return null;
   return (
     <>
       <button onClick={run} className="p-2 rounded-full hover:bg-white/5" aria-label="Resumir">

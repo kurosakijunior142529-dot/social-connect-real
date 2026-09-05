@@ -92,6 +92,13 @@
       "when": 1788647798634,
       "tag": "0012_ai_memory_files_summaries",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788649061034,
+      "tag": "0013_guard_profiles_sensitive_columns",
+      "breakpoints": true
     }
   ]
 }

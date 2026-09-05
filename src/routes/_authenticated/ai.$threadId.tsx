@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check } from "lucide-react";
+import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText } from "lucide-react";
 import {
   listThreads, listMessages, generateImage,
-  createThread, deleteThread,
+  createThread, deleteThread, renameThread, truncateFrom,
 } from "@/lib/ai-chat.functions";
+import { saveAiFile } from "@/lib/ai-files.functions";
+import { AI_FILE_ACCEPT, extractFile, type ExtractedFile } from "@/lib/ai-extract";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +34,8 @@ export const Route = createFileRoute("/_authenticated/ai/$threadId")({
   }),
 });
 
-type Msg = { id: string; role: string; content: string; image_url: string | null };
+type Attachment = { name: string; mime: string; kind: string };
+type Msg = { id: string; role: string; content: string; image_url: string | null; attachments?: Attachment[] | null };
 
 function Mascot({ className, thinking }: { className?: string; thinking?: boolean }) {
   return (
@@ -60,6 +63,9 @@ function AIThread() {
   const genImg = useServerFn(generateImage);
   const create = useServerFn(createThread);
   const del = useServerFn(deleteThread);
+  const rename = useServerFn(renameThread);
+  const truncate = useServerFn(truncateFrom);
+  const saveFile = useServerFn(saveAiFile);
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -67,6 +73,10 @@ function AIThread() {
   const [streamText, setStreamText] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<ExtractedFile[]>([]);
+  const [attaching, setAttaching] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -120,8 +130,10 @@ function AIThread() {
 
   const submit = useCallback(async (override?: string) => {
     const text = (override ?? input).trim();
-    if (!text || sendingRef.current) return;
+    const files = attachments;
+    if ((!text && !files.length) || sendingRef.current) return;
     setInput("");
+    setAttachments([]);
     setPending(text);
     setLastPrompt(text);
     setStreamText("");
@@ -137,10 +149,41 @@ function AIThread() {
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;
         if (!token) throw new Error("Sessão expirada. Entre novamente.");
+        // Guarda os anexos (documentos viram texto, imagens vão para o storage privado)
+        for (const f of files) {
+          try {
+            await saveFile({
+              data: {
+                threadId,
+                name: f.name,
+                mime: f.mime,
+                size: f.size,
+                text: f.text,
+                imageBase64: f.dataUrl,
+              },
+            });
+          } catch {
+            /* o anexo ainda vai no contexto desta mensagem */
+          }
+        }
+
+        const controller = new AbortController();
+        abortRef.current = controller;
         const res = await fetch("/api/ai/stream", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ threadId, content: text }),
+          signal: controller.signal,
+          body: JSON.stringify({
+            threadId,
+            content: text || "Analise o anexo.",
+            attachments: files.map((f) => ({
+              name: f.name,
+              mime: f.mime,
+              kind: f.kind,
+              dataUrl: f.dataUrl,
+              text: f.text,
+            })),
+          }),
         });
         if (!res.ok || !res.body) throw new Error(await res.text().catch(() => "Falha ao enviar"));
 
@@ -171,9 +214,15 @@ function AIThread() {
       }
       qc.invalidateQueries({ queryKey: ["ai-threads"] });
     } catch (e: any) {
-      toast.error(typeof e?.message === "string" ? e.message.slice(0, 160) : "Falha ao enviar");
-      setInput(text);
+      if (e?.name === "AbortError") {
+        await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      } else {
+        toast.error(typeof e?.message === "string" ? e.message.slice(0, 160) : "Falha ao enviar");
+        setInput(text);
+        setAttachments(files);
+      }
     } finally {
+      abortRef.current = null;
       setPending(null);
       setStreamText("");
       setStatus(null);
@@ -181,7 +230,54 @@ function AIThread() {
       sendingRef.current = false;
       inputRef.current?.focus();
     }
-  }, [genImg, input, qc, threadId]);
+  }, [attachments, genImg, input, qc, saveFile, threadId]);
+
+  function stopGeneration() {
+    abortRef.current?.abort();
+  }
+
+  async function pickFiles(list: FileList | null) {
+    if (!list?.length) return;
+    setAttaching(true);
+    try {
+      const out: ExtractedFile[] = [];
+      for (const file of Array.from(list).slice(0, 3)) {
+        try {
+          out.push(await extractFile(file));
+        } catch (e: any) {
+          toast.error(String(e?.message ?? "Arquivo não suportado").slice(0, 140));
+        }
+      }
+      if (out.length) setAttachments((prev) => [...prev, ...out].slice(0, 4));
+    } finally {
+      setAttaching(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  // Regenerar: apaga a resposta e reenvia o último pedido
+  async function regenerate(assistantId: string) {
+    if (!lastPrompt || sendingRef.current) return;
+    try {
+      await truncate({ data: { threadId, messageId: assistantId } });
+      await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      await submit(lastPrompt);
+    } catch (e: any) {
+      toast.error(String(e?.message ?? "Não consegui regenerar").slice(0, 140));
+    }
+  }
+
+  // Editar e reenviar: apaga a mensagem (e o que veio depois) e manda de novo
+  async function editAndResend(messageId: string, text: string) {
+    if (sendingRef.current) return;
+    try {
+      await truncate({ data: { threadId, messageId } });
+      await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      await submit(text);
+    } catch (e: any) {
+      toast.error(String(e?.message ?? "Não consegui reenviar").slice(0, 140));
+    }
+  }
 
   function askImage() {
     const t = input.trim();

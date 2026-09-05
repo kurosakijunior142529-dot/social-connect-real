@@ -33,9 +33,9 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
   {
     id: "modern",
     label: "Moderno",
-    swatch: "linear-gradient(135deg,#F5F5F7,#8E8E93)",
-    mine: "bg-white text-black rounded-br-[6px] shadow-[0_6px_20px_-8px_rgba(255,255,255,0.35)]",
-    theirs: "bg-[#1c1c1e] text-white rounded-bl-[6px] border border-white/5",
+    swatch: "linear-gradient(135deg,#F5F5F7,#22E06A)",
+    mine: "bg-white text-black rounded-br-[4px]",
+    theirs: "bg-chat-mine text-chat-mine-foreground rounded-bl-[4px]",
   },
   {
     id: "neon",
@@ -111,7 +111,7 @@ export type ChatPrefs = {
 };
 
 const DEFAULTS: ChatPrefs = {
-  themeId: "classic",
+  themeId: "modern",
   font: "system",
   radius: 20,
   animations: true,

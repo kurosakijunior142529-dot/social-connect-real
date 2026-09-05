@@ -61,7 +61,7 @@ function MessagesPage() {
           </DropdownMenu>
         </div>
         <div className="px-4 pb-3">
-          <div className="flex gap-1 rounded-2xl bg-[color:var(--surface)] p-1.5">
+          <div className="flex gap-1 rounded-2xl bg-[color:var(--surface)] p-1">
             {TABS.map((t) => {
               const active = tab === t.id;
               return (
@@ -71,7 +71,7 @@ function MessagesPage() {
                   className={cn(
                     "flex-1 rounded-xl py-2 text-[13px] transition-all",
                     active
-                      ? "bg-chat-mine font-bold text-chat-mine-foreground glow-chat"
+                      ? "bg-chat-mine font-bold text-chat-mine-foreground"
                       : "font-medium text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -146,34 +146,26 @@ function DirectList({ userId }: { userId: string }) {
     );
   }
   return (
-    <ul className="px-3 pb-4 space-y-2 pt-2">
-      {query.data.map((c, i) => {
-        const featured = i === 0;
+    <ul className="pb-4 pt-1 divide-y divide-border/30">
+      {query.data.map((c) => {
         return (
           <li key={c.id}>
             <Link
               to="/messages/$conversationId"
               params={{ conversationId: c.id }}
-               className={cn(
-                 "flex items-center gap-3.5 p-3.5 rounded-[24px] border transition-all active:scale-[0.98]",
-                 featured
-                   ? "border-primary/40 bg-[color:var(--surface)] shadow-[0_0_24px_-4px_var(--chat-mine-glow)]"
-                   : "border-[color:var(--hairline)] bg-[color:var(--surface)]/70 hover:border-primary/25 hover:bg-[color:var(--surface)]",
-               )}
-             >
-               <div className={cn("shrink-0 rounded-[20px] p-[2px]", featured ? "ring-chat" : "bg-[color:var(--hairline)]")}>
-                 <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-14 w-14 rounded-[18px]" />
-               </div>
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[color:var(--surface)]/60 active:bg-[color:var(--surface)]"
+            >
+              <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12 rounded-full border border-white/10" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <div className={cn("truncate text-[15px]", featured ? "font-bold" : "font-semibold")}><VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} /></div>
+                  <div className="truncate text-[15px] font-semibold"><VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} /></div>
                   {c.last ? (
-                    <div className={cn("text-[11px] shrink-0 tabular uppercase tracking-wide", featured ? "font-bold text-primary" : "text-muted-foreground")}>
+                    <div className="text-[10px] shrink-0 tabular uppercase tracking-widest text-muted-foreground">
                       {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
                     </div>
                   ) : null}
                 </div>
-                <div className={cn("text-[13px] truncate leading-snug", featured ? "text-foreground/80" : "text-muted-foreground")}>{c.last?.content ?? "Diga oi 👋"}</div>
+                <div className="text-[13px] truncate leading-snug text-muted-foreground">{c.last?.content ?? "Diga oi 👋"}</div>
               </div>
             </Link>
           </li>
@@ -227,42 +219,34 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
     );
   }
   return (
-    <ul className="px-3 pb-4 space-y-2 pt-2">
-      {query.data.map((c: any, i: number) => {
-        const featured = i === 0;
+    <ul className="pb-4 pt-1 divide-y divide-border/30">
+      {query.data.map((c: any) => {
         return (
           <li key={c.id}>
             <Link
               to="/chats/$id"
               params={{ id: c.id }}
-               className={cn(
-                 "flex items-center gap-3.5 p-3.5 rounded-[24px] border transition-all active:scale-[0.98]",
-                 featured
-                   ? "border-primary/40 bg-[color:var(--surface)] shadow-[0_0_24px_-4px_var(--chat-mine-glow)]"
-                   : "border-[color:var(--hairline)] bg-[color:var(--surface)]/70 hover:border-primary/25 hover:bg-[color:var(--surface)]",
-               )}
-             >
-               <div className={cn("shrink-0 rounded-[20px] p-[2px]", featured ? "ring-chat" : "bg-[color:var(--hairline)]")}>
-                 {c.avatar_url ? (
-                   <div className="h-14 w-14 rounded-[18px] overflow-hidden bg-[color:var(--surface-2)]">
-                     <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
-                   </div>
-                 ) : (
-                   <div className="grid h-14 w-14 place-items-center rounded-[18px] bg-[color:var(--surface-2)] text-foreground">
-                     {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
-                   </div>
-                 )}
-               </div>
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[color:var(--surface)]/60 active:bg-[color:var(--surface)]"
+            >
+              {c.avatar_url ? (
+                <div className="h-12 w-12 rounded-full overflow-hidden bg-[color:var(--surface-2)] border border-white/10">
+                  <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] border border-white/10 text-foreground">
+                  {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <div className={cn("truncate text-[15px]", featured ? "font-bold" : "font-semibold")}>{c.title}</div>
+                  <div className="truncate text-[15px] font-semibold">{c.title}</div>
                   {c.last ? (
-                    <div className={cn("text-[11px] shrink-0 tabular uppercase tracking-wide", featured ? "font-bold text-primary" : "text-muted-foreground")}>
+                    <div className="text-[10px] shrink-0 tabular uppercase tracking-widest text-muted-foreground">
                       {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
                     </div>
                   ) : null}
                 </div>
-                <div className={cn("text-[13px] truncate leading-snug", featured ? "text-foreground/80" : "text-muted-foreground")}>
+                <div className="text-[13px] truncate leading-snug text-muted-foreground">
                   {c.last?.content ?? c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
                 </div>
               </div>

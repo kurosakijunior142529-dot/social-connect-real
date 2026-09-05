@@ -264,11 +264,19 @@ export function AppShell({
         <Link
           to="/ai"
           aria-label="Vibely AI"
-          className="md:hidden fixed right-4 bottom-[92px] z-30 grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[0_12px_30px_-12px_var(--primary)] transition-transform active:scale-95"
+          className="md:hidden fixed right-4 bottom-[92px] z-30 grid h-14 w-14 place-items-center rounded-full bg-[color:var(--surface-2)] ring-1 ring-primary/40 shadow-[0_14px_34px_-14px_var(--primary)] transition-transform active:scale-95"
         >
-          <Sparkles className="h-5 w-5" strokeWidth={2} />
+          <img
+            src={vibelyMascot}
+            alt="Vibely AI"
+            loading="lazy"
+            width={816}
+            height={816}
+            className="h-11 w-11 object-contain drop-shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
+          />
         </Link>
       ) : null}
+
 
       {/* Mobile bottom nav — floating pill */}
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none">

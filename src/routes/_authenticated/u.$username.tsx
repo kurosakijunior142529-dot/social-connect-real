@@ -35,6 +35,8 @@ import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
 import { uploadMedia } from "@/lib/media";
 import { StoryViewer } from "@/components/story-viewer";
+import { VibeCollections } from "@/components/profile/vibe-collections";
+
 
 export const Route = createFileRoute("/_authenticated/u/$username")({
   component: ProfilePage,

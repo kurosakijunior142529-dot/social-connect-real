@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, Outlet, useChildMatches } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +57,12 @@ function formatCount(n: number): string {
 }
 
 function ProfilePage() {
+  const childMatches = useChildMatches();
+  if (childMatches.length > 0) return <Outlet />;
+  return <ProfileContent />;
+}
+
+function ProfileContent() {
   const { username } = Route.useParams();
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();

@@ -3,11 +3,15 @@ import { useEffect, useState } from "react";
 import { isSoundOn, setSoundOn, subscribeSound } from "@/lib/media/sound-pref";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Radio, Users, Play } from "lucide-react";
 import { ReelItem } from "@/components/reels/reel-item";
 import { CommentsSheet } from "@/components/reels/comments-sheet";
 import type { FeedPost } from "@/components/post-card";
 import { useBlocks } from "@/hooks/use-blocks";
+import { fetchActiveLives, timeOnAir, type LiveFeedRow } from "@/lib/lives-feed";
+import { formatViewers } from "@/lib/live-utils";
+import { UserAvatar } from "@/components/user-avatar";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/reels")({
   component: ReelsPage,
@@ -18,11 +22,21 @@ function ReelsPage() {
   const blocks = useBlocks();
   const hidden = blocks.data?.hidden;
   const [muted, setMuted] = useState(() => !isSoundOn());
+  const [tab, setTab] = useState<"fyp" | "live">("fyp");
   useEffect(() => {
     const unsub = subscribeSound((on) => setMuted(!on));
     return () => { unsub(); };
   }, []);
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
+
+  const livesQ = useQuery({
+    queryKey: ["reels-lives"],
+    queryFn: () => fetchActiveLives(20),
+    refetchInterval: 15000,
+  });
+  const lives = livesQ.data ?? [];
+  const hasLives = lives.length > 0;
+  useEffect(() => { if (!hasLives && tab === "live") setTab("fyp"); }, [hasLives, tab]);
 
   const query = useQuery({
     queryKey: ["reels", user.id, "blocks", hidden ? hidden.size : 0],

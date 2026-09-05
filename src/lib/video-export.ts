@@ -439,3 +439,36 @@ export async function exportVideo(
   const ext = blob.type.includes("mp4") ? "mp4" : "webm";
   return { blob, ext };
 }
+
+/** Acima disso, gravar a marca d'água levaria o mesmo tempo do vídeo. */
+export const WATERMARK_BURN_MAX_SECONDS = 45;
+
+/** Só grava marca d'água quando o navegador consegue gerar MP4. */
+export function canRecordMp4(): boolean {
+  return pickVideoMime().includes("mp4");
+}
+
+/** Duração (s) de um vídeo remoto/local; 0 quando não for possível ler. */
+export async function probeDuration(srcUrl: string): Promise<number> {
+  try {
+    const v = document.createElement("video");
+    v.src = srcUrl;
+    v.preload = "metadata";
+    v.muted = true;
+    return await new Promise<number>((res) => {
+      const done = (d: number) => res(Number.isFinite(d) ? d : 0);
+      v.onloadedmetadata = () => done(v.duration);
+      v.onerror = () => done(0);
+      setTimeout(() => done(0), 6000);
+    });
+  } catch {
+    return 0;
+  }
+}
+
+/** Vale a pena (e é rápido o bastante) gravar a marca d'água neste vídeo? */
+export async function canBurnWatermark(srcUrl: string): Promise<boolean> {
+  if (!canRecordMp4()) return false;
+  const d = await probeDuration(srcUrl);
+  return d > 0 && d <= WATERMARK_BURN_MAX_SECONDS;
+}

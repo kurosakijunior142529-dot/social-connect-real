@@ -73,6 +73,7 @@ export function StoryViewer({
     if (!story) return;
     // record view
     (supabase as any).from("story_views").insert({ story_id: story.id, viewer_id: viewerId }).then(() => {});
+    setMediaMs(IMAGE_DURATION);
     if (timerRef.current) window.clearTimeout(timerRef.current);
     // fotos avançam em 5s; vídeos avançam pelo tempo real (onLoadedMetadata/onEnded)
     if (story.media_type !== "video") {
@@ -106,7 +107,7 @@ export function StoryViewer({
                 className="h-full origin-left rounded-full bg-gradient-brand shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_70%,transparent)]"
                 style={{
                   transform: i < sIdx ? "scaleX(1)" : i > sIdx ? "scaleX(0)" : undefined,
-                  animation: i === sIdx ? `story-progress ${DURATION}ms linear forwards` : undefined,
+                  animation: i === sIdx ? `story-progress ${mediaMs}ms linear forwards` : undefined,
                 }}
               />
             </div>
@@ -154,7 +155,23 @@ export function StoryViewer({
         <div className="absolute inset-0 grid place-items-center">
           {url ? (
             story.media_type === "video" ? (
-              <video key={story.id} src={url} className="max-h-full max-w-full animate-in fade-in duration-300" autoPlay muted playsInline />
+              <video
+                key={story.id}
+                src={url}
+                className="max-h-full max-w-full animate-in fade-in duration-300"
+                autoPlay
+                muted
+                playsInline
+                onEnded={next}
+                onLoadedMetadata={(e) => {
+                  const ms = Math.round(e.currentTarget.duration * 1000);
+                  if (ms > 0 && Number.isFinite(ms)) {
+                    setMediaMs(ms);
+                    if (timerRef.current) window.clearTimeout(timerRef.current);
+                    timerRef.current = window.setTimeout(next, ms + 300);
+                  }
+                }}
+              />
             ) : (
               <img key={story.id} src={url} alt="" className="max-h-full max-w-full object-contain animate-in fade-in duration-300" />
             )

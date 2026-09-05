@@ -139,13 +139,18 @@ export function PollCard({
                   </span>
                 ) : null}
                 {revealed ? (
-                  <span
-                    className={cn(
-                      "tabular-nums text-[13px] font-bold",
-                      mine ? "text-primary" : leader ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
-                    {pct}%
+                  <span className="flex shrink-0 flex-col items-end leading-none">
+                    <span
+                      className={cn(
+                        "tabular-nums text-[13px] font-bold",
+                        mine ? "text-primary" : leader ? "text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {pct}%
+                    </span>
+                    <span className="mt-0.5 tabular-nums text-[10px] text-muted-foreground">
+                      {votes} voto{votes === 1 ? "" : "s"}
+                    </span>
                   </span>
                 ) : null}
               </span>

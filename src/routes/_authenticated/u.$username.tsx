@@ -35,6 +35,8 @@ import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
 import { uploadMedia } from "@/lib/media";
 import { StoryViewer } from "@/components/story-viewer";
+import { VibeCollections } from "@/components/profile/vibe-collections";
+
 
 export const Route = createFileRoute("/_authenticated/u/$username")({
   component: ProfilePage,
@@ -312,6 +314,10 @@ function ProfileContent() {
           </div>
           {(profile.interests?.length ?? 0) > 0 ? <div className="mt-5 flex flex-wrap gap-2">{profile.interests.map((tag: string) => <span key={tag} className="rounded-full border border-primary/20 bg-background/60 px-3 py-1 text-xs font-medium capitalize text-primary">#{tag}</span>)}</div> : null}
         </section>
+
+        <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
+
+
 
         <section>
           <div className="mb-4 flex items-center justify-between">

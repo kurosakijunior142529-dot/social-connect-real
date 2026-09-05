@@ -78,6 +78,13 @@
       "when": 1788609100193,
       "tag": "0010_live_gifts_block_client_writes",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788647499016,
+      "tag": "0011_vibe_collections",
+      "breakpoints": true
     }
   ]
 }

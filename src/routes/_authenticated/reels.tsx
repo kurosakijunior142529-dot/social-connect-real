@@ -97,17 +97,28 @@ function ReelsPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <span className="text-[17px] font-display font-semibold tracking-tight drop-shadow">Reels</span>
-        <span className="ml-auto rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold backdrop-blur-md ring-1 ring-white/15">
-          Para você
-        </span>
+        <div className="flex-1 flex items-center justify-center gap-5">
+          <TabBtn active={tab === "fyp"} onClick={() => setTab("fyp")}>Para você</TabBtn>
+          {hasLives ? (
+            <TabBtn active={tab === "live"} onClick={() => setTab("live")}>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                Ao vivo
+                <span className="text-[10px] opacity-80">{lives.length}</span>
+              </span>
+            </TabBtn>
+          ) : null}
+        </div>
+        <span className="w-9 md:hidden" />
       </header>
 
       <div
         className="snap-y snap-mandatory overflow-y-scroll bg-black no-scrollbar rounded-none md:rounded-2xl md:overflow-hidden"
         style={{ height: "calc(100dvh - 96px)" }}
       >
-        {query.isLoading ? (
+        {tab === "live" ? (
+          lives.map((l) => <LiveReelCard key={l.id} l={l} />)
+        ) : query.isLoading ? (
           <div className="h-full grid place-items-center text-white/60 text-sm">Carregando vídeos…</div>
         ) : posts.length === 0 ? (
           <div className="h-full grid place-items-center text-white/70 text-center px-8">

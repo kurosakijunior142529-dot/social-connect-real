@@ -57,6 +57,7 @@ import { Route as AuthenticatedVoiceIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedVoiceIdRouteImport } from './routes/_authenticated/voice.$id'
 import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
+import { Route as ApiAiStreamRouteImport } from './routes/api/ai.stream'
 import { Route as ApiPublicGifRouteImport } from './routes/api/public/gif'
 import { Route as AuthenticatedGamesOnlineIndexRouteImport } from './routes/_authenticated/games.online.index'
 import { Route as AuthenticatedGamesOnlineRoomRouteImport } from './routes/_authenticated/games.online.$room'
@@ -324,6 +325,11 @@ const AuthenticatedWatchRoomIdRoute =
     path: '/watch/$roomId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiAiStreamRoute = ApiAiStreamRouteImport.update({
+  id: '/api/ai/stream',
+  path: '/api/ai/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicGifRoute = ApiPublicGifRouteImport.update({
   id: '/api/public/gif',
   path: '/api/public/gif',
@@ -410,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/api/ai/stream': typeof ApiAiStreamRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -466,6 +473,7 @@ export interface FileRoutesByTo {
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/api/ai/stream': typeof ApiAiStreamRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/account': typeof AuthenticatedAccountIndexRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -525,6 +533,7 @@ export interface FileRoutesById {
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/_authenticated/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
+  '/api/ai/stream': typeof ApiAiStreamRoute
   '/api/public/gif': typeof ApiPublicGifRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -584,6 +593,7 @@ export interface FileRouteTypes {
     | '/u/$username'
     | '/voice/$id'
     | '/watch/$roomId'
+    | '/api/ai/stream'
     | '/api/public/gif'
     | '/account/'
     | '/admin/'
@@ -640,6 +650,7 @@ export interface FileRouteTypes {
     | '/u/$username'
     | '/voice/$id'
     | '/watch/$roomId'
+    | '/api/ai/stream'
     | '/api/public/gif'
     | '/account'
     | '/admin'
@@ -698,6 +709,7 @@ export interface FileRouteTypes {
     | '/_authenticated/u/$username'
     | '/_authenticated/voice/$id'
     | '/_authenticated/watch/$roomId'
+    | '/api/ai/stream'
     | '/api/public/gif'
     | '/_authenticated/account/'
     | '/_authenticated/admin/'
@@ -722,6 +734,7 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   AuthIndexRoute: typeof AuthIndexRoute
+  ApiAiStreamRoute: typeof ApiAiStreamRoute
   ApiPublicGifRoute: typeof ApiPublicGifRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
@@ -1065,6 +1078,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWatchRoomIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/ai/stream': {
+      id: '/api/ai/stream'
+      path: '/api/ai/stream'
+      fullPath: '/api/ai/stream'
+      preLoaderRoute: typeof ApiAiStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/gif': {
       id: '/api/public/gif'
       path: '/api/public/gif'
@@ -1262,6 +1282,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   AuthIndexRoute: AuthIndexRoute,
+  ApiAiStreamRoute: ApiAiStreamRoute,
   ApiPublicGifRoute: ApiPublicGifRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,

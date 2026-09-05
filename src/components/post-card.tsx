@@ -105,7 +105,6 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         </div>
         {currentUserId && currentUserId !== post.author_id ? (
           <div className="flex items-center gap-1">
-            <PostViewerMenu postId={post.id} />
             <UserActionsMenu
               targetUserId={post.author_id}
               targetUsername={author?.username}

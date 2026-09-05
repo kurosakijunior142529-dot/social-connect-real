@@ -61,7 +61,8 @@ function WatchRoomPage() {
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const adapterRef = useRef<StreamingProviderAdapter | null>(null);
-  const suppressBroadcastRef = useRef(false);
+  const controlChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   const [playerReady, setPlayerReady] = useState(false);
   const [providerError, setProviderError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);

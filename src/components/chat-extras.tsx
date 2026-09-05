@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles } from "lucide-react";
 import { useAiActions } from "@/hooks/use-ai-actions";
+import { useSmartRepliesEnabled } from "@/lib/chat-settings";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -71,14 +72,16 @@ export function SummarizeButton({ scope, id }: { scope: Scope; id: string }) {
 
 export function SmartReplyBar({ scope, id, onPick }: { scope: Scope; id: string; onPick: (s: string) => void }) {
   const ai = useAiActions();
+  const [enabled] = useSmartRepliesEnabled();
   const [suggestions, setSuggestions] = useState<string[]>([]);
   useEffect(() => {
+    if (!enabled) { setSuggestions([]); return; }
     let cancel = false;
     ai.suggest(scope, id).then((s) => { if (!cancel) setSuggestions(s); });
     return () => { cancel = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, id]);
-  if (!suggestions.length) return null;
+  }, [scope, id, enabled]);
+  if (!enabled || !suggestions.length) return null;
   return (
     <div className="mx-3 mb-2 rounded-r-2xl border-l-2 border-primary bg-gradient-to-r from-primary/10 to-transparent p-3">
       <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-primary">

@@ -68,6 +68,156 @@ export const listMessages = createServerFn({ method: "GET" })
     return (rows ?? []) as { id: string; role: string; content: string; image_url: string | null; created_at: string }[];
   });
 
+const TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "publicacoes_do_momento",
+      description:
+        "Lista as publicações mais vistas e recentes do Vibely. Use sempre que o usuário perguntar o que está bombando, em alta, no momento, tendências ou ideias de conteúdo.",
+      parameters: {
+        type: "object",
+        properties: { limite: { type: "number", description: "Quantidade de posts (1-10)" } },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "publicar_texto",
+      description:
+        "Publica um post de texto no feed do usuário. Só use quando o usuário pedir claramente para publicar/postar.",
+      parameters: {
+        type: "object",
+        properties: { legenda: { type: "string", description: "Texto do post (máx 500)" } },
+        required: ["legenda"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "criar_enquete",
+      description: "Cria e publica uma enquete no feed do usuário.",
+      parameters: {
+        type: "object",
+        properties: {
+          pergunta: { type: "string" },
+          opcoes: { type: "array", items: { type: "string" }, description: "2 a 6 opções" },
+          dias: { type: "number", description: "1, 3 ou 7 dias" },
+        },
+        required: ["pergunta", "opcoes"],
+        additionalProperties: false,
+      },
+    },
+  },
+];
+
+async function runTool(name: string, args: any, ctx: { supabase: any; userId: string }) {
+  if (name === "publicacoes_do_momento") {
+    const limit = Math.min(Math.max(Number(args?.limite) || 6, 1), 10);
+    const { data } = await ctx.supabase
+      .from("posts")
+      .select("id, caption, media_type, view_count, created_at, author_id")
+      .order("created_at", { ascending: false })
+      .limit(40);
+    const rows = (data ?? []) as any[];
+    const top = rows
+      .slice()
+      .sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
+      .slice(0, limit);
+    const ids = [...new Set(top.map((p) => p.author_id))];
+    const { data: profs } = await ctx.supabase
+      .from("profiles")
+      .select("id, username, display_name")
+      .in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+    const byId = new Map((profs ?? []).map((p: any) => [p.id, p]));
+    return {
+      posts: top.map((p) => ({
+        autor: (byId.get(p.author_id) as any)?.username ?? "usuário",
+        tipo: p.media_type,
+        visualizacoes: p.view_count ?? 0,
+        legenda: (p.caption ?? "").slice(0, 200),
+        link: `/p/${p.id}`,
+        quando: p.created_at,
+      })),
+    };
+  }
+
+  if (name === "publicar_texto") {
+    const caption = String(args?.legenda ?? "").trim().slice(0, 500);
+    if (caption.length < 2) return { erro: "Legenda vazia" };
+    const { data, error } = await ctx.supabase
+      .from("posts")
+      .insert({
+        author_id: ctx.userId,
+        media_url: null,
+        media_type: "text",
+        post_kind: "post",
+        caption,
+      })
+      .select("id")
+      .single();
+    if (error) return { erro: error.message };
+    return { ok: true, link: `/p/${data.id}` };
+  }
+
+  if (name === "criar_enquete") {
+    const question = String(args?.pergunta ?? "").trim().slice(0, 200);
+    const options = (Array.isArray(args?.opcoes) ? args.opcoes : [])
+      .map((o: any) => String(o).trim().slice(0, 60))
+      .filter(Boolean)
+      .slice(0, 6);
+    if (question.length < 2 || options.length < 2) return { erro: "Enquete inválida" };
+    const days = [1, 3, 7].includes(Number(args?.dias)) ? Number(args.dias) : 1;
+    const { data: poll, error: pe } = await ctx.supabase
+      .from("polls")
+      .insert({
+        author_id: ctx.userId,
+        question,
+        options: options.map((text: string) => ({ text })),
+        closes_at: new Date(Date.now() + days * 86400000).toISOString(),
+      })
+      .select("id")
+      .single();
+    if (pe) return { erro: pe.message };
+    const { data: post, error } = await ctx.supabase
+      .from("posts")
+      .insert({
+        author_id: ctx.userId,
+        media_url: null,
+        media_type: "text",
+        post_kind: "post",
+        caption: question,
+        poll_id: poll.id,
+      })
+      .select("id")
+      .single();
+    if (error) return { erro: error.message };
+    return { ok: true, link: `/p/${post.id}` };
+  }
+
+  return { erro: "Ferramenta desconhecida" };
+}
+
+const SYSTEM_PROMPT = `Você é o Vibely AI, assistente do app social Vibely, em português brasileiro.
+Seja direto, útil e caloroso. Use markdown curto (listas, negrito) e evite textos longos demais.
+
+Você pode AGIR dentro do app usando ferramentas:
+- publicacoes_do_momento: descobre o que está bombando no Vibely agora.
+- publicar_texto: publica um post de texto no feed do usuário.
+- criar_enquete: cria e publica uma enquete.
+Antes de publicar algo, confirme rapidamente o conteúdo com o usuário, a não ser que ele já tenha dito exatamente o que publicar.
+
+Para tarefas com mídia, ofereça atalhos como links markdown internos (viram botões no app):
+- Postar foto/vídeo: [Abrir criação](/create)
+- Editar, cortar ou publicar vídeo: [Abrir estúdio de vídeo](/create/video)
+- Criar Vibe (story): [Nova Vibe](/stories/new)
+Para gerar imagem, oriente o comando /imagem <descrição>.`;
+
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
@@ -90,7 +240,6 @@ export const sendMessage = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    // Call Gemini
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
@@ -100,31 +249,54 @@ export const sendMessage = createServerFn({ method: "POST" })
       .eq("thread_id", data.threadId)
       .eq("user_id", context.userId)
       .order("created_at", { ascending: true })
-      .limit(40);
+      .limit(24);
 
-    const messages = [
-      { role: "system", content: "Você é o Vibely AI, um assistente amigável em português brasileiro. Responda de forma clara, com markdown quando útil. Se o usuário pedir uma imagem, diga que ele pode usar o comando /imagem <descrição>." },
+    const messages: any[] = [
+      { role: "system", content: SYSTEM_PROMPT },
       ...(history ?? []).map((m: any) => ({ role: m.role, content: m.content })),
     ];
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3.1-pro-preview",
-        messages,
-      }),
-    });
+    let text = "";
+    for (let step = 0; step < 4; step++) {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3.7-flash",
+          service_tier: "priority",
+          messages,
+          tools: TOOLS,
+        }),
+      });
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`IA falhou (${res.status}): ${body.slice(0, 200)}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        if (res.status === 429) throw new Error("Muitas mensagens agora. Tente de novo em alguns segundos.");
+        if (res.status === 402) throw new Error("Os créditos de IA acabaram. Recarregue para continuar.");
+        throw new Error(`IA falhou (${res.status}): ${body.slice(0, 200)}`);
+      }
+      const json = (await res.json()) as any;
+      const msg = json?.choices?.[0]?.message;
+      const calls = msg?.tool_calls ?? [];
+      if (calls.length) {
+        messages.push(msg);
+        for (const c of calls) {
+          let args: any = {};
+          try { args = JSON.parse(c.function?.arguments ?? "{}"); } catch { /* ignore */ }
+          const result = await runTool(c.function?.name, args, {
+            supabase: context.supabase,
+            userId: context.userId,
+          });
+          messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(result) });
+        }
+        continue;
+      }
+      text = msg?.content ?? "";
+      break;
     }
-    const json = await res.json() as any;
-    const text = json?.choices?.[0]?.message?.content ?? "";
 
     // Auto-title if this is the first exchange
     if ((history ?? []).length <= 1) {
@@ -142,13 +314,14 @@ export const sendMessage = createServerFn({ method: "POST" })
         thread_id: data.threadId,
         user_id: context.userId,
         role: "assistant",
-        content: text,
+        content: text || "Não consegui responder agora. Tente de novo.",
       })
       .select("id, role, content, image_url, created_at")
       .single();
 
     return { user: userMsg, assistant: aiMsg };
   });
+
 
 export const generateImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

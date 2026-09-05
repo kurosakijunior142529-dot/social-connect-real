@@ -90,6 +90,17 @@ export function UserActionsMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="rounded-2xl">
           {postId ? (
+            <>
+              <DropdownMenuItem onSelect={() => void hidePost("not_interested")}>
+                <EyeOff className="h-4 w-4 mr-2" /> Não tenho interesse
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void hidePost("hidden")}>
+                <EyeOff className="h-4 w-4 mr-2" /> Ocultar publicação
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
+          {postId ? (
             <DropdownMenuItem
               onClick={() => {
                 setReportTarget({ type: "post", id: postId, label: "post" });

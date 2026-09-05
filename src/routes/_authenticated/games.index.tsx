@@ -1,5 +1,10 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Gamepad2, Zap, Grid3x3, Snowflake, Brain, Crown, Bomb, Hash, CircleDot, Users, Disc3, Swords } from "lucide-react";
+import {
+  Gamepad2, Zap, Grid3x3, Snowflake, Brain, Crown, Bomb, Hash, CircleDot,
+  Users, Disc3, Swords, Play, Flame, Trophy, Sparkles, LayoutGrid,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/games/")({
   component: GamesIndex,
@@ -21,16 +26,25 @@ const GAMES: { id: string; name: string; desc: string; icon: any; gradient: stri
 ];
 
 const CAT_LABEL: Record<Cat, string> = { classic: "Clássicos", puzzle: "Puzzles", reflex: "Reflexos" };
+const FILTERS: { id: Cat | "all"; label: string }[] = [
+  { id: "all", label: "Todos" },
+  { id: "classic", label: "Clássicos" },
+  { id: "puzzle", label: "Puzzles" },
+  { id: "reflex", label: "Reflexos" },
+];
 
 function GamesIndex() {
-  const grouped: Record<Cat, typeof GAMES> = { classic: [], puzzle: [], reflex: [] };
-  GAMES.forEach((g) => grouped[g.cat].push(g));
+  const [filter, setFilter] = useState<Cat | "all">("all");
+  const featured = GAMES.find((g) => g.id === "pong") ?? GAMES[0];
+  const visible = filter === "all" ? GAMES : GAMES.filter((g) => g.cat === filter);
 
   return (
     <div className="px-4 pt-2 pb-8">
-      <header className="mb-6 flex items-center gap-3">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-elegant">
+      {/* Header */}
+      <header className="mb-4 flex items-center gap-3">
+        <div className="relative grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-elegant">
           <Gamepad2 className="h-6 w-6" />
+          <span className="absolute -inset-1 -z-10 rounded-3xl bg-primary/40 blur-lg animate-pulse" />
         </div>
         <div>
           <h1 className="text-2xl font-display font-semibold tracking-tight">Jogos</h1>
@@ -38,41 +52,94 @@ function GamesIndex() {
         </div>
       </header>
 
-      {(["classic", "puzzle", "reflex"] as Cat[]).map((cat) => (
-        <section key={cat} className="mb-6">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
-            {CAT_LABEL[cat]}
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {grouped[cat].map((g) => (
-              <Link
-                key={g.id}
-                to="/games/$id"
-                params={{ id: g.id }}
-                className={`group relative overflow-hidden rounded-3xl bg-gradient-to-br ${g.gradient} p-4 aspect-[3/4] flex flex-col justify-between text-white shadow-elegant transition-transform active:scale-[0.98]`}
-              >
-                {g.badge ? (
-                  <span className="absolute top-2 right-2 z-10 text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold">
-                    {g.badge}
-                  </span>
-                ) : null}
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/25 backdrop-blur">
-                  <g.icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="text-lg font-semibold">{g.name}</div>
-                  <div className="text-[11px] text-white/80">{g.desc}</div>
-                </div>
-                <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
-              </Link>
-            ))}
+      {/* Destaque */}
+      <Link
+        to="/games/$id"
+        params={{ id: featured.id }}
+        className={cn(
+          "group relative mb-5 block overflow-hidden rounded-3xl bg-gradient-to-br p-5 text-white shadow-elegant transition-transform active:scale-[0.99]",
+          featured.gradient,
+        )}
+      >
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-sm" />
+        <div className="absolute -bottom-14 -left-8 h-36 w-36 rounded-full bg-black/20 blur-md" />
+        <div className="relative z-10 flex items-start justify-between">
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur">
+            <Flame className="h-3 w-3 text-primary" /> Em alta
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2.5 py-1 text-[10px] font-semibold backdrop-blur">
+            <Trophy className="h-3 w-3" /> Ranking
+          </span>
+        </div>
+        <div className="relative z-10 mt-8 flex items-end justify-between gap-3">
+          <div>
+            <div className="text-2xl font-display font-bold">{featured.name}</div>
+            <div className="text-xs text-white/80">{featured.desc}</div>
           </div>
-        </section>
-      ))}
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-elegant transition-transform group-active:scale-90">
+            <Play className="h-5 w-5 fill-current" />
+          </span>
+        </div>
+      </Link>
 
+      {/* Filtros interativos */}
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {FILTERS.map((f) => {
+          const active = filter === f.id;
+          return (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95",
+                active
+                  ? "bg-primary text-primary-foreground shadow-elegant"
+                  : "bg-[color:var(--surface)] text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {f.id === "all" ? <LayoutGrid className="h-3.5 w-3.5" /> : null}
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Grade de jogos */}
+      <div className="grid grid-cols-2 gap-3">
+        {visible.map((g) => (
+          <Link
+            key={g.id}
+            to="/games/$id"
+            params={{ id: g.id }}
+            className={cn(
+              "group relative overflow-hidden rounded-3xl bg-gradient-to-br p-4 aspect-[3/4] flex flex-col justify-between text-white shadow-elegant transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:scale-[0.97]",
+              g.gradient,
+            )}
+          >
+            {g.badge ? (
+              <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-black/30 backdrop-blur font-semibold">
+                <Sparkles className="h-2.5 w-2.5 text-primary" /> {g.badge}
+              </span>
+            ) : null}
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/25 backdrop-blur transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+              <g.icon className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="text-lg font-semibold">{g.name}</div>
+              <div className="text-[11px] text-white/80">{g.desc}</div>
+              <div className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                {CAT_LABEL[g.cat]}
+              </div>
+            </div>
+            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />
+          </Link>
+        ))}
+      </div>
+
+      {/* Extras */}
       <Link
         to="/games/pong"
-        className="mt-4 flex items-center gap-4 rounded-3xl bg-gradient-to-br from-primary/25 via-primary/10 to-transparent border border-primary/30 p-4 shadow-elegant active:scale-[0.99] transition-transform"
+        className="mt-5 flex items-center gap-4 rounded-3xl bg-gradient-to-br from-primary/25 via-primary/10 to-transparent border border-primary/30 p-4 shadow-elegant active:scale-[0.99] transition-transform"
       >
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
           <Swords className="h-6 w-6" />

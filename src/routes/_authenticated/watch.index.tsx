@@ -69,6 +69,7 @@ function WatchIndex() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("");
   const [videoInput, setVideoInput] = useState("");
+  const [newProvider, setNewProvider] = useState<StreamingProvider>("youtube");
   const [title, setTitle] = useState("");
   const [visibility, setVisibility] = useState<RoomVisibility>("public");
   const [newCategory, setNewCategory] = useState<string>("geral");
@@ -124,22 +125,32 @@ function WatchIndex() {
   async function createRoom(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const src = resolveSource(videoInput);
-    if (!src) {
-      setError("Cole um link válido do YouTube ou Twitch (canal ou vídeo).");
-      return;
+    const premium = PREMIUM_PROVIDERS.includes(newProvider);
+    let provider: string = newProvider;
+    let videoId = "";
+    let roomTitle = title;
+    if (!premium) {
+      const src = resolveSource(videoInput);
+      if (!src) {
+        setError("Cole um link válido do YouTube ou Twitch (canal ou vídeo).");
+        return;
+      }
+      provider = src.provider;
+      videoId = src.provider === "youtube" ? src.videoId : `${src.kind}:${src.id}`;
+      roomTitle = title || (src.provider === "twitch" ? `Twitch: ${src.id}` : "Sala de assistir");
+    } else {
+      roomTitle = title || `${PROVIDER_LABEL[newProvider]}: assistindo juntos`;
     }
     setCreating(true);
     try {
       const freshUser = await requireFreshWatchUser();
-      const videoId = src.provider === "youtube" ? src.videoId : `${src.kind}:${src.id}`;
       const { data, error: err } = await (supabase as any)
         .from("watch_rooms")
         .insert({
           host_id: freshUser.id,
-          provider: src.provider,
+          provider,
           video_id: videoId,
-          title: title || (src.provider === "twitch" ? `Twitch: ${src.id}` : "Sala de assistir"),
+          title: roomTitle,
           visibility,
           category: newCategory,
         })

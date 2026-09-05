@@ -50,8 +50,80 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_files: {
+        Row: {
+          created_at: string
+          extracted_text: string | null
+          id: string
+          mime: string
+          name: string
+          size: number
+          storage_path: string | null
+          thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_text?: string | null
+          id?: string
+          mime: string
+          name: string
+          size?: number
+          storage_path?: string | null
+          thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extracted_text?: string | null
+          id?: string
+          mime?: string
+          name?: string
+          size?: number
+          storage_path?: string | null
+          thread_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_files_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "ai_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_memories: {
+        Row: {
+          created_at: string
+          id: string
+          memory: string
+          source: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          memory: string
+          source?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          memory?: string
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_messages: {
         Row: {
+          attachments: Json
           content: string
           created_at: string
           id: string
@@ -61,6 +133,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: Json
           content?: string
           created_at?: string
           id?: string
@@ -70,6 +143,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: Json
           content?: string
           created_at?: string
           id?: string
@@ -83,6 +157,47 @@ export type Database = {
             foreignKeyName: "ai_messages_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
+            referencedRelation: "ai_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_summaries: {
+        Row: {
+          covered_until: string
+          created_at: string
+          id: string
+          message_count: number
+          summary: string
+          thread_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          covered_until?: string
+          created_at?: string
+          id?: string
+          message_count?: number
+          summary: string
+          thread_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          covered_until?: string
+          created_at?: string
+          id?: string
+          message_count?: number
+          summary?: string
+          thread_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_summaries_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: true
             referencedRelation: "ai_threads"
             referencedColumns: ["id"]
           },

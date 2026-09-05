@@ -10,12 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Bell, Bookmark, Camera, ImagePlus, LogOut, Moon, Shield, Store, Sun, Tv } from "lucide-react";
+import { Bell, Bookmark, Camera, ImagePlus, LogOut, BellOff, Moon, Shield, Sparkles, Store, Sun, Tv } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
 import { AvatarEditor } from "@/components/user/avatar-editor";
 import { InterestsEditor } from "@/components/profile/interests-editor";
 import { useAppTheme } from "@/lib/theme";
 import { PushSettings } from "@/components/settings/push-settings";
+import { useSmartRepliesEnabled } from "@/lib/chat-settings";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -25,6 +26,7 @@ function SettingsPage() {
   const { user } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [smartReplies, setSmartReplies] = useSmartRepliesEnabled();
 
   const profile = useQuery({
     queryKey: ["me-profile", user.id],
@@ -283,7 +285,7 @@ function SettingsPage() {
             <Sparkles className="h-4 w-4" /> Ativadas
           </Button>
           <Button type="button" variant={!smartReplies ? "default" : "ghost"} className="rounded-xl gap-2" onClick={() => setSmartReplies(false)}>
-            <SparklesIcon className="h-4 w-4" /> Desativadas
+            <BellOff className="h-4 w-4" /> Desativadas
           </Button>
         </div>
       </section>

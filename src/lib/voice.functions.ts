@@ -7,6 +7,7 @@ import { z } from "zod";
  * Audio pipeline is identical to the (already working) 1:1 call path.
  */
 export const getVoiceChannelAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
     z
       .object({

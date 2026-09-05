@@ -7,6 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ImagePlus, Video, X } from "lucide-react";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
+import {
+  ImageEditor,
+  defaultImageEdit,
+  exportEditedImage,
+  imageEditIsNeutral,
+  type ImageEditState,
+} from "@/components/media/image-editor";
 import { exportVideo, needsReencode, shouldCompress } from "@/lib/video-export";
 import { useServerFn } from "@tanstack/react-start";
 import { moderateMedia, moderateText } from "@/lib/moderation.functions";
@@ -29,6 +36,7 @@ function CreatePage() {
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
   const [trim, setTrim] = useState<TrimState>(defaultTrim);
+  const [imgEdit, setImgEdit] = useState<ImageEditState>(defaultImageEdit);
   const [progress, setProgress] = useState(0);
   const [mode, setMode] = useState<Mode>("media");
   const [poll, setPoll] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
@@ -45,6 +53,7 @@ function CreatePage() {
     if (!isImage && !isVid) return toast.error("Envie uma imagem ou vídeo");
     setFile(f);
     setTrim(defaultTrim);
+    setImgEdit({ ...defaultImageEdit, aspect: isVid ? "original" : "1" });
     setProgress(0);
     setPreview(URL.createObjectURL(f));
   }
@@ -122,6 +131,15 @@ function CreatePage() {
             console.warn("[create] video export failed, uploading original", err);
             toast.message("Não foi possível aplicar o corte — enviando o vídeo original");
           }
+        }
+      }
+
+      if (!isVideo && preview && !imageEditIsNeutral(imgEdit)) {
+        try {
+          toUpload = await exportEditedImage(preview, imgEdit);
+        } catch (err) {
+          console.warn("[create] image export failed, uploading original", err);
+          toast.message("Não foi possível aplicar a edição — enviando a foto original");
         }
       }
 
@@ -210,7 +228,27 @@ function CreatePage() {
       </div>
 
       <form onSubmit={submit} className="space-y-4">
-        {mode !== "media" ? null : preview ? (
+        {mode === "media" && preview && !isVideo ? (
+          <div className="space-y-3">
+            <div className="relative">
+              <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} />
+              <button
+                type="button"
+                onClick={() => {
+                  setFile(null);
+                  setPreview(null);
+                  setImgEdit(defaultImageEdit);
+                }}
+                className="absolute top-3 right-3 z-10 rounded-full bg-black/60 text-white p-2"
+                aria-label="Remover foto"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {mode !== "media" || (preview && !isVideo) ? null : preview ? (
           <div className="relative rounded-3xl overflow-hidden bg-black">
             {isVideo ? (
               <video src={preview} controls playsInline className="w-full aspect-square object-cover" />

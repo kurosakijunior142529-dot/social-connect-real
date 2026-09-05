@@ -177,7 +177,7 @@ export const Route = createFileRoute("/api/public/push/dispatch")({
               userId: call.callee_id,
               title: call.call_type === "video" ? "Chamada de vídeo" : "Chamada de voz",
               body: `${caller} está te ligando`,
-              path: `/calls/${id}`,
+              path: "/messages",
               tag: `call-${id}`,
             };
           }

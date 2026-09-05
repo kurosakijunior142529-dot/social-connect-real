@@ -436,7 +436,7 @@ function WatchRoomPage() {
         <header className="flex items-center gap-2 px-3 py-3 hairline-b glass-heavy sticky top-0 z-10">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-primary">
-              <span>{room.provider}</span>
+              <span>{PROVIDER_LABEL[provider] ?? room.provider}</span>
               <span>·</span>
               <span>{membersQuery.data?.length ?? 1} online</span>
             </div>
@@ -472,6 +472,32 @@ function WatchRoomPage() {
           </button>
         </header>
 
+        {/* Seletor de serviço */}
+        <div className="flex items-center gap-2 overflow-x-auto px-3 py-2 hairline-b bg-[color:var(--surface)]">
+          {PROVIDER_OPTIONS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              disabled={!isHost}
+              onClick={() => void changeProvider(p)}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition border",
+                provider === p
+                  ? "border-primary/60 bg-primary/15 text-primary"
+                  : "border-[color:var(--hairline)] text-muted-foreground hover:text-foreground",
+                !isHost && "opacity-60 cursor-not-allowed",
+              )}
+            >
+              {PROVIDER_LABEL[p]}
+            </button>
+          ))}
+          {provider === "twitch" ? (
+            <span className="shrink-0 rounded-full border border-primary/60 bg-primary/15 px-3 py-1.5 text-[12px] font-medium text-primary">
+              Twitch
+            </span>
+          ) : null}
+        </div>
+
         <div className="relative bg-black aspect-video md:aspect-auto md:flex-1">
           <div ref={playerContainerRef} className="absolute inset-0" />
           {!playerReady ? (
@@ -481,38 +507,41 @@ function WatchRoomPage() {
                 <div>Preparando player…</div>
               </div>
             </div>
+          ) : providerError ? (
+            <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center text-sm text-white/80">
+              <div className="space-y-3">
+                <div>{providerError}</div>
+                {isHost ? (
+                  <Button size="sm" variant="secondary" onClick={() => void changeProvider("youtube")}>
+                    Voltar para o YouTube
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : unavailable ? (
+            <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center text-white/80">
+              <div className="space-y-3">
+                <div className="text-base font-semibold text-white">{PROVIDER_LABEL[provider]}</div>
+                <div className="text-sm">
+                  A integração de reprodução ainda não está disponível neste dispositivo.
+                </div>
+                {isHost ? (
+                  <Button size="sm" variant="secondary" onClick={() => void changeProvider("youtube")}>
+                    Voltar para o YouTube
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           ) : null}
         </div>
 
-        {/* Host controls */}
-        {isHost ? (
-          <div className="flex items-center justify-center gap-2 py-3 hairline-t bg-[color:var(--surface)]">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const p = playerRef.current;
-                if (!p) return;
-                p.seek(Math.max(0, p.getCurrentTime() - 10));
-                writeState(p.isPlaying(), p.getCurrentTime());
-              }}
-            >
+        {/* Controles */}
+        <div className="flex flex-col items-center gap-1.5 py-3 hairline-t bg-[color:var(--surface)]">
+          <div className="flex items-center justify-center gap-2">
+            <Button variant="secondary" size="sm" disabled={!canControl} onClick={() => void control("back")}>
               -10s
             </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                const p = playerRef.current;
-                if (!p) return;
-                if (p.isPlaying()) {
-                  p.pause();
-                  writeState(false, p.getCurrentTime());
-                } else {
-                  p.play();
-                  writeState(true, p.getCurrentTime());
-                }
-              }}
-            >
+            <Button size="sm" disabled={!canControl} onClick={() => void control("toggle")}>
               {stateQuery.data?.playing ? (
                 <>
                   <Pause className="h-4 w-4 mr-1" /> Pausar
@@ -523,24 +552,28 @@ function WatchRoomPage() {
                 </>
               )}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const p = playerRef.current;
-                if (!p) return;
-                p.seek(p.getCurrentTime() + 10);
-                writeState(p.isPlaying(), p.getCurrentTime());
-              }}
-            >
+            <Button variant="secondary" size="sm" disabled={!canControl} onClick={() => void control("forward")}>
               +10s
             </Button>
           </div>
-        ) : (
-          <div className="text-center text-[12px] text-muted-foreground py-2 hairline-t">
-            Reprodução controlada pelo anfitrião. Você está sincronizado.
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className={cn(syncStatus === "syncing" ? "text-primary" : "")}>
+              {syncStatus === "syncing"
+                ? "⟳ Sincronizando…"
+                : syncStatus === "disconnected"
+                  ? "○ Desconectado"
+                  : "● Sincronizado"}
+            </span>
+            {isHost ? (
+              <button type="button" onClick={toggleHostControls} className="underline hover:text-foreground">
+                {hostControlsOnly ? "Somente anfitrião controla" : "Todos podem controlar"}
+              </button>
+            ) : (
+              <span>{hostControlsOnly ? "Reprodução controlada pelo anfitrião." : "Controle liberado."}</span>
+            )}
           </div>
-        )}
+        </div>
+
       </div>
 
       {/* Chat + people pane */}

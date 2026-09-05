@@ -35,6 +35,7 @@ import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-pan
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
+import { parseVibelyMention } from "@/lib/vibely-mention";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,

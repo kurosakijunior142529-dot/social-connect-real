@@ -24,6 +24,7 @@ import { useAiActions } from "@/hooks/use-ai-actions";
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ConversationMenu } from "@/components/chat/conversation-menu";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
+import { parseVibelyMention } from "@/lib/vibely-mention";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -133,6 +134,19 @@ function ChatPage() {
       setSending(false);
       setEditing(null); setDraft("");
       if (error) toast.error(error.message);
+      return;
+    }
+
+    const mention = parseVibelyMention(text);
+    if (mention) {
+      setDraft("");
+      await (supabase as any).from("chat_messages").insert({ chat_id: id, sender_id: user.id, content: text });
+      const answer = await ai.ask(mention);
+      if (answer) {
+        await (supabase as any).from("chat_messages").insert({
+          chat_id: id, sender_id: user.id, content: `\u{1F916} Vibely AI\n\n${answer}`,
+        });
+      }
       return;
     }
 

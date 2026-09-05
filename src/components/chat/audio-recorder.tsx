@@ -112,9 +112,9 @@ export function AudioRecorder({
         onClick={start}
         disabled={disabled || busy}
         aria-label="Gravar áudio"
-        className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-chat-mine text-chat-mine-foreground glow-chat disabled:opacity-40"
       >
-        <Mic className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        <Mic className="h-[18px] w-[18px]" strokeWidth={2} />
       </button>
     );
   }

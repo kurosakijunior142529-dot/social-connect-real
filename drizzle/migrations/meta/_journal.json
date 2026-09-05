@@ -71,6 +71,13 @@
       "when": 1788608878483,
       "tag": "0009_lives_heartbeat_and_stale_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788609100193,
+      "tag": "0010_live_gifts_block_client_writes",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,7 @@ import {
   Copy,
   Crown,
   DoorOpen,
+  ExternalLink,
   Link2,
   Maximize2,
   MessageCircle,

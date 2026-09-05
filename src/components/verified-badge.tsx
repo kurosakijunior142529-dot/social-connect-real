@@ -203,7 +203,7 @@ export function VerifiedName({
     <span className={cn("inline-flex items-center gap-1 min-w-0", className)}>
       <span className="truncate">{name}</span>
       {show ? (
-        <VerifiedBadge size={size} variant={((badgeVariant as BadgeVariant) ?? "verified")} />
+        <VerifiedBadge size={size} variant={safeVariant} />
       ) : null}
     </span>
   );

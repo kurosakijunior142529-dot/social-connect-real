@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { MoreHorizontal, Flag, Ban, ShieldOff } from "lucide-react";
+import { MoreHorizontal, Flag, Ban, ShieldOff, EyeOff } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +52,18 @@ export function UserActionsMenu({
   const { user } = useAuth();
   const blocks = useBlocks();
   const blockMut = useBlockUser();
+  const qc = useQueryClient();
+
+  async function hidePost(reason: "not_interested" | "hidden") {
+    if (!user) return toast.error("Faça login para ocultar publicações");
+    if (!postId) return;
+    const { error } = await supabase.from("hidden_posts").upsert({ user_id: user.id, post_id: postId, reason });
+    if (error) return toast.error("Não foi possível ocultar esta publicação");
+    qc.setQueriesData<any[] | undefined>({ queryKey: ["feed"] }, (old) =>
+      Array.isArray(old) ? old.filter((p) => p?.id !== postId) : old,
+    );
+    toast.success(reason === "not_interested" ? "Vamos mostrar menos conteúdos assim" : "Publicação ocultada");
+  }
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string; label: string }>({
     type: "user",
@@ -74,6 +89,17 @@ export function UserActionsMenu({
           <MoreHorizontal className="h-5 w-5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="rounded-2xl">
+          {postId ? (
+            <>
+              <DropdownMenuItem onSelect={() => void hidePost("not_interested")}>
+                <EyeOff className="h-4 w-4 mr-2" /> Não tenho interesse
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void hidePost("hidden")}>
+                <EyeOff className="h-4 w-4 mr-2" /> Ocultar publicação
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
           {postId ? (
             <DropdownMenuItem
               onClick={() => {

@@ -35,6 +35,7 @@ import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-pan
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
+import { parseVibelyMention } from "@/lib/vibely-mention";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
   component: ConversationPage,
@@ -373,6 +374,18 @@ function ConversationPage() {
       if (answer) {
         await sendPayload({ kind: "text", content: `🤖 ${q}\n\n${answer}` });
       }
+      return;
+    }
+
+    const mention = parseVibelyMention(text);
+    if (mention) {
+      setDraft("");
+      setReplyTo(null);
+      const payload: any = { kind: "text", content: text };
+      if (replyTo) payload.reply_to = replyTo.id;
+      await sendPayload(payload);
+      const answer = await ai.ask(mention);
+      if (answer) await sendPayload({ kind: "text", content: `🤖 Vibely AI\n\n${answer}` });
       return;
     }
 

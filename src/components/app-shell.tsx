@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUnreadNotifications } from "@/hooks/use-notifications";
 import { signOutAndClearSession } from "@/lib/auth-session";
-import { useSmartRepliesEnabled } from "@/lib/chat-settings";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
@@ -54,7 +53,6 @@ export function AppShell({
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [userId, setUserId] = useState<string | undefined>();
-  const [aiChatEnabled] = useSmartRepliesEnabled();
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id));
   }, []);
@@ -263,7 +261,7 @@ export function AppShell({
       </main>
 
       {/* Atalho flutuante para a IA — apenas na aba de Conversas */}
-      {pathname === "/messages" && aiChatEnabled ? (
+      {pathname === "/messages" ? (
         <Link
           to="/ai"
           aria-label="Vibely AI"

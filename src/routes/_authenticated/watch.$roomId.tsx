@@ -5,9 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/user-avatar";
-import { createYouTubePlayer } from "@/lib/watch/youtube";
-import { createTwitchPlayer } from "@/lib/watch/twitch";
-import type { WatchProviderPlayer } from "@/lib/watch/provider";
+import {
+  createAdapter,
+  PROVIDER_LABEL,
+  PROVIDER_OPTIONS,
+  type StreamingProvider,
+  type StreamingProviderAdapter,
+} from "@/lib/watch/adapters";
+import { expectedPosition, needsCorrection, type SyncStatus } from "@/lib/watch/sync";
+
 import {
   Copy,
   Crown,

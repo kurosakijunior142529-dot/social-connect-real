@@ -173,15 +173,26 @@ function AIThread() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">Vibely AI</div>
-            <div className="text-[11px] text-muted-foreground">Gemini · gere textos e imagens</div>
+            <div className="text-[11px] text-muted-foreground">Gemini · textos, imagens e publicações</div>
           </div>
+          <Link
+            to="/"
+            aria-label="Sair do chat"
+            title="Voltar ao Vibely"
+            className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)] hover:bg-[color:var(--surface)] text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </Link>
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
           {msgs.length === 0 && !sending ? (
-            <EmptyState onPick={(prompt) => setInput(prompt)} />
+            <EmptyState onPick={(prompt) => submit(prompt)} />
           ) : null}
           {msgs.map((m) => <MsgBubble key={m.id} m={m} />)}
+          {pending ? (
+            <MsgBubble m={{ id: "pending", role: "user", content: pending, image_url: null }} />
+          ) : null}
           {sending ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Vibely AI pensando…
@@ -190,6 +201,18 @@ function AIThread() {
         </div>
 
         <div className="p-3 hairline-t bg-background">
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            {QUICK.map((q) => (
+              <button
+                key={q.label}
+                onClick={() => submit(q.prompt)}
+                disabled={sending}
+                className="shrink-0 rounded-full bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
           <div className="rounded-2xl bg-[color:var(--surface)] p-2 flex items-end gap-2">
             <Textarea
               ref={inputRef}
@@ -198,17 +221,18 @@ function AIThread() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
               }}
-              placeholder="Pergunte qualquer coisa… (/imagem <descrição> para gerar imagens)"
+              placeholder="Pergunte, peça uma enquete, um post ou /imagem <descrição>"
               rows={1}
               className="min-h-[42px] max-h-40 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:outline-none"
             />
             <Button size="icon" variant="ghost" onClick={askImage} disabled={sending} title="Gerar imagem">
               <ImageIcon className="h-4 w-4" />
             </Button>
-            <Button size="icon" onClick={submit} disabled={sending || !input.trim()}>
+            <Button size="icon" onClick={() => submit()} disabled={sending || !input.trim()}>
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
+
           <p className="text-[10px] text-muted-foreground text-center mt-2">
             Vibely AI pode cometer erros. Verifique informações importantes.
           </p>

@@ -419,3 +419,32 @@ export const generateImage = createServerFn({ method: "POST" })
 
     return { assistant: aiMsg };
   });
+
+/**
+ * Apaga uma mensagem e tudo que veio depois dela na conversa.
+ * Usado para "editar e reenviar" e para "regenerar resposta".
+ */
+export const truncateFrom = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ threadId: z.string().uuid(), messageId: z.string().uuid() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: target, error: findErr } = await (context.supabase as any)
+      .from("ai_messages")
+      .select("created_at")
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (findErr) throw new Error(findErr.message);
+    if (!target) throw new Error("Mensagem não encontrada");
+
+    const { error } = await (context.supabase as any)
+      .from("ai_messages")
+      .delete()
+      .eq("thread_id", data.threadId)
+      .eq("user_id", context.userId)
+      .gte("created_at", target.created_at);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

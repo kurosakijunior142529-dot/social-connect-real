@@ -36,15 +36,15 @@ function MessagesPage() {
   return (
     <div>
       <header className="sticky top-0 z-20 glass-heavy hairline-b">
-        <div className="flex items-center justify-between px-4 h-12">
-          <h1 className="text-[19px] font-display font-semibold tracking-tight">Conversas</h1>
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <h1 className="text-[26px] font-display font-bold tracking-tight">Conversas</h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 aria-label="Novo"
-                className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground transition active:scale-95"
+                className="grid h-10 w-10 place-items-center rounded-full border border-primary/25 bg-[color:var(--surface-2)] text-primary transition hover:bg-primary/10 active:scale-95"
               >
-                <Plus className="h-4 w-4" strokeWidth={2.4} />
+                <Plus className="h-5 w-5" strokeWidth={2.4} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

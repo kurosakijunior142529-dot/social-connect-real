@@ -204,6 +204,33 @@ function LiveRoom() {
     return () => clearInterval(t);
   }, [live?.started_at, live?.status]);
 
+  // Host heartbeat: keeps the live marked as active. Without it,
+  // end_stale_lives() closes the broadcast after 3 minutes of silence.
+  useEffect(() => {
+    if (!isHost || !live || live.status === "ended") return;
+    const beat = () => { void (supabase as any).rpc("live_heartbeat", { _live_id: liveId }); };
+    beat();
+    const t = setInterval(beat, 30000);
+    return () => clearInterval(t);
+  }, [isHost, live?.status, live?.id, liveId, live]);
+
+  // Host leaving the page ends the broadcast instead of leaving a ghost live.
+  useEffect(() => {
+    if (!isHost || !live || live.status !== "live") return;
+    const onLeave = () => {
+      try {
+        (supabase as any)
+          .from("lives")
+          .update({ status: "ended", ended_at: new Date().toISOString() })
+          .eq("id", liveId)
+          .eq("host_id", user.id)
+          .then(() => {});
+      } catch { /* noop */ }
+    };
+    window.addEventListener("pagehide", onLeave);
+    return () => window.removeEventListener("pagehide", onLeave);
+  }, [isHost, live?.status, liveId, user.id, live]);
+
   // Connect LiveKit room
   const connect = useCallback(async () => {
     if (!live) return;

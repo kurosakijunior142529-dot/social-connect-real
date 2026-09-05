@@ -74,7 +74,10 @@ export function StoryViewer({
     // record view
     (supabase as any).from("story_views").insert({ story_id: story.id, viewer_id: viewerId }).then(() => {});
     if (timerRef.current) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(next, DURATION);
+    // fotos avançam em 5s; vídeos avançam pelo tempo real (onLoadedMetadata/onEnded)
+    if (story.media_type !== "video") {
+      timerRef.current = window.setTimeout(next, IMAGE_DURATION);
+    }
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
   }, [story, viewerId, next]);
 

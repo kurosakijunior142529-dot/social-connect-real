@@ -232,6 +232,7 @@ export function VideoPlayer({
   const download = useCallback(async () => {
     if (downloading) return;
     setDownloading(true);
+    setDlPct(0);
     try {
       let blob: Blob;
       let ext = "mp4";

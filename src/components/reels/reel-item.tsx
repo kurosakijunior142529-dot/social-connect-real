@@ -45,6 +45,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
 
 
   const { data: url } = useSignedUrl("posts", post.media_url);
+  const { data: posterUrl } = useSignedUrl("posts", (post as any).thumbnail_url ?? null);
 
   // Dois níveis, como TikTok: "perto" prepara metadados, "ativo" baixa e toca.
   // O elemento <video> nunca é desmontado — só o `src` entra/sai — para que o
@@ -263,20 +264,31 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   return (
     <div
       ref={rootRef}
-      className="snap-start relative h-full w-full bg-black overflow-hidden select-none touch-pan-y"
+      className="snap-start relative h-full w-full bg-black overflow-hidden select-none touch-pan-y [contain:layout_paint] [content-visibility:auto]"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
     >
+      {/* Fundo ambiente desfocado (barras laterais deixam de ser preto puro) */}
+      {posterUrl ? (
+        <img
+          src={posterUrl}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-45 blur-2xl saturate-150"
+        />
+      ) : null}
+
       {url ? (
         <video
           ref={videoRef}
+          poster={posterUrl ?? undefined}
           // `src` é anexado/desanexado pelo efeito — o elemento nunca desmonta,
           // então o decoder e o buffer sobrevivem à rolagem.
           // object-contain: o vídeo inteiro aparece (estilo Instagram Reels) —
           // nada é cortado; as sobras ficam pretas sobre o fundo.
-          className="absolute inset-0 h-full w-full object-contain"
+          className="absolute inset-0 h-full w-full object-contain [transform:translateZ(0)]"
           loop
           playsInline
           muted={muted}
@@ -292,7 +304,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       ) : null}
       {!url || !ready ? (
         <div className="absolute inset-0 grid place-items-center">
-          <div className="h-10 w-10 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
+          <div className="h-11 w-11 rounded-full border-2 border-white/15 border-t-primary animate-spin shadow-[0_0_24px_-4px_rgba(34,224,106,0.6)]" />
         </div>
       ) : null}
 
@@ -349,7 +361,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       </button>
 
       {/* Actions column */}
-      <div className="absolute right-2.5 bottom-24 flex flex-col items-center gap-4 text-white z-20">
+      <div className="absolute right-2.5 bottom-28 flex flex-col items-center gap-3.5 text-white z-20">
         <ActionBtn
           onClick={() => { toggleLike.mutate(); try { navigator.vibrate?.(10); } catch { /* noop */ } }}
           count={post.likes_count}
@@ -391,7 +403,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       </div>
 
       {/* Author + caption */}
-      <div className="absolute left-4 right-16 bottom-8 text-white space-y-2 z-10">
+      <div className="absolute left-4 right-16 bottom-9 text-white space-y-2.5 z-10">
         <div
           className="flex items-center gap-2"
           onPointerDown={(e) => e.stopPropagation()}
@@ -403,7 +415,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
               displayName={post.author?.display_name ?? "?"}
               verified={!!(post.author as any)?.is_verified}
               badgeVariant={((post.author as any)?.badge_variant) ?? null}
-              className="h-9 w-9 ring-1 ring-white/60"
+              className="h-10 w-10 ring-2 ring-primary/70 shadow-[0_0_18px_-4px_rgba(34,224,106,0.8)]"
             />
           </Link>
           <Link
@@ -419,7 +431,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => { e.stopPropagation(); setExpandCaption((v) => !v); }}
             className={cn(
-              "text-[13.5px] leading-snug drop-shadow whitespace-pre-wrap cursor-pointer",
+              "w-fit max-w-full rounded-2xl bg-black/25 px-3 py-1.5 text-[13.5px] leading-snug backdrop-blur-md whitespace-pre-wrap cursor-pointer",
               !expandCaption && "line-clamp-2",
             )}
           >
@@ -432,14 +444,14 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 bg-white/10 transition-all duration-200",
-          scrubberActive ? "h-1" : "h-[2px]",
+          scrubberActive ? "h-1.5" : "h-[3px]",
         )}
         onPointerEnter={() => setScrubberActive(true)}
         onPointerLeave={() => setScrubberActive(false)}
       >
         <div
           ref={progressRef}
-          className="h-full origin-left scale-x-0 rounded-r-full bg-gradient-to-r from-white/70 to-primary shadow-[0_0_10px_rgba(255,255,255,0.35)]"
+          className="h-full origin-left scale-x-0 rounded-r-full bg-gradient-to-r from-primary/70 via-primary to-white shadow-[0_0_14px_rgba(34,224,106,0.7)]"
         />
       </div>
 
@@ -494,9 +506,9 @@ function ActionBtn({
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
       aria-label={label}
-      className="flex flex-col items-center gap-1 active:scale-90 transition"
+      className="flex flex-col items-center gap-1 transition-transform duration-150 active:scale-[0.86]"
     >
-      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/25 backdrop-blur-md ring-1 ring-white/10 shadow-[0_6px_18px_-8px_rgba(0,0,0,0.9)]">
+      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 backdrop-blur-xl ring-1 ring-white/15 shadow-[0_10px_24px_-12px_rgba(0,0,0,0.95)]">
         {icon}
       </span>
       {typeof count === "number" ? (

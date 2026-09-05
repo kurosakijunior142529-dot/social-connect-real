@@ -5,6 +5,7 @@ import {
   Users, Disc3, Swords, Play, Flame, Trophy, Sparkles, LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { XboxIcon } from "@/components/icons/xbox";
 
 export const Route = createFileRoute("/_authenticated/games/")({
   component: GamesIndex,
@@ -155,8 +156,8 @@ function GamesIndex() {
         to="/games/xcloud"
         className="mt-3 flex items-center gap-4 rounded-3xl bg-gradient-to-br from-emerald-500/25 via-emerald-500/10 to-transparent border border-primary/25 p-4 shadow-elegant active:scale-[0.99] transition-transform"
       >
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
-          <Gamepad2 className="h-6 w-6" />
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#107C10] text-white">
+          <XboxIcon className="h-7 w-7" />
         </div>
         <div className="flex-1">
           <div className="text-base font-semibold">Xbox Cloud Gaming</div>

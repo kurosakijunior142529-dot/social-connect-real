@@ -272,10 +272,10 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
 
 function ListSkeleton() {
   return (
-    <div className="divide-y divide-[color:var(--hairline)]">
+    <div className="space-y-2 px-3 pt-2">
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="flex items-center gap-3 px-4 py-3">
-          <Skeleton className="h-12 w-12 rounded-full" />
+        <div key={i} className="flex items-center gap-3.5 rounded-[24px] p-3.5">
+          <Skeleton className="h-14 w-14 rounded-2xl" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-3 w-32 rounded" />
             <Skeleton className="h-3 w-48 rounded" />

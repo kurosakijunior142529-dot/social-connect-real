@@ -83,7 +83,7 @@ export function VerifiedBadge({
   animated = true,
   title,
 }: Props) {
-  const cfg = CONFIG[variant];
+  const cfg = CONFIG[variant] ?? CONFIG.verified;
   const Icon = cfg.Icon;
   const iconSize = Math.round(size * 0.6);
   const halo = Math.round(size * 1.75);
@@ -196,12 +196,14 @@ export function VerifiedName({
   size?: number;
   className?: string;
 }) {
+  const safeVariant: BadgeVariant =
+    badgeVariant && badgeVariant in CONFIG ? (badgeVariant as BadgeVariant) : "verified";
   const show = !!verified || !!badgeVariant;
   return (
     <span className={cn("inline-flex items-center gap-1 min-w-0", className)}>
       <span className="truncate">{name}</span>
       {show ? (
-        <VerifiedBadge size={size} variant={((badgeVariant as BadgeVariant) ?? "verified")} />
+        <VerifiedBadge size={size} variant={safeVariant} />
       ) : null}
     </span>
   );

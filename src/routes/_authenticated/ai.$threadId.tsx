@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Sparkles, Trash2, Image as ImageIcon, Loader2, MessageSquare } from "lucide-react";
+import { ArrowLeft, Plus, Send, Sparkles, Trash2, Image as ImageIcon, Loader2, MessageSquare, X } from "lucide-react";
 import {
   listThreads, listMessages, sendMessage, generateImage,
   createThread, deleteThread,
@@ -35,6 +35,8 @@ function AIThread() {
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -82,10 +84,11 @@ function AIThread() {
     },
   });
 
-  async function submit() {
-    const text = input.trim();
+  async function submit(override?: string) {
+    const text = (override ?? input).trim();
     if (!text || sending) return;
     setInput("");
+    setPending(text);
     setSending(true);
     try {
       if (text.startsWith("/imagem ") || text.startsWith("/img ")) {
@@ -94,24 +97,26 @@ function AIThread() {
       } else {
         await send({ data: { threadId, content: text } });
       }
-      qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
       qc.invalidateQueries({ queryKey: ["ai-threads"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao enviar");
       setInput(text);
     } finally {
+      setPending(null);
       setSending(false);
       inputRef.current?.focus();
     }
   }
 
   function askImage() {
-    if (!input.trim()) return toast.info("Descreva a imagem primeiro");
-    setInput(`/imagem ${input.trim()}`);
-    setTimeout(() => submit(), 0);
+    const t = input.trim();
+    if (!t) return toast.info("Descreva a imagem primeiro");
+    submit(`/imagem ${t}`);
   }
 
   const msgs = messages.data ?? [];
+
 
   return (
     <div className="fixed inset-0 z-40 flex bg-background text-foreground md:pl-60">
@@ -168,15 +173,26 @@ function AIThread() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">Vibely AI</div>
-            <div className="text-[11px] text-muted-foreground">Gemini · gere textos e imagens</div>
+            <div className="text-[11px] text-muted-foreground">Gemini · textos, imagens e publicações</div>
           </div>
+          <Link
+            to="/"
+            aria-label="Sair do chat"
+            title="Voltar ao Vibely"
+            className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)] hover:bg-[color:var(--surface)] text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </Link>
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
           {msgs.length === 0 && !sending ? (
-            <EmptyState onPick={(prompt) => setInput(prompt)} />
+            <EmptyState onPick={(prompt) => submit(prompt)} />
           ) : null}
           {msgs.map((m) => <MsgBubble key={m.id} m={m} />)}
+          {pending ? (
+            <MsgBubble m={{ id: "pending", role: "user", content: pending, image_url: null }} />
+          ) : null}
           {sending ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Vibely AI pensando…
@@ -185,6 +201,18 @@ function AIThread() {
         </div>
 
         <div className="p-3 hairline-t bg-background">
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            {QUICK.map((q) => (
+              <button
+                key={q.label}
+                onClick={() => submit(q.prompt)}
+                disabled={sending}
+                className="shrink-0 rounded-full bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
           <div className="rounded-2xl bg-[color:var(--surface)] p-2 flex items-end gap-2">
             <Textarea
               ref={inputRef}
@@ -193,17 +221,18 @@ function AIThread() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
               }}
-              placeholder="Pergunte qualquer coisa… (/imagem <descrição> para gerar imagens)"
+              placeholder="Pergunte, peça uma enquete, um post ou /imagem <descrição>"
               rows={1}
               className="min-h-[42px] max-h-40 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:outline-none"
             />
             <Button size="icon" variant="ghost" onClick={askImage} disabled={sending} title="Gerar imagem">
               <ImageIcon className="h-4 w-4" />
             </Button>
-            <Button size="icon" onClick={submit} disabled={sending || !input.trim()}>
+            <Button size="icon" onClick={() => submit()} disabled={sending || !input.trim()}>
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
+
           <p className="text-[10px] text-muted-foreground text-center mt-2">
             Vibely AI pode cometer erros. Verifique informações importantes.
           </p>
@@ -226,7 +255,7 @@ function MsgBubble({ m }: { m: { id: string; role: string; content: string; imag
         {m.image_url ? <AiImage path={m.image_url} /> : null}
         {m.content ? (
           <div className={cn("prose prose-sm dark:prose-invert max-w-none", isUser ? "prose-invert" : "")}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD}>{m.content}</ReactMarkdown>
           </div>
         ) : null}
       </div>
@@ -234,11 +263,33 @@ function MsgBubble({ m }: { m: { id: string; role: string; content: string; imag
   );
 }
 
+const MD = {
+  a: ({ href, children }: any) => {
+    const internal = typeof href === "string" && href.startsWith("/");
+    if (internal) {
+      return (
+        <Link to={href} className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-primary no-underline font-medium">
+          {children}
+        </Link>
+      );
+    }
+    return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+  },
+};
+
 function AiImage({ path }: { path: string }) {
   const url = useSignedUrl("posts", path);
   if (!url.data) return <div className="h-56 w-full rounded-xl bg-white/5 animate-pulse mb-2" />;
   return <img src={url.data} alt="Imagem gerada" className="rounded-xl mb-2 max-h-80 w-auto" />;
 }
+
+const QUICK = [
+  { label: "🔥 Bombando agora", prompt: "Quais são as publicações do momento no Vibely?" },
+  { label: "📊 Criar enquete", prompt: "Crie uma enquete divertida para o meu perfil" },
+  { label: "📝 Publicar texto", prompt: "Escreva e publique um post curto e criativo para mim" },
+  { label: "🎬 Postar vídeo", prompt: "Quero postar um vídeo, me ajude passo a passo" },
+  { label: "🎨 Gerar imagem", prompt: "/imagem paisagem neon futurista, ultra detalhada" },
+];
 
 const EXAMPLES = [
   { icon: "💡", label: "Explique um conceito", prompt: "Me explique como funciona o WebRTC de forma simples" },

@@ -196,6 +196,8 @@ export function VerifiedName({
   size?: number;
   className?: string;
 }) {
+  const safeVariant: BadgeVariant =
+    badgeVariant && badgeVariant in CONFIG ? (badgeVariant as BadgeVariant) : "verified";
   const show = !!verified || !!badgeVariant;
   return (
     <span className={cn("inline-flex items-center gap-1 min-w-0", className)}>

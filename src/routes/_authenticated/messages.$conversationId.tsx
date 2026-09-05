@@ -461,7 +461,7 @@ function ConversationPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
-      <header className="flex items-center gap-2 px-3 h-14 glass-heavy hairline-b sticky top-0 z-10">
+      <header className="relative flex items-center gap-2 px-3 h-16 glass-heavy sticky top-0 z-10 bg-gradient-to-b from-[color:var(--chat-mine)]/12 to-transparent after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-[color:var(--chat-mine)]/45 after:to-transparent">
         <Link
           to="/messages"
           className="p-2 -ml-1 rounded-full active:bg-[color:var(--surface-2)] md:hidden"
@@ -479,7 +479,7 @@ function ConversationPage() {
                     displayName={other.display_name}
                     verified={!!(other as any).is_verified}
                     badgeVariant={((other as any).badge_variant) ?? null}
-                    className="h-9 w-9 rounded-full ring-2 ring-background"
+                    className="h-10 w-10 rounded-full ring-2 ring-background"
                   />
                 </div>
                 <span
@@ -670,7 +670,7 @@ function ConversationPage() {
 
       <form
         onSubmit={send}
-        className="p-3 hairline-t glass-heavy flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className="relative px-3 pt-3 glass-heavy flex items-end gap-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[color:var(--chat-mine)]/35 before:to-transparent"
       >
         <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
         <button
@@ -683,7 +683,7 @@ function ConversationPage() {
           <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
-        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2 border border-[color:var(--hairline)] transition-all focus-within:border-primary/60 focus-within:shadow-[0_0_14px_var(--chat-mine-glow)]">
+        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-3xl bg-[color:var(--surface-2)]/90 px-4 py-2.5 border border-[color:var(--hairline)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all focus-within:border-[color:var(--chat-mine)]/70 focus-within:shadow-[0_0_18px_var(--chat-mine-glow)]">
           <Input
             value={draft}
             onChange={(e) => {

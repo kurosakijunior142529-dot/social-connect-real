@@ -267,6 +267,7 @@ export function VideoPlayer({
       window.open(src, "_blank", "noopener");
     } finally {
       setDownloading(false);
+      setDlPct(0);
     }
   }, [src, downloadName, downloading]);
 

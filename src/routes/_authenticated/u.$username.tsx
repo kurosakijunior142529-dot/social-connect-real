@@ -25,7 +25,6 @@ import {
   Menu,
   Pencil,
   Plus,
-  Eye,
   Trophy,
   ChevronRight,
 } from "lucide-react";

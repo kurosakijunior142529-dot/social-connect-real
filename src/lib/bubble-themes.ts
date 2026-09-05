@@ -111,7 +111,7 @@ export type ChatPrefs = {
 };
 
 const DEFAULTS: ChatPrefs = {
-  themeId: "classic",
+  themeId: "modern",
   font: "system",
   radius: 20,
   animations: true,

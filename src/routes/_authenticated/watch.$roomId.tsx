@@ -5,9 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/user-avatar";
-import { createYouTubePlayer } from "@/lib/watch/youtube";
-import { createTwitchPlayer } from "@/lib/watch/twitch";
-import type { WatchProviderPlayer } from "@/lib/watch/provider";
+import {
+  createAdapter,
+  PROVIDER_LABEL,
+  PROVIDER_OPTIONS,
+  type StreamingProvider,
+  type StreamingProviderAdapter,
+} from "@/lib/watch/adapters";
+import { expectedPosition, needsCorrection, type SyncStatus } from "@/lib/watch/sync";
+
 import {
   Copy,
   Crown,
@@ -47,8 +53,6 @@ type RoomState = {
   updated_by: string | null;
 };
 
-const DRIFT_THRESHOLD = 1.5;
-
 function WatchRoomPage() {
   const { roomId } = Route.useParams();
   const { user } = Route.useRouteContext();
@@ -56,13 +60,20 @@ function WatchRoomPage() {
   const queryClient = useQueryClient();
 
   const playerContainerRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<WatchProviderPlayer | null>(null);
-  const lastStateAppliedRef = useRef<{ playing: boolean; position: number; at: number } | null>(null);
+  const adapterRef = useRef<StreamingProviderAdapter | null>(null);
+  const controlChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const suppressBroadcastRef = useRef(false);
+
+
   const [playerReady, setPlayerReady] = useState(false);
+  const [providerError, setProviderError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("connected");
+  const [hostControlsOnly, setHostControlsOnly] = useState(true);
   const [tab, setTab] = useState<"chat" | "people">("chat");
   const [chatInput, setChatInput] = useState("");
   const [copied, setCopied] = useState(false);
+
 
   // Ensure membership
   useEffect(() => {
@@ -180,52 +191,22 @@ function WatchRoomPage() {
         { event: "*", schema: "public", table: "watch_room_members", filter: `room_id=eq.${roomId}` },
         () => queryClient.invalidateQueries({ queryKey: ["watch-members", roomId] }),
       )
-      .subscribe();
+      .on("broadcast", { event: "host_controls" }, (msg: any) => {
+        if (typeof msg?.payload?.hostControlsOnly === "boolean") {
+          setHostControlsOnly(msg.payload.hostControlsOnly);
+        }
+      })
+      .subscribe((status) => {
+        setSyncStatus(status === "SUBSCRIBED" ? "connected" : "disconnected");
+      });
+    controlChannelRef.current = ch;
     return () => {
+      controlChannelRef.current = null;
       supabase.removeChannel(ch);
     };
   }, [roomId, queryClient]);
 
-  // Mount player once (YouTube or Twitch based on room.provider)
-  useEffect(() => {
-    if (!room || !playerContainerRef.current) return;
-    if (playerRef.current) return;
-    let cancelled = false;
-    const onReady = (p: WatchProviderPlayer) => {
-      if (cancelled) {
-        p.destroy();
-        return;
-      }
-      playerRef.current = p;
-      setPlayerReady(true);
-    };
-    const onStateChange = (s: string) => {
-      if (!isHost || suppressBroadcastRef.current) return;
-      const p = playerRef.current;
-      if (!p) return;
-      if (s === "playing" || s === "paused") {
-        void writeState(s === "playing", p.getCurrentTime());
-      }
-    };
-    if (room.provider === "twitch") {
-      const raw = room.video_id ?? "";
-      const [kind, id] = raw.split(":");
-      if (id && (kind === "channel" || kind === "video")) {
-        void createTwitchPlayer(playerContainerRef.current, { kind, id }, { onReady, onStateChange });
-      }
-    } else {
-      void createYouTubePlayer(playerContainerRef.current, room.video_id, {
-        onReady,
-        onStateChange: (s) => onStateChange(s),
-      });
-    }
-    return () => {
-      cancelled = true;
-      playerRef.current?.destroy();
-      playerRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room?.video_id, room?.provider]);
+  const provider = ((room?.provider as StreamingProvider) ?? "youtube") as StreamingProvider;
 
   const writeState = useCallback(
     async (playing: boolean, position: number) => {
@@ -245,42 +226,155 @@ function WatchRoomPage() {
     },
     [roomId, room?.video_id, user.id],
   );
+  const writeStateRef = useRef(writeState);
+  writeStateRef.current = writeState;
+  const isHostRef = useRef(isHost);
+  isHostRef.current = isHost;
 
-  // Sync from state to player (guests + host on reconnect)
+  // Monta o adapter do provedor atual (YouTube mantém o player existente).
+  useEffect(() => {
+    if (!room || !playerContainerRef.current) return;
+    let cancelled = false;
+    const container = playerContainerRef.current;
+    setPlayerReady(false);
+    setProviderError(null);
+    setUnavailable(null);
+
+    const adapter = createAdapter(provider, container, room.video_id, {
+      onStateChange: (s) => {
+        if (!isHostRef.current || suppressBroadcastRef.current) return;
+        const a = adapterRef.current;
+        if (!a) return;
+        if (s === "playing" || s === "paused") {
+          void a.getCurrentTime().then((t) => writeStateRef.current(s === "playing", t));
+        }
+      },
+    });
+    adapterRef.current = adapter;
+
+    void adapter
+      .initialize()
+      .then(() => {
+        if (cancelled) return;
+        if (!adapter.playable) {
+          setUnavailable(adapter.unavailableMessage ?? null);
+          container.innerHTML = "";
+        }
+        setPlayerReady(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProviderError("Não foi possível carregar este serviço.");
+        setPlayerReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+      void adapter.destroy();
+      if (adapterRef.current === adapter) adapterRef.current = null;
+      container.innerHTML = "";
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.video_id, provider, room?.id]);
+
+  // Sincroniza estado -> participante (correção só acima de 0,75s)
   useEffect(() => {
     if (!playerReady) return;
     const state = stateQuery.data;
-    const p = playerRef.current;
-    if (!state || !p) return;
-    // Compute expected position accounting for time since last update
-    const secondsSinceUpdate = (Date.now() - new Date(state.updated_at).getTime()) / 1000;
-    const expected = state.playing ? state.position_sec + secondsSinceUpdate : state.position_sec;
-    const currentTime = p.getCurrentTime();
-    const drift = Math.abs(currentTime - expected);
-    suppressBroadcastRef.current = true;
-    try {
-      if (drift > DRIFT_THRESHOLD) p.seek(expected);
-      if (state.playing && !p.isPlaying()) p.play();
-      if (!state.playing && p.isPlaying()) p.pause();
-    } finally {
-      // release on next tick
-      setTimeout(() => {
-        suppressBroadcastRef.current = false;
-      }, 300);
-    }
-    lastStateAppliedRef.current = { playing: state.playing, position: expected, at: Date.now() };
+    const a = adapterRef.current;
+    if (!state || !a || !a.playable) return;
+    let cancelled = false;
+    void (async () => {
+      const expected = expectedPosition({
+        positionSec: state.position_sec,
+        playing: state.playing,
+        updatedAt: state.updated_at,
+      });
+      const currentTime = await a.getCurrentTime();
+      if (cancelled) return;
+      const mustCorrect = needsCorrection(currentTime, expected);
+      suppressBroadcastRef.current = true;
+      try {
+        if (mustCorrect) {
+          setSyncStatus("syncing");
+          await a.seek(expected);
+        }
+        if (state.playing && !a.isPlaying()) await a.play();
+        if (!state.playing && a.isPlaying()) await a.pause();
+      } finally {
+        setTimeout(() => {
+          suppressBroadcastRef.current = false;
+          setSyncStatus("synced");
+        }, 300);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [stateQuery.data, playerReady]);
 
   // Host heartbeat every 5s
   useEffect(() => {
     if (!isHost || !playerReady) return;
     const t = setInterval(() => {
-      const p = playerRef.current;
-      if (!p) return;
-      void writeState(p.isPlaying(), p.getCurrentTime());
+      const a = adapterRef.current;
+      if (!a || !a.playable) return;
+      void a.getCurrentTime().then((time) => writeState(a.isPlaying(), time));
     }, 5000);
     return () => clearInterval(t);
   }, [isHost, playerReady, writeState]);
+
+  const canControl = isHost || !hostControlsOnly;
+
+  const control = useCallback(
+    async (action: "toggle" | "back" | "forward") => {
+      const a = adapterRef.current;
+      if (!a || !a.playable || !canControl) return;
+      const time = await a.getCurrentTime();
+      if (action === "toggle") {
+        if (a.isPlaying()) {
+          await a.pause();
+          await writeState(false, time);
+        } else {
+          await a.play();
+          await writeState(true, time);
+        }
+        return;
+      }
+      const target = action === "back" ? Math.max(0, time - 10) : time + 10;
+      await a.seek(target);
+      await writeState(a.isPlaying(), target);
+    },
+    [canControl, writeState],
+  );
+
+  async function changeProvider(next: StreamingProvider) {
+    if (!isHost || !room || next === provider) return;
+    const old = adapterRef.current;
+    adapterRef.current = null;
+    await old?.destroy();
+    const { error } = await (supabase as any)
+      .from("watch_rooms")
+      .update({ provider: next })
+      .eq("id", roomId);
+    if (error) {
+      toast.error("Não foi possível trocar o serviço.");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["watch-room", roomId] });
+  }
+
+  function toggleHostControls() {
+    if (!isHost) return;
+    const next = !hostControlsOnly;
+    setHostControlsOnly(next);
+    void controlChannelRef.current?.send({
+      type: "broadcast",
+      event: "host_controls",
+      payload: { hostControlsOnly: next },
+    });
+  }
+
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
@@ -342,7 +436,7 @@ function WatchRoomPage() {
         <header className="flex items-center gap-2 px-3 py-3 hairline-b glass-heavy sticky top-0 z-10">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-primary">
-              <span>{room.provider}</span>
+              <span>{PROVIDER_LABEL[provider] ?? room.provider}</span>
               <span>·</span>
               <span>{membersQuery.data?.length ?? 1} online</span>
             </div>
@@ -378,6 +472,32 @@ function WatchRoomPage() {
           </button>
         </header>
 
+        {/* Seletor de serviço */}
+        <div className="flex items-center gap-2 overflow-x-auto px-3 py-2 hairline-b bg-[color:var(--surface)]">
+          {PROVIDER_OPTIONS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              disabled={!isHost}
+              onClick={() => void changeProvider(p)}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition border",
+                provider === p
+                  ? "border-primary/60 bg-primary/15 text-primary"
+                  : "border-[color:var(--hairline)] text-muted-foreground hover:text-foreground",
+                !isHost && "opacity-60 cursor-not-allowed",
+              )}
+            >
+              {PROVIDER_LABEL[p]}
+            </button>
+          ))}
+          {provider === "twitch" ? (
+            <span className="shrink-0 rounded-full border border-primary/60 bg-primary/15 px-3 py-1.5 text-[12px] font-medium text-primary">
+              Twitch
+            </span>
+          ) : null}
+        </div>
+
         <div className="relative bg-black aspect-video md:aspect-auto md:flex-1">
           <div ref={playerContainerRef} className="absolute inset-0" />
           {!playerReady ? (
@@ -387,38 +507,41 @@ function WatchRoomPage() {
                 <div>Preparando player…</div>
               </div>
             </div>
+          ) : providerError ? (
+            <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center text-sm text-white/80">
+              <div className="space-y-3">
+                <div>{providerError}</div>
+                {isHost ? (
+                  <Button size="sm" variant="secondary" onClick={() => void changeProvider("youtube")}>
+                    Voltar para o YouTube
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : unavailable ? (
+            <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center text-white/80">
+              <div className="space-y-3">
+                <div className="text-base font-semibold text-white">{PROVIDER_LABEL[provider]}</div>
+                <div className="text-sm">
+                  A integração de reprodução ainda não está disponível neste dispositivo.
+                </div>
+                {isHost ? (
+                  <Button size="sm" variant="secondary" onClick={() => void changeProvider("youtube")}>
+                    Voltar para o YouTube
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           ) : null}
         </div>
 
-        {/* Host controls */}
-        {isHost ? (
-          <div className="flex items-center justify-center gap-2 py-3 hairline-t bg-[color:var(--surface)]">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const p = playerRef.current;
-                if (!p) return;
-                p.seek(Math.max(0, p.getCurrentTime() - 10));
-                writeState(p.isPlaying(), p.getCurrentTime());
-              }}
-            >
+        {/* Controles */}
+        <div className="flex flex-col items-center gap-1.5 py-3 hairline-t bg-[color:var(--surface)]">
+          <div className="flex items-center justify-center gap-2">
+            <Button variant="secondary" size="sm" disabled={!canControl} onClick={() => void control("back")}>
               -10s
             </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                const p = playerRef.current;
-                if (!p) return;
-                if (p.isPlaying()) {
-                  p.pause();
-                  writeState(false, p.getCurrentTime());
-                } else {
-                  p.play();
-                  writeState(true, p.getCurrentTime());
-                }
-              }}
-            >
+            <Button size="sm" disabled={!canControl} onClick={() => void control("toggle")}>
               {stateQuery.data?.playing ? (
                 <>
                   <Pause className="h-4 w-4 mr-1" /> Pausar
@@ -429,24 +552,28 @@ function WatchRoomPage() {
                 </>
               )}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const p = playerRef.current;
-                if (!p) return;
-                p.seek(p.getCurrentTime() + 10);
-                writeState(p.isPlaying(), p.getCurrentTime());
-              }}
-            >
+            <Button variant="secondary" size="sm" disabled={!canControl} onClick={() => void control("forward")}>
               +10s
             </Button>
           </div>
-        ) : (
-          <div className="text-center text-[12px] text-muted-foreground py-2 hairline-t">
-            Reprodução controlada pelo anfitrião. Você está sincronizado.
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className={cn(syncStatus === "syncing" ? "text-primary" : "")}>
+              {syncStatus === "syncing"
+                ? "⟳ Sincronizando…"
+                : syncStatus === "disconnected"
+                  ? "○ Desconectado"
+                  : "● Sincronizado"}
+            </span>
+            {isHost ? (
+              <button type="button" onClick={toggleHostControls} className="underline hover:text-foreground">
+                {hostControlsOnly ? "Somente anfitrião controla" : "Todos podem controlar"}
+              </button>
+            ) : (
+              <span>{hostControlsOnly ? "Reprodução controlada pelo anfitrião." : "Controle liberado."}</span>
+            )}
           </div>
-        )}
+        </div>
+
       </div>
 
       {/* Chat + people pane */}

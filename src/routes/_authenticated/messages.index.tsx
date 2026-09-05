@@ -225,40 +225,47 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
     );
   }
   return (
-    <ul className="px-2 pb-4 space-y-1">
-      {query.data.map((c: any) => (
-        <li key={c.id}>
-          <Link
-            to="/chats/$id"
-            params={{ id: c.id }}
-            className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors hover:bg-[color:var(--surface)] active:bg-[color:var(--surface-2)]"
-          >
-
-            {c.avatar_url ? (
-              <div className="h-12 w-12 rounded-full overflow-hidden bg-[color:var(--surface-2)]">
-                <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
+    <ul className="px-3 pb-4 space-y-2 pt-2">
+      {query.data.map((c: any, i: number) => {
+        const featured = i === 0;
+        return (
+          <li key={c.id}>
+            <Link
+              to="/chats/$id"
+              params={{ id: c.id }}
+              className={cn(
+                "flex items-center gap-3.5 p-3.5 transition-all active:scale-[0.98]",
+                featured
+                  ? "rounded-[24px] border-l-4 border-primary bg-[color:var(--surface)] shadow-lg shadow-black/30"
+                  : "rounded-[24px] hover:bg-[color:var(--surface)]/60",
+              )}
+            >
+              {c.avatar_url ? (
+                <div className={cn("h-14 w-14 rounded-2xl overflow-hidden bg-[color:var(--surface-2)]", featured && "ring-2 ring-primary/25")}>
+                  <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div className={cn("grid h-14 w-14 place-items-center rounded-2xl bg-[color:var(--surface-2)] text-foreground", featured && "ring-2 ring-primary/25")}>
+                  {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <div className={cn("truncate text-[15px]", featured ? "font-bold" : "font-semibold")}>{c.title}</div>
+                  {c.last ? (
+                    <div className={cn("text-[11px] shrink-0 tabular uppercase tracking-wide", featured ? "font-bold text-primary" : "text-muted-foreground")}>
+                      {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
+                    </div>
+                  ) : null}
+                </div>
+                <div className={cn("text-[13px] truncate leading-snug", featured ? "text-foreground/80" : "text-muted-foreground")}>
+                  {c.last?.content ?? c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
+                </div>
               </div>
-            ) : (
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] text-foreground">
-                {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="font-semibold text-[15px] truncate">{c.title}</div>
-                {c.last ? (
-                  <div className="text-[11px] text-muted-foreground shrink-0 tabular">
-                    {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
-                  </div>
-                ) : null}
-              </div>
-              <div className="text-[13px] text-muted-foreground truncate leading-snug">
-                {c.last?.content ?? c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
-              </div>
-            </div>
-          </Link>
-        </li>
-      ))}
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }

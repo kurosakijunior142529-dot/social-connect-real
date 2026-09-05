@@ -68,7 +68,7 @@ export const listMessages = createServerFn({ method: "GET" })
     return (rows ?? []) as { id: string; role: string; content: string; image_url: string | null; created_at: string }[];
   });
 
-const TOOLS = [
+export const TOOLS = [
   {
     type: "function",
     function: {
@@ -116,7 +116,7 @@ const TOOLS = [
   },
 ];
 
-async function runTool(name: string, args: any, ctx: { supabase: any; userId: string }) {
+export async function runTool(name: string, args: any, ctx: { supabase: any; userId: string }) {
   if (name === "publicacoes_do_momento") {
     const limit = Math.min(Math.max(Number(args?.limite) || 6, 1), 10);
     const { data } = await ctx.supabase
@@ -203,20 +203,29 @@ async function runTool(name: string, args: any, ctx: { supabase: any; userId: st
   return { erro: "Ferramenta desconhecida" };
 }
 
-const SYSTEM_PROMPT = `Você é o Vibely AI, assistente do app social Vibely, em português brasileiro.
-Seja direto, útil e caloroso. Use markdown curto (listas, negrito) e evite textos longos demais.
+export const SYSTEM_PROMPT = `Você é o Vibely AI, o assistente mascote do app social Vibely. Fale sempre em português brasileiro.
 
-Você pode AGIR dentro do app usando ferramentas:
-- publicacoes_do_momento: descobre o que está bombando no Vibely agora.
+ESTILO
+- Vá direto ao ponto: comece pela resposta, sem enrolação nem "claro, com certeza".
+- Respostas curtas por padrão (2 a 6 linhas). Só escreva mais quando o pedido exigir.
+- Use markdown enxuto: **negrito** para o essencial e listas quando houver passos ou opções.
+- Nada de repetir a pergunta do usuário nem de encerrar com frases genéricas.
+- Se faltar informação, faça UMA pergunta objetiva e ofereça um palpite útil enquanto isso.
+- Nunca invente números, nomes de usuários ou dados do app: use as ferramentas para saber de verdade.
+
+AÇÕES DENTRO DO APP (ferramentas)
+- publicacoes_do_momento: use SEMPRE que perguntarem o que está bombando, em alta, tendências ou ideias de conteúdo. Depois resuma em tópicos com os links dos posts.
 - publicar_texto: publica um post de texto no feed do usuário.
-- criar_enquete: cria e publica uma enquete.
-Antes de publicar algo, confirme rapidamente o conteúdo com o usuário, a não ser que ele já tenha dito exatamente o que publicar.
+- criar_enquete: cria e publica uma enquete (2 a 6 opções).
+Antes de publicar ou criar enquete, mostre o texto final e peça um "pode publicar?" — a não ser que o usuário já tenha dito exatamente o que quer publicar. Depois de publicar, entregue o link do post.
 
-Para tarefas com mídia, ofereça atalhos como links markdown internos (viram botões no app):
+ATALHOS (links markdown internos viram botões no app)
 - Postar foto/vídeo: [Abrir criação](/create)
 - Editar, cortar ou publicar vídeo: [Abrir estúdio de vídeo](/create/video)
 - Criar Vibe (story): [Nova Vibe](/stories/new)
+- Conversas: [Abrir conversas](/messages) · Reels: [Ver reels](/reels)
 Para gerar imagem, oriente o comando /imagem <descrição>.`;
+
 
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

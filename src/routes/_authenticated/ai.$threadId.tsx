@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Sparkles, Trash2, Image as ImageIcon, Loader2, MessageSquare, X } from "lucide-react";
+import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check } from "lucide-react";
 import {
-  listThreads, listMessages, sendMessage, generateImage,
+  listThreads, listMessages, generateImage,
   createThread, deleteThread,
 } from "@/lib/ai-chat.functions";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,41 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { cn } from "@/lib/utils";
+import vibelyMascot from "@/assets/vibely-mascot.png";
 
 export const Route = createFileRoute("/_authenticated/ai/$threadId")({
   ssr: false,
   component: AIThread,
-  head: () => ({ meta: [{ title: "Vibely AI · Gemini" }] }),
+  head: () => ({
+    meta: [
+      { title: "Vibely AI · assistente do Vibely" },
+      { name: "description", content: "Converse com o Vibely AI: ideias, textos, enquetes, imagens e publicações direto no Vibely." },
+      { property: "og:title", content: "Vibely AI · assistente do Vibely" },
+      { property: "og:description", content: "Ideias, textos, enquetes e imagens com o assistente do Vibely." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
+
+type Msg = { id: string; role: string; content: string; image_url: string | null };
+
+function Mascot({ className, thinking }: { className?: string; thinking?: boolean }) {
+  return (
+    <img
+      src={vibelyMascot}
+      alt="Vibely AI"
+      loading="lazy"
+      width={816}
+      height={816}
+      className={cn(
+        "object-contain drop-shadow-[0_0_12px_color-mix(in_oklab,var(--primary)_45%,transparent)]",
+        thinking && "animate-pulse",
+        className,
+      )}
+    />
+  );
+}
 
 function AIThread() {
   const { threadId } = Route.useParams();
@@ -28,7 +57,6 @@ function AIThread() {
   const qc = useQueryClient();
   const list = useServerFn(listThreads);
   const listMsgs = useServerFn(listMessages);
-  const send = useServerFn(sendMessage);
   const genImg = useServerFn(generateImage);
   const create = useServerFn(createThread);
   const del = useServerFn(deleteThread);
@@ -36,6 +64,9 @@ function AIThread() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
+  const [streamText, setStreamText] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  const [lastPrompt, setLastPrompt] = useState<string | null>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -50,19 +81,22 @@ function AIThread() {
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.data, sending]);
+  }, [messages.data, streamText, sending]);
 
   useEffect(() => { inputRef.current?.focus(); }, [threadId]);
 
-  // Realtime: refetch on message insert
+  // Realtime apenas para reconciliação (outros dispositivos)
   useEffect(() => {
     const ch = supabase
       .channel(`ai_msgs_${threadId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "ai_messages", filter: `thread_id=eq.${threadId}` },
-        () => qc.invalidateQueries({ queryKey: ["ai-messages", threadId] }))
+        () => { if (!sendingRef.current) qc.invalidateQueries({ queryKey: ["ai-messages", threadId] }); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [threadId, qc]);
+
+  const sendingRef = useRef(false);
+  useEffect(() => { sendingRef.current = sending; }, [sending]);
 
   const newThread = useMutation({
     mutationFn: () => create({ data: {} }),
@@ -84,30 +118,70 @@ function AIThread() {
     },
   });
 
-  async function submit(override?: string) {
+  const submit = useCallback(async (override?: string) => {
     const text = (override ?? input).trim();
-    if (!text || sending) return;
+    if (!text || sendingRef.current) return;
     setInput("");
     setPending(text);
+    setLastPrompt(text);
+    setStreamText("");
+    setStatus(null);
     setSending(true);
+    sendingRef.current = true;
     try {
       if (text.startsWith("/imagem ") || text.startsWith("/img ")) {
         const prompt = text.replace(/^\/(imagem|img)\s+/, "");
         await genImg({ data: { threadId, prompt } });
+        await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
       } else {
-        await send({ data: { threadId, content: text } });
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        if (!token) throw new Error("Sessão expirada. Entre novamente.");
+        const res = await fetch("/api/ai/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ threadId, content: text }),
+        });
+        if (!res.ok || !res.body) throw new Error(await res.text().catch(() => "Falha ao enviar"));
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let acc = "";
+        let failed: string | null = null;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith("data:")) continue;
+            let ev: any;
+            try { ev = JSON.parse(t.slice(5).trim()); } catch { continue; }
+            if (ev.type === "delta") { acc += ev.text; setStreamText(acc); setStatus(null); }
+            else if (ev.type === "status") setStatus(ev.message);
+            else if (ev.type === "error") failed = ev.message;
+          }
+        }
+        if (failed) throw new Error(failed);
+        await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
       }
-      await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
       qc.invalidateQueries({ queryKey: ["ai-threads"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao enviar");
+      toast.error(typeof e?.message === "string" ? e.message.slice(0, 160) : "Falha ao enviar");
       setInput(text);
     } finally {
       setPending(null);
+      setStreamText("");
+      setStatus(null);
       setSending(false);
+      sendingRef.current = false;
       inputRef.current?.focus();
     }
-  }
+  }, [genImg, input, qc, threadId]);
 
   function askImage() {
     const t = input.trim();
@@ -115,8 +189,7 @@ function AIThread() {
     submit(`/imagem ${t}`);
   }
 
-  const msgs = messages.data ?? [];
-
+  const msgs = (messages.data ?? []) as Msg[];
 
   return (
     <div className="fixed inset-0 z-40 flex bg-background text-foreground md:pl-60">
@@ -138,12 +211,14 @@ function AIThread() {
             <div
               key={t.id}
               className={cn(
-                "group flex items-center gap-2 rounded-xl px-2 py-2 mb-0.5 text-sm cursor-pointer",
-                t.id === threadId ? "bg-[color:var(--surface-2)]" : "hover:bg-[color:var(--surface)]",
+                "group flex items-center gap-2 rounded-xl px-2 py-2 mb-0.5 text-sm cursor-pointer transition-colors",
+                t.id === threadId
+                  ? "bg-[color:var(--surface-2)] ring-1 ring-primary/30"
+                  : "hover:bg-[color:var(--surface)]",
               )}
               onClick={() => { nav({ to: "/ai/$threadId", params: { threadId: t.id } }); setSidebarOpen(false); }}
             >
-              <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <MessageSquare className={cn("h-4 w-4 shrink-0", t.id === threadId ? "text-primary" : "text-muted-foreground")} />
               <span className="flex-1 truncate">{t.title}</span>
               <button
                 onClick={(e) => { e.stopPropagation(); if (confirm("Excluir conversa?")) removeThread.mutate(t.id); }}
@@ -157,7 +232,6 @@ function AIThread() {
         </div>
       </aside>
 
-      {/* Overlay on mobile when sidebar open */}
       {sidebarOpen ? (
         <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
       ) : null}
@@ -168,12 +242,14 @@ function AIThread() {
           <button onClick={() => setSidebarOpen(true)} className="md:hidden grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)]">
             <MessageSquare className="h-4 w-4" />
           </button>
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground">
-            <Sparkles className="h-4 w-4" />
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--surface-2)] ring-1 ring-primary/30">
+            <Mascot className="h-8 w-8" thinking={sending} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">Vibely AI</div>
-            <div className="text-[11px] text-muted-foreground">Gemini · textos, imagens e publicações</div>
+            <div className="text-[11px] text-muted-foreground">
+              {sending ? "digitando…" : "textos, imagens, enquetes e publicações"}
+            </div>
           </div>
           <Link
             to="/"
@@ -185,17 +261,23 @@ function AIThread() {
           </Link>
         </header>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
           {msgs.length === 0 && !sending ? (
             <EmptyState onPick={(prompt) => submit(prompt)} />
           ) : null}
-          {msgs.map((m) => <MsgBubble key={m.id} m={m} />)}
-          {pending ? (
-            <MsgBubble m={{ id: "pending", role: "user", content: pending, image_url: null }} />
-          ) : null}
-          {sending ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Vibely AI pensando…
+          {msgs.map((m, i) => (
+            <MsgBubble
+              key={m.id}
+              m={m}
+              onRetry={m.role === "assistant" && i === msgs.length - 1 && lastPrompt && !sending ? () => submit(lastPrompt) : undefined}
+            />
+          ))}
+          {pending ? <MsgBubble m={{ id: "pending", role: "user", content: pending, image_url: null }} /> : null}
+          {streamText ? <MsgBubble m={{ id: "stream", role: "assistant", content: streamText, image_url: null }} /> : null}
+          {sending && !streamText ? (
+            <div className="flex items-center gap-3">
+              <Mascot className="h-8 w-8" thinking />
+              <span className="text-sm text-muted-foreground animate-pulse">{status ?? "Pensando…"}</span>
             </div>
           ) : null}
         </div>
@@ -207,13 +289,13 @@ function AIThread() {
                 key={q.label}
                 onClick={() => submit(q.prompt)}
                 disabled={sending}
-                className="shrink-0 rounded-full bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                className="shrink-0 rounded-full bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
               >
                 {q.label}
               </button>
             ))}
           </div>
-          <div className="rounded-2xl bg-[color:var(--surface)] p-2 flex items-end gap-2">
+          <div className="rounded-3xl bg-[color:var(--surface)] ring-1 ring-[color:var(--hairline)] focus-within:ring-primary/40 p-2 pl-4 flex items-end gap-2 transition-shadow">
             <Textarea
               ref={inputRef}
               value={input}
@@ -223,12 +305,12 @@ function AIThread() {
               }}
               placeholder="Pergunte, peça uma enquete, um post ou /imagem <descrição>"
               rows={1}
-              className="min-h-[42px] max-h-40 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:outline-none"
+              className="min-h-[48px] max-h-40 resize-none border-0 bg-transparent px-0 py-3 focus-visible:ring-0 focus-visible:outline-none"
             />
-            <Button size="icon" variant="ghost" onClick={askImage} disabled={sending} title="Gerar imagem">
+            <Button size="icon" variant="ghost" className="rounded-full shrink-0" onClick={askImage} disabled={sending} title="Gerar imagem">
               <ImageIcon className="h-4 w-4" />
             </Button>
-            <Button size="icon" onClick={() => submit()} disabled={sending || !input.trim()}>
+            <Button size="icon" className="rounded-full shrink-0" onClick={() => submit()} disabled={sending || !input.trim()}>
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
@@ -242,20 +324,42 @@ function AIThread() {
   );
 }
 
-function MsgBubble({ m }: { m: { id: string; role: string; content: string; image_url: string | null } }) {
+function MsgBubble({ m, onRetry }: { m: Msg; onRetry?: () => void }) {
   const isUser = m.role === "user";
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    navigator.clipboard?.writeText(m.content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+
   return (
     <div className={cn("flex gap-3", isUser ? "flex-row-reverse" : "")}>
-      {!isUser ? (
-        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground">
-          <Sparkles className="h-4 w-4" />
+      {!isUser ? <Mascot className="h-8 w-8 shrink-0 mt-1" /> : null}
+      <div className={cn("max-w-[85%] min-w-0", isUser ? "text-right" : "")}>
+        <div className={cn(
+          "rounded-3xl px-4 py-2.5 text-left",
+          isUser ? "bg-primary text-primary-foreground rounded-br-lg inline-block" : "bg-transparent px-0",
+        )}>
+          {m.image_url ? <AiImage path={m.image_url} /> : null}
+          {m.content ? (
+            <div className={cn("prose prose-sm dark:prose-invert max-w-none leading-relaxed", isUser ? "prose-invert" : "")}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD}>{m.content}</ReactMarkdown>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      <div className={cn("max-w-[85%] rounded-2xl px-4 py-2.5", isUser ? "bg-primary text-primary-foreground" : "bg-transparent")}>
-        {m.image_url ? <AiImage path={m.image_url} /> : null}
-        {m.content ? (
-          <div className={cn("prose prose-sm dark:prose-invert max-w-none", isUser ? "prose-invert" : "")}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD}>{m.content}</ReactMarkdown>
+        {!isUser && m.id !== "stream" ? (
+          <div className="flex items-center gap-1 pt-1">
+            <button onClick={copy} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]" aria-label="Copiar">
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+            {onRetry ? (
+              <button onClick={onRetry} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]" aria-label="Refazer">
+                <RefreshCcw className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -295,25 +399,26 @@ const EXAMPLES = [
   { icon: "💡", label: "Explique um conceito", prompt: "Me explique como funciona o WebRTC de forma simples" },
   { icon: "✍️", label: "Escreva um texto", prompt: "Escreva uma legenda criativa para uma foto de pôr do sol" },
   { icon: "🎨", label: "Gere uma imagem", prompt: "/imagem gato astronauta no espaço, arte digital vibrante" },
-  { icon: "💻", label: "Ajude com código", prompt: "Como faço um debounce em React?" },
+  { icon: "🔥", label: "Ver o que bomba", prompt: "Quais são as publicações do momento no Vibely?" },
 ];
 
 function EmptyState({ onPick }: { onPick: (prompt: string) => void }) {
   return (
-    <div className="flex flex-col items-center gap-6 pt-8">
-      <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground shadow-elegant">
-        <Sparkles className="h-8 w-8" />
+    <div className="flex flex-col items-center gap-6 pt-6">
+      <div className="relative grid h-28 w-28 place-items-center">
+        <div className="absolute inset-0 rounded-full bg-primary/15 blur-2xl" />
+        <Mascot className="relative h-28 w-28" />
       </div>
       <div className="text-center">
-        <h2 className="text-2xl font-display font-semibold">Vibely AI</h2>
-        <p className="text-sm text-muted-foreground mt-1">Powered by Gemini · texto + imagens</p>
+        <h2 className="text-2xl font-display font-semibold">Oi! Eu sou o Vibely AI</h2>
+        <p className="text-sm text-muted-foreground mt-1">Peça ideias, textos, enquetes, imagens ou publique direto por aqui.</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
         {EXAMPLES.map((e) => (
           <button
             key={e.label}
             onClick={() => onPick(e.prompt)}
-            className="text-left rounded-2xl bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] p-3 transition-colors"
+            className="text-left rounded-2xl bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] ring-1 ring-transparent hover:ring-primary/25 p-3 transition-all"
           >
             <div className="text-lg">{e.icon}</div>
             <div className="text-sm font-medium mt-1">{e.label}</div>

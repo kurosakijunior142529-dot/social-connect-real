@@ -1,5 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Sparkles, Radio, Crown, Wallet, Shield, Headphones } from "lucide-react";
+import vibelyMascot from "@/assets/vibely-mascot.png";
+import { Home, Search, PlusSquare, Bell, MessageCircle, User as UserIcon, LogOut, Settings as SettingsIcon, Bookmark, Play, Tv, Store, Gamepad2, Radio, Crown, Wallet, Shield, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
@@ -212,7 +213,7 @@ export function AppShell({
               pathname.startsWith("/ai") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
             )}
           >
-            <Sparkles className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            <img src={vibelyMascot} alt="" loading="lazy" width={816} height={816} className="h-[20px] w-[20px] object-contain" />
             Vibely AI
           </Link>
           <Link
@@ -264,11 +265,19 @@ export function AppShell({
         <Link
           to="/ai"
           aria-label="Vibely AI"
-          className="md:hidden fixed right-4 bottom-[92px] z-30 grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[0_12px_30px_-12px_var(--primary)] transition-transform active:scale-95"
+          className="md:hidden fixed right-4 bottom-[92px] z-30 grid h-14 w-14 place-items-center rounded-full bg-[color:var(--surface-2)] ring-1 ring-primary/40 shadow-[0_14px_34px_-14px_var(--primary)] transition-transform active:scale-95"
         >
-          <Sparkles className="h-5 w-5" strokeWidth={2} />
+          <img
+            src={vibelyMascot}
+            alt="Vibely AI"
+            loading="lazy"
+            width={816}
+            height={816}
+            className="h-11 w-11 object-contain drop-shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
+          />
         </Link>
       ) : null}
+
 
       {/* Mobile bottom nav — floating pill */}
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none">

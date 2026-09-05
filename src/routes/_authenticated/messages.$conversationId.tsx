@@ -373,7 +373,7 @@ function ConversationPage() {
       setDraft("");
       const answer = await ai.ask(q);
       if (answer) {
-        await sendPayload({ kind: "text", content: `🤖 ${q}\n\n${answer}` });
+        await sendPayload({ kind: "text", content: `🤖 Vibely AI\n\n${answer}` });
       }
       return;
     }
@@ -816,7 +816,7 @@ type RowProps = {
 };
 
 function stripAiPrefix(content: string): string {
-  return content.replace(/^🤖\s*/, "").trim();
+  return content.replace(/^🤖\s*(Vibely AI)?\s*/, "").trim();
 }
 
 const MessageRow = memo(

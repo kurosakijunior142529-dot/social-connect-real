@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ function NewStoryPage() {
   const [imgEdit, setImgEdit] = useState<ImageEditState>({ ...defaultImageEdit, aspect: "0.5625" });
   const moderate = useServerFn(moderateMedia);
   const moderateCaption = useServerFn(moderateText);
-  const preview = file ? URL.createObjectURL(file) : null;
+  const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   const isVideo = file?.type.startsWith("video/");
 
   async function submit() {
@@ -119,6 +119,13 @@ function NewStoryPage() {
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
       </label>
+
+      {preview && !isVideo ? (
+        <div className="social-card space-y-3 rounded-2xl p-3">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">Editar foto</p>
+          <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} />
+        </div>
+      ) : null}
 
       <div className="social-card space-y-2 rounded-2xl p-3">
         <Textarea

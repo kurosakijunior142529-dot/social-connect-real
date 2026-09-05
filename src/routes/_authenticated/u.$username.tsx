@@ -57,6 +57,12 @@ function formatCount(n: number): string {
 }
 
 function ProfilePage() {
+  const childMatches = useChildMatches();
+  if (childMatches.length > 0) return <Outlet />;
+  return <ProfileContent />;
+}
+
+function ProfileContent() {
   const { username } = Route.useParams();
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();

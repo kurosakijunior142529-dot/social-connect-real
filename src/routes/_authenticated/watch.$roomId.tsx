@@ -21,8 +21,10 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isWatchSessionExpired, requireFreshWatchUser } from "@/lib/watch/auth";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/watch/$roomId")({
   component: WatchRoomPage,
@@ -64,14 +66,32 @@ function WatchRoomPage() {
 
   // Ensure membership
   useEffect(() => {
-    (supabase as any)
-      .from("watch_room_members")
-      .upsert(
-        { room_id: roomId, user_id: user.id, left_at: null },
-        { onConflict: "room_id,user_id" },
-      )
-      .then(() => {});
-  }, [roomId, user.id]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        await requireFreshWatchUser();
+        const { error } = await (supabase as any).rpc("join_watch_room", { _room: roomId });
+        if (error) throw error;
+        if (!cancelled) {
+          void queryClient.invalidateQueries({ queryKey: ["watch-members", roomId] });
+        }
+      } catch (error) {
+        if (cancelled) return;
+        if (isWatchSessionExpired(error)) {
+          toast.error("Sua sessão expirou. Entre novamente para acessar a sala.");
+          navigate({ to: "/auth", replace: true });
+          return;
+        }
+        toast.error("Não foi possível entrar nesta sala.");
+        navigate({ to: "/watch", replace: true });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, queryClient, roomId]);
 
   const roomQuery = useQuery({
     queryKey: ["watch-room", roomId],

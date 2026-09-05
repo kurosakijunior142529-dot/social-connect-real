@@ -36,6 +36,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { isWatchSessionExpired, requireFreshWatchUser } from "@/lib/watch/auth";
 
 export const Route = createFileRoute("/_authenticated/watch/")({
   validateSearch: z.object({ code: z.string().optional() }),
@@ -123,25 +124,33 @@ function WatchIndex() {
       return;
     }
     setCreating(true);
-    const videoId = src.provider === "youtube" ? src.videoId : `${src.kind}:${src.id}`;
-    const { data, error: err } = await (supabase as any)
-      .from("watch_rooms")
-      .insert({
-        host_id: user.id,
-        provider: src.provider,
-        video_id: videoId,
-        title: title || (src.provider === "twitch" ? `Twitch: ${src.id}` : "Sala de assistir"),
-        visibility,
-        category: newCategory,
-      })
-      .select("id")
-      .single();
-    setCreating(false);
-    if (err || !data) {
-      setError(err?.message ?? "Não foi possível criar a sala.");
-      return;
+    try {
+      const freshUser = await requireFreshWatchUser();
+      const videoId = src.provider === "youtube" ? src.videoId : `${src.kind}:${src.id}`;
+      const { data, error: err } = await (supabase as any)
+        .from("watch_rooms")
+        .insert({
+          host_id: freshUser.id,
+          provider: src.provider,
+          video_id: videoId,
+          title: title || (src.provider === "twitch" ? `Twitch: ${src.id}` : "Sala de assistir"),
+          visibility,
+          category: newCategory,
+        })
+        .select("id")
+        .single();
+      if (err || !data) throw err ?? new Error("Não foi possível criar a sala.");
+      navigate({ to: "/watch/$roomId", params: { roomId: data.id } });
+    } catch (err) {
+      if (isWatchSessionExpired(err)) {
+        toast.error("Sua sessão expirou. Entre novamente para criar uma sala.");
+        navigate({ to: "/auth", replace: true });
+      } else {
+        setError(err instanceof Error ? err.message : "Não foi possível criar a sala.");
+      }
+    } finally {
+      setCreating(false);
     }
-    navigate({ to: "/watch/$roomId", params: { roomId: data.id } });
   }
 
   async function joinRoomByCode(raw: string) {
@@ -149,26 +158,41 @@ function WatchIndex() {
     const c = extractInviteCode(raw);
     if (!c) return;
     setJoining(true);
-    const { data, error: err } = await (supabase as any).rpc("join_watch_room_by_code", { _code: c });
-    setJoining(false);
-    const roomId = Array.isArray(data) ? data[0]?.room_id : data?.room_id;
-    if (err || !roomId) {
-      setError(roomErrorMessage(err?.message));
-      return;
+    try {
+      await requireFreshWatchUser();
+      const { data, error: err } = await (supabase as any).rpc("join_watch_room_by_code", { _code: c });
+      const roomId = Array.isArray(data) ? data[0]?.room_id : data?.room_id;
+      if (err || !roomId) throw err ?? new Error("ROOM_NOT_FOUND");
+      navigate({ to: "/watch/$roomId", params: { roomId } });
+    } catch (err) {
+      if (isWatchSessionExpired(err)) {
+        toast.error("Sua sessão expirou. Entre novamente para acessar a sala.");
+        navigate({ to: "/auth", replace: true });
+      } else {
+        setError(roomErrorMessage(err instanceof Error ? err.message : null));
+      }
+    } finally {
+      setJoining(false);
     }
-    navigate({ to: "/watch/$roomId", params: { roomId } });
   }
 
   async function joinPublicRoom(roomId: string) {
     setError(null);
-    const { error: err } = await (supabase as any).rpc("join_watch_room", { _room: roomId });
-    if (err) {
-      const message = roomErrorMessage(err.message);
+    try {
+      await requireFreshWatchUser();
+      const { error: err } = await (supabase as any).rpc("join_watch_room", { _room: roomId });
+      if (err) throw err;
+      navigate({ to: "/watch/$roomId", params: { roomId } });
+    } catch (err) {
+      if (isWatchSessionExpired(err)) {
+        toast.error("Sua sessão expirou. Entre novamente para acessar a sala.");
+        navigate({ to: "/auth", replace: true });
+        return;
+      }
+      const message = roomErrorMessage(err instanceof Error ? err.message : null);
       setError(message);
       toast.error(message);
-      return;
     }
-    navigate({ to: "/watch/$roomId", params: { roomId } });
   }
 
   // Convite compartilhado por link antigo (?code=) ou salvo antes do login

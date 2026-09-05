@@ -59,6 +59,7 @@ export function needsReencode(opts: ExportOptions, duration: number): boolean {
   if (opts.aspect === "vertical") return true;
   if (opts.dewatermark && opts.dewatermark.length > 0) return true;
   if (opts.music) return true;
+  if (opts.watermark) return true;
   if (duration > 0 && (from > 0.05 || to < duration - 0.05)) return true;
   return false;
 }

@@ -1,9 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Slider } from "@/components/ui/slider";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { VIDEO_FILTERS, filterById } from "@/lib/video-filters";
-import { RotateCw, FlipHorizontal, Crop, Sun, Contrast, Droplets, RefreshCw } from "lucide-react";
+import {
+  RotateCw,
+  FlipHorizontal,
+  Crop,
+  Sun,
+  Contrast,
+  Droplets,
+  RefreshCw,
+  ZoomIn,
+  ZoomOut,
+  Sparkles,
+  SlidersHorizontal,
+  Hand,
+} from "lucide-react";
 
 export type ImageEditState = {
   aspect: string; // "original" | "1" | "0.8" | "0.5625" | "1.7778"
@@ -39,13 +51,25 @@ const ASPECTS: { id: string; label: string; value: number | null }[] = [
   { id: "1.7778", label: "16:9", value: 16 / 9 },
 ];
 
+type Tab = "crop" | "filters" | "adjust";
+
+const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "crop", label: "Cortar", icon: <Crop className="h-4 w-4" /> },
+  { id: "filters", label: "Filtros", icon: <Sparkles className="h-4 w-4" /> },
+  { id: "adjust", label: "Ajustes", icon: <SlidersHorizontal className="h-4 w-4" /> },
+];
+
 function cssFilter(v: ImageEditState) {
   const base = filterById(v.filter).css;
   const adj = `brightness(${v.brightness}) contrast(${v.contrast}) saturate(${v.saturation})`;
   return base === "none" ? adj : `${base} ${adj}`;
 }
 
-/** Editor de fotos: recorte com arraste/zoom, giro, espelho, filtros e ajustes. */
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
+/** Editor de fotos: recorte com arraste/pinça, giro, espelho, filtros e ajustes. */
 export function ImageEditor({
   src,
   value,
@@ -56,8 +80,12 @@ export function ImageEditor({
   onChange: (v: ImageEditState) => void;
 }) {
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  const [tab, setTab] = useState<Tab>("crop");
+  const [hint, setHint] = useState(true);
   const frameRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const pinch = useRef<{ dist: number; zoom: number } | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
 
   const rotated = value.rotation === 90 || value.rotation === 270;
   const imgRatio = natural ? (rotated ? natural.h / natural.w : natural.w / natural.h) : 1;
@@ -66,44 +94,84 @@ export function ImageEditor({
     return found?.value ?? imgRatio;
   }, [value.aspect, imgRatio]);
 
+  useEffect(() => {
+    if (!hint) return;
+    const t = window.setTimeout(() => setHint(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [hint]);
+
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       (e.target as Element).setPointerCapture?.(e.pointerId);
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      setHint(false);
+      if (pointers.current.size === 2) {
+        const [a, b] = [...pointers.current.values()];
+        pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: value.zoom };
+        drag.current = null;
+        return;
+      }
       drag.current = { x: e.clientX, y: e.clientY, ox: value.offsetX, oy: value.offsetY };
     },
-    [value.offsetX, value.offsetY],
+    [value.offsetX, value.offsetY, value.zoom],
   );
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
+      if (!pointers.current.has(e.pointerId)) return;
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // Pinça: dois dedos controlam o zoom
+      if (pinch.current && pointers.current.size >= 2) {
+        const [a, b] = [...pointers.current.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch.current.dist > 0 && dist > 0) {
+          onChange({ ...value, zoom: clamp(pinch.current.zoom * (dist / pinch.current.dist), 1, 4) });
+        }
+        return;
+      }
+
       const d = drag.current;
       const rect = frameRef.current?.getBoundingClientRect();
       if (!d || !rect) return;
-      const nx = d.ox + (e.clientX - d.x) / rect.width;
-      const ny = d.oy + (e.clientY - d.y) / rect.height;
+      // Sensibilidade suave: meio frame de arraste cobre todo o espaço livre
+      const nx = d.ox + ((e.clientX - d.x) / rect.width) * 1.6;
+      const ny = d.oy + ((e.clientY - d.y) / rect.height) * 1.6;
       onChange({
         ...value,
-        offsetX: Math.max(-1, Math.min(1, nx)),
-        offsetY: Math.max(-1, Math.min(1, ny)),
+        offsetX: clamp(nx, -1, 1),
+        offsetY: clamp(ny, -1, 1),
       });
     },
     [onChange, value],
   );
 
-  const endDrag = useCallback(() => {
-    drag.current = null;
+  const endPointer = useCallback((e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
+    if (pointers.current.size === 0) drag.current = null;
   }, []);
+
+  const onWheel = useCallback(
+    (e: React.WheelEvent) => {
+      e.preventDefault?.();
+      onChange({ ...value, zoom: clamp(value.zoom - e.deltaY * 0.002, 1, 4) });
+    },
+    [onChange, value],
+  );
 
   return (
     <div className="space-y-3">
+      {/* Pré-visualização */}
       <div
         ref={frameRef}
-        className="relative overflow-hidden rounded-3xl bg-black touch-none select-none"
+        className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-black touch-none select-none"
         style={{ aspectRatio: String(aspect) }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerUp={endPointer}
+        onPointerCancel={endPointer}
+        onWheel={onWheel}
       >
         <img
           src={src}
@@ -127,105 +195,168 @@ export function ImageEditor({
             <div key={i} className="border border-white/20" />
           ))}
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {ASPECTS.map((a) => (
+        {/* dica de gestos */}
+        {hint && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white backdrop-blur">
+              <Hand className="h-3.5 w-3.5" /> Arraste para mover · dois dedos para zoom
+            </span>
+          </div>
+        )}
+        {/* zoom rápido */}
+        <div className="absolute right-2 top-2 flex flex-col gap-1.5">
           <button
-            key={a.id}
             type="button"
-            onClick={() => onChange({ ...value, aspect: a.id })}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition",
-              value.aspect === a.id
-                ? "border-primary bg-primary/15 text-primary"
-                : "border-white/10 text-muted-foreground",
-            )}
+            aria-label="Aumentar zoom"
+            onClick={() => onChange({ ...value, zoom: clamp(value.zoom + 0.25, 1, 4) })}
+            className="grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
           >
-            <Crop className="h-3.5 w-3.5" />
-            {a.label}
+            <ZoomIn className="h-4 w-4" />
           </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => onChange({ ...value, rotation: ((value.rotation + 90) % 360) as number })}
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted-foreground"
-        >
-          <RotateCw className="h-3.5 w-3.5" /> Girar
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange({ ...value, flip: !value.flip })}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition",
-            value.flip ? "border-primary bg-primary/15 text-primary" : "border-white/10 text-muted-foreground",
-          )}
-        >
-          <FlipHorizontal className="h-3.5 w-3.5" /> Espelhar
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange({ ...defaultImageEdit, aspect: value.aspect })}
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted-foreground"
-        >
-          <RefreshCw className="h-3.5 w-3.5" /> Redefinir
-        </button>
-      </div>
-
-      <div className="space-y-1">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Zoom</span>
-          <span className="tabular-nums">{value.zoom.toFixed(2)}x</span>
+          <button
+            type="button"
+            aria-label="Diminuir zoom"
+            onClick={() => onChange({ ...value, zoom: clamp(value.zoom - 0.25, 1, 4) })}
+            className="grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </button>
         </div>
-        <Slider
-          min={1}
-          max={3}
-          step={0.01}
-          value={[value.zoom]}
-          onValueChange={([z]) => onChange({ ...value, zoom: z })}
-        />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {VIDEO_FILTERS.map((f) => (
+      {/* Abas */}
+      <div className="flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+        {TABS.map((t) => (
           <button
-            key={f.id}
+            key={t.id}
             type="button"
-            onClick={() => onChange({ ...value, filter: f.id })}
+            onClick={() => setTab(t.id)}
             className={cn(
-              "shrink-0 rounded-2xl border p-1 text-center transition",
-              value.filter === f.id ? "border-primary" : "border-white/10",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium transition",
+              tab === t.id ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <img
-              src={src}
-              alt=""
-              className="h-14 w-14 rounded-xl object-cover"
-              style={{ filter: f.css }}
-            />
-            <span className="mt-1 block text-[10px] text-muted-foreground">{f.label}</span>
+            {t.icon}
+            {t.label}
           </button>
         ))}
       </div>
 
-      <Adjust
-        icon={<Sun className="h-3.5 w-3.5" />}
-        label="Brilho"
-        v={value.brightness}
-        set={(n) => onChange({ ...value, brightness: n })}
-      />
-      <Adjust
-        icon={<Contrast className="h-3.5 w-3.5" />}
-        label="Contraste"
-        v={value.contrast}
-        set={(n) => onChange({ ...value, contrast: n })}
-      />
-      <Adjust
-        icon={<Droplets className="h-3.5 w-3.5" />}
-        label="Saturação"
-        v={value.saturation}
-        set={(n) => onChange({ ...value, saturation: n })}
-      />
+      {tab === "crop" && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {ASPECTS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => onChange({ ...value, aspect: a.id })}
+                className={cn(
+                  "rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition",
+                  value.aspect === a.id
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-white/10 text-muted-foreground hover:border-white/25",
+                )}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onChange({ ...value, rotation: ((value.rotation + 90) % 360) as number })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-[12px] font-medium text-muted-foreground transition hover:border-white/25"
+            >
+              <RotateCw className="h-3.5 w-3.5" /> Girar
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange({ ...value, flip: !value.flip })}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition",
+                value.flip ? "border-primary bg-primary/15 text-primary" : "border-white/10 text-muted-foreground hover:border-white/25",
+              )}
+            >
+              <FlipHorizontal className="h-3.5 w-3.5" /> Espelhar
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange({ ...defaultImageEdit, aspect: value.aspect })}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-[12px] font-medium text-muted-foreground transition hover:border-white/25"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Redefinir
+            </button>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Zoom</span>
+              <span className="tabular-nums">{value.zoom.toFixed(2)}x</span>
+            </div>
+            <Slider
+              min={1}
+              max={4}
+              step={0.01}
+              value={[value.zoom]}
+              onValueChange={([z]) => onChange({ ...value, zoom: z })}
+            />
+          </div>
+        </div>
+      )}
+
+      {tab === "filters" && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {VIDEO_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => onChange({ ...value, filter: f.id })}
+              className={cn(
+                "shrink-0 rounded-2xl border p-1 text-center transition",
+                value.filter === f.id ? "border-primary" : "border-white/10 hover:border-white/25",
+              )}
+            >
+              <img
+                src={src}
+                alt=""
+                className="h-16 w-16 rounded-xl object-cover"
+                style={{ filter: f.css }}
+                loading="lazy"
+              />
+              <span
+                className={cn(
+                  "mt-1 block text-[10px]",
+                  value.filter === f.id ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                {f.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === "adjust" && (
+        <div className="space-y-3">
+          <Adjust
+            icon={<Sun className="h-3.5 w-3.5" />}
+            label="Brilho"
+            v={value.brightness}
+            set={(n) => onChange({ ...value, brightness: n })}
+          />
+          <Adjust
+            icon={<Contrast className="h-3.5 w-3.5" />}
+            label="Contraste"
+            v={value.contrast}
+            set={(n) => onChange({ ...value, contrast: n })}
+          />
+          <Adjust
+            icon={<Droplets className="h-3.5 w-3.5" />}
+            label="Saturação"
+            v={value.saturation}
+            set={(n) => onChange({ ...value, saturation: n })}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -248,7 +379,14 @@ function Adjust({
           {icon}
           {label}
         </span>
-        <span className="tabular-nums">{Math.round(v * 100)}%</span>
+        <button
+          type="button"
+          onClick={() => set(1)}
+          className="tabular-nums rounded-full px-2 py-0.5 transition hover:bg-white/5"
+          title="Voltar ao padrão"
+        >
+          {Math.round(v * 100)}%
+        </button>
       </div>
       <Slider min={0.4} max={1.8} step={0.02} value={[v]} onValueChange={([n]) => set(n)} />
     </div>

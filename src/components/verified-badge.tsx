@@ -83,7 +83,7 @@ export function VerifiedBadge({
   animated = true,
   title,
 }: Props) {
-  const cfg = CONFIG[variant];
+  const cfg = CONFIG[variant] ?? CONFIG.verified;
   const Icon = cfg.Icon;
   const iconSize = Math.round(size * 0.6);
   const halo = Math.round(size * 1.75);

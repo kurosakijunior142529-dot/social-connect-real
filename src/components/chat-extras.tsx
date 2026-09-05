@@ -52,6 +52,7 @@ export function SummarizeButton({ scope, id }: { scope: Scope; id: string }) {
     const s = await ai.summarize(scope, id);
     setText(s);
   }
+  if (!enabled) return null;
   return (
     <>
       <button onClick={run} className="p-2 rounded-full hover:bg-white/5" aria-label="Resumir">

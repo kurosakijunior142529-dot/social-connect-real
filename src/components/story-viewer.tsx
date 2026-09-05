@@ -41,6 +41,7 @@ export function StoryViewer({
   const [gIdx, setGIdx] = useState(startIndex);
   const [sIdx, setSIdx] = useState(0);
   const timerRef = useRef<number | null>(null);
+  const [mediaMs, setMediaMs] = useState(IMAGE_DURATION);
   const queryClient = useQueryClient();
 
   const group = groups[gIdx];

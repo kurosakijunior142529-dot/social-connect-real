@@ -304,15 +304,26 @@ function ProfileContent() {
         </div>
       </section>
 
-      <div className="space-y-8 px-4 py-7 md:px-8">
-        <section className="social-card rounded-2xl p-5 md:p-6">
-          {profile.bio ? <p className="max-w-3xl whitespace-pre-wrap text-base leading-relaxed md:text-lg">{profile.bio}</p> : <p className="text-muted-foreground">Este perfil ainda não adicionou uma bio.</p>}
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-            {profile.location ? <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4" /> {profile.location}</span> : null}
-            {profile.website ? <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-primary hover:underline"><LinkIcon className="h-4 w-4" /> {profile.website.replace(/^https?:\/\//, "")}</a> : null}
+      <div className="space-y-5 px-4 py-5 md:px-6">
+        <section>
+          {profile.bio ? <p className="max-w-3xl whitespace-pre-wrap text-sm leading-relaxed md:text-base">{profile.bio}</p> : <p className="text-sm text-muted-foreground">Este perfil ainda não adicionou uma bio.</p>}
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+            {profile.location ? <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {profile.location}</span> : null}
+            {profile.website ? <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-primary hover:underline"><LinkIcon className="h-3.5 w-3.5" /> {profile.website.replace(/^https?:\/\//, "")}</a> : null}
             {profile.featured_username ? <Link to="/u/$username" params={{ username: profile.featured_username }} className="font-medium text-primary hover:underline">com @{profile.featured_username}</Link> : null}
           </div>
-          {(profile.interests?.length ?? 0) > 0 ? <div className="mt-5 flex flex-wrap gap-2">{profile.interests.map((tag: string) => <span key={tag} className="rounded-full border border-primary/20 bg-background/60 px-3 py-1 text-xs font-medium capitalize text-primary">#{tag}</span>)}</div> : null}
+          {(profile.interests?.length ?? 0) > 0 ? <div className="mt-3 flex flex-wrap gap-1.5">{profile.interests.map((tag: string) => <span key={tag} className="rounded-full border border-primary/20 bg-background/60 px-2.5 py-0.5 text-[11px] font-medium capitalize text-primary">#{tag}</span>)}</div> : null}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span><strong className="font-semibold tabular text-foreground">{formatCount(stats.data?.likesReceived ?? 0)}</strong> curtidas</span>
+            <span><strong className="font-semibold tabular text-foreground">{formatCount(stats.data?.viewsTotal ?? 0)}</strong> visualizações</span>
+            <Link
+              to="/achievements/$username"
+              params={{ username: profile.username }}
+              className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
+            >
+              <Trophy className="h-3.5 w-3.5" /> Conquistas
+            </Link>
+          </div>
         </section>
 
         <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />

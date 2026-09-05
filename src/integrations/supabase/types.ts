@@ -1370,6 +1370,7 @@ export type Database = {
           host_id: string
           id: string
           language: string | null
+          last_heartbeat_at: string
           like_count: number
           livekit_room: string
           peak_viewer_count: number
@@ -1393,6 +1394,7 @@ export type Database = {
           host_id: string
           id?: string
           language?: string | null
+          last_heartbeat_at?: string
           like_count?: number
           livekit_room: string
           peak_viewer_count?: number
@@ -1416,6 +1418,7 @@ export type Database = {
           host_id?: string
           id?: string
           language?: string | null
+          last_heartbeat_at?: string
           like_count?: number
           livekit_room?: string
           peak_viewer_count?: number
@@ -2860,6 +2863,7 @@ export type Database = {
         Returns: number
       }
       deliver_scheduled_messages: { Args: never; Returns: number }
+      end_stale_lives: { Args: never; Returns: number }
       flag_enabled: { Args: { _key: string }; Returns: boolean }
       get_or_create_conversation: {
         Args: { _other_user: string }
@@ -2915,6 +2919,7 @@ export type Database = {
           video_id: string
         }[]
       }
+      live_heartbeat: { Args: { _live_id: string }; Returns: undefined }
       log_security_event: {
         Args: {
           _event: string

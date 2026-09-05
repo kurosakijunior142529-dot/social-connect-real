@@ -82,10 +82,11 @@ function AIThread() {
     },
   });
 
-  async function submit() {
-    const text = input.trim();
+  async function submit(override?: string) {
+    const text = (override ?? input).trim();
     if (!text || sending) return;
     setInput("");
+    setPending(text);
     setSending(true);
     try {
       if (text.startsWith("/imagem ") || text.startsWith("/img ")) {
@@ -94,24 +95,26 @@ function AIThread() {
       } else {
         await send({ data: { threadId, content: text } });
       }
-      qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
       qc.invalidateQueries({ queryKey: ["ai-threads"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao enviar");
       setInput(text);
     } finally {
+      setPending(null);
       setSending(false);
       inputRef.current?.focus();
     }
   }
 
   function askImage() {
-    if (!input.trim()) return toast.info("Descreva a imagem primeiro");
-    setInput(`/imagem ${input.trim()}`);
-    setTimeout(() => submit(), 0);
+    const t = input.trim();
+    if (!t) return toast.info("Descreva a imagem primeiro");
+    submit(`/imagem ${t}`);
   }
 
   const msgs = messages.data ?? [];
+
 
   return (
     <div className="fixed inset-0 z-40 flex bg-background text-foreground md:pl-60">

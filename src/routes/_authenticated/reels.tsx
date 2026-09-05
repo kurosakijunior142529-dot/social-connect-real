@@ -149,3 +149,74 @@ function ReelsPage() {
     </div>
   );
 }
+
+function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative py-1 text-[15px] font-semibold tracking-tight transition-colors drop-shadow",
+        active ? "text-white" : "text-white/55 hover:text-white/80",
+      )}
+    >
+      {children}
+      <span
+        className={cn(
+          "absolute -bottom-0.5 left-1/2 h-[2px] -translate-x-1/2 rounded-full bg-white transition-all",
+          active ? "w-6 opacity-100" : "w-0 opacity-0",
+        )}
+      />
+    </button>
+  );
+}
+
+function LiveReelCard({ l }: { l: LiveFeedRow }) {
+  return (
+    <section className="relative h-full w-full snap-start snap-always overflow-hidden bg-black">
+      {l.thumbnail_url ? (
+        <img src={l.thumbnail_url} alt={l.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-80" />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-black to-black" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/30" />
+
+      <div className="absolute top-16 left-4 flex items-center gap-2">
+        <span className="inline-flex items-center gap-1 rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
+          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Ao vivo
+        </span>
+        <span className="rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white flex items-center gap-1">
+          <Users className="h-3 w-3" /> {formatViewers(l.viewer_count ?? 0)}
+        </span>
+        <span className="rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white/75">{timeOnAir(l.started_at)}</span>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 p-5 pb-24 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0">
+            <span className="absolute -inset-1 rounded-full bg-red-500/50 blur-[6px] animate-pulse" />
+            <UserAvatar
+              avatarPath={l.host?.avatar_url ?? null}
+              displayName={l.host?.display_name ?? l.host?.username ?? "?"}
+              className="relative h-12 w-12 ring-2 ring-red-500"
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="text-white font-semibold truncate">{l.host?.display_name ?? l.host?.username ?? "Criador"}</p>
+            {l.category ? <p className="text-white/60 text-xs truncate">{l.category}</p> : null}
+          </div>
+        </div>
+        <h2 className="text-white text-xl font-bold leading-snug line-clamp-2">{l.title}</h2>
+        <Link
+          to="/live/$id"
+          params={{ id: l.id }}
+          search={{ host: undefined }}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-elegant"
+        >
+          <Play className="h-4 w-4" /> Entrar na live
+        </Link>
+      </div>
+
+      <Radio className="absolute right-5 top-16 h-5 w-5 text-white/40" />
+    </section>
+  );
+}

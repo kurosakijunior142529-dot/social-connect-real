@@ -246,8 +246,8 @@ export function AppShell({
         <div className={cn("mx-auto md:px-5 md:pt-6", pathname.startsWith("/u/") ? "max-w-6xl" : "max-w-2xl")}>{content}</div>
       </main>
 
-      {/* Atalho flutuante para a IA (mobile) */}
-      {!(pathname.startsWith("/ai") || pathname.startsWith("/reels") || pathname.startsWith("/messages/") || pathname.startsWith("/chats/") || pathname.startsWith("/create") || pathname.startsWith("/live")) ? (
+      {/* Atalho flutuante para a IA — apenas na aba de Conversas */}
+      {(pathname === "/messages" || pathname.startsWith("/messages/")) ? (
         <Link
           to="/ai"
           aria-label="Vibely AI"

@@ -157,7 +157,7 @@ function ChatPage() {
       if (answer) {
         await (supabase as any).from("chat_messages").insert({
           chat_id: id, sender_id: user.id,
-          content: `🤖 ${q}\n\n${answer}`,
+          content: `🤖 Vibely AI\n\n${answer}`,
         });
       }
       return;

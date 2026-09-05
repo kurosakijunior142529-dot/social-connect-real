@@ -373,7 +373,7 @@ function ConversationPage() {
       setDraft("");
       const answer = await ai.ask(q);
       if (answer) {
-        await sendPayload({ kind: "text", content: `🤖 ${q}\n\n${answer}` });
+        await sendPayload({ kind: "text", content: `🤖 Vibely AI\n\n${answer}` });
       }
       return;
     }

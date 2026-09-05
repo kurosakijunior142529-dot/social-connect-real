@@ -52,3 +52,13 @@ export const PROVIDER_LABEL: Record<StreamingProvider, string> = {
 
 /** Serviços exibidos no seletor da sala. */
 export const PROVIDER_OPTIONS: StreamingProvider[] = ["youtube", "prime", "netflix", "disney"];
+
+/** Serviços pagos: cada participante assiste na própria conta/assinatura. */
+export const PREMIUM_PROVIDERS: StreamingProvider[] = ["prime", "netflix", "disney"];
+
+/** App/site oficial de cada serviço premium (aberto fora do app). */
+export const PROVIDER_URL: Partial<Record<StreamingProvider, string>> = {
+  prime: "https://www.primevideo.com",
+  netflix: "https://www.netflix.com",
+  disney: "https://www.disneyplus.com",
+};

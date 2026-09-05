@@ -9,6 +9,8 @@ import {
   createAdapter,
   PROVIDER_LABEL,
   PROVIDER_OPTIONS,
+  PROVIDER_URL,
+  PREMIUM_PROVIDERS,
   type StreamingProvider,
   type StreamingProviderAdapter,
 } from "@/lib/watch/adapters";
@@ -18,6 +20,7 @@ import {
   Copy,
   Crown,
   DoorOpen,
+  ExternalLink,
   Link2,
   Maximize2,
   MessageCircle,
@@ -473,28 +476,40 @@ function WatchRoomPage() {
         </header>
 
         {/* Seletor de serviço */}
-        <div className="flex items-center gap-2 overflow-x-auto px-3 py-2 hairline-b bg-[color:var(--surface)]">
-          {PROVIDER_OPTIONS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              disabled={!isHost}
-              onClick={() => void changeProvider(p)}
-              className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition border",
-                provider === p
-                  ? "border-primary/60 bg-primary/15 text-primary"
-                  : "border-[color:var(--hairline)] text-muted-foreground hover:text-foreground",
-                !isHost && "opacity-60 cursor-not-allowed",
-              )}
-            >
-              {PROVIDER_LABEL[p]}
-            </button>
-          ))}
-          {provider === "twitch" ? (
-            <span className="shrink-0 rounded-full border border-primary/60 bg-primary/15 px-3 py-1.5 text-[12px] font-medium text-primary">
-              Twitch
+        <div className="hairline-b bg-[color:var(--surface)] px-3 py-2">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Assistindo em
             </span>
+            {PROVIDER_OPTIONS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                disabled={!isHost}
+                onClick={() => void changeProvider(p)}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-medium transition border",
+                  provider === p
+                    ? "border-primary/60 bg-primary/15 text-primary"
+                    : "border-[color:var(--hairline)] text-muted-foreground hover:text-foreground",
+                  !isHost && "opacity-60 cursor-not-allowed",
+                )}
+              >
+                {PREMIUM_PROVIDERS.includes(p) ? <Crown className="h-3 w-3" /> : null}
+                {PROVIDER_LABEL[p]}
+              </button>
+            ))}
+            {provider === "twitch" ? (
+              <span className="shrink-0 rounded-full border border-primary/60 bg-primary/15 px-3 py-1.5 text-[12px] font-medium text-primary">
+                Twitch
+              </span>
+            ) : null}
+          </div>
+          {PREMIUM_PROVIDERS.includes(provider) ? (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Cada pessoa assiste na própria conta do {PROVIDER_LABEL[provider]} (assinatura ativa necessária).
+              {!isHost ? " A troca de serviço é feita pelo anfitrião." : ""}
+            </p>
           ) : null}
         </div>
 
@@ -522,14 +537,25 @@ function WatchRoomPage() {
             <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center text-white/80">
               <div className="space-y-3">
                 <div className="text-base font-semibold text-white">{PROVIDER_LABEL[provider]}</div>
-                <div className="text-sm">
-                  A integração de reprodução ainda não está disponível neste dispositivo.
+                <div className="mx-auto max-w-[320px] text-sm">
+                  Cada participante abre o mesmo título no app oficial do {PROVIDER_LABEL[provider]} com a
+                  própria assinatura — a sala mantém o chat e o play/pausa combinados entre vocês.
                 </div>
-                {isHost ? (
-                  <Button size="sm" variant="secondary" onClick={() => void changeProvider("youtube")}>
-                    Voltar para o YouTube
-                  </Button>
-                ) : null}
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {PROVIDER_URL[provider] ? (
+                    <Button
+                      size="sm"
+                      onClick={() => window.open(PROVIDER_URL[provider], "_blank", "noopener")}
+                    >
+                      <ExternalLink className="mr-1 h-4 w-4" /> Abrir {PROVIDER_LABEL[provider]}
+                    </Button>
+                  ) : null}
+                  {isHost ? (
+                    <Button size="sm" variant="secondary" onClick={() => void changeProvider("youtube")}>
+                      Voltar para o YouTube
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             </div>
           ) : null}

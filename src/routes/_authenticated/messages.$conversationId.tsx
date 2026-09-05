@@ -376,6 +376,18 @@ function ConversationPage() {
       return;
     }
 
+    const mention = parseVibelyMention(text);
+    if (mention) {
+      setDraft("");
+      setReplyTo(null);
+      const payload: any = { kind: "text", content: text };
+      if (replyTo) payload.reply_to = replyTo.id;
+      await sendPayload(payload);
+      const answer = await ai.ask(mention);
+      if (answer) await sendPayload({ kind: "text", content: `🤖 Vibely AI\n\n${answer}` });
+      return;
+    }
+
     setSending(true);
     setDraft("");
     presence.setMe("idle");

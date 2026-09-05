@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
 import { toast } from "sonner";
 import { Check, Copy, Download, Loader2, Send, Share2 } from "lucide-react";
-import { drawVibelyWatermark, exportVideo } from "@/lib/video-export";
+import { canBurnWatermark, drawVibelyWatermark, exportVideo } from "@/lib/video-export";
 
 export type ShareTarget = {
   /** Public link to the content (post / reel / profile). */
@@ -62,6 +62,7 @@ export function ShareSheet({
   const [sent, setSent] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const convs = useQuery({
     queryKey: ["share-targets", userId],
@@ -216,6 +217,7 @@ export function ShareSheet({
   async function download() {
     if (!target.media) return;
     setDownloading(true);
+    setProgress(0);
     try {
       const signed = await createSignedUrl(target.media.bucket, target.media.path);
       if (!signed) throw new Error("Não foi possível gerar o arquivo");
@@ -229,12 +231,19 @@ export function ShareSheet({
       let filename = name;
 
       // Marca d'água gravada no arquivo baixado (vídeo e imagem).
+      // A gravação em vídeo roda em tempo real, então só é feita em clipes
+      // curtos e quando o navegador consegue gerar MP4 (galerias não abrem webm).
       if (isVideo) {
         const srcUrl = URL.createObjectURL(blob);
         try {
-          const out = await exportVideo(srcUrl, { watermark: { username } });
-          blob = out.blob;
-          filename = name.replace(/\.[^.]+$/, "") + "." + out.ext;
+          if (await canBurnWatermark(srcUrl)) {
+            const out = await exportVideo(srcUrl, {
+              watermark: { username },
+              onProgress: (p) => setProgress(Math.round(p * 100)),
+            });
+            blob = out.blob;
+            filename = name.replace(/\.[^.]+$/, "") + "." + out.ext;
+          }
         } catch (err) {
           console.warn("[share-sheet] watermark burn failed", err);
         } finally {
@@ -258,6 +267,7 @@ export function ShareSheet({
       toast.error(err?.message ?? "Falha ao baixar");
     } finally {
       setDownloading(false);
+      setProgress(0);
     }
   }
 
@@ -384,7 +394,7 @@ export function ShareSheet({
                 ) : (
                   <Download className="mr-1 h-4 w-4" />
                 )}
-                Baixar vídeo
+                {downloading && progress > 0 ? `Preparando ${progress}%` : "Baixar vídeo"}
               </Button>
             ) : (
               <div className="py-6 text-center text-sm text-muted-foreground">

@@ -60,6 +60,7 @@ export function VideoPlayer({
   const thinBarRef = useRef<HTMLDivElement>(null);
   const lastTime = useRef(0);
   const [downloading, setDownloading] = useState(false);
+  const [dlPct, setDlPct] = useState(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
     last: 0, timer: null, longTimer: null, startY: 0, moved: false,
@@ -231,14 +232,25 @@ export function VideoPlayer({
   const download = useCallback(async () => {
     if (downloading) return;
     setDownloading(true);
+    setDlPct(0);
     try {
       let blob: Blob;
       let ext = "mp4";
       try {
-        const { exportVideo } = await import("@/lib/video-export");
-        const out = await exportVideo(src, { watermark: { username: null } });
-        blob = out.blob;
-        ext = out.ext || "mp4";
+        const { exportVideo, canBurnWatermark } = await import("@/lib/video-export");
+        // Gravar a marca d'água acontece em tempo real: só vale para clipes curtos
+        // e quando o navegador consegue gerar MP4 (galerias não abrem .webm).
+        if (await canBurnWatermark(src)) {
+          const out = await exportVideo(src, {
+            watermark: { username: null },
+            onProgress: (p) => setDlPct(Math.round(p * 100)),
+          });
+          blob = out.blob;
+          ext = out.ext || "mp4";
+        } else {
+          const res = await fetch(src);
+          blob = await res.blob();
+        }
       } catch {
         const res = await fetch(src);
         blob = await res.blob();
@@ -255,6 +267,7 @@ export function VideoPlayer({
       window.open(src, "_blank", "noopener");
     } finally {
       setDownloading(false);
+      setDlPct(0);
     }
   }, [src, downloadName, downloading]);
 
@@ -528,7 +541,11 @@ export function VideoPlayer({
             disabled={downloading}
             aria-label="Baixar vídeo"
           >
-            <Download className={cn("h-4 w-4", downloading && "animate-pulse")} />
+            {downloading && dlPct > 0 ? (
+              <span className="text-[10px] font-semibold tabular-nums">{dlPct}%</span>
+            ) : (
+              <Download className={cn("h-4 w-4", downloading && "animate-pulse")} />
+            )}
           </button>
         </div>
       </div>

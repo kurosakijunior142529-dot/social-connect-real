@@ -60,6 +60,7 @@ import { Route as AuthenticatedAccountMonetizationRouteImport } from './routes/_
 import { Route as AuthenticatedAccountBlockedRouteImport } from './routes/_authenticated/account.blocked'
 import { Route as AuthenticatedGamesPongIndexRouteImport } from './routes/_authenticated/games.pong.index'
 import { Route as AuthenticatedGamesOnlineIndexRouteImport } from './routes/_authenticated/games.online.index'
+import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push/dispatch'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedUUsernameFollowsRouteImport } from './routes/_authenticated/u.$username.follows'
 import { Route as AuthenticatedGamesPongRoomRouteImport } from './routes/_authenticated/games.pong.$room'
@@ -340,6 +341,11 @@ const AuthenticatedGamesOnlineIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedGamesOnlineRoute,
   } as any)
+const ApiPublicPushDispatchRoute = ApiPublicPushDispatchRouteImport.update({
+  id: '/api/public/push/dispatch',
+  path: '/api/public/push/dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -418,6 +424,7 @@ export interface FileRoutesByFullPath {
   '/games/pong/$room': typeof AuthenticatedGamesPongRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/games/online/': typeof AuthenticatedGamesOnlineIndexRoute
   '/games/pong/': typeof AuthenticatedGamesPongIndexRoute
 }
@@ -473,6 +480,7 @@ export interface FileRoutesByTo {
   '/games/pong/$room': typeof AuthenticatedGamesPongRoomRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/games/online': typeof AuthenticatedGamesOnlineIndexRoute
   '/games/pong': typeof AuthenticatedGamesPongIndexRoute
 }
@@ -531,6 +539,7 @@ export interface FileRoutesById {
   '/_authenticated/games/pong/$room': typeof AuthenticatedGamesPongRoomRoute
   '/_authenticated/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/_authenticated/games/online/': typeof AuthenticatedGamesOnlineIndexRoute
   '/_authenticated/games/pong/': typeof AuthenticatedGamesPongIndexRoute
 }
@@ -589,6 +598,7 @@ export interface FileRouteTypes {
     | '/games/pong/$room'
     | '/u/$username/follows'
     | '/api/public/payments/webhook'
+    | '/api/public/push/dispatch'
     | '/games/online/'
     | '/games/pong/'
   fileRoutesByTo: FileRoutesByTo
@@ -644,6 +654,7 @@ export interface FileRouteTypes {
     | '/games/pong/$room'
     | '/u/$username/follows'
     | '/api/public/payments/webhook'
+    | '/api/public/push/dispatch'
     | '/games/online'
     | '/games/pong'
   id:
@@ -701,6 +712,7 @@ export interface FileRouteTypes {
     | '/_authenticated/games/pong/$room'
     | '/_authenticated/u/$username/follows'
     | '/api/public/payments/webhook'
+    | '/api/public/push/dispatch'
     | '/_authenticated/games/online/'
     | '/_authenticated/games/pong/'
   fileRoutesById: FileRoutesById
@@ -712,6 +724,7 @@ export interface RootRouteChildren {
   AuthIndexRoute: typeof AuthIndexRoute
   ApiPublicGifRoute: typeof ApiPublicGifRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1073,6 +1086,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGamesOnlineIndexRouteImport
       parentRoute: typeof AuthenticatedGamesOnlineRoute
     }
+    '/api/public/push/dispatch': {
+      id: '/api/public/push/dispatch'
+      path: '/api/public/push/dispatch'
+      fullPath: '/api/public/push/dispatch'
+      preLoaderRoute: typeof ApiPublicPushDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -1244,6 +1264,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthIndexRoute: AuthIndexRoute,
   ApiPublicGifRoute: ApiPublicGifRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

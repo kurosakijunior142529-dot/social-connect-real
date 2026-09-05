@@ -529,12 +529,57 @@ function MsgBubble({ m, onRetry, onEdit }: { m: Msg; onRetry?: () => void; onEdi
           isUser ? "bg-primary text-primary-foreground rounded-br-lg inline-block" : "bg-transparent px-0",
         )}>
           {m.image_url ? <AiImage path={m.image_url} /> : null}
-          {m.content ? (
+          {m.attachments?.length ? (
+            <div className="mb-1.5 flex flex-wrap gap-1.5">
+              {m.attachments.map((a, i) => (
+                <span
+                  key={`${a.name}-${i}`}
+                  className="flex items-center gap-1 rounded-full bg-black/20 px-2 py-1 text-[11px]"
+                >
+                  {a.kind === "image" ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                  <span className="max-w-[120px] truncate">{a.name}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {editing ? (
+            <div className="space-y-2">
+              <Textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={3}
+                className="bg-background/20 text-foreground"
+              />
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setDraft(m.content); }}>
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => { setEditing(false); onEdit?.(draft.trim()); }}
+                  disabled={!draft.trim() || draft.trim() === m.content}
+                >
+                  Reenviar
+                </Button>
+              </div>
+            </div>
+          ) : m.content ? (
             <div className={cn("prose prose-sm dark:prose-invert max-w-none leading-relaxed", isUser ? "prose-invert" : "")}>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD}>{m.content}</ReactMarkdown>
             </div>
           ) : null}
         </div>
+        {isUser && onEdit && !editing && m.id !== "pending" ? (
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={() => { setDraft(m.content); setEditing(true); }}
+              className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]"
+              aria-label="Editar mensagem"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
         {!isUser && m.id !== "stream" ? (
           <div className="flex items-center gap-1 pt-1">
             <button onClick={copy} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]" aria-label="Copiar">

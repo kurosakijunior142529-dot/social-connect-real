@@ -26,7 +26,6 @@ import {
   Pencil,
   Plus,
   Trophy,
-  ChevronRight,
 } from "lucide-react";
 
 
@@ -413,16 +412,7 @@ function ProfileContent() {
 }
 
 function StatInline({ label, value }: { label: string; value: number }) {
-  return <span className="block"><strong className="block text-lg font-bold tabular text-foreground">{formatCount(value)}</strong><span className="text-xs text-muted-foreground">{label}</span></span>;
-}
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="px-1 py-1 text-center">
-      <div className="text-sm font-semibold tabular leading-tight">{formatCount(value)}</div>
-      <div className="text-[10px] text-muted-foreground leading-tight">{label}</div>
-    </div>
-  );
+  return <span className="block"><strong className="block text-base font-bold tabular text-foreground">{formatCount(value)}</strong><span className="text-[11px] text-muted-foreground">{label}</span></span>;
 }
 
 function PostGrid({ posts, empty }: { posts: any[]; empty: string }) {

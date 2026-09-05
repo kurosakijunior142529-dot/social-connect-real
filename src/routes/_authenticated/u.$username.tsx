@@ -313,6 +313,10 @@ function ProfileContent() {
           {(profile.interests?.length ?? 0) > 0 ? <div className="mt-5 flex flex-wrap gap-2">{profile.interests.map((tag: string) => <span key={tag} className="rounded-full border border-primary/20 bg-background/60 px-3 py-1 text-xs font-medium capitalize text-primary">#{tag}</span>)}</div> : null}
         </section>
 
+        <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
+
+
+
         <section>
           <div className="mb-4 flex items-center justify-between">
             <div><p className="text-xs font-bold uppercase text-primary">Momentos</p><h2 className="text-xl font-bold">Vibes recentes</h2></div>

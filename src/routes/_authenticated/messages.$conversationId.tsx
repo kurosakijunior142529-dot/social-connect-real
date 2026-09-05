@@ -474,7 +474,7 @@ function ConversationPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
-      <header className="relative flex items-center gap-2 px-3 h-16 glass-heavy sticky top-0 z-10 bg-gradient-to-b from-[color:var(--chat-mine)]/12 to-transparent after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-[color:var(--chat-mine)]/45 after:to-transparent">
+      <header className="relative flex items-center gap-2 px-3 h-16 sticky top-0 z-10 bg-background/85 backdrop-blur-md border-b border-border/40">
         <Link
           to="/messages"
           className="p-2 -ml-1 rounded-full active:bg-[color:var(--surface-2)] md:hidden"
@@ -486,15 +486,13 @@ function ConversationPage() {
           <>
             <Link to="/u/$username" params={{ username: other.username }} className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="relative shrink-0">
-                <div className="rounded-full ring-chat p-[2px]">
-                  <UserAvatar
-                    avatarPath={other.avatar_url}
-                    displayName={other.display_name}
-                    verified={!!(other as any).is_verified}
-                    badgeVariant={((other as any).badge_variant) ?? null}
-                    className="h-10 w-10 rounded-full ring-2 ring-background"
-                  />
-                </div>
+                <UserAvatar
+                  avatarPath={other.avatar_url}
+                  displayName={other.display_name}
+                  verified={!!(other as any).is_verified}
+                  badgeVariant={((other as any).badge_variant) ?? null}
+                  className="h-10 w-10 rounded-full border border-white/10"
+                />
                 <span
                   className={cn(
                     "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-chat-mine border-2 border-background",

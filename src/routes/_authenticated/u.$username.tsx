@@ -238,7 +238,7 @@ function ProfileContent() {
   return (
     <div className="-mt-4 overflow-hidden md:-mt-6">
       {/* Capa imersiva e identidade */}
-      <section className="relative -mx-4 min-h-[430px] overflow-hidden md:mx-0 md:min-h-[390px] md:rounded-2xl">
+      <section className="relative -mx-4 min-h-[300px] overflow-hidden md:mx-0 md:min-h-[260px] md:rounded-2xl">
         {coverUrl ? (
           <img src={coverUrl} alt={`Capa do perfil de ${profile.display_name}`} className="absolute inset-0 h-full w-full object-cover opacity-70" />
         ) : (
@@ -256,17 +256,17 @@ function ProfileContent() {
             <Menu className="h-5 w-5" />
           </Link>
         ) : null}
-        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-4 px-5 pb-6 md:flex-row md:items-end md:px-8 md:pb-8">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 px-4 pb-4 md:flex-row md:items-end md:px-6 md:pb-5">
           <div className="relative shrink-0 self-start">
             <div className="rounded-full bg-background p-1 ring-2 ring-primary shadow-[0_0_28px_color-mix(in_oklab,var(--primary)_32%,transparent)]">
-              <UserAvatar avatarPath={profile.avatar_url} displayName={profile.display_name} className="h-24 w-24 md:h-32 md:w-32" />
+              <UserAvatar avatarPath={profile.avatar_url} displayName={profile.display_name} className="h-20 w-20 md:h-28 md:w-28" />
             </div>
             <span className="absolute bottom-2 right-1 h-5 w-5 rounded-full border-4 border-background bg-primary" aria-label="Perfil ativo" />
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-3xl font-display font-bold md:text-5xl">{profile.display_name}</h1>
+              <h1 className="truncate text-2xl font-display font-bold md:text-4xl">{profile.display_name}</h1>
               {profile.is_verified || profile.badge_variant ? <VerifiedBadge size={24} variant={profile.badge_variant ?? "verified"} /> : null}
               {profile.is_creator ? <span className="rounded-full bg-primary/15 px-2 py-1 text-[10px] font-bold uppercase text-primary">Criador</span> : null}
             </div>
@@ -274,7 +274,7 @@ function ProfileContent() {
               <span className="font-medium text-primary">@{profile.username}</span>
               {profile.pronouns ? <span className="text-muted-foreground">· {profile.pronouns}</span> : null}
             </div>
-            <div className="mt-4 flex gap-6">
+            <div className="mt-2.5 flex gap-5">
               <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "followers" }} className="group">
                 <StatInline label="Seguidores" value={stats.data?.followers ?? 0} />
               </Link>

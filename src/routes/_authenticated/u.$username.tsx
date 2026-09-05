@@ -331,41 +331,23 @@ function ProfileContent() {
 
 
         <section>
-          <div className="mb-4 flex items-center justify-between">
-            <div><p className="text-xs font-bold uppercase text-primary">Momentos</p><h2 className="text-xl font-bold">Vibes recentes</h2></div>
-            {isMe ? <Link to="/stories/new"><Button variant="outline" size="sm" className="gap-2"><Plus className="h-4 w-4" /> Nova Vibe</Button></Link> : null}
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-primary">Vibes</h2>
+            {isMe ? (
+              <Link to="/stories/new" aria-label="Nova Vibe">
+                <Button variant="outline" size="icon" className="h-8 w-8"><Plus className="h-4 w-4" /></Button>
+              </Link>
+            ) : null}
           </div>
-          <div className="no-scrollbar flex min-h-24 gap-4 overflow-x-auto pb-2">
+          <div className="no-scrollbar flex min-h-20 gap-3 overflow-x-auto pb-1">
             {activeVibes.length ? activeVibes.map((vibe: any, index: number) => (
-              <button key={vibe.id} type="button" onClick={() => { if (index >= 0) setVibeViewerOpen(true); }} className="group w-20 shrink-0 text-center" aria-label={`Abrir Vibe ${index + 1}`}>
-                <span className="block rounded-full bg-primary p-0.5 transition-transform group-hover:scale-105"><SignedMediaThumb bucket="stories" path={vibe.media_url} mediaType={vibe.media_type} alt="" className="h-[74px] w-[74px] rounded-full border-2 border-background object-cover" /></span>
-                <span className="mt-2 block truncate text-xs text-muted-foreground">Vibe {index + 1}</span>
+              <button key={vibe.id} type="button" onClick={() => { if (index >= 0) setVibeViewerOpen(true); }} className="group w-16 shrink-0 text-center" aria-label={`Abrir Vibe ${index + 1}`}>
+                <span className="block rounded-full bg-primary p-0.5 transition-transform group-hover:scale-105"><SignedMediaThumb bucket="stories" path={vibe.media_url} mediaType={vibe.media_type} alt="" className="h-[62px] w-[62px] rounded-full border-2 border-background object-cover" /></span>
+                <span className="mt-1.5 block truncate text-[11px] text-muted-foreground">Vibe {index + 1}</span>
               </button>
-            )) : <div className="flex w-full items-center justify-center rounded-xl border border-dashed border-border py-6 text-sm text-muted-foreground">Nenhuma Vibe ativa agora.</div>}
+            )) : <div className="flex w-full items-center justify-center rounded-xl border border-dashed border-border py-5 text-xs text-muted-foreground">Nenhuma Vibe ativa agora.</div>}
           </div>
         </section>
-
-        <div className="social-card grid grid-cols-4 rounded-xl px-2 py-2">
-          <StatCard label="Curtidas" value={stats.data?.likesReceived ?? 0} />
-          <StatCard label="Views" value={stats.data?.viewsTotal ?? 0} />
-          <StatCard label="Posts" value={allPosts.length} />
-          <StatCard label="Reposts" value={stats.data?.repostedPosts?.length ?? 0} />
-        </div>
-
-        <Link
-          to="/achievements/$username"
-          params={{ username: profile.username }}
-          className="social-card flex items-center gap-3 rounded-2xl px-4 py-3 transition hover:bg-surface-2"
-        >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
-            <Trophy className="h-4 w-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold">Conquistas</span>
-            <span className="block truncate text-xs text-muted-foreground">Insígnias e pontos deste perfil</span>
-          </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-        </Link>
 
 
       {/* 9. ABAS + GRADE */}

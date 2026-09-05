@@ -68,7 +68,7 @@ export const listMessages = createServerFn({ method: "GET" })
     return (rows ?? []) as { id: string; role: string; content: string; image_url: string | null; created_at: string }[];
   });
 
-const TOOLS = [
+export const TOOLS = [
   {
     type: "function",
     function: {
@@ -116,7 +116,7 @@ const TOOLS = [
   },
 ];
 
-async function runTool(name: string, args: any, ctx: { supabase: any; userId: string }) {
+export async function runTool(name: string, args: any, ctx: { supabase: any; userId: string }) {
   if (name === "publicacoes_do_momento") {
     const limit = Math.min(Math.max(Number(args?.limite) || 6, 1), 10);
     const { data } = await ctx.supabase
@@ -203,7 +203,7 @@ async function runTool(name: string, args: any, ctx: { supabase: any; userId: st
   return { erro: "Ferramenta desconhecida" };
 }
 
-const SYSTEM_PROMPT = `Você é o Vibely AI, assistente do app social Vibely, em português brasileiro.
+export const SYSTEM_PROMPT = `Você é o Vibely AI, assistente do app social Vibely, em português brasileiro.
 Seja direto, útil e caloroso. Use markdown curto (listas, negrito) e evite textos longos demais.
 
 Você pode AGIR dentro do app usando ferramentas:

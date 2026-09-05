@@ -476,28 +476,40 @@ function WatchRoomPage() {
         </header>
 
         {/* Seletor de serviço */}
-        <div className="flex items-center gap-2 overflow-x-auto px-3 py-2 hairline-b bg-[color:var(--surface)]">
-          {PROVIDER_OPTIONS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              disabled={!isHost}
-              onClick={() => void changeProvider(p)}
-              className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition border",
-                provider === p
-                  ? "border-primary/60 bg-primary/15 text-primary"
-                  : "border-[color:var(--hairline)] text-muted-foreground hover:text-foreground",
-                !isHost && "opacity-60 cursor-not-allowed",
-              )}
-            >
-              {PROVIDER_LABEL[p]}
-            </button>
-          ))}
-          {provider === "twitch" ? (
-            <span className="shrink-0 rounded-full border border-primary/60 bg-primary/15 px-3 py-1.5 text-[12px] font-medium text-primary">
-              Twitch
+        <div className="hairline-b bg-[color:var(--surface)] px-3 py-2">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <span className="shrink-0 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              Assistindo em
             </span>
+            {PROVIDER_OPTIONS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                disabled={!isHost}
+                onClick={() => void changeProvider(p)}
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-medium transition border",
+                  provider === p
+                    ? "border-primary/60 bg-primary/15 text-primary"
+                    : "border-[color:var(--hairline)] text-muted-foreground hover:text-foreground",
+                  !isHost && "opacity-60 cursor-not-allowed",
+                )}
+              >
+                {PREMIUM_PROVIDERS.includes(p) ? <Crown className="h-3 w-3" /> : null}
+                {PROVIDER_LABEL[p]}
+              </button>
+            ))}
+            {provider === "twitch" ? (
+              <span className="shrink-0 rounded-full border border-primary/60 bg-primary/15 px-3 py-1.5 text-[12px] font-medium text-primary">
+                Twitch
+              </span>
+            ) : null}
+          </div>
+          {PREMIUM_PROVIDERS.includes(provider) ? (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Cada pessoa assiste na própria conta do {PROVIDER_LABEL[provider]} (assinatura ativa necessária).
+              {!isHost ? " A troca de serviço é feita pelo anfitrião." : ""}
+            </p>
           ) : null}
         </div>
 

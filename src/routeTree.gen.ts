@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminSecurityRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminWithdrawalsRouteImport } from './routes/_authenticated/admin.withdrawals'
 import { Route as AuthenticatedAiIndexRouteImport } from './routes/_authenticated/ai.index'
 import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authenticated/ai.$threadId'
+import { Route as AuthenticatedAiMemoryRouteImport } from './routes/_authenticated/ai.memory'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
 import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create_.video'
@@ -204,6 +205,11 @@ const AuthenticatedAiIndexRoute = AuthenticatedAiIndexRouteImport.update({
 const AuthenticatedAiThreadIdRoute = AuthenticatedAiThreadIdRouteImport.update({
   id: '/ai/$threadId',
   path: '/ai/$threadId',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAiMemoryRoute = AuthenticatedAiMemoryRouteImport.update({
+  id: '/ai/memory',
+  path: '/ai/memory',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedChatsIdRoute = AuthenticatedChatsIdRouteImport.update({
@@ -400,6 +406,7 @@ export interface FileRoutesByFullPath {
   '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
+  '/ai/memory': typeof AuthenticatedAiMemoryRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
@@ -458,6 +465,7 @@ export interface FileRoutesByTo {
   '/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
+  '/ai/memory': typeof AuthenticatedAiMemoryRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
@@ -517,6 +525,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/security': typeof AuthenticatedAdminSecurityRoute
   '/_authenticated/admin/withdrawals': typeof AuthenticatedAdminWithdrawalsRoute
   '/_authenticated/ai/$threadId': typeof AuthenticatedAiThreadIdRoute
+  '/_authenticated/ai/memory': typeof AuthenticatedAiMemoryRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
   '/_authenticated/chats/new': typeof AuthenticatedChatsNewRoute
   '/_authenticated/create_/video': typeof AuthenticatedCreateVideoRoute
@@ -577,6 +586,7 @@ export interface FileRouteTypes {
     | '/admin/security'
     | '/admin/withdrawals'
     | '/ai/$threadId'
+    | '/ai/memory'
     | '/chats/$id'
     | '/chats/new'
     | '/create/video'
@@ -635,6 +645,7 @@ export interface FileRouteTypes {
     | '/admin/security'
     | '/admin/withdrawals'
     | '/ai/$threadId'
+    | '/ai/memory'
     | '/chats/$id'
     | '/chats/new'
     | '/create/video'
@@ -693,6 +704,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/security'
     | '/_authenticated/admin/withdrawals'
     | '/_authenticated/ai/$threadId'
+    | '/_authenticated/ai/memory'
     | '/_authenticated/chats/$id'
     | '/_authenticated/chats/new'
     | '/_authenticated/create_/video'
@@ -922,6 +934,13 @@ declare module '@tanstack/react-router' {
       path: '/ai/$threadId'
       fullPath: '/ai/$threadId'
       preLoaderRoute: typeof AuthenticatedAiThreadIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ai/memory': {
+      id: '/_authenticated/ai/memory'
+      path: '/ai/memory'
+      fullPath: '/ai/memory'
+      preLoaderRoute: typeof AuthenticatedAiMemoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/chats/$id': {
@@ -1194,6 +1213,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSecurityRoute: typeof AuthenticatedAdminSecurityRoute
   AuthenticatedAdminWithdrawalsRoute: typeof AuthenticatedAdminWithdrawalsRoute
   AuthenticatedAiThreadIdRoute: typeof AuthenticatedAiThreadIdRoute
+  AuthenticatedAiMemoryRoute: typeof AuthenticatedAiMemoryRoute
   AuthenticatedChatsIdRoute: typeof AuthenticatedChatsIdRoute
   AuthenticatedChatsNewRoute: typeof AuthenticatedChatsNewRoute
   AuthenticatedCreateVideoRoute: typeof AuthenticatedCreateVideoRoute
@@ -1244,6 +1264,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSecurityRoute: AuthenticatedAdminSecurityRoute,
   AuthenticatedAdminWithdrawalsRoute: AuthenticatedAdminWithdrawalsRoute,
   AuthenticatedAiThreadIdRoute: AuthenticatedAiThreadIdRoute,
+  AuthenticatedAiMemoryRoute: AuthenticatedAiMemoryRoute,
   AuthenticatedChatsIdRoute: AuthenticatedChatsIdRoute,
   AuthenticatedChatsNewRoute: AuthenticatedChatsNewRoute,
   AuthenticatedCreateVideoRoute: AuthenticatedCreateVideoRoute,

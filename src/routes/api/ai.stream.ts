@@ -1,16 +1,97 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { SYSTEM_PROMPT, TOOLS, runTool } from "@/lib/ai-chat.functions";
+import { SYSTEM_PROMPT } from "@/lib/ai-chat.functions";
+import { AI_TOOLS, runAiTool } from "@/lib/ai-tools";
 
 /**
- * Resposta da Vibely AI em streaming (SSE).
- * O texto chega palavra por palavra; a mensagem final é gravada no banco.
+ * Resposta da Vibely AI em streaming (SSE) com Gemini.
+ * Contexto = instrução do Vibely + memórias + resumo do histórico + mensagens recentes + anexos.
  */
 
 const MODEL = "google/gemini-3.7-flash";
+const SUMMARY_MODEL = "google/gemini-3.6-flash";
+const RECENT_MESSAGES = 16;
+const SUMMARIZE_AFTER = 30;
+const MAX_TOKENS = 2048;
 
 function sse(obj: unknown) {
   return `data: ${JSON.stringify(obj)}\n\n`;
+}
+
+async function gateway(key: string, body: unknown) {
+  return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+/** Resume mensagens antigas quando a conversa cresce, para não mandar tudo ao modelo. */
+async function maybeSummarize(supabase: any, key: string, threadId: string, userId: string) {
+  const { count } = await supabase
+    .from("ai_messages")
+    .select("*", { count: "exact", head: true })
+    .eq("thread_id", threadId)
+    .eq("user_id", userId);
+  if (!count || count < SUMMARIZE_AFTER) return;
+
+  const { data: existing } = await supabase
+    .from("ai_summaries")
+    .select("id, message_count, summary")
+    .eq("thread_id", threadId)
+    .maybeSingle();
+  if (existing && count - existing.message_count < 20) return;
+
+  const keep = RECENT_MESSAGES;
+  const { data: old } = await supabase
+    .from("ai_messages")
+    .select("role, content, created_at")
+    .eq("thread_id", threadId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(Math.max(count - keep, 0));
+  if (!old?.length) return;
+
+  const transcript = old
+    .map((m: any) => `${m.role === "user" ? "Usuário" : "IA"}: ${String(m.content).slice(0, 800)}`)
+    .join("\n")
+    .slice(0, 24_000);
+
+  try {
+    const res = await gateway(key, {
+      model: SUMMARY_MODEL,
+      max_tokens: 500,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Resuma a conversa abaixo em até 12 tópicos curtos, guardando decisões, preferências, fatos e pendências. Sem introdução.",
+        },
+        { role: "user", content: transcript },
+      ],
+    });
+    if (!res.ok) return;
+    const json: any = await res.json();
+    const summary = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    if (!summary) return;
+    const covered = old[old.length - 1]?.created_at ?? new Date().toISOString();
+    if (existing) {
+      await supabase
+        .from("ai_summaries")
+        .update({ summary, message_count: count, covered_until: covered })
+        .eq("id", existing.id);
+    } else {
+      await supabase.from("ai_summaries").insert({
+        user_id: userId,
+        thread_id: threadId,
+        summary,
+        message_count: count,
+        covered_until: covered,
+      });
+    }
+  } catch {
+    /* resumo é opcional */
+  }
 }
 
 export const Route = createFileRoute("/api/ai/stream")({
@@ -46,28 +127,103 @@ export const Route = createFileRoute("/api/ai/stream")({
         }
         const threadId = String(body?.threadId ?? "");
         const content = String(body?.content ?? "").slice(0, 8000).trim();
-        if (!threadId || !content) return new Response("Dados inválidos", { status: 400 });
+        if (!/^[0-9a-f-]{36}$/i.test(threadId) || !content) {
+          return new Response("Dados inválidos", { status: 400 });
+        }
+
+        // Limite de requisições (30 mensagens a cada 10 minutos por usuário)
+        const { data: allowed } = await supabase.rpc("check_rate_limit", {
+          _scope: "ai_chat",
+          _limit: 30,
+          _window_seconds: 600,
+        });
+        if (allowed === false) {
+          return new Response("Você enviou muitas mensagens. Aguarde alguns minutos.", { status: 429 });
+        }
+
+        // A conversa pertence ao usuário?
+        const { data: thread } = await supabase
+          .from("ai_threads")
+          .select("id")
+          .eq("id", threadId)
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (!thread) return new Response("Conversa não encontrada", { status: 404 });
+
+        // Anexos desta mensagem: imagens (data URL) e documentos já extraídos
+        const attachments: { name: string; mime: string; kind: string; dataUrl?: string; text?: string }[] =
+          Array.isArray(body?.attachments) ? body.attachments.slice(0, 4) : [];
+        const images = attachments.filter((a) => a.kind === "image" && typeof a.dataUrl === "string");
+        const docs = attachments.filter((a) => a.kind === "document" && typeof a.text === "string");
 
         const { data: userMsg, error: insertError } = await supabase
           .from("ai_messages")
-          .insert({ thread_id: threadId, user_id: userId, role: "user", content })
-          .select("id, role, content, image_url, created_at")
+          .insert({
+            thread_id: threadId,
+            user_id: userId,
+            role: "user",
+            content,
+            attachments: attachments.map((a) => ({ name: a.name, mime: a.mime, kind: a.kind })),
+          })
+          .select("id, role, content, image_url, attachments, created_at")
           .single();
         if (insertError) return new Response(insertError.message, { status: 400 });
 
-        const { data: history } = await supabase
-          .from("ai_messages")
-          .select("role, content")
-          .eq("thread_id", threadId)
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(17);
+        await maybeSummarize(supabase, key, threadId, userId);
+
+        const [{ data: history }, { data: memories }, { data: summaryRow }] = await Promise.all([
+          supabase
+            .from("ai_messages")
+            .select("role, content, created_at")
+            .eq("thread_id", threadId)
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(RECENT_MESSAGES),
+          supabase
+            .from("ai_memories")
+            .select("id, memory")
+            .eq("user_id", userId)
+            .order("updated_at", { ascending: false })
+            .limit(30),
+          supabase.from("ai_summaries").select("summary").eq("thread_id", threadId).maybeSingle(),
+        ]);
 
         const ordered = [...(history ?? [])].reverse();
-        const messages: any[] = [
-          { role: "system", content: SYSTEM_PROMPT },
-          ...ordered.map((m: any) => ({ role: m.role, content: m.content })),
-        ];
+
+        const contextBlocks: string[] = [];
+        if (memories?.length) {
+          contextBlocks.push(
+            `MEMÓRIAS DO USUÁRIO (use quando fizer sentido, não cite os ids sem necessidade):\n` +
+              memories.map((m: any) => `- [${m.id}] ${m.memory}`).join("\n"),
+          );
+        }
+        if (summaryRow?.summary) {
+          contextBlocks.push(`RESUMO DO QUE JÁ FOI CONVERSADO NESTA CONVERSA:\n${summaryRow.summary}`);
+        }
+        if (docs.length) {
+          contextBlocks.push(
+            docs
+              .map(
+                (d) =>
+                  `ARQUIVO ANEXADO "${d.name}" (${d.mime}):\n${String(d.text).slice(0, 30_000)}`,
+              )
+              .join("\n\n"),
+          );
+        }
+
+        const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
+        if (contextBlocks.length) messages.push({ role: "system", content: contextBlocks.join("\n\n") });
+        for (const m of ordered) messages.push({ role: m.role, content: m.content });
+
+        if (images.length) {
+          messages[messages.length - 1] = {
+            role: "user",
+            content: [
+              { type: "text", text: content },
+              ...images.map((img) => ({ type: "image_url", image_url: { url: img.dataUrl } })),
+            ],
+          };
+        }
 
         // Título automático na primeira troca
         if (ordered.length <= 1) {
@@ -79,22 +235,27 @@ export const Route = createFileRoute("/api/ai/stream")({
 
         const stream = new ReadableStream({
           async start(controller) {
-            const push = (obj: unknown) => controller.enqueue(encoder.encode(sse(obj)));
+            let closed = false;
+            const push = (obj: unknown) => {
+              if (closed) return;
+              try {
+                controller.enqueue(encoder.encode(sse(obj)));
+              } catch {
+                closed = true;
+              }
+            };
             let full = "";
             try {
-              controller.enqueue(encoder.encode(sse({ type: "user", message: userMsg })));
+              push({ type: "user", message: userMsg });
 
               for (let step = 0; step < 4; step++) {
-                const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    model: MODEL,
-                    service_tier: "priority",
-                    stream: true,
-                    messages,
-                    tools: TOOLS,
-                  }),
+                const res = await gateway(key, {
+                  model: MODEL,
+                  service_tier: "priority",
+                  stream: true,
+                  max_tokens: MAX_TOKENS,
+                  messages,
+                  tools: AI_TOOLS,
                 });
 
                 if (!res.ok || !res.body) {
@@ -106,7 +267,6 @@ export const Route = createFileRoute("/api/ai/stream")({
                         ? "Os créditos de IA acabaram. Recarregue para continuar."
                         : `IA falhou (${res.status}): ${raw.slice(0, 160)}`;
                   push({ type: "error", message: msg });
-                  controller.close();
                   return;
                 }
 
@@ -116,7 +276,6 @@ export const Route = createFileRoute("/api/ai/stream")({
                 const toolCalls: any[] = [];
                 let sawTool = false;
 
-                // eslint-disable-next-line no-constant-condition
                 while (true) {
                   const { done, value } = await reader.read();
                   if (done) break;
@@ -153,16 +312,32 @@ export const Route = createFileRoute("/api/ai/stream")({
 
                 if (!sawTool) break;
 
-                push({ type: "status", message: "Trabalhando nisso…" });
                 messages.push({ role: "assistant", content: full || null, tool_calls: toolCalls });
                 for (const call of toolCalls) {
+                  const toolName = call.function.name;
+                  push({
+                    type: "status",
+                    message:
+                      toolName === "search_web"
+                        ? "Pesquisando na internet…"
+                        : toolName === "get_file"
+                          ? "Lendo o arquivo…"
+                          : toolName === "save_memory"
+                            ? "Guardando na memória…"
+                            : "Trabalhando nisso…",
+                  });
                   let args: any = {};
                   try {
                     args = JSON.parse(call.function.arguments || "{}");
                   } catch {
                     /* ignore */
                   }
-                  const result = await runTool(call.function.name, args, { supabase, userId });
+                  let result: unknown;
+                  try {
+                    result = await runAiTool(toolName, args, { supabase, userId, threadId });
+                  } catch (err: any) {
+                    result = { erro: String(err?.message ?? err).slice(0, 200) };
+                  }
                   messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
                 }
               }
@@ -171,13 +346,18 @@ export const Route = createFileRoute("/api/ai/stream")({
               const { data: aiMsg } = await supabase
                 .from("ai_messages")
                 .insert({ thread_id: threadId, user_id: userId, role: "assistant", content: text })
-                .select("id, role, content, image_url, created_at")
+                .select("id, role, content, image_url, attachments, created_at")
                 .single();
               push({ type: "done", message: aiMsg });
             } catch (e: any) {
-              push({ type: "error", message: e?.message ?? "Falha inesperada" });
+              push({ type: "error", message: String(e?.message ?? "Falha inesperada").slice(0, 200) });
             } finally {
-              controller.close();
+              closed = true;
+              try {
+                controller.close();
+              } catch {
+                /* já fechado */
+              }
             }
           },
         });
@@ -185,7 +365,7 @@ export const Route = createFileRoute("/api/ai/stream")({
         return new Response(stream, {
           headers: {
             "Content-Type": "text/event-stream; charset=utf-8",
-            "Cache-Control": "no-store",
+            "Cache-Control": "no-cache, no-transform",
             Connection: "keep-alive",
           },
         });

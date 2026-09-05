@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check } from "lucide-react";
+import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText } from "lucide-react";
 import {
   listThreads, listMessages, generateImage,
-  createThread, deleteThread,
+  createThread, deleteThread, renameThread, truncateFrom,
 } from "@/lib/ai-chat.functions";
+import { saveAiFile } from "@/lib/ai-files.functions";
+import { AI_FILE_ACCEPT, extractFile, type ExtractedFile } from "@/lib/ai-extract";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +34,8 @@ export const Route = createFileRoute("/_authenticated/ai/$threadId")({
   }),
 });
 
-type Msg = { id: string; role: string; content: string; image_url: string | null };
+type Attachment = { name: string; mime: string; kind: string };
+type Msg = { id: string; role: string; content: string; image_url: string | null; attachments?: Attachment[] | null };
 
 function Mascot({ className, thinking }: { className?: string; thinking?: boolean }) {
   return (
@@ -60,6 +63,9 @@ function AIThread() {
   const genImg = useServerFn(generateImage);
   const create = useServerFn(createThread);
   const del = useServerFn(deleteThread);
+  const rename = useServerFn(renameThread);
+  const truncate = useServerFn(truncateFrom);
+  const saveFile = useServerFn(saveAiFile);
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -67,6 +73,10 @@ function AIThread() {
   const [streamText, setStreamText] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<ExtractedFile[]>([]);
+  const [attaching, setAttaching] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -120,8 +130,10 @@ function AIThread() {
 
   const submit = useCallback(async (override?: string) => {
     const text = (override ?? input).trim();
-    if (!text || sendingRef.current) return;
+    const files = attachments;
+    if ((!text && !files.length) || sendingRef.current) return;
     setInput("");
+    setAttachments([]);
     setPending(text);
     setLastPrompt(text);
     setStreamText("");
@@ -137,10 +149,41 @@ function AIThread() {
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;
         if (!token) throw new Error("Sessão expirada. Entre novamente.");
+        // Guarda os anexos (documentos viram texto, imagens vão para o storage privado)
+        for (const f of files) {
+          try {
+            await saveFile({
+              data: {
+                threadId,
+                name: f.name,
+                mime: f.mime,
+                size: f.size,
+                text: f.text,
+                imageBase64: f.dataUrl,
+              },
+            });
+          } catch {
+            /* o anexo ainda vai no contexto desta mensagem */
+          }
+        }
+
+        const controller = new AbortController();
+        abortRef.current = controller;
         const res = await fetch("/api/ai/stream", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ threadId, content: text }),
+          signal: controller.signal,
+          body: JSON.stringify({
+            threadId,
+            content: text || "Analise o anexo.",
+            attachments: files.map((f) => ({
+              name: f.name,
+              mime: f.mime,
+              kind: f.kind,
+              dataUrl: f.dataUrl,
+              text: f.text,
+            })),
+          }),
         });
         if (!res.ok || !res.body) throw new Error(await res.text().catch(() => "Falha ao enviar"));
 
@@ -171,9 +214,15 @@ function AIThread() {
       }
       qc.invalidateQueries({ queryKey: ["ai-threads"] });
     } catch (e: any) {
-      toast.error(typeof e?.message === "string" ? e.message.slice(0, 160) : "Falha ao enviar");
-      setInput(text);
+      if (e?.name === "AbortError") {
+        await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      } else {
+        toast.error(typeof e?.message === "string" ? e.message.slice(0, 160) : "Falha ao enviar");
+        setInput(text);
+        setAttachments(files);
+      }
     } finally {
+      abortRef.current = null;
       setPending(null);
       setStreamText("");
       setStatus(null);
@@ -181,7 +230,54 @@ function AIThread() {
       sendingRef.current = false;
       inputRef.current?.focus();
     }
-  }, [genImg, input, qc, threadId]);
+  }, [attachments, genImg, input, qc, saveFile, threadId]);
+
+  function stopGeneration() {
+    abortRef.current?.abort();
+  }
+
+  async function pickFiles(list: FileList | null) {
+    if (!list?.length) return;
+    setAttaching(true);
+    try {
+      const out: ExtractedFile[] = [];
+      for (const file of Array.from(list).slice(0, 3)) {
+        try {
+          out.push(await extractFile(file));
+        } catch (e: any) {
+          toast.error(String(e?.message ?? "Arquivo não suportado").slice(0, 140));
+        }
+      }
+      if (out.length) setAttachments((prev) => [...prev, ...out].slice(0, 4));
+    } finally {
+      setAttaching(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  // Regenerar: apaga a resposta e reenvia o último pedido
+  async function regenerate(assistantId: string) {
+    if (!lastPrompt || sendingRef.current) return;
+    try {
+      await truncate({ data: { threadId, messageId: assistantId } });
+      await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      await submit(lastPrompt);
+    } catch (e: any) {
+      toast.error(String(e?.message ?? "Não consegui regenerar").slice(0, 140));
+    }
+  }
+
+  // Editar e reenviar: apaga a mensagem (e o que veio depois) e manda de novo
+  async function editAndResend(messageId: string, text: string) {
+    if (sendingRef.current) return;
+    try {
+      await truncate({ data: { threadId, messageId } });
+      await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      await submit(text);
+    } catch (e: any) {
+      toast.error(String(e?.message ?? "Não consegui reenviar").slice(0, 140));
+    }
+  }
 
   function askImage() {
     const t = input.trim();
@@ -205,6 +301,12 @@ function AIThread() {
           <Button className="w-full" onClick={() => newThread.mutate()} disabled={newThread.isPending}>
             <Plus className="h-4 w-4 mr-2" /> Nova conversa
           </Button>
+          <Link
+            to="/ai/memory"
+            className="flex items-center gap-2 rounded-xl px-2 py-2 text-xs text-muted-foreground hover:bg-[color:var(--surface)] hover:text-foreground"
+          >
+            <Brain className="h-4 w-4" /> Memória da IA
+          </Link>
         </div>
         <div className="px-2 pb-4 overflow-y-auto h-[calc(100%-6rem)]">
           {(threads.data ?? []).map((t) => (
@@ -220,6 +322,21 @@ function AIThread() {
             >
               <MessageSquare className={cn("h-4 w-4 shrink-0", t.id === threadId ? "text-primary" : "text-muted-foreground")} />
               <span className="flex-1 truncate">{t.title}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const title = prompt("Novo nome da conversa", t.title)?.trim();
+                  if (title) {
+                    rename({ data: { id: t.id, title: title.slice(0, 120) } })
+                      .then(() => qc.invalidateQueries({ queryKey: ["ai-threads"] }))
+                      .catch(() => toast.error("Não consegui renomear"));
+                  }
+                }}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+                aria-label="Renomear"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
               <button
                 onClick={(e) => { e.stopPropagation(); if (confirm("Excluir conversa?")) removeThread.mutate(t.id); }}
                 className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400"
@@ -269,7 +386,16 @@ function AIThread() {
             <MsgBubble
               key={m.id}
               m={m}
-              onRetry={m.role === "assistant" && i === msgs.length - 1 && lastPrompt && !sending ? () => submit(lastPrompt) : undefined}
+              onRetry={
+                m.role === "assistant" && i === msgs.length - 1 && lastPrompt && !sending
+                  ? () => regenerate(m.id)
+                  : undefined
+              }
+              onEdit={
+                m.role === "user" && !sending
+                  ? (text) => editAndResend(m.id, text)
+                  : undefined
+              }
             />
           ))}
           {pending ? <MsgBubble m={{ id: "pending", role: "user", content: pending, image_url: null }} /> : null}
@@ -295,6 +421,36 @@ function AIThread() {
               </button>
             ))}
           </div>
+          {attachments.length ? (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {attachments.map((f, i) => (
+                <span
+                  key={`${f.name}-${i}`}
+                  className="flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-xs"
+                >
+                  {f.kind === "image" ? <ImageIcon className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+                  <span className="max-w-[140px] truncate">{f.name}</span>
+                  <button
+                    onClick={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                    aria-label="Remover anexo"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            accept={AI_FILE_ACCEPT}
+            className="hidden"
+            onChange={(e) => pickFiles(e.target.files)}
+          />
+
           <div className="rounded-3xl bg-[color:var(--surface)] ring-1 ring-[color:var(--hairline)] focus-within:ring-primary/40 p-2 pl-4 flex items-end gap-2 transition-shadow">
             <Textarea
               ref={inputRef}
@@ -307,12 +463,39 @@ function AIThread() {
               rows={1}
               className="min-h-[48px] max-h-40 resize-none border-0 bg-transparent px-0 py-3 focus-visible:ring-0 focus-visible:outline-none"
             />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full shrink-0"
+              onClick={() => fileRef.current?.click()}
+              disabled={sending || attaching}
+              title="Anexar arquivo ou imagem"
+            >
+              {attaching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+            </Button>
             <Button size="icon" variant="ghost" className="rounded-full shrink-0" onClick={askImage} disabled={sending} title="Gerar imagem">
               <ImageIcon className="h-4 w-4" />
             </Button>
-            <Button size="icon" className="rounded-full shrink-0" onClick={() => submit()} disabled={sending || !input.trim()}>
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+            {sending ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="rounded-full shrink-0 text-red-400"
+                onClick={stopGeneration}
+                title="Parar geração"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                className="rounded-full shrink-0"
+                onClick={() => submit()}
+                disabled={!input.trim() && !attachments.length}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center mt-2">
@@ -324,9 +507,11 @@ function AIThread() {
   );
 }
 
-function MsgBubble({ m, onRetry }: { m: Msg; onRetry?: () => void }) {
+function MsgBubble({ m, onRetry, onEdit }: { m: Msg; onRetry?: () => void; onEdit?: (text: string) => void }) {
   const isUser = m.role === "user";
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(m.content);
 
   function copy() {
     navigator.clipboard?.writeText(m.content).then(() => {
@@ -344,12 +529,57 @@ function MsgBubble({ m, onRetry }: { m: Msg; onRetry?: () => void }) {
           isUser ? "bg-primary text-primary-foreground rounded-br-lg inline-block" : "bg-transparent px-0",
         )}>
           {m.image_url ? <AiImage path={m.image_url} /> : null}
-          {m.content ? (
+          {m.attachments?.length ? (
+            <div className="mb-1.5 flex flex-wrap gap-1.5">
+              {m.attachments.map((a, i) => (
+                <span
+                  key={`${a.name}-${i}`}
+                  className="flex items-center gap-1 rounded-full bg-black/20 px-2 py-1 text-[11px]"
+                >
+                  {a.kind === "image" ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                  <span className="max-w-[120px] truncate">{a.name}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {editing ? (
+            <div className="space-y-2">
+              <Textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                rows={3}
+                className="bg-background/20 text-foreground"
+              />
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setDraft(m.content); }}>
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => { setEditing(false); onEdit?.(draft.trim()); }}
+                  disabled={!draft.trim() || draft.trim() === m.content}
+                >
+                  Reenviar
+                </Button>
+              </div>
+            </div>
+          ) : m.content ? (
             <div className={cn("prose prose-sm dark:prose-invert max-w-none leading-relaxed", isUser ? "prose-invert" : "")}>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD}>{m.content}</ReactMarkdown>
             </div>
           ) : null}
         </div>
+        {isUser && onEdit && !editing && m.id !== "pending" ? (
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={() => { setDraft(m.content); setEditing(true); }}
+              className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]"
+              aria-label="Editar mensagem"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
         {!isUser && m.id !== "stream" ? (
           <div className="flex items-center gap-1 pt-1">
             <button onClick={copy} className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]" aria-label="Copiar">

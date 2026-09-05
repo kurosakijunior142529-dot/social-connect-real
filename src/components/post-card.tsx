@@ -122,9 +122,27 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             <Link
               to="/p/$id"
               params={{ id: post.id }}
-               className="mx-3 grid min-h-[180px] place-items-center overflow-hidden rounded-[18px] bg-gradient-brand p-6 text-center"
+              className="text-post mx-3 block rounded-[20px] px-6 py-7"
             >
-              <p className="text-[19px] font-semibold leading-snug text-primary-foreground">{post.caption}</p>
+              <span
+                aria-hidden
+                className="block text-[44px] leading-none font-serif text-primary/40 select-none"
+              >
+                &ldquo;
+              </span>
+              <p
+                className={cn(
+                  "-mt-3 font-semibold tracking-[-0.01em] text-foreground",
+                  post.caption.length <= 60
+                    ? "text-[24px] leading-[1.25]"
+                    : post.caption.length <= 160
+                      ? "text-[19px] leading-snug"
+                      : "text-[16px] leading-relaxed",
+                )}
+              >
+                {post.caption}
+              </p>
+              <span className="mt-4 block h-px w-16 rounded-full bg-primary/50" />
             </Link>
           ) : null}
           {post.poll_id ? <PollCard pollId={post.poll_id} currentUserId={currentUserId} /> : null}

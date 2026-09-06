@@ -70,7 +70,7 @@ function ProfileContent() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [vibeViewerOpen, setVibeViewerOpen] = useState(false);
+  
 
   const profileQuery = useQuery({
     queryKey: ["profile", username],

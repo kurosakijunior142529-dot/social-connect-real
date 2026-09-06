@@ -34,6 +34,12 @@ function HashtagPage() {
     staleTime: 60_000,
   });
 
+  const related = useQuery({
+    queryKey: ["related-hashtags", tag],
+    queryFn: () => fetchRelatedHashtags(tag),
+    staleTime: 120_000,
+  });
+
   const feed = useQuery({
     queryKey: ["hashtag-feed", tag, sort, pages],
     queryFn: async () => {

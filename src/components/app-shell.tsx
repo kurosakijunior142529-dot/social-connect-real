@@ -58,6 +58,10 @@ export function AppShell({
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id));
   }, []);
+  // "Continuar de onde parou": registra a última tela relevante.
+  useEffect(() => {
+    void import("@/lib/resume").then((m) => m.trackResume(pathname));
+  }, [pathname]);
   // Mantém o registro de push válido quando o usuário já autorizou os avisos.
   useEffect(() => {
     if (!userId) return;

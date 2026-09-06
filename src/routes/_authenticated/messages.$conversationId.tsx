@@ -3,6 +3,7 @@ import { VerifiedName } from "@/components/verified-badge";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { TogetherChip } from "@/components/together-chip";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -602,6 +603,15 @@ function ConversationPage() {
           </>
         ) : null}
       </header>
+
+      {other && !isBlockedPair ? (
+        <TogetherChip
+          currentUserId={user.id}
+          otherUserId={other.id}
+          otherName={other.display_name ?? other.username}
+          conversationId={conversationId}
+        />
+      ) : null}
 
       {searchOpen ? (
         <ChatSearchBar

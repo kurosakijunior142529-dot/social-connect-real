@@ -60,7 +60,10 @@ export function VideoPlayer({
   watermarkUsername,
   autoPlayInView = true,
   downloadName,
+  fit = "cover",
+  expandHref,
 }: Props) {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const thinBarRef = useRef<HTMLDivElement>(null);
   const lastTime = useRef(0);

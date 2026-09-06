@@ -97,6 +97,23 @@ function ProfileContent() {
   const isBlockedPair = iBlocked || blockedMe;
 
   const { data: coverUrl } = useSignedUrl("covers", profile?.cover_url ?? null);
+  const { openCheckout, checkoutElement } = useStripeCheckout();
+
+  const supportQuery = useQuery({
+    queryKey: ["supporting", profile?.id, user.id],
+    enabled: !!profile?.id && !isMe,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("channel_subscriptions")
+        .select("id")
+        .eq("creator_id", profile.id)
+        .eq("subscriber_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+      return !!data;
+    },
+  });
+  const supporting = supportQuery.data === true;
 
   const vibes = useQuery({
     queryKey: ["profile-vibes", profile?.id],
@@ -420,6 +437,7 @@ function ProfileContent() {
       )}
       </div>
       {vibeViewerOpen && vibeGroups.length ? <StoryViewer groups={vibeGroups} startIndex={0} viewerId={user.id} onClose={() => setVibeViewerOpen(false)} /> : null}
+      {checkoutElement}
     </div>
   );
 }

@@ -23,6 +23,7 @@ import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as SIdRouteImport } from './routes/s.$id'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as AuthenticatedAccountBlockedRouteImport } from './routes/_authenticated/account.blocked'
 import { Route as AuthenticatedAccountMonetizationRouteImport } from './routes/_authenticated/account.monetization'
@@ -137,6 +138,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   id: '/checkout/return',
   path: '/checkout/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SIdRoute = SIdRouteImport.update({
+  id: '/s/$id',
+  path: '/s/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountIndexRoute =
@@ -403,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/wallet': typeof AuthenticatedWalletRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/s/$id': typeof SIdRoute
   '/auth/': typeof AuthIndexRoute
   '/account/blocked': typeof AuthenticatedAccountBlockedRoute
   '/account/monetization': typeof AuthenticatedAccountMonetizationRoute
@@ -462,6 +469,7 @@ export interface FileRoutesByTo {
   '/wallet': typeof AuthenticatedWalletRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/s/$id': typeof SIdRoute
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
   '/account/blocked': typeof AuthenticatedAccountBlockedRoute
@@ -523,6 +531,7 @@ export interface FileRoutesById {
   '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/s/$id': typeof SIdRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/account/blocked': typeof AuthenticatedAccountBlockedRoute
@@ -586,6 +595,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/auth/callback'
     | '/checkout/return'
+    | '/s/$id'
     | '/auth/'
     | '/account/blocked'
     | '/account/monetization'
@@ -645,6 +655,7 @@ export interface FileRouteTypes {
     | '/wallet'
     | '/auth/callback'
     | '/checkout/return'
+    | '/s/$id'
     | '/'
     | '/auth'
     | '/account/blocked'
@@ -705,6 +716,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wallet'
     | '/auth/callback'
     | '/checkout/return'
+    | '/s/$id'
     | '/_authenticated/'
     | '/auth/'
     | '/_authenticated/account/blocked'
@@ -758,6 +770,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthCallbackRoute: typeof AuthCallbackRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
+  SIdRoute: typeof SIdRoute
   AuthIndexRoute: typeof AuthIndexRoute
   ApiAiStreamRoute: typeof ApiAiStreamRoute
   ApiPublicGifRoute: typeof ApiPublicGifRoute
@@ -863,6 +876,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout/return'
       fullPath: '/checkout/return'
       preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/$id': {
+      id: '/s/$id'
+      path: '/s/$id'
+      fullPath: '/s/$id'
+      preLoaderRoute: typeof SIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/account/': {
@@ -1324,6 +1344,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthCallbackRoute: AuthCallbackRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
+  SIdRoute: SIdRoute,
   AuthIndexRoute: AuthIndexRoute,
   ApiAiStreamRoute: ApiAiStreamRoute,
   ApiPublicGifRoute: ApiPublicGifRoute,

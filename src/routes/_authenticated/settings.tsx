@@ -17,6 +17,7 @@ import { InterestsEditor } from "@/components/profile/interests-editor";
 import { useAppTheme } from "@/lib/theme";
 import { PushSettings } from "@/components/settings/push-settings";
 import { useSmartRepliesEnabled, TRANSLATE_LANGUAGES } from "@/lib/chat-settings";
+import { useI18n, LOCALES, type LocaleCode } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -382,40 +383,38 @@ function SettingsShortcut({
 
 function LanguagePicker({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
-  const lang = useQuery({
-    queryKey: ["my-language", userId],
-    staleTime: 300_000,
-    queryFn: async () => {
-      const { data } = await (supabase as any).from("profiles").select("language").eq("id", userId).maybeSingle();
-      return (data?.language as string) || "pt-BR";
-    },
-  });
+  const { locale, setLocale, t } = useI18n();
 
-  async function save(value: string) {
+  async function save(value: LocaleCode) {
+    setLocale(value);
     const { error } = await (supabase as any).from("profiles").update({ language: value }).eq("id", userId);
     if (error) {
       toast.error(error.message);
       return;
     }
     queryClient.setQueryData(["my-language", userId], value);
-    toast.success("Idioma atualizado");
+    toast.success(t("settings.languageUpdated"));
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)] px-3 py-2">
-      <Languages className="h-4 w-4 shrink-0 text-primary" />
-      <select
-        value={lang.data ?? "pt-BR"}
-        onChange={(e) => void save(e.target.value)}
-        className="w-full bg-transparent text-sm font-medium outline-none"
-        aria-label="Meu idioma"
-      >
-        {TRANSLATE_LANGUAGES.map((l) => (
-          <option key={l.code} value={l.code} className="bg-background text-foreground">
-            {l.label}
-          </option>
-        ))}
-      </select>
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)] px-3 py-2">
+        <Languages className="h-4 w-4 shrink-0 text-primary" />
+        <select
+          value={locale}
+          onChange={(e) => void save(e.target.value as LocaleCode)}
+          className="w-full bg-transparent text-sm font-medium outline-none"
+          aria-label={t("settings.language")}
+        >
+          {LOCALES.map((l) => (
+            <option key={l.code} value={l.code} className="bg-background text-foreground">
+              {l.nativeLabel}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="px-1 text-[11px] text-muted-foreground">{t("settings.languageHint")}</p>
     </div>
   );
 }
+

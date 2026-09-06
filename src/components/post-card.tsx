@@ -3,6 +3,8 @@ import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { Heart, Languages, MessageCircle } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n";
+import { useFormat } from "@/lib/i18n/format";
 import { useServerFn } from "@tanstack/react-start";
 import { translateText } from "@/lib/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +15,6 @@ import { PostOwnerMenu } from "@/components/post-owner-menu";
 import { SavePostButton } from "@/components/save-post-button";
 import { RepostButton } from "@/components/repost-button";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNowStrict } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useBlocks } from "@/hooks/use-blocks";
 import { PollCard } from "@/components/polls/poll-card";
 
@@ -38,6 +38,8 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
   const [captionTranslation, setCaptionTranslation] = useState<string | null>(null);
   const [translatingCaption, setTranslatingCaption] = useState(false);
   const runTranslate = useServerFn(translateText);
+  const { locale, t } = useI18n();
+  const fmt = useFormat();
 
   async function translateCaption() {
     if (!post.caption || !currentUserId || translatingCaption) return;
@@ -47,13 +49,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
     }
     setTranslatingCaption(true);
     try {
-      const { data: profile } = await (supabase as any)
-        .from("profiles")
-        .select("language")
-        .eq("id", currentUserId)
-        .maybeSingle();
-      const target = (profile?.language as string) || "pt-BR";
-      const r = await runTranslate({ data: { text: post.caption, target } });
+      const r = await runTranslate({ data: { text: post.caption, target: locale } });
       if (r?.text && r.text !== post.caption) setCaptionTranslation(r.text);
     } catch {
       /* mantém a legenda original */
@@ -128,7 +124,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
           </Link>
           <div className="text-[12px] text-muted-foreground truncate">
             @{author?.username} ·{" "}
-            {formatDistanceToNowStrict(new Date(post.created_at), { locale: ptBR, addSuffix: true })}
+            {fmt.relative(post.created_at)}
           </div>
         </div>
         {currentUserId && currentUserId !== post.author_id ? (
@@ -258,7 +254,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             className="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-muted-foreground transition hover:text-primary disabled:opacity-50"
           >
             <Languages className="h-3.5 w-3.5" />
-            {translatingCaption ? "Traduzindo..." : captionTranslation ? "Ver original" : "Traduzir legenda"}
+            {translatingCaption ? t("translate.translating") : captionTranslation ? t("translate.showOriginal") : t("translate.action")}
           </button>
         ) : null}
       </div>

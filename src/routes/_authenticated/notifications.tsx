@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { VerifiedName } from "@/components/verified-badge";
+import { useT } from "@/lib/i18n";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNotifications, markAllRead, type NotificationRow } from "@/hooks/use-notifications";
@@ -58,6 +59,8 @@ function NotificationsPage() {
     qc.invalidateQueries({ queryKey: ["notifications", user.id] });
   }
 
+  const t = useT();
+
   function openTarget(n: NotificationRow) {
     if (n.entity_type === "post" && n.entity_id) navigate({ to: "/p/$id", params: { id: n.entity_id } });
     else if (n.entity_type === "conversation" && n.entity_id) navigate({ to: "/messages/$conversationId", params: { conversationId: n.entity_id } });
@@ -69,7 +72,7 @@ function NotificationsPage() {
     <div className="space-y-4">
       <header className="flex items-center gap-3">
         <Bell className="h-6 w-6 text-primary" />
-        <h1 className="font-display text-3xl font-bold">Notificações</h1>
+        <h1 className="font-display text-3xl font-bold">{t("notifications.title")}</h1>
       </header>
 
       {q.isLoading ? (
@@ -81,7 +84,7 @@ function NotificationsPage() {
       ) : items.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center text-muted-foreground">
           <Bell className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p className="text-sm">Nada por aqui ainda. Interações vão aparecer em tempo real.</p>
+          <p className="text-sm">{t("notifications.empty")}</p>
         </div>
       ) : (
         <ul className="space-y-1">

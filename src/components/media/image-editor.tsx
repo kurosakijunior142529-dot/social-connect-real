@@ -102,6 +102,10 @@ export function ImageEditor({
   const rotated = value.rotation === 90 || value.rotation === 270;
   const imgRatio = natural ? (rotated ? natural.h / natural.w : natural.w / natural.h) : 1;
   const freeMode = value.aspect === "free";
+  const visibleAspects = useMemo(
+    () => (aspects ? ASPECTS.filter((a) => aspects.includes(a.id)) : ASPECTS),
+    [aspects],
+  );
   const aspect = useMemo(() => {
     if (value.aspect === "free") return imgRatio;
     const found = ASPECTS.find((a) => a.id === value.aspect);

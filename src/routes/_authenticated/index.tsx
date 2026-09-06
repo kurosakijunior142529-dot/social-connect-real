@@ -101,7 +101,9 @@ function FeedPage() {
         </div>
       </header>
 
-      <div className="pb-4 pt-3">
+      <ResumeBar />
+
+      <div className="pb-4 pt-1">
         <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
       </div>
 
@@ -109,6 +111,7 @@ function FeedPage() {
 
       <WatchRoomsRail />
 
+      <VibeCheckCard />
 
       <DailyPromptCard />
 

@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useInView } from "@/hooks/use-in-view";
+import { useSignedUrl } from "@/hooks/use-signed-url";
 import { SignedImage } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
 import { VerifiedName } from "@/components/verified-badge";
@@ -595,15 +597,19 @@ export function MediaCell({
   isVideo: boolean;
   likes?: number;
 }) {
+  const isVideoFile = !!path && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(path);
   const content = (
     <div className="relative aspect-square overflow-hidden rounded-xl bg-[color:var(--surface-2)]">
-      {path ? (
+      {path && isVideoFile ? (
+        <VideoThumb path={path} />
+      ) : path ? (
         <SignedImage bucket="posts" path={path} alt="" className="h-full w-full object-cover" />
       ) : (
         <div className="grid h-full w-full place-items-center text-muted-foreground">
           <Play className="h-5 w-5" />
         </div>
       )}
+
       {isVideo ? (
         <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/55 text-white">
           <Play className="h-3 w-3 fill-current" />
@@ -626,5 +632,26 @@ export function MediaCell({
     <Link to="/p/$id" params={{ id }}>
       {content}
     </Link>
+  );
+}
+
+/** Primeiro quadro do vídeo como miniatura (posts de vídeo não têm imagem salva). */
+function VideoThumb({ path }: { path: string }) {
+  const [ref, inView] = useInView<HTMLDivElement>();
+  const { data: url } = useSignedUrl("posts", inView ? path : null);
+  const [failed, setFailed] = useState(false);
+  return (
+    <div ref={ref} className="h-full w-full bg-gradient-to-br from-[color:var(--surface-2)] to-black">
+      {url && !failed ? (
+        <video
+          src={`${url}#t=0.1`}
+          muted
+          playsInline
+          preload="metadata"
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : null}
+    </div>
   );
 }

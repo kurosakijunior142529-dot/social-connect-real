@@ -2409,6 +2409,79 @@ export type Database = {
         }
         Relationships: []
       }
+      realities: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          generated_image: string
+          id: string
+          is_featured: boolean
+          name: string
+          original_image: string | null
+          privacy: string
+          room_id: string | null
+          style: string
+          transformation_prompt: string | null
+          updated_at: string
+          voice_channel_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          generated_image: string
+          id?: string
+          is_featured?: boolean
+          name: string
+          original_image?: string | null
+          privacy?: string
+          room_id?: string | null
+          style?: string
+          transformation_prompt?: string | null
+          updated_at?: string
+          voice_channel_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          generated_image?: string
+          id?: string
+          is_featured?: boolean
+          name?: string
+          original_image?: string | null
+          privacy?: string
+          room_id?: string | null
+          style?: string
+          transformation_prompt?: string | null
+          updated_at?: string
+          voice_channel_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "realities_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "realities_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "watch_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "realities_voice_channel_id_fkey"
+            columns: ["voice_channel_id"]
+            isOneToOne: false
+            referencedRelation: "voice_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           category: string | null
@@ -3424,6 +3497,7 @@ export type Database = {
         Args: { _live: string; _user: string }
         Returns: boolean
       }
+      can_view_reality: { Args: { _reality_id: string }; Returns: boolean }
       change_username: { Args: { _new_username: string }; Returns: string }
       chat_role: { Args: { _chat: string; _user: string }; Returns: string }
       check_rate_limit: {
@@ -3519,6 +3593,23 @@ export type Database = {
         }[]
       }
       join_watch_room_impl: { Args: { _room: string }; Returns: string }
+      list_public_realities: {
+        Args: { _limit?: number; _offset?: number }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          creator_id: string
+          description: string
+          display_name: string
+          generated_image: string
+          id: string
+          name: string
+          people: number
+          room_id: string
+          style: string
+          username: string
+        }[]
+      }
       list_public_watch_rooms: {
         Args: { _category?: string; _limit?: number; _search?: string }
         Returns: {

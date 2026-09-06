@@ -183,6 +183,13 @@
       "when": 1788705227534,
       "tag": "0025_search_discovery_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788724573100,
+      "tag": "0026_vibely_reality",
+      "breakpoints": true
     }
   ]
 }

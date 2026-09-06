@@ -115,6 +115,23 @@ function ProfileContent() {
   });
   const supporting = supportQuery.data === true;
 
+  // Selo público de apoiador: visível para todos quando o dono do perfil
+  // apoia pelo menos um criador com assinatura ativa.
+  const supporterBadge = useQuery({
+    queryKey: ["supporter-badge", profile?.id],
+    enabled: !!profile?.id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { count } = await (supabase as any)
+        .from("channel_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("subscriber_id", profile.id)
+        .eq("status", "active");
+      return (count ?? 0) > 0;
+    },
+  });
+  const isSupporter = supporterBadge.data === true;
+
   const vibes = useQuery({
     queryKey: ["profile-vibes", profile?.id],
     enabled: !!profile?.id,
@@ -286,6 +303,14 @@ function ProfileContent() {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-2xl font-display font-bold md:text-4xl">{profile.display_name}</h1>
               {profile.is_verified || profile.badge_variant ? <VerifiedBadge size={24} variant={profile.badge_variant ?? "verified"} /> : null}
+              {isSupporter ? (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary"
+                  title="Apoia criadores do Vibely"
+                >
+                  <Heart className="h-3 w-3 fill-primary" /> Apoiador
+                </span>
+              ) : null}
               {profile.is_creator ? <span className="rounded-full bg-primary/15 px-2 py-1 text-[10px] font-bold uppercase text-primary">Criador</span> : null}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">

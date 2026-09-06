@@ -10,13 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Bell, Bookmark, Camera, ImagePlus, LogOut, BellOff, Moon, Shield, Sparkles, Store, Sun, Tv } from "lucide-react";
+import { Bell, Bookmark, Camera, ImagePlus, Languages, LogOut, BellOff, Moon, Shield, Sparkles, Store, Sun, Tv } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
 import { AvatarEditor } from "@/components/user/avatar-editor";
 import { InterestsEditor } from "@/components/profile/interests-editor";
 import { useAppTheme } from "@/lib/theme";
 import { PushSettings } from "@/components/settings/push-settings";
-import { useSmartRepliesEnabled } from "@/lib/chat-settings";
+import { useSmartRepliesEnabled, TRANSLATE_LANGUAGES } from "@/lib/chat-settings";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,

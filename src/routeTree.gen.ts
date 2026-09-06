@@ -56,6 +56,7 @@ import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages.$conversationId'
 import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.$id'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
+import { Route as AuthenticatedTTagRouteImport } from './routes/_authenticated/t.$tag'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
 import { Route as AuthenticatedVoiceIndexRouteImport } from './routes/_authenticated/voice.index'
 import { Route as AuthenticatedVoiceIdRouteImport } from './routes/_authenticated/voice.$id'
@@ -324,6 +325,11 @@ const AuthenticatedStoriesNewRoute = AuthenticatedStoriesNewRouteImport.update({
   path: '/stories/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTTagRoute = AuthenticatedTTagRouteImport.update({
+  id: '/t/$tag',
+  path: '/t/$tag',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedUUsernameRoute = AuthenticatedUUsernameRouteImport.update({
   id: '/u/$username',
   path: '/u/$username',
@@ -442,6 +448,7 @@ export interface FileRoutesByFullPath {
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
+  '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
@@ -503,6 +510,7 @@ export interface FileRoutesByTo {
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
+  '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
@@ -567,6 +575,7 @@ export interface FileRoutesById {
   '/_authenticated/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/_authenticated/p/$id': typeof AuthenticatedPIdRoute
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
+  '/_authenticated/t/$tag': typeof AuthenticatedTTagRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
   '/_authenticated/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
@@ -631,6 +640,7 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/p/$id'
     | '/stories/new'
+    | '/t/$tag'
     | '/u/$username'
     | '/voice/$id'
     | '/watch/$roomId'
@@ -692,6 +702,7 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/p/$id'
     | '/stories/new'
+    | '/t/$tag'
     | '/u/$username'
     | '/voice/$id'
     | '/watch/$roomId'
@@ -755,6 +766,7 @@ export interface FileRouteTypes {
     | '/_authenticated/messages/$conversationId'
     | '/_authenticated/p/$id'
     | '/_authenticated/stories/new'
+    | '/_authenticated/t/$tag'
     | '/_authenticated/u/$username'
     | '/_authenticated/voice/$id'
     | '/_authenticated/watch/$roomId'
@@ -1121,6 +1133,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedStoriesNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/t/$tag': {
+      id: '/_authenticated/t/$tag'
+      path: '/t/$tag'
+      fullPath: '/t/$tag'
+      preLoaderRoute: typeof AuthenticatedTTagRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/u/$username': {
       id: '/_authenticated/u/$username'
       path: '/u/$username'
@@ -1288,6 +1307,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMessagesConversationIdRoute: typeof AuthenticatedMessagesConversationIdRoute
   AuthenticatedPIdRoute: typeof AuthenticatedPIdRoute
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
+  AuthenticatedTTagRoute: typeof AuthenticatedTTagRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRouteWithChildren
   AuthenticatedVoiceIdRoute: typeof AuthenticatedVoiceIdRoute
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
@@ -1342,6 +1362,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedMessagesConversationIdRoute,
   AuthenticatedPIdRoute: AuthenticatedPIdRoute,
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
+  AuthenticatedTTagRoute: AuthenticatedTTagRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRouteWithChildren,
   AuthenticatedVoiceIdRoute: AuthenticatedVoiceIdRoute,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,

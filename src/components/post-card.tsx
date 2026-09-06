@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Heart, Languages, MessageCircle } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useFormat } from "@/lib/i18n/format";
 import { useServerFn } from "@tanstack/react-start";
 import { translateText } from "@/lib/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
   const [translatingCaption, setTranslatingCaption] = useState(false);
   const runTranslate = useServerFn(translateText);
   const { locale, t } = useI18n();
+  const fmt = useFormat();
 
   async function translateCaption() {
     if (!post.caption || !currentUserId || translatingCaption) return;
@@ -124,7 +126,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
           </Link>
           <div className="text-[12px] text-muted-foreground truncate">
             @{author?.username} ·{" "}
-            {formatDistanceToNowStrict(new Date(post.created_at), { locale: ptBR, addSuffix: true })}
+            {fmt.relative(post.created_at)}
           </div>
         </div>
         {currentUserId && currentUserId !== post.author_id ? (

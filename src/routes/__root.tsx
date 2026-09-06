@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectionIndicator } from "@/components/connection-indicator";
 import { SplashScreen } from "@/components/splash-screen";
-import { I18nProvider } from "@/lib/i18n";
+import { I18nProvider, useI18n } from "@/lib/i18n";
 import { ProfileLocaleSync } from "@/lib/i18n/profile-sync";
 
 
@@ -23,20 +23,19 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerPWA } from "@/lib/pwa-register";
 
 function NotFoundComponent() {
+  const { t } = useI18n();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-gradient-brand">404</h1>
-        <h2 className="mt-4 text-xl font-semibold">Página não encontrada</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          O conteúdo que você procura não existe ou foi removido.
-        </p>
+        <h2 className="mt-4 text-xl font-semibold">{t("error.404.title")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t("error.404.body")}</p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-primary/30"
           >
-            Voltar ao feed
+            {t("error.404.cta")}
           </Link>
         </div>
       </div>
@@ -47,6 +46,7 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const { t } = useI18n();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
@@ -54,10 +54,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold">Algo deu errado</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Tente novamente ou volte para o início.
-        </p>
+        <h1 className="text-xl font-semibold">{t("error.generic.title")}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("error.generic.body")}</p>
         <div className="mt-6 flex justify-center gap-2">
           <button
             onClick={() => {
@@ -66,10 +64,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="rounded-full bg-gradient-brand px-5 py-2.5 text-sm font-medium text-white"
           >
-            Tentar de novo
+            {t("common.retry")}
           </button>
           <a href="/" className="rounded-full border px-5 py-2.5 text-sm font-medium">
-            Início
+            {t("error.generic.home")}
           </a>
         </div>
       </div>

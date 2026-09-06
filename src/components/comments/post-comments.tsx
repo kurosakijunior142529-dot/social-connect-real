@@ -230,12 +230,7 @@ export function PostComments({
                 className="h-24 w-24 object-contain"
               />
             ) : (
-              <div className="text-sm leading-snug break-words">
-                <EmojiText text={c.content} />
-                {c.edited_at ? (
-                  <span className="ml-1 text-[10px] text-muted-foreground">(editado)</span>
-                ) : null}
-              </div>
+              <CommentBody content={c.content} edited={!!c.edited_at} />
             )}
           </div>
           {editing?.id === c.id ? null : (
@@ -331,6 +326,18 @@ export function PostComments({
           <Send className="h-4 w-4" />
         </Button>
       </form>
+    </div>
+  );
+}
+
+
+function CommentBody({ content, edited }: { content: string; edited: boolean }) {
+  const { value, button } = useTranslatable(content);
+  return (
+    <div className="text-sm leading-snug break-words">
+      <EmojiText text={value} />
+      {edited ? <span className="ml-1 text-[10px] text-muted-foreground">(editado)</span> : null}
+      {button}
     </div>
   );
 }

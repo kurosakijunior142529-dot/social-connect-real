@@ -38,6 +38,7 @@ import { Route as AuthenticatedAiThreadIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAiMemoryRouteImport } from './routes/_authenticated/ai.memory'
 import { Route as AuthenticatedChatsIdRouteImport } from './routes/_authenticated/chats.$id'
 import { Route as AuthenticatedChatsNewRouteImport } from './routes/_authenticated/chats.new'
+import { Route as AuthenticatedCreateStudioRouteImport } from './routes/_authenticated/create_.studio'
 import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenticated/create_.video'
 import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authenticated/games.index'
 import { Route as AuthenticatedGamesIdRouteImport } from './routes/_authenticated/games.$id'
@@ -222,6 +223,12 @@ const AuthenticatedChatsNewRoute = AuthenticatedChatsNewRouteImport.update({
   path: '/chats/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCreateStudioRoute =
+  AuthenticatedCreateStudioRouteImport.update({
+    id: '/create_/studio',
+    path: '/create/studio',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCreateVideoRoute =
   AuthenticatedCreateVideoRouteImport.update({
     id: '/create_/video',
@@ -409,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/ai/memory': typeof AuthenticatedAiMemoryRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
+  '/create/studio': typeof AuthenticatedCreateStudioRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
   '/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
@@ -468,6 +476,7 @@ export interface FileRoutesByTo {
   '/ai/memory': typeof AuthenticatedAiMemoryRoute
   '/chats/$id': typeof AuthenticatedChatsIdRoute
   '/chats/new': typeof AuthenticatedChatsNewRoute
+  '/create/studio': typeof AuthenticatedCreateStudioRoute
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/games/$id': typeof AuthenticatedGamesIdRoute
   '/games/xcloud': typeof AuthenticatedGamesXcloudRoute
@@ -528,6 +537,7 @@ export interface FileRoutesById {
   '/_authenticated/ai/memory': typeof AuthenticatedAiMemoryRoute
   '/_authenticated/chats/$id': typeof AuthenticatedChatsIdRoute
   '/_authenticated/chats/new': typeof AuthenticatedChatsNewRoute
+  '/_authenticated/create_/studio': typeof AuthenticatedCreateStudioRoute
   '/_authenticated/create_/video': typeof AuthenticatedCreateVideoRoute
   '/_authenticated/games/$id': typeof AuthenticatedGamesIdRoute
   '/_authenticated/games/online': typeof AuthenticatedGamesOnlineRouteWithChildren
@@ -589,6 +599,7 @@ export interface FileRouteTypes {
     | '/ai/memory'
     | '/chats/$id'
     | '/chats/new'
+    | '/create/studio'
     | '/create/video'
     | '/games/$id'
     | '/games/online'
@@ -648,6 +659,7 @@ export interface FileRouteTypes {
     | '/ai/memory'
     | '/chats/$id'
     | '/chats/new'
+    | '/create/studio'
     | '/create/video'
     | '/games/$id'
     | '/games/xcloud'
@@ -707,6 +719,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ai/memory'
     | '/_authenticated/chats/$id'
     | '/_authenticated/chats/new'
+    | '/_authenticated/create_/studio'
     | '/_authenticated/create_/video'
     | '/_authenticated/games/$id'
     | '/_authenticated/games/online'
@@ -955,6 +968,13 @@ declare module '@tanstack/react-router' {
       path: '/chats/new'
       fullPath: '/chats/new'
       preLoaderRoute: typeof AuthenticatedChatsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/create_/studio': {
+      id: '/_authenticated/create_/studio'
+      path: '/create/studio'
+      fullPath: '/create/studio'
+      preLoaderRoute: typeof AuthenticatedCreateStudioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/create_/video': {
@@ -1216,6 +1236,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAiMemoryRoute: typeof AuthenticatedAiMemoryRoute
   AuthenticatedChatsIdRoute: typeof AuthenticatedChatsIdRoute
   AuthenticatedChatsNewRoute: typeof AuthenticatedChatsNewRoute
+  AuthenticatedCreateStudioRoute: typeof AuthenticatedCreateStudioRoute
   AuthenticatedCreateVideoRoute: typeof AuthenticatedCreateVideoRoute
   AuthenticatedGamesIdRoute: typeof AuthenticatedGamesIdRoute
   AuthenticatedGamesOnlineRoute: typeof AuthenticatedGamesOnlineRouteWithChildren
@@ -1267,6 +1288,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAiMemoryRoute: AuthenticatedAiMemoryRoute,
   AuthenticatedChatsIdRoute: AuthenticatedChatsIdRoute,
   AuthenticatedChatsNewRoute: AuthenticatedChatsNewRoute,
+  AuthenticatedCreateStudioRoute: AuthenticatedCreateStudioRoute,
   AuthenticatedCreateVideoRoute: AuthenticatedCreateVideoRoute,
   AuthenticatedGamesIdRoute: AuthenticatedGamesIdRoute,
   AuthenticatedGamesOnlineRoute: AuthenticatedGamesOnlineRouteWithChildren,

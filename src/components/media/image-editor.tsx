@@ -562,6 +562,39 @@ export async function exportEditedImage(src: string, v: ImageEditState, maxSide 
   const rotated = v.rotation === 90 || v.rotation === 270;
   const iw = rotated ? img.naturalHeight : img.naturalWidth;
   const ih = rotated ? img.naturalWidth : img.naturalHeight;
+
+  // Corte livre: renderiza a imagem girada/espelhada e recorta a moldura escolhida
+  if (v.aspect === "free" && v.crop) {
+    const tmp = document.createElement("canvas");
+    tmp.width = iw;
+    tmp.height = ih;
+    const tctx = tmp.getContext("2d")!;
+    tctx.translate(iw / 2, ih / 2);
+    tctx.rotate((v.rotation * Math.PI) / 180);
+    tctx.scale(v.flip ? -1 : 1, 1);
+    tctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+
+    const sx = (v.crop.x / 100) * iw;
+    const sy = (v.crop.y / 100) * ih;
+    const sw = (v.crop.w / 100) * iw;
+    const sh = (v.crop.h / 100) * ih;
+    const scale = Math.min(1, maxSide / Math.max(sw, sh));
+    const outW = Math.max(1, Math.round(sw * scale));
+    const outH = Math.max(1, Math.round(sh * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, outW, outH);
+    ctx.filter = cssFilter(v);
+    ctx.drawImage(tmp, sx, sy, sw, sh, 0, 0, outW, outH);
+    const blob: Blob = await new Promise((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error("Falha ao gerar a imagem"))), "image/jpeg", 0.92),
+    );
+    return new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" });
+  }
+
   const found = ASPECTS.find((a) => a.id === v.aspect);
   const target = found?.value ?? iw / ih;
 

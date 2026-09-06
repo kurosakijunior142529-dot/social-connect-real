@@ -9,7 +9,6 @@ import {
   createAdapter,
   PROVIDER_LABEL,
   PROVIDER_OPTIONS,
-  PROVIDER_URL,
   PREMIUM_PROVIDERS,
   type StreamingProvider,
   type StreamingProviderAdapter,
@@ -20,7 +19,6 @@ import {
   Copy,
   Crown,
   DoorOpen,
-  ExternalLink,
   Link2,
   Maximize2,
   MessageCircle,
@@ -71,6 +69,7 @@ function WatchRoomPage() {
   const [playerReady, setPlayerReady] = useState(false);
   const [providerError, setProviderError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
+  const [requirement, setRequirement] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connected");
   const [hostControlsOnly, setHostControlsOnly] = useState(true);
   const [tab, setTab] = useState<"chat" | "people">("chat");

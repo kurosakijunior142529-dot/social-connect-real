@@ -134,6 +134,13 @@
       "when": 1788660148317,
       "tag": "0018_streaks_daily_prompts_vibe_rls_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788660171323,
+      "tag": "0019_drop_vibe_public_read_policies",
+      "breakpoints": true
     }
   ]
 }

@@ -171,7 +171,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
               >
                 {post.caption}
               </p>
-              <span className="mt-4 block h-px w-16 rounded-full bg-primary/50" />
+              <span className="mt-4 block h-px w-16 rounded-full bg-primary/30" />
             </Link>
           ) : null}
           {captionTranslation && post.media_type === "text" ? (

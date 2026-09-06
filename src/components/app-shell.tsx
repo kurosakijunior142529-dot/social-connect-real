@@ -280,7 +280,7 @@ export function AppShell({
         <Link
           to="/ai"
           aria-label="Vibely AI"
-          className="md:hidden fixed right-4 bottom-[92px] z-30 grid h-14 w-14 place-items-center rounded-full bg-[color:var(--surface-2)] ring-1 ring-primary/40 shadow-[0_14px_34px_-14px_var(--primary)] transition-transform active:scale-95"
+          className="md:hidden fixed right-4 bottom-[92px] z-30 grid h-14 w-14 place-items-center rounded-full bg-[color:var(--surface-2)] ring-1 ring-white/10 shadow-[0_14px_34px_-16px_var(--primary)] transition-transform active:scale-95"
         >
           <img
             src={vibelyMascot}

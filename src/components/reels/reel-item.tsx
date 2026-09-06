@@ -324,7 +324,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 will-change-transform"
           style={{ left: b.x, top: b.y, animation: "reel-heart 900ms cubic-bezier(.2,.9,.3,1) forwards" }}
         >
-          <Heart className="h-24 w-24 fill-primary text-primary drop-shadow-[0_6px_30px_rgba(34,224,106,0.7)]" strokeWidth={0} />
+          <Heart className="h-24 w-24 fill-primary text-primary drop-shadow-[0_6px_24px_rgba(34,224,106,0.4)]" strokeWidth={0} />
         </span>
       ))}
 
@@ -371,7 +371,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
             <Heart
               className={cn(
                 "h-[26px] w-[26px] transition-transform duration-200",
-                post.liked_by_me ? "fill-primary text-primary scale-110 drop-shadow-[0_0_10px_rgba(34,224,106,0.6)]" : "text-white",
+                post.liked_by_me ? "fill-primary text-primary scale-110 drop-shadow-[0_0_8px_rgba(34,224,106,0.35)]" : "text-white",
               )}
               strokeWidth={1.6}
             />
@@ -416,7 +416,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
               displayName={post.author?.display_name ?? "?"}
               verified={!!(post.author as any)?.is_verified}
               badgeVariant={((post.author as any)?.badge_variant) ?? null}
-              className="h-10 w-10 ring-2 ring-primary/70 shadow-[0_0_18px_-4px_rgba(34,224,106,0.8)]"
+              className="h-10 w-10 ring-2 ring-primary/60 shadow-[0_0_14px_-6px_rgba(34,224,106,0.45)]"
             />
           </Link>
           <Link
@@ -452,7 +452,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       >
         <div
           ref={progressRef}
-          className="h-full origin-left scale-x-0 rounded-r-full bg-gradient-to-r from-primary/70 via-primary to-white shadow-[0_0_14px_rgba(34,224,106,0.7)]"
+          className="h-full origin-left scale-x-0 rounded-r-full bg-gradient-to-r from-primary/70 via-primary to-white shadow-[0_0_10px_rgba(34,224,106,0.35)]"
         />
       </div>
 

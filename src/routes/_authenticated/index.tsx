@@ -162,13 +162,13 @@ function DailyPromptCard() {
     <div className="px-4 pb-3">
       <Link
         to="/stories/new"
-        className="flex items-center gap-3 rounded-[22px] border border-primary/25 bg-[radial-gradient(circle_at_0%_0%,rgba(215,255,58,0.12),transparent_45%),var(--surface)] p-3.5 transition active:scale-[0.99]"
+        className="flex items-center gap-3 rounded-[22px] border border-white/[0.07] bg-[radial-gradient(circle_at_0%_0%,rgba(215,255,58,0.06),transparent_45%),var(--surface)] p-3.5 transition active:scale-[0.99]"
       >
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_16px_var(--primary)]">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_14px_-4px_var(--primary)]">
           <Sparkles className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Vibe do dia</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Vibe do dia</div>
           <div className="truncate text-[14px] font-medium">{prompt.data}</div>
         </div>
         <span className="shrink-0 rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-[12px] font-semibold">

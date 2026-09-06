@@ -177,7 +177,7 @@ export function MobileMoreSheet({ onSignOut }: { onSignOut: () => void }) {
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[color:var(--surface-2)] px-3 py-3 text-left transition-colors active:opacity-80"
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-background text-primary">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-background text-muted-foreground">
               {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
             </span>
             <span className="min-w-0 flex-1">

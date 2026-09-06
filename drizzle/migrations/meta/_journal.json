@@ -162,6 +162,13 @@
       "when": 1788693381807,
       "tag": "0022_vibe_checkins_and_weekly_board",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788694091683,
+      "tag": "0023_ephemeral_dm_messages",
+      "breakpoints": true
     }
   ]
 }

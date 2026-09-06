@@ -3,6 +3,7 @@ import { Fragment, type MouseEvent } from "react";
 import { tagSlug } from "@/lib/search";
 
 const HASHTAG_RE = /(#[\p{L}\p{N}_]{1,60})/gu;
+const IS_TAG = /^#[\p{L}\p{N}_]{1,60}$/u;
 
 /**
  * Renderiza um texto normal, mas transforma #hashtags em elementos clicáveis.
@@ -18,12 +19,12 @@ export function RichCaption({ text, className }: { text: string; className?: str
     if (slug) navigate({ to: "/t/$tag", params: { tag: slug } });
   };
 
-  const parts = text.split(HASHTAG_RE);
+  const parts = text.split(new RegExp(HASHTAG_RE.source, "u"));
 
   return (
     <span className={className}>
       {parts.map((part, i) =>
-        HASHTAG_RE.test(part) && part.startsWith("#") ? (
+        IS_TAG.test(part) ? (
           <span
             key={i}
             role="link"

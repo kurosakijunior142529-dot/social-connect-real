@@ -69,7 +69,7 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
     }
   };
 
-  if (onlineFriends.length === 0) return null;
+  const hasOnline = onlineFriends.length > 0;
 
   return (
     <>
@@ -96,6 +96,18 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
             </Link>
           </div>
           <div className="flex gap-2.5 overflow-x-auto scrollbar-none [scroll-snap-type:x_proximity]">
+            {!hasOnline && (
+              <div className="flex min-w-0 flex-1 items-center gap-2 py-1 text-[11px] text-muted-foreground">
+                <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full border border-dashed border-border bg-[color:var(--surface-2)]">
+                  <MessageCircle className="h-4 w-4 opacity-60" />
+                </span>
+                <span className="leading-snug">
+                  Ninguém online agora.
+                  <br />
+                  Quando um amigo abrir o app, ele aparece aqui.
+                </span>
+              </div>
+            )}
             {onlineFriends.map((f) => (
               <button
                 key={f.id}

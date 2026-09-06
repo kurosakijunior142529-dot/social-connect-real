@@ -104,6 +104,29 @@ function HashtagPage() {
         </div>
       </header>
 
+      {related.data && related.data.length > 0 ? (
+        <section className="space-y-2 px-4 pt-4">
+          <h2 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            <TrendingUp className="h-3.5 w-3.5" />
+            Hashtags relacionadas
+          </h2>
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {related.data.map((r) => (
+              <Link
+                key={r.tag}
+                to="/t/$tag"
+                params={{ tag: r.tag }}
+                className="shrink-0 rounded-full border border-white/[0.07] bg-[color:var(--surface)] px-3.5 py-2 text-[13px]"
+              >
+                <span className="font-semibold">#{r.display_tag}</span>
+                <span className="ml-1.5 text-muted-foreground tabular">{r.post_count}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+
       {feed.isLoading ? (
         <div className="grid grid-cols-3 gap-1 p-4">
           {Array.from({ length: 9 }).map((_, i) => (

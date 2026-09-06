@@ -5,7 +5,7 @@ import { uploadMedia } from "@/lib/media";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ImagePlus, Video, X } from "lucide-react";
+import { ImagePlus, Video, Wand2, X } from "lucide-react";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
 import {
   ImageEditor,
@@ -201,6 +201,21 @@ function CreatePage() {
         <div className="flex-1 min-w-0">
           <div className="font-semibold">Estúdio de vídeo</div>
           <div className="text-xs opacity-90">Grave com filtros, ajuste o trim e publique</div>
+        </div>
+      </Link>
+
+      <Link
+        to="/create/studio"
+        className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-4 shadow-lg transition active:scale-[0.99]"
+      >
+        <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/20">
+          <Wand2 className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold">Vibely Studio</div>
+          <div className="text-xs text-muted-foreground">
+            Timeline, filtros, efeitos, música na batida, texto animado e IA
+          </div>
         </div>
       </Link>
 

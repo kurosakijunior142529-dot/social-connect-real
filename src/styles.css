@@ -227,6 +227,38 @@
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }
+/* Slider compacto do Vibely Studio */
+@utility studio-range {
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+  &::-webkit-slider-thumb {
+    appearance: none;
+    margin-top: -6px;
+    height: 16px;
+    width: 16px;
+    border-radius: 999px;
+    background: var(--primary);
+    box-shadow: 0 0 10px color-mix(in oklab, var(--primary) 60%, transparent);
+  }
+  &::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+  &::-moz-range-thumb {
+    height: 16px;
+    width: 16px;
+    border: none;
+    border-radius: 999px;
+    background: var(--primary);
+  }
+}
 /* Cartão de post de texto — sem bloco verde chapado */
 @utility text-post {
   position: relative;

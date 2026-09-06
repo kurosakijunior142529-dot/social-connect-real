@@ -10,6 +10,8 @@ import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { WatchRoomsRail } from "@/components/watch-rooms-rail";
 
 import { WhatsNewCard } from "@/components/whats-new-card";
+import { ResumeBar } from "@/components/resume-bar";
+import { VibeCheckCard } from "@/components/vibe-check-card";
 
 import { PlusSquare, Radio, Bell, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";

@@ -24,7 +24,6 @@ type Row = {
 /** Vibe Check: aparece uma vez por dia, no fim da tarde. Um toque responde. */
 export function VibeCheckCard() {
   const qc = useQueryClient();
-  const hour = new Date().getHours();
 
   const q = useQuery({
     queryKey: ["vibe-checkins"],
@@ -39,8 +38,7 @@ export function VibeCheckCard() {
   const rows = q.data ?? [];
   const mine = rows.find((r) => r.mine);
 
-  // Só convida a partir das 17h; se já respondeu, mostra o resultado o dia todo.
-  if (!mine && hour < 17) return null;
+  if (q.isLoading) return null;
 
   async function answer(mood: string) {
     await (supabase as any).rpc("set_vibe_checkin", { _mood: mood });

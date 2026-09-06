@@ -11,7 +11,7 @@ import { WatchRoomsRail } from "@/components/watch-rooms-rail";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { WhatsNewCard } from "@/components/whats-new-card";
 
-import { PlusSquare, Tv, Gamepad2, Radio, Bell, Sparkles } from "lucide-react";
+import { PlusSquare, Radio, Bell, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/_authenticated/")({

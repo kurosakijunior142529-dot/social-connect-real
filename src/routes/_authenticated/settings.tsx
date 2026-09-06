@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Bell, Bookmark, Camera, ImagePlus, Languages, LogOut, BellOff, Moon, Shield, Sparkles, Store, Sun, Tv } from "lucide-react";
+import { AtSign, Bell, Bookmark, Camera, CheckCircle2, ImagePlus, Languages, LogOut, Mail, BellOff, Moon, Shield, Sparkles, Store, Sun, Tv, UserRound } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
 import { AvatarEditor } from "@/components/user/avatar-editor";
 import { InterestsEditor } from "@/components/profile/interests-editor";

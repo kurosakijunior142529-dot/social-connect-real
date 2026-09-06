@@ -26,7 +26,9 @@ import {
   Pencil,
   Plus,
   Trophy,
+  Crown,
 } from "lucide-react";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
 
 import { VerifiedBadge } from "@/components/verified-badge";
@@ -295,6 +297,17 @@ function ProfileContent() {
                   {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
                 </Button>
                 <Button onClick={openChat} variant="outline" className="gap-2"><MessageCircle className="h-4 w-4" /> Mensagem</Button>
+                {profile.is_creator ? (
+                  <Button
+                    onClick={() =>
+                      openCheckout({ priceId: "channel_sub_monthly", creatorId: profile.id })
+                    }
+                    variant={supporting ? "secondary" : "outline"}
+                    className="gap-2"
+                  >
+                    <Crown className="h-4 w-4" /> {supporting ? "Apoiador" : "Apoiar"}
+                  </Button>
+                ) : null}
                 <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} />
               </>
             )}

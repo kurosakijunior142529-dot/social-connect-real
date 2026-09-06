@@ -84,6 +84,8 @@ function MessagesPage() {
         </div>
       </header>
 
+      <OnlineBubbles currentUserId={user.id} />
+
       <div className="pt-1">
         {tab === "direct" && <DirectList userId={user.id} />}
         {tab === "group" && <ChatList userId={user.id} type="group" />}

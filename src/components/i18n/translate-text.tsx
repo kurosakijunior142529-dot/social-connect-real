@@ -104,3 +104,57 @@ export function TranslatableText({
     </span>
   );
 }
+
+/**
+ * Hook version: lets a caller keep its own renderer (emoji parsing, mentions)
+ * while still offering the Translate / Show original toggle.
+ */
+export function useTranslatable(text: string | null | undefined) {
+  const { locale, t } = useI18n();
+  const run = useServerFn(translateText);
+  const [translated, setTranslated] = useState<string | null>(null);
+  const [showing, setShowing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const trimmed = (text ?? "").trim();
+  const offer = trimmed.length > 1 && !looksLikeLocale(trimmed, locale);
+
+  async function toggle() {
+    if (showing) return setShowing(false);
+    if (translated) return setShowing(true);
+    setLoading(true);
+    setFailed(false);
+    try {
+      const res = await run({ data: { text: trimmed, target: locale } });
+      if (res?.text) {
+        setTranslated(res.text);
+        setShowing(true);
+      } else setFailed(true);
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const button = offer ? (
+    <button
+      type="button"
+      onClick={() => void toggle()}
+      disabled={loading}
+      className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition hover:text-primary disabled:opacity-60"
+    >
+      {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
+      {loading
+        ? t("translate.translating")
+        : failed
+          ? t("translate.failed")
+          : showing
+            ? t("translate.showOriginal")
+            : t("translate.action")}
+    </button>
+  ) : null;
+
+  return { value: showing && translated ? translated : (text ?? ""), button };
+}

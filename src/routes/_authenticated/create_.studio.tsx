@@ -204,16 +204,16 @@ function StudioPage() {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
-      <header className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
+      <header className="flex items-center gap-1 border-b border-border/50 bg-background/80 px-2 py-2 backdrop-blur-xl">
         <Button size="icon" variant="ghost" onClick={() => navigate({ to: "/create" })}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <Input
           value={project.name}
           onChange={(e) => setProject((p) => ({ ...p, name: e.target.value }))}
-          className="h-8 max-w-[9rem] border-none bg-transparent px-1 text-sm font-semibold"
+          className="h-8 min-w-0 flex-1 border-none bg-transparent px-1 text-sm font-semibold"
         />
-        <div className="ml-auto flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           <Button size="icon" variant="ghost" disabled={!past.length} onClick={undo}>
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -230,14 +230,19 @@ function StudioPage() {
           >
             <Save className="h-4 w-4" />
           </Button>
-          <Button size="sm" disabled={exporting} onClick={() => void runExport()}>
+          <Button size="sm" className="rounded-full px-4 font-semibold" disabled={exporting} onClick={() => void runExport()}>
             {exporting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
             {exporting ? `${Math.round(progress * 100)}%` : "Exportar"}
           </Button>
         </div>
       </header>
 
-      <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+      <div
+        className={cn(
+          "relative flex items-center justify-center overflow-hidden bg-gradient-to-b from-neutral-950 to-black p-2",
+          expanded ? "flex-1" : "h-[38dvh] shrink-0 sm:h-[46dvh]",
+        )}
+      >
         <StudioPreview
           ref={previewRef}
           project={project}
@@ -252,54 +257,113 @@ function StudioPage() {
             seek(0);
           }}
         />
-        <div className="pointer-events-none absolute bottom-2 left-0 right-0 flex items-center justify-center gap-3">
+
+        <button
+          type="button"
+          className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white backdrop-blur"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </button>
+        <button
+          type="button"
+          className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white backdrop-blur"
+          onClick={() => setShowCamera(true)}
+        >
+          <Camera className="h-4 w-4" />
+        </button>
+
+        <div className="pointer-events-none absolute bottom-3 left-0 right-0 flex items-center justify-center gap-3">
           <button
             type="button"
-            className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full bg-background/70 backdrop-blur"
+            className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white backdrop-blur-md transition active:scale-95"
             onClick={() => {
               if (!playing) previewRef.current?.play();
               setPlaying((v) => !v);
             }}
           >
-            {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </button>
-          <span className="pointer-events-none rounded-full bg-background/70 px-3 py-1 text-[11px] tabular-nums backdrop-blur">
+          <span className="rounded-full bg-black/50 px-3 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur">
             {fmtTime(time)} / {fmtTime(duration)}
           </span>
         </div>
       </div>
 
-      <StudioTimeline project={project} time={time} selectedId={selectedId} onSelect={setSelectedId} onSeek={seek} />
+      {!expanded && (
+        <>
+          <StudioTimeline
+            project={project}
+            sources={sources}
+            time={time}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onSeek={seek}
+            onReorder={(id, dir) => update((p) => moveClip(p, id, dir))}
+            onTrim={(id, patch) => update((p) => updateClip(p, id, patch as never))}
+          />
 
-      <Row className="border-t border-border/50 px-3 py-2">
-        {TOOLS.map((t) => (
-          <Chip key={t.id} active={tool === t.id} onClick={() => setTool(t.id)}>
-            {t.label}
-          </Chip>
-        ))}
-      </Row>
+          <Row className="border-t border-border/50 bg-background/80 px-2 py-2 backdrop-blur">
+            {TOOLS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTool(t.id)}
+                  className={cn(
+                    "flex w-[68px] shrink-0 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium transition",
+                    tool === t.id ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  <span className="truncate">{t.label}</span>
+                </button>
+              );
+            })}
+          </Row>
 
-      <div className="max-h-[42vh] overflow-y-auto border-t border-border/50 px-3 py-3">
-        <StudioPanel
-          tool={tool}
-          project={project}
-          update={update}
-          replace={replace}
-          selectedId={selectedId}
-          select={setSelectedId}
-          time={time}
-          seek={seek}
-          importFile={importFile}
-          audioBlobs={audioBlobs}
-          aiAvailable={aiAvailable}
-          frameDataUrl={frameDataUrl}
-          openProject={(p) => {
-            setProject(p);
-            setSelectedId(null);
-            seek(0);
+          <div className="max-h-[40dvh] min-h-[6rem] overflow-y-auto rounded-t-3xl border-t border-border/60 bg-card/60 px-3 pb-3 pt-2 backdrop-blur">
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-border" />
+            <StudioPanel
+              tool={tool}
+              project={project}
+              update={update}
+              replace={replace}
+              selectedId={selectedId}
+              select={setSelectedId}
+              time={time}
+              seek={seek}
+              importFile={importFile}
+              audioBlobs={audioBlobs}
+              aiAvailable={aiAvailable}
+              frameDataUrl={frameDataUrl}
+              openProject={(p) => {
+                setProject(p);
+                setSelectedId(null);
+                seek(0);
+              }}
+            />
+          </div>
+        </>
+      )}
+
+      {showCamera && (
+        <StudioCamera
+          aspect={project.aspect}
+          onClose={() => setShowCamera(false)}
+          onCapture={async (takes) => {
+            for (const take of takes) {
+              const meta = await importFile(take.blob, "video", `camera-${Date.now()}.mp4`);
+              update((p) => ({
+                ...p,
+                clips: [...p.clips, newMediaClip(meta.id, "video", meta.duration || take.duration || 3)],
+              }));
+            }
+            toast.success("Gravação adicionada");
           }}
         />
-      </div>
+      )}
 
       {(exporting || result) && (
         <div className="border-t border-border/50 bg-background px-3 py-3">

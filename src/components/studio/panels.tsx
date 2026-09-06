@@ -117,7 +117,7 @@ const sel = <T,>(project: StudioProject, id: string | null, kind: string): T | n
 function selectedMedia(project: StudioProject, id: string | null, time: number): MediaClip | null {
   const direct = project.clips.find((c) => c.id === id && c.kind === "media") as MediaClip | undefined;
   if (direct) return direct;
-  return placedAt(project, time)?.clip ?? null;
+  return placedAt(layout(project), time)?.clip ?? null;
 }
 
 export function StudioPanel(props: PanelProps) {
@@ -234,7 +234,7 @@ function MediaPanel({ project, update, selectedId, select, time, importFile }: P
       {current && (
         <div className="space-y-3 rounded-xl border border-border/50 bg-muted/20 p-3">
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={() => update((p) => splitMedia(p, current.id, time - (placedAt(p, time)?.start ?? 0)))}>
+            <Button size="sm" variant="secondary" onClick={() => update((p) => splitMedia(p, current.id, time - (placedAt(layout(p), time)?.start ?? 0)))}>
               <Scissors className="mr-1 h-3.5 w-3.5" /> Dividir
             </Button>
             <Button size="sm" variant="secondary" onClick={() => update((p) => duplicateClip(p, current.id))}>
@@ -800,7 +800,13 @@ function MotionPanel({ project, update, selectedId, time }: PanelProps) {
         max={def.max}
         value={currentValue}
         suffix={def.unit}
-        onChange={(v) => update((p) => upsertKeyframe(p, clip.id, prop, local, v))}
+        onChange={(v) =>
+          update((p) =>
+            updateClip(p, clip.id, {
+              keyframes: { ...clip.keyframes, [prop]: upsertKeyframe(kfs, local, v) },
+            } as Partial<MediaClip>),
+          )
+        }
       />
       <div className="flex flex-wrap gap-2">
         {kfs.map((k, i) => (

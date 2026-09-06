@@ -101,7 +101,7 @@ function StudioPage() {
   const heights = useMemo(() => supportedHeights(), []);
 
   useEffect(() => {
-    void aiStatus().then((s) => setAiAvailable(s.available)).catch(() => setAiAvailable(false));
+    void aiStatus({} as never).then((s) => setAiAvailable(s.available)).catch(() => setAiAvailable(false));
   }, [aiStatus]);
 
   const update = useCallback((fn: (p: StudioProject) => StudioProject) => {

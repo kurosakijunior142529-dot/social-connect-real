@@ -340,9 +340,15 @@ export function VideoPlayer({
     }
     tapRef.current.last = now;
     tapRef.current.timer = window.setTimeout(() => {
-      // Single tap: if controls are visible, toggle play; otherwise reveal controls.
-      if (showControls || !autoPlayInView) togglePlay();
-      else reveal();
+      // Toque simples: com `expandHref`, abre o vídeo em tela cheia;
+      // senão, alterna play ou revela os controles.
+      if (expandHref) {
+        void navigate({ to: expandHref });
+      } else if (showControls || !autoPlayInView) {
+        togglePlay();
+      } else {
+        reveal();
+      }
       tapRef.current.timer = null;
     }, 280);
   };
@@ -379,7 +385,7 @@ export function VideoPlayer({
         disableRemotePlayback
         controlsList="nodownload noplaybackrate noremoteplayback"
         x-webkit-airplay="deny"
-        className="h-full w-full object-cover"
+        className={cn("h-full w-full", fit === "contain" ? "object-contain" : "object-cover")}
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
           setLoading(false);

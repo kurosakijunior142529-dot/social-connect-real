@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
+import { WatchRoomsRail } from "@/components/watch-rooms-rail";
 import { PlusSquare, Tv, Gamepad2, Radio, Bell } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -102,6 +103,8 @@ function FeedPage() {
       <div className="pb-4 pt-3">
         <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
       </div>
+
+      <WatchRoomsRail />
 
       <OnboardingSuggestions currentUserId={user.id} />
 

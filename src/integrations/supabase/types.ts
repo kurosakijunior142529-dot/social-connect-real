@@ -3795,6 +3795,13 @@ export type Database = {
         Args: { _id: string; _kind: string }
         Returns: undefined
       }
+      reality_room_ids: {
+        Args: { _ids: string[] }
+        Returns: {
+          reality_id: string
+          room_id: string
+        }[]
+      }
       recommended_for_me: {
         Args: { _limit?: number }
         Returns: {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Download, Heart, Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { VideoWatermark } from "@/components/media/watermark";
 import { isSoundOn, setSoundOn, subscribeSound } from "@/lib/media/sound-pref";
@@ -38,6 +39,10 @@ type Props = {
   autoPlayInView?: boolean;
   /** Nome sugerido do arquivo ao baixar. */
   downloadName?: string;
+  /** Como o vídeo preenche a moldura. "contain" mostra tudo sem cortar. */
+  fit?: "cover" | "contain";
+  /** Quando definido, o toque simples no vídeo abre este link (tela cheia). */
+  expandHref?: string;
 };
 
 type Burst = { id: number; x: number; y: number };

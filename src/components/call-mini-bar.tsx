@@ -1,4 +1,4 @@
-import { PhoneOff, Maximize2, Phone } from "lucide-react";
+import { PhoneOff, Maximize2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { UserAvatar } from "@/components/user-avatar";
 

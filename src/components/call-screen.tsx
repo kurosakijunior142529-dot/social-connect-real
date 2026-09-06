@@ -273,7 +273,7 @@ export function CallScreen({
             onPointerUp={(e) => {
               const x = e.clientX < window.innerWidth / 2 ? "l" : "r";
               const y = e.clientY < window.innerHeight / 2 ? "t" : "b";
-              setCorner((`${y}${x}` as Corner) ?? corner);
+              setCorner(`${y}${x}` as Corner);
             }}
           >
             <video

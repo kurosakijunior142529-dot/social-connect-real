@@ -69,9 +69,13 @@ export function SignedVideo({
   className,
   onDoubleTapLike,
   watermarkUsername,
+  fit,
+  expandHref,
 }: Omit<Props, "alt" | "fallback"> & {
   onDoubleTapLike?: () => void;
   watermarkUsername?: string | null;
+  fit?: "cover" | "contain";
+  expandHref?: string;
 }) {
   // só assina/baixa o vídeo quando ele chega perto da viewport (performance no feed)
   const [ref, inView] = useInView<HTMLDivElement>();
@@ -90,6 +94,8 @@ export function SignedVideo({
         className={className}
         onDoubleTapLike={onDoubleTapLike}
         watermarkUsername={watermarkUsername}
+        fit={fit}
+        expandHref={expandHref}
       />
     </div>
   );

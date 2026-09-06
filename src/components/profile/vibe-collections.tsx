@@ -439,13 +439,26 @@ function CollectionEditor({
 
           <div className="space-y-2">
             <Label>Vibes da coleção {selected.length ? `(${selected.length})` : ""}</Label>
-            {options.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                Você ainda não publicou Vibes para guardar aqui.
-              </p>
-            ) : (
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {options.map((o: any) => {
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={(e) => onUpload(e.target.files?.[0])}
+            />
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+                className="flex aspect-[3/4] flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 text-primary transition hover:bg-primary/10 disabled:opacity-60"
+              >
+                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+                <span className="px-1 text-center text-[10px] font-semibold leading-tight">
+                  {uploading ? "Enviando…" : "Enviar da galeria"}
+                </span>
+              </button>
+              {options.map((o: any) => {
                   const active = selected.includes(o.media_url);
                   const order = selected.indexOf(o.media_url) + 1;
                   return (

@@ -397,6 +397,118 @@ export function ImageEditor({
   );
 }
 
+type CropDragMode = "move" | "nw" | "ne" | "sw" | "se";
+const CROP_MIN = 8; // % mínimo
+
+/** Moldura de corte livre: arrastar move, cantos redimensionam. */
+function CropOverlay({
+  crop,
+  onCrop,
+  frameRef,
+}: {
+  crop: CropRect;
+  onCrop: (c: CropRect) => void;
+  frameRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const drag = useRef<{ mode: CropDragMode; sx: number; sy: number; start: CropRect } | null>(null);
+
+  const pct = (clientX: number, clientY: number) => {
+    const rect = frameRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return { px: 0, py: 0 };
+    return {
+      px: ((clientX - drag.current!.sx) / rect.width) * 100,
+      py: ((clientY - drag.current!.sy) / rect.height) * 100,
+    };
+  };
+
+  const start = (mode: CropDragMode) => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    drag.current = { mode, sx: e.clientX, sy: e.clientY, start: { ...crop } };
+  };
+
+  const move = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    e.stopPropagation();
+    const { px, py } = pct(e.clientX, e.clientY);
+    const s = d.start;
+    let { x, y, w, h } = s;
+    if (d.mode === "move") {
+      x = clamp(s.x + px, 0, 100 - s.w);
+      y = clamp(s.y + py, 0, 100 - s.h);
+    } else {
+      if (d.mode.includes("w")) {
+        const nx = clamp(s.x + px, 0, s.x + s.w - CROP_MIN);
+        w = s.w + (s.x - nx);
+        x = nx;
+      }
+      if (d.mode.includes("e")) {
+        w = clamp(s.w + px, CROP_MIN, 100 - s.x);
+      }
+      if (d.mode.includes("n")) {
+        const ny = clamp(s.y + py, 0, s.y + s.h - CROP_MIN);
+        h = s.h + (s.y - ny);
+        y = ny;
+      }
+      if (d.mode.includes("s")) {
+        h = clamp(s.h + py, CROP_MIN, 100 - s.y);
+      }
+    }
+    onCrop({ x, y, w, h });
+  };
+
+  const end = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    drag.current = null;
+  };
+
+  const handleCls =
+    "absolute h-5 w-5 rounded-full border-2 border-white bg-primary shadow-md touch-none";
+
+  return (
+    <div className="absolute inset-0 touch-none select-none">
+      {/* área escurecida + moldura */}
+      <div
+        role="presentation"
+        className="absolute cursor-move border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"
+        style={{ left: `${crop.x}%`, top: `${crop.y}%`, width: `${crop.w}%`, height: `${crop.h}%` }}
+        onPointerDown={start("move")}
+        onPointerMove={move}
+        onPointerUp={end}
+        onPointerCancel={end}
+      >
+        {/* grade terços */}
+        <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-50">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="border border-white/25" />
+          ))}
+        </div>
+        {/* alças */}
+        {(["nw", "ne", "sw", "se"] as CropDragMode[]).map((m) => (
+          <span
+            key={m}
+            role="presentation"
+            className={handleCls}
+            style={{
+              left: m.includes("w") ? -10 : undefined,
+              right: m.includes("e") ? -10 : undefined,
+              top: m.includes("n") ? -10 : undefined,
+              bottom: m.includes("s") ? -10 : undefined,
+              cursor: m === "nw" || m === "se" ? "nwse-resize" : "nesw-resize",
+            }}
+            onPointerDown={start(m)}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={end}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Adjust({
   icon,
   label,

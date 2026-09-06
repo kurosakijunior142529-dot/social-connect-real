@@ -11,6 +11,7 @@ import { moderateMedia, moderateText } from "@/lib/moderation.functions";
 import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
 import {
   ImageEditor,
+  STORY_ASPECTS,
   defaultImageEdit,
   exportEditedImage,
   imageEditIsNeutral,
@@ -123,7 +124,7 @@ function NewStoryPage() {
       {preview && !isVideo ? (
         <div className="social-card space-y-3 rounded-2xl p-3">
           <p className="text-xs font-semibold uppercase text-muted-foreground">Editar foto</p>
-          <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} />
+          <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={STORY_ASPECTS} />
         </div>
       ) : null}
 

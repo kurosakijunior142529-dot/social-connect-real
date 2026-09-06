@@ -497,9 +497,13 @@ function CollectionEditor({
                       ) : null}
                     </button>
                   );
-                })}
-              </div>
-            )}
+                 })}
+            </div>
+            {options.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Envie fotos e vídeos direto da galeria ou escolha Vibes que você já publicou.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex gap-2 pb-4">

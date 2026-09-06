@@ -74,15 +74,22 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+/** Conjuntos de proporções por contexto. */
+export const FEED_ASPECTS = ["0.8", "original", "free"] as const; // padrão Instagram 4:5
+export const STORY_ASPECTS = ["0.5625", "original", "free"] as const;
+
 /** Editor de fotos: recorte com arraste/pinça, giro, espelho, filtros e ajustes. */
 export function ImageEditor({
   src,
   value,
   onChange,
+  aspects,
 }: {
   src: string;
   value: ImageEditState;
   onChange: (v: ImageEditState) => void;
+  /** IDs de proporção permitidos (padrão: todos). */
+  aspects?: readonly string[];
 }) {
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [tab, setTab] = useState<Tab>("crop");
@@ -95,6 +102,10 @@ export function ImageEditor({
   const rotated = value.rotation === 90 || value.rotation === 270;
   const imgRatio = natural ? (rotated ? natural.h / natural.w : natural.w / natural.h) : 1;
   const freeMode = value.aspect === "free";
+  const visibleAspects = useMemo(
+    () => (aspects ? ASPECTS.filter((a) => aspects.includes(a.id)) : ASPECTS),
+    [aspects],
+  );
   const aspect = useMemo(() => {
     if (value.aspect === "free") return imgRatio;
     const found = ASPECTS.find((a) => a.id === value.aspect);
@@ -267,7 +278,7 @@ export function ImageEditor({
       {tab === "crop" && (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            {ASPECTS.map((a) => (
+            {visibleAspects.map((a) => (
               <button
                 key={a.id}
                 type="button"

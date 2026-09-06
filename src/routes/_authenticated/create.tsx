@@ -10,6 +10,7 @@ import { suggestCaptions } from "@/lib/ai.functions";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
 import {
   ImageEditor,
+  FEED_ASPECTS,
   defaultImageEdit,
   exportEditedImage,
   imageEditIsNeutral,
@@ -70,7 +71,7 @@ function CreatePage() {
     if (!isImage && !isVid) return toast.error("Envie uma imagem ou vídeo");
     setFile(f);
     setTrim(defaultTrim);
-    setImgEdit({ ...defaultImageEdit, aspect: isVid ? "original" : "1" });
+    setImgEdit({ ...defaultImageEdit, aspect: isVid ? "original" : "0.8" });
     setProgress(0);
     setPreview(URL.createObjectURL(f));
   }
@@ -263,7 +264,7 @@ function CreatePage() {
         {mode === "media" && preview && !isVideo ? (
           <div className="space-y-3">
             <div className="relative">
-              <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} />
+              <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={FEED_ASPECTS} />
               <button
                 type="button"
                 onClick={() => {

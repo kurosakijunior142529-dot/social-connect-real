@@ -494,7 +494,13 @@ function WatchIndex() {
                                 <Users className="mr-1 inline h-3 w-3" />
                                 {r.member_count}/{r.max_members}
                               </span>
-                              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-primary">ao vivo</span>
+                              {r.scheduled_at && new Date(r.scheduled_at).getTime() > Date.now() - 3600_000 ? (
+                                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-500">
+                                  🗓 {new Date(r.scheduled_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-primary">ao vivo</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -613,6 +619,11 @@ function WatchIndex() {
                               {formatDistanceToNowStrict(new Date(r.created_at), { locale: ptBR, addSuffix: true })}
                             </div>
                             <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              {r.scheduled_at && new Date(r.scheduled_at).getTime() > Date.now() - 3600_000 ? (
+                                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-500">
+                                  🗓 {new Date(r.scheduled_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              ) : null}
                               <span className="rounded-full bg-[color:var(--surface-2)] px-2 py-0.5">
                                 {r.visibility === "public" ? (
                                   <>

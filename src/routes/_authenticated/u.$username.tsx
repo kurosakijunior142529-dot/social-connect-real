@@ -24,7 +24,6 @@ import {
   Loader2,
   
   Pencil,
-  Plus,
   Trophy,
   Crown,
 } from "lucide-react";

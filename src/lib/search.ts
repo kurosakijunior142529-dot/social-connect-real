@@ -147,3 +147,216 @@ export async function fetchHashtagFeed(tag: string, sort: "recent" | "popular", 
 export async function logHashtagView(tag: string) {
   await rpc("log_hashtag_view", { _tag: tag });
 }
+
+/* ==================== Central de busca v2 ==================== */
+
+export type ResultTab = "ask" | "best" | "videos" | "photos" | "users" | "hashtags";
+
+export const RESULT_TABS: { key: ResultTab; label: string }[] = [
+  { key: "ask", label: "Perguntar" },
+  { key: "best", label: "Melhores" },
+  { key: "videos", label: "Vídeos" },
+  { key: "photos", label: "Fotos" },
+  { key: "users", label: "Usuários" },
+  { key: "hashtags", label: "Hashtags" },
+];
+
+export type SeenFilter = "all" | "unseen" | "seen" | "fresh";
+export type SortMode = "relevance" | "recent" | "views" | "likes" | "comments";
+export type PeriodFilter = "all" | "day" | "week" | "month";
+
+export const SEEN_FILTERS: { key: SeenFilter; label: string }[] = [
+  { key: "all", label: "Tudo" },
+  { key: "unseen", label: "Ainda não vi" },
+  { key: "seen", label: "Já vi" },
+  { key: "fresh", label: "Novidades" },
+];
+
+export const SORT_MODES: { key: SortMode; label: string }[] = [
+  { key: "relevance", label: "Mais relevantes" },
+  { key: "recent", label: "Mais recentes" },
+  { key: "views", label: "Mais vistos" },
+  { key: "likes", label: "Mais curtidos" },
+  { key: "comments", label: "Mais comentados" },
+];
+
+export const PERIODS: { key: PeriodFilter; label: string }[] = [
+  { key: "all", label: "Sempre" },
+  { key: "day", label: "24 horas" },
+  { key: "week", label: "7 dias" },
+  { key: "month", label: "30 dias" },
+];
+
+export type SearchFilters = {
+  seen: SeenFilter;
+  sort: SortMode;
+  period: PeriodFilter;
+  place: string | null;
+};
+
+export const DEFAULT_FILTERS: SearchFilters = {
+  seen: "all",
+  sort: "relevance",
+  period: "all",
+  place: null,
+};
+
+export function activeFilterCount(f: SearchFilters) {
+  return (
+    (f.seen !== "all" ? 1 : 0) +
+    (f.sort !== "relevance" ? 1 : 0) +
+    (f.period !== "all" ? 1 : 0) +
+    (f.place ? 1 : 0)
+  );
+}
+
+export type SearchRowV2 = SearchRow & { views: number | null; seen: boolean | null };
+
+export async function fetchSearchV2(
+  q: string,
+  tab: ResultTab,
+  filters: SearchFilters,
+  page: number,
+) {
+  const { data, error } = await rpc("search_v2", {
+    _q: q,
+    _kind: tab === "ask" ? "best" : tab,
+    _filter: filters.seen,
+    _sort: filters.sort,
+    _period: filters.period,
+    _place: filters.place,
+    _limit: SEARCH_PAGE_SIZE,
+    _offset: page * SEARCH_PAGE_SIZE,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SearchRowV2[];
+}
+
+export type TrendingTopic = {
+  kind: string;
+  label: string;
+  slug: string;
+  posts: number;
+  growth: number | null;
+};
+
+export async function fetchTrendingTopics() {
+  const { data } = await rpc("trending_topics", { _limit: 12 });
+  return (data ?? []) as TrendingTopic[];
+}
+
+export async function fetchPopularSearches() {
+  const { data } = await rpc("popular_searches", { _limit: 10 });
+  return (data ?? []) as { term: string; display_term: string; hits: number; growth: number | null }[];
+}
+
+export async function fetchRecommended() {
+  const { data } = await rpc("recommended_for_me", { _limit: 12 });
+  return (data ?? []) as {
+    kind: string;
+    label: string;
+    slug: string;
+    sublabel: string | null;
+    image: string | null;
+  }[];
+}
+
+export async function fetchRelatedSearches(q: string) {
+  const { data } = await rpc("related_searches", { _q: q, _limit: 8 });
+  return (data ?? []) as { term: string; kind: string }[];
+}
+
+export async function fetchRelatedHashtags(tag: string) {
+  const { data } = await rpc("related_hashtags", { _tag: tag, _limit: 8 });
+  return (data ?? []) as { tag: string; display_tag: string; post_count: number; weight: number }[];
+}
+
+export async function fetchDidYouMean(q: string) {
+  const { data } = await rpc("search_did_you_mean", { _q: q });
+  const rows = (data ?? []) as { suggestion: string; kind: string }[];
+  return rows[0] ?? null;
+}
+
+export async function fetchPlaces(q: string) {
+  const { data } = await rpc("search_places", { _q: q, _limit: 5 });
+  return (data ?? []) as { place: string; people: number }[];
+}
+
+/** Registra que a pessoa realmente viu esta publicação. */
+export async function logPostView(postId: string) {
+  await rpc("log_post_view", { _post_id: postId });
+}
+
+export async function recomputeMyAffinity() {
+  await rpc("recompute_my_affinity", {});
+}
+
+/** Histórico do que a pessoa já viu (privado). */
+export async function fetchViewHistory() {
+  const { data, error } = await supabase
+    .from("post_views")
+    .select("post_id, viewed_at, posts(id, media_url, thumbnail_url, media_type, post_kind)")
+    .order("viewed_at", { ascending: false })
+    .limit(24);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as {
+    post_id: string;
+    viewed_at: string;
+    posts: {
+      id: string;
+      media_url: string | null;
+      thumbnail_url: string | null;
+      media_type: string | null;
+      post_kind: string | null;
+    } | null;
+  }[];
+}
+
+export async function clearViewHistory() {
+  const { data } = await supabase.auth.getUser();
+  const uid = data.user?.id;
+  if (!uid) return;
+  await supabase.from("post_views").delete().eq("user_id", uid);
+}
+
+/** Reconhecimento de voz do navegador (quando disponível). */
+export function speechSupported() {
+  if (typeof window === "undefined") return false;
+  const w = window as unknown as Record<string, unknown>;
+  return !!(w["SpeechRecognition"] || w["webkitSpeechRecognition"]);
+}
+
+export function startVoiceSearch(
+  onResult: (text: string) => void,
+  onEnd?: (error?: string) => void,
+) {
+  const w = window as unknown as Record<string, unknown>;
+  const Ctor = (w["SpeechRecognition"] ?? w["webkitSpeechRecognition"]) as
+    | (new () => any)
+    | undefined;
+  if (!Ctor) {
+    onEnd?.("unsupported");
+    return () => {};
+  }
+  const rec = new Ctor();
+  rec.lang = "pt-BR";
+  rec.interimResults = true;
+  rec.continuous = false;
+  rec.onresult = (e: any) => {
+    const text = Array.from(e.results as ArrayLike<any>)
+      .map((r: any) => r[0].transcript)
+      .join(" ")
+      .trim();
+    if (text) onResult(text);
+  };
+  rec.onerror = (e: any) => onEnd?.(String(e?.error ?? "error"));
+  rec.onend = () => onEnd?.();
+  rec.start();
+  return () => {
+    try {
+      rec.stop();
+    } catch {
+      /* ignore */
+    }
+  };
+}

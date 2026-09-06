@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { VerifiedName } from "@/components/verified-badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { PostComments } from "@/components/comments/post-comments";
+import { logPostView } from "@/lib/search";
 import { Heart, ArrowLeft } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +21,10 @@ function PostDetailPage() {
   const { id } = Route.useParams();
   const { user } = Route.useRouteContext();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    void logPostView(id);
+  }, [id]);
   
 
   const post = useQuery({

@@ -36,7 +36,7 @@ export function WhatsNewCard() {
   ];
 
   return (
-    <section className="mx-4 mb-4 rounded-3xl bg-[color:var(--surface)] p-4 ring-1 ring-primary/20">
+    <section className="mx-4 mb-4 rounded-3xl border border-white/[0.07] bg-[color:var(--surface)] p-4">
       <div className="flex items-start gap-2">
         <div className="flex-1">
           <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">

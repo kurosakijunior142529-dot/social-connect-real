@@ -86,7 +86,7 @@ function FeedPage() {
           <div className="min-w-0">
             <div className="flex items-baseline gap-1.5">
               <span className="text-[22px] font-display font-semibold">vibely</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_12px_var(--primary)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             </div>
             <span className="block truncate text-[11px] text-muted-foreground tabular">@{meProfile.data?.username ?? "…"}</span>
           </div>
@@ -162,9 +162,9 @@ function DailyPromptCard() {
     <div className="px-4 pb-3">
       <Link
         to="/stories/new"
-        className="flex items-center gap-3 rounded-[22px] border border-white/[0.07] bg-[radial-gradient(circle_at_0%_0%,rgba(215,255,58,0.06),transparent_45%),var(--surface)] p-3.5 transition active:scale-[0.99]"
+        className="flex items-center gap-3 rounded-[22px] border border-white/[0.07] bg-[color:var(--surface)] p-3.5 transition active:scale-[0.99]"
       >
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_14px_-4px_var(--primary)]">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
           <Sparkles className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ function DailyPromptCard() {
 
 function EmptyFeed() {
   return (
-    <div className="mx-4 mt-4 rounded-[28px] bg-[radial-gradient(circle_at_50%_0%,rgba(215,255,58,0.14),transparent_34%),var(--surface)] p-8 text-center space-y-4 shadow-elegant">
+    <div className="mx-4 mt-4 rounded-[28px] border border-white/[0.06] bg-[color:var(--surface)] p-8 text-center space-y-4">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground">
         <PlusSquare className="h-6 w-6" />
       </div>

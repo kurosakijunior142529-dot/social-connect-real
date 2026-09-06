@@ -5,7 +5,7 @@ import { uploadMedia } from "@/lib/media";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ImagePlus, Video, X } from "lucide-react";
+import { ImagePlus, Video, Wand2, X } from "lucide-react";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
 import {
   ImageEditor,

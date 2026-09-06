@@ -335,6 +335,7 @@ export function ImageEditor({
               onValueChange={([z]) => onChange({ ...value, zoom: z })}
             />
           </div>
+          )}
         </div>
       )}
 

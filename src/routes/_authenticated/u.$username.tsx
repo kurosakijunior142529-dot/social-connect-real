@@ -138,15 +138,15 @@ function ProfileContent() {
         "postgres_changes",
         { event: "*", schema: "public", table: "channel_subscriptions", filter: `subscriber_id=eq.${profileId}` },
         () => {
-          qc.invalidateQueries({ queryKey: ["supporter-badge", profileId] });
-          qc.invalidateQueries({ queryKey: ["supporting", profileId] });
+          queryClient.invalidateQueries({ queryKey: ["supporter-badge", profileId] });
+          queryClient.invalidateQueries({ queryKey: ["supporting", profileId] });
         },
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [profileId, qc]);
+  }, [profileId, queryClient]);
 
 
 

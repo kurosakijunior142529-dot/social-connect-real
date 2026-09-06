@@ -11,6 +11,9 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { ConnectionIndicator } from "@/components/connection-indicator";
 import { SplashScreen } from "@/components/splash-screen";
+import { I18nProvider } from "@/lib/i18n";
+import { ProfileLocaleSync } from "@/lib/i18n/profile-sync";
+
 
 
 

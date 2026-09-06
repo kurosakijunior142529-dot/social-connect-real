@@ -25,8 +25,10 @@ import {
   Pause,
   Play,
   Send,
+  UserPlus,
   Users,
 } from "lucide-react";
+import { ForwardDialog } from "@/components/chat/forward-dialog";
 import { cn } from "@/lib/utils";
 import { isWatchSessionExpired, requireFreshWatchUser } from "@/lib/watch/auth";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -74,6 +76,7 @@ function WatchRoomPage() {
   const [hostControlsOnly, setHostControlsOnly] = useState(true);
   const [tab, setTab] = useState<"chat" | "people">("chat");
   const [chatInput, setChatInput] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
 
@@ -462,6 +465,13 @@ function WatchRoomPage() {
               <Copy className="h-3 w-3" /> {copied ? "link copiado!" : ""}
             </button>
           </div>
+          <button
+            onClick={() => setInviteOpen(true)}
+            className="h-8 w-8 grid place-items-center rounded-full hover:bg-[color:var(--surface-2)]"
+            title="Convidar pelo chat"
+          >
+            <UserPlus className="h-4 w-4" />
+          </button>
           <button
             onClick={toggleFullscreen}
             className="h-8 w-8 grid place-items-center rounded-full hover:bg-[color:var(--surface-2)]"

@@ -35,7 +35,7 @@ import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
 import { uploadMedia } from "@/lib/media";
-import { StoryViewer } from "@/components/story-viewer";
+
 import { VibeCollections } from "@/components/profile/vibe-collections";
 
 
@@ -284,9 +284,6 @@ function ProfileContent() {
   const videoPosts = allPosts.filter((p) => p.post_kind === "reel" || p.media_type === "video");
 
   const activeVibes = vibes.data ?? [];
-  const vibeGroups = activeVibes.length
-    ? [{ userId: profile.id, profile: { id: profile.id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url }, stories: activeVibes }]
-    : [];
 
   return (
     <div className="-mt-4 overflow-hidden md:-mt-6">
@@ -393,26 +390,6 @@ function ProfileContent() {
 
 
 
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-primary">Vibes</h2>
-            {isMe ? (
-              <Link to="/stories/new" aria-label="Nova Vibe">
-                <Button variant="outline" size="icon" className="h-8 w-8"><Plus className="h-4 w-4" /></Button>
-              </Link>
-            ) : null}
-          </div>
-          <div className="no-scrollbar flex min-h-20 gap-3 overflow-x-auto pb-1">
-            {activeVibes.length ? activeVibes.map((vibe: any, index: number) => (
-              <button key={vibe.id} type="button" onClick={() => { if (index >= 0) setVibeViewerOpen(true); }} className="group w-16 shrink-0 text-center" aria-label={`Abrir Vibe ${index + 1}`}>
-                <span className="block rounded-full bg-primary p-0.5 transition-transform group-hover:scale-105"><SignedMediaThumb bucket="stories" path={vibe.media_url} mediaType={vibe.media_type} alt="" className="h-[62px] w-[62px] rounded-full border-2 border-background object-cover" /></span>
-                <span className="mt-1.5 block truncate text-[11px] text-muted-foreground">Vibe {index + 1}</span>
-              </button>
-            )) : <div className="flex w-full items-center justify-center rounded-xl border border-dashed border-border py-5 text-xs text-muted-foreground">Nenhuma Vibe ativa agora.</div>}
-          </div>
-        </section>
-
-
       {/* 9. ABAS + GRADE */}
       {isBlockedPair ? (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">
@@ -470,7 +447,6 @@ function ProfileContent() {
         </Tabs>
       )}
       </div>
-      {vibeViewerOpen && vibeGroups.length ? <StoryViewer groups={vibeGroups} startIndex={0} viewerId={user.id} onClose={() => setVibeViewerOpen(false)} /> : null}
       {checkoutElement}
     </div>
   );

@@ -127,6 +127,13 @@
       "when": 1788659406885,
       "tag": "0017_is_supporter_function",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788660148317,
+      "tag": "0018_streaks_daily_prompts_vibe_rls_fix",
+      "breakpoints": true
     }
   ]
 }

@@ -620,6 +620,50 @@ export type Database = {
           },
         ]
       }
+      chat_streaks: {
+        Row: {
+          a_last_day: string | null
+          b_last_day: string | null
+          best: number
+          conversation_id: string
+          last_both_day: string | null
+          streak: number
+          updated_at: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          a_last_day?: string | null
+          b_last_day?: string | null
+          best?: number
+          conversation_id: string
+          last_both_day?: string | null
+          streak?: number
+          updated_at?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          a_last_day?: string | null
+          b_last_day?: string | null
+          best?: number
+          conversation_id?: string
+          last_both_day?: string | null
+          streak?: number
+          updated_at?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_streaks_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chats: {
         Row: {
           avatar_url: string | null
@@ -854,6 +898,27 @@ export type Database = {
           user_b?: string
           wallpaper_type?: string
           wallpaper_value?: string | null
+        }
+        Relationships: []
+      }
+      daily_prompts: {
+        Row: {
+          active_on: string
+          created_at: string
+          id: string
+          prompt: string
+        }
+        Insert: {
+          active_on: string
+          created_at?: string
+          id?: string
+          prompt: string
+        }
+        Update: {
+          active_on?: string
+          created_at?: string
+          id?: string
+          prompt?: string
         }
         Relationships: []
       }
@@ -3108,6 +3173,7 @@ export type Database = {
         Args: { _other_user: string }
         Returns: string
       }
+      get_streak: { Args: { _conversation: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3318,6 +3384,13 @@ export type Database = {
           level: number
           points: number
           unlocked: number
+        }[]
+      }
+      today_prompt: {
+        Args: never
+        Returns: {
+          id: string
+          prompt: string
         }[]
       }
       watch_room_invite_preview: {

@@ -3338,6 +3338,20 @@ export type Database = {
           xp_gained: number
         }[]
       }
+      public_post_preview: {
+        Args: { _id: string }
+        Returns: {
+          caption: string
+          comments: number
+          created_at: string
+          display_name: string
+          id: string
+          likes: number
+          media_type: string
+          post_kind: string
+          username: string
+        }[]
+      }
       push_dispatch: {
         Args: { _id: string; _kind: string }
         Returns: undefined

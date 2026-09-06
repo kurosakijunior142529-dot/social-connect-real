@@ -141,6 +141,13 @@
       "when": 1788660171323,
       "tag": "0019_drop_vibe_public_read_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788660565484,
+      "tag": "0020_public_post_preview_rpc",
+      "breakpoints": true
     }
   ]
 }

@@ -595,15 +595,19 @@ export function MediaCell({
   isVideo: boolean;
   likes?: number;
 }) {
+  const isVideoFile = !!path && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(path);
   const content = (
     <div className="relative aspect-square overflow-hidden rounded-xl bg-[color:var(--surface-2)]">
-      {path ? (
+      {path && isVideoFile ? (
+        <VideoThumb path={path} />
+      ) : path ? (
         <SignedImage bucket="posts" path={path} alt="" className="h-full w-full object-cover" />
       ) : (
         <div className="grid h-full w-full place-items-center text-muted-foreground">
           <Play className="h-5 w-5" />
         </div>
       )}
+
       {isVideo ? (
         <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/55 text-white">
           <Play className="h-3 w-3 fill-current" />

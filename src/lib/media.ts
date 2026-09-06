@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type MediaBucket = "avatars" | "posts" | "stories" | "chats" | "covers";
+export type MediaBucket = "avatars" | "posts" | "stories" | "chats" | "covers" | "realities";
 
 export async function uploadMedia(
   bucket: MediaBucket,

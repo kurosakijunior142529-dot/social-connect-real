@@ -55,6 +55,9 @@ import { Route as AuthenticatedMarketplaceNewRouteImport } from './routes/_authe
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages.$conversationId'
 import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.$id'
+import { Route as AuthenticatedRealityIndexRouteImport } from './routes/_authenticated/reality.index'
+import { Route as AuthenticatedRealityIdRouteImport } from './routes/_authenticated/reality.$id'
+import { Route as AuthenticatedRealityNewRouteImport } from './routes/_authenticated/reality.new'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
 import { Route as AuthenticatedTTagRouteImport } from './routes/_authenticated/t.$tag'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
@@ -320,6 +323,22 @@ const AuthenticatedPIdRoute = AuthenticatedPIdRouteImport.update({
   path: '/p/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRealityIndexRoute =
+  AuthenticatedRealityIndexRouteImport.update({
+    id: '/reality/',
+    path: '/reality/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRealityIdRoute = AuthenticatedRealityIdRouteImport.update({
+  id: '/reality/$id',
+  path: '/reality/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRealityNewRoute = AuthenticatedRealityNewRouteImport.update({
+  id: '/reality/new',
+  path: '/reality/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedStoriesNewRoute = AuthenticatedStoriesNewRouteImport.update({
   id: '/stories/new',
   path: '/stories/new',
@@ -447,6 +466,8 @@ export interface FileRoutesByFullPath {
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
+  '/reality/$id': typeof AuthenticatedRealityIdRoute
+  '/reality/new': typeof AuthenticatedRealityNewRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
@@ -461,6 +482,7 @@ export interface FileRoutesByFullPath {
   '/lives/': typeof AuthenticatedLivesIndexRoute
   '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/reality/': typeof AuthenticatedRealityIndexRoute
   '/voice/': typeof AuthenticatedVoiceIndexRoute
   '/watch/': typeof AuthenticatedWatchIndexRoute
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
@@ -509,6 +531,8 @@ export interface FileRoutesByTo {
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
+  '/reality/$id': typeof AuthenticatedRealityIdRoute
+  '/reality/new': typeof AuthenticatedRealityNewRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
@@ -523,6 +547,7 @@ export interface FileRoutesByTo {
   '/lives': typeof AuthenticatedLivesIndexRoute
   '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
+  '/reality': typeof AuthenticatedRealityIndexRoute
   '/voice': typeof AuthenticatedVoiceIndexRoute
   '/watch': typeof AuthenticatedWatchIndexRoute
   '/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
@@ -574,6 +599,8 @@ export interface FileRoutesById {
   '/_authenticated/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/_authenticated/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/_authenticated/p/$id': typeof AuthenticatedPIdRoute
+  '/_authenticated/reality/$id': typeof AuthenticatedRealityIdRoute
+  '/_authenticated/reality/new': typeof AuthenticatedRealityNewRoute
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/t/$tag': typeof AuthenticatedTTagRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
@@ -588,6 +615,7 @@ export interface FileRoutesById {
   '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
   '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
+  '/_authenticated/reality/': typeof AuthenticatedRealityIndexRoute
   '/_authenticated/voice/': typeof AuthenticatedVoiceIndexRoute
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
   '/_authenticated/games/online/$room': typeof AuthenticatedGamesOnlineRoomRoute
@@ -639,6 +667,8 @@ export interface FileRouteTypes {
     | '/marketplace/new'
     | '/messages/$conversationId'
     | '/p/$id'
+    | '/reality/$id'
+    | '/reality/new'
     | '/stories/new'
     | '/t/$tag'
     | '/u/$username'
@@ -653,6 +683,7 @@ export interface FileRouteTypes {
     | '/lives/'
     | '/marketplace/'
     | '/messages/'
+    | '/reality/'
     | '/voice/'
     | '/watch/'
     | '/games/online/$room'
@@ -701,6 +732,8 @@ export interface FileRouteTypes {
     | '/marketplace/new'
     | '/messages/$conversationId'
     | '/p/$id'
+    | '/reality/$id'
+    | '/reality/new'
     | '/stories/new'
     | '/t/$tag'
     | '/u/$username'
@@ -715,6 +748,7 @@ export interface FileRouteTypes {
     | '/lives'
     | '/marketplace'
     | '/messages'
+    | '/reality'
     | '/voice'
     | '/watch'
     | '/games/online/$room'
@@ -765,6 +799,8 @@ export interface FileRouteTypes {
     | '/_authenticated/marketplace/new'
     | '/_authenticated/messages/$conversationId'
     | '/_authenticated/p/$id'
+    | '/_authenticated/reality/$id'
+    | '/_authenticated/reality/new'
     | '/_authenticated/stories/new'
     | '/_authenticated/t/$tag'
     | '/_authenticated/u/$username'
@@ -779,6 +815,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lives/'
     | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
+    | '/_authenticated/reality/'
     | '/_authenticated/voice/'
     | '/_authenticated/watch/'
     | '/_authenticated/games/online/$room'
@@ -1126,6 +1163,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reality/': {
+      id: '/_authenticated/reality/'
+      path: '/reality'
+      fullPath: '/reality/'
+      preLoaderRoute: typeof AuthenticatedRealityIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reality/$id': {
+      id: '/_authenticated/reality/$id'
+      path: '/reality/$id'
+      fullPath: '/reality/$id'
+      preLoaderRoute: typeof AuthenticatedRealityIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reality/new': {
+      id: '/_authenticated/reality/new'
+      path: '/reality/new'
+      fullPath: '/reality/new'
+      preLoaderRoute: typeof AuthenticatedRealityNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/stories/new': {
       id: '/_authenticated/stories/new'
       path: '/stories/new'
@@ -1306,6 +1364,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMarketplaceNewRoute: typeof AuthenticatedMarketplaceNewRoute
   AuthenticatedMessagesConversationIdRoute: typeof AuthenticatedMessagesConversationIdRoute
   AuthenticatedPIdRoute: typeof AuthenticatedPIdRoute
+  AuthenticatedRealityIdRoute: typeof AuthenticatedRealityIdRoute
+  AuthenticatedRealityNewRoute: typeof AuthenticatedRealityNewRoute
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedTTagRoute: typeof AuthenticatedTTagRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRouteWithChildren
@@ -1318,6 +1378,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
   AuthenticatedMarketplaceIndexRoute: typeof AuthenticatedMarketplaceIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
+  AuthenticatedRealityIndexRoute: typeof AuthenticatedRealityIndexRoute
   AuthenticatedVoiceIndexRoute: typeof AuthenticatedVoiceIndexRoute
   AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
   AuthenticatedGamesPongRoomRoute: typeof AuthenticatedGamesPongRoomRoute
@@ -1361,6 +1422,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMessagesConversationIdRoute:
     AuthenticatedMessagesConversationIdRoute,
   AuthenticatedPIdRoute: AuthenticatedPIdRoute,
+  AuthenticatedRealityIdRoute: AuthenticatedRealityIdRoute,
+  AuthenticatedRealityNewRoute: AuthenticatedRealityNewRoute,
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedTTagRoute: AuthenticatedTTagRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRouteWithChildren,
@@ -1373,6 +1436,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,
   AuthenticatedMarketplaceIndexRoute: AuthenticatedMarketplaceIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
+  AuthenticatedRealityIndexRoute: AuthenticatedRealityIndexRoute,
   AuthenticatedVoiceIndexRoute: AuthenticatedVoiceIndexRoute,
   AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
   AuthenticatedGamesPongRoomRoute: AuthenticatedGamesPongRoomRoute,

@@ -412,7 +412,75 @@ function SettingsPage() {
   );
 }
 
+function EmailSection({ currentEmail }: { currentEmail: string }) {
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const next = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(next)) return toast.error("Digite um e-mail válido");
+    if (next === currentEmail.toLowerCase()) return toast.error("Este já é o seu e-mail atual");
+    setSending(true);
+    const { error } = await supabase.auth.updateUser(
+      { email: next },
+      { emailRedirectTo: `${window.location.origin}/settings` },
+    );
+    setSending(false);
+    if (error) return toast.error(error.message);
+    setSentTo(next);
+    setEmail("");
+    toast.success("Enviamos a confirmação para o novo e-mail");
+  }
+
+  return (
+    <section className="space-y-4 rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4">
+      <div className="flex items-center gap-2">
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-[color:var(--surface-2)] text-primary">
+          <Mail className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold leading-tight">E-mail da conta</h2>
+          <p className="truncate text-[12px] text-muted-foreground">{currentEmail || "—"}</p>
+        </div>
+      </div>
+
+      <form onSubmit={submit} className="space-y-2">
+        <Label htmlFor="new-email">Novo e-mail</Label>
+        <Input
+          id="new-email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="voce@gmail.com"
+          className="rounded-xl"
+        />
+        <Button type="submit" disabled={sending || !email.trim()} className="h-11 w-full rounded-full">
+          {sending ? "Enviando…" : "Alterar e-mail"}
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Por segurança, a troca só é concluída depois que você clicar no link de confirmação que enviamos.
+        </p>
+      </form>
+
+      {sentTo ? (
+        <div className="flex items-start gap-2 rounded-2xl bg-[color:var(--surface-2)] p-3 text-[12px]">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <span>
+            Confirmação enviada para <span className="font-medium">{sentTo}</span>. Verifique a caixa de entrada (e o spam)
+            e conclua a verificação para ativar o novo e-mail.
+          </span>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function SettingsShortcut({
+
   to,
   icon,
   label,

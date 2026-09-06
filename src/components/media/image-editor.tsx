@@ -278,7 +278,7 @@ export function ImageEditor({
       {tab === "crop" && (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            {ASPECTS.map((a) => (
+            {visibleAspects.map((a) => (
               <button
                 key={a.id}
                 type="button"

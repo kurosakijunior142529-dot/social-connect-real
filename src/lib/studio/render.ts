@@ -409,30 +409,13 @@ function drawOverlay(ctx: CanvasRenderingContext2D, c: OverlayClip, t: number, w
     }
     default: {
       // partículas / poeira / chuva / neve
-      const kind = c.overlayId === "particles" ? "particles" : c.overlayId;
-      const mod = require_atmosphere();
-      mod(ctx, kind, 0.6, alpha, t, w, h);
+      drawAtmosphere(ctx, c.overlayId, 0.6, alpha, t, w, h);
       break;
     }
   }
   ctx.restore();
 }
 
-// evita ciclo de import no bundle
-function require_atmosphere() {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return (drawAtmosphereRef as any) as (
-    ctx: CanvasRenderingContext2D,
-    kind: string,
-    intensity: number,
-    alpha: number,
-    t: number,
-    w: number,
-    h: number,
-  ) => void;
-}
-
-import { drawAtmosphere as drawAtmosphereRef } from "./effects";
 
 export type RenderContext = {
   ctx: CanvasRenderingContext2D;

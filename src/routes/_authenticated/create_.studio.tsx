@@ -4,25 +4,49 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Camera,
+  Clapperboard,
   Download,
+  Film,
+  Gauge,
+  Image as ImageIcon,
+  Layers,
   Loader2,
+  Maximize2,
+  Minimize2,
+  Music,
   Pause,
   Play,
   Redo2,
   Save,
   Send,
+  Shapes,
+  SlidersHorizontal,
+  Sparkles,
+  Smile,
+  Sun,
+  Type,
   Undo2,
+  Volume2,
+  Wand2,
+  Crop,
+  Bookmark,
+  FolderOpen,
+  Move3d,
+  Contrast,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { StudioPreview, type PreviewHandle } from "@/components/studio/studio-preview";
 import { StudioTimeline } from "@/components/studio/studio-timeline";
+import { StudioCamera } from "@/components/studio/studio-camera";
 import { StudioPanel, type ToolId } from "@/components/studio/panels";
 import { useStudioMedia } from "@/components/studio/use-studio-media";
 import { Chip, Row } from "@/components/studio/ui";
-import { emptyProject, type StudioProject } from "@/lib/studio/types";
-import { fmtTime, projectDuration } from "@/lib/studio/timeline";
+import { emptyProject, newMediaClip, type StudioProject } from "@/lib/studio/types";
+import { fmtTime, moveClip, projectDuration, updateClip } from "@/lib/studio/timeline";
+import { cn } from "@/lib/utils";
 import { exportProject, supportedHeights, type ExportQuality } from "@/lib/studio/export";
 import { fontMap } from "@/lib/studio/render";
 import { FONTS } from "@/lib/studio/catalog";
@@ -53,25 +77,25 @@ export const Route = createFileRoute("/_authenticated/create_/studio")({
   }),
 });
 
-const TOOLS: { id: ToolId; label: string }[] = [
-  { id: "media", label: "Clipes" },
-  { id: "speed", label: "Velocidade" },
-  { id: "filters", label: "Filtros" },
-  { id: "adjust", label: "Ajustes" },
-  { id: "effects", label: "Efeitos" },
-  { id: "beauty", label: "Aparência + IA" },
-  { id: "mask", label: "Máscara" },
-  { id: "motion", label: "Movimento" },
-  { id: "text", label: "Texto" },
-  { id: "sticker", label: "Stickers" },
-  { id: "overlay", label: "Overlays" },
-  { id: "transition", label: "Transições" },
-  { id: "music", label: "Música" },
-  { id: "audio", label: "Áudio" },
-  { id: "auto", label: "Auto / IA" },
-  { id: "format", label: "Formato" },
-  { id: "presets", label: "Presets" },
-  { id: "projects", label: "Projetos" },
+const TOOLS: { id: ToolId; label: string; icon: typeof Film }[] = [
+  { id: "media", label: "Clipes", icon: Film },
+  { id: "speed", label: "Velocidade", icon: Gauge },
+  { id: "filters", label: "Filtros", icon: ImageIcon },
+  { id: "adjust", label: "Ajustes", icon: SlidersHorizontal },
+  { id: "effects", label: "Efeitos", icon: Sparkles },
+  { id: "beauty", label: "Aparência", icon: Sun },
+  { id: "mask", label: "Máscara", icon: Crop },
+  { id: "motion", label: "Movimento", icon: Move3d },
+  { id: "text", label: "Texto", icon: Type },
+  { id: "sticker", label: "Stickers", icon: Smile },
+  { id: "overlay", label: "Overlays", icon: Contrast },
+  { id: "transition", label: "Transições", icon: Shapes },
+  { id: "music", label: "Música", icon: Music },
+  { id: "audio", label: "Áudio", icon: Volume2 },
+  { id: "auto", label: "Auto / IA", icon: Wand2 },
+  { id: "format", label: "Formato", icon: Clapperboard },
+  { id: "presets", label: "Presets", icon: Bookmark },
+  { id: "projects", label: "Projetos", icon: FolderOpen },
 ];
 
 function StudioPage() {
@@ -93,6 +117,8 @@ function StudioPage() {
   const [caption, setCaption] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [quality, setQuality] = useState<ExportQuality>({ height: 1080, fps: 30 });
+  const [expanded, setExpanded] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   const aiStatus = useServerFn(studioAiStatus);
   const moderate = useServerFn(moderateMedia);

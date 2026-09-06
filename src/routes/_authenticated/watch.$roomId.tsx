@@ -540,25 +540,19 @@ function WatchRoomPage() {
             <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center text-white/80">
               <div className="space-y-3">
                 <div className="text-base font-semibold text-white">{PROVIDER_LABEL[provider]}</div>
-                <div className="mx-auto max-w-[320px] text-sm">
-                  Cada participante abre o mesmo título no app oficial do {PROVIDER_LABEL[provider]} com a
-                  própria assinatura — a sala mantém o chat e o play/pausa combinados entre vocês.
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  {PROVIDER_URL[provider] ? (
-                    <Button
-                      size="sm"
-                      onClick={() => window.open(PROVIDER_URL[provider], "_blank", "noopener")}
-                    >
-                      <ExternalLink className="mr-1 h-4 w-4" /> Abrir {PROVIDER_LABEL[provider]}
-                    </Button>
-                  ) : null}
-                  {isHost ? (
+                <div className="mx-auto max-w-[340px] text-sm">{unavailable}</div>
+                {requirement ? (
+                  <div className="mx-auto max-w-[340px] text-[11px] text-white/50">
+                    Integração necessária: {requirement}
+                  </div>
+                ) : null}
+                {isHost ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
                     <Button size="sm" variant="secondary" onClick={() => void changeProvider("youtube")}>
                       Voltar para o YouTube
                     </Button>
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}

@@ -155,6 +155,13 @@
       "when": 1788660858885,
       "tag": "0021_user_locations_nearby",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788693381807,
+      "tag": "0022_vibe_checkins_and_weekly_board",
+      "breakpoints": true
     }
   ]
 }

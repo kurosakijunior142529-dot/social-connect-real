@@ -2765,6 +2765,38 @@ export type Database = {
         }
         Relationships: []
       }
+      vibe_checkins: {
+        Row: {
+          created_at: string
+          day: string
+          mood: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          mood: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          mood?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_checkins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vibe_collection_items: {
         Row: {
           bucket: string
@@ -3204,6 +3236,18 @@ export type Database = {
       deliver_scheduled_messages: { Args: never; Returns: number }
       end_stale_lives: { Args: never; Returns: number }
       flag_enabled: { Args: { _key: string }; Returns: boolean }
+      friends_vibe_checkins: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          display_name: string
+          mine: boolean
+          mood: string
+          note: string
+          user_id: string
+          username: string
+        }[]
+      }
       get_or_create_conversation: {
         Args: { _other_user: string }
         Returns: string
@@ -3433,6 +3477,10 @@ export type Database = {
         Args: { _city?: string; _lat: number; _lng: number }
         Returns: undefined
       }
+      set_vibe_checkin: {
+        Args: { _mood: string; _note?: string }
+        Returns: undefined
+      }
       stop_sharing_location: { Args: never; Returns: undefined }
       submit_game_score: {
         Args: { _game: string; _score: number }
@@ -3478,6 +3526,18 @@ export type Database = {
           title: string
           video_id: string
           visibility: string
+        }[]
+      }
+      weekly_friends_board: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          display_name: string
+          messages: number
+          score: number
+          streak: number
+          user_id: string
+          username: string
         }[]
       }
     }

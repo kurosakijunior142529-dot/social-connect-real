@@ -36,6 +36,7 @@ import { useBlocks } from "@/hooks/use-blocks";
 import { uploadMedia } from "@/lib/media";
 
 import { VibeCollections } from "@/components/profile/vibe-collections";
+import { ProfileRealities } from "@/components/profile/profile-realities";
 
 
 export const Route = createFileRoute("/_authenticated/u/$username")({
@@ -386,6 +387,8 @@ function ProfileContent() {
         </section>
 
         <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
+
+        <ProfileRealities profileId={profile.id} isMe={isMe} />
 
 
 

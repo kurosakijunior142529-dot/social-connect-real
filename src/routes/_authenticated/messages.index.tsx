@@ -7,7 +7,7 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus, Tv } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv, Flame } from "lucide-react";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -111,7 +111,7 @@ function DirectList({ userId }: { userId: string }) {
         return !hidden?.has(other);
       });
       const otherIds = list.map((c) => (c.user_a === userId ? c.user_b : c.user_a));
-      const [profilesRes, lastMessagesRes] = await Promise.all([
+      const [profilesRes, lastMessagesRes, streaksRes] = await Promise.all([
         otherIds.length
           ? supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", otherIds)
           : Promise.resolve({ data: [] as any[] }),
@@ -122,15 +122,30 @@ function DirectList({ userId }: { userId: string }) {
               .in("conversation_id", list.map((c) => c.id))
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[] }),
+        list.length
+          ? (supabase as any)
+              .from("chat_streaks")
+              .select("conversation_id, streak, last_both_day")
+              .in("conversation_id", list.map((c) => c.id))
+          : Promise.resolve({ data: [] as any[] }),
       ]);
       const profiles = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
       const lastByConv = new Map<string, any>();
       for (const m of lastMessagesRes.data ?? []) {
         if (!lastByConv.has(m.conversation_id)) lastByConv.set(m.conversation_id, m);
       }
+      // Streak vale se o último dia em que ambos falaram foi hoje ou ontem (horário de SP)
+      const spToday = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const spYesterday = new Date(Date.now() - 27 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const streakByConv = new Map<string, number>();
+      for (const s of (streaksRes.data ?? []) as any[]) {
+        if (s.last_both_day === spToday || s.last_both_day === spYesterday) {
+          streakByConv.set(s.conversation_id, s.streak ?? 0);
+        }
+      }
       return list.map((c) => {
         const otherId = c.user_a === userId ? c.user_b : c.user_a;
-        return { ...c, other: profiles.get(otherId), last: lastByConv.get(c.id) };
+        return { ...c, other: profiles.get(otherId), last: lastByConv.get(c.id), streak: streakByConv.get(c.id) ?? 0 };
       });
     },
   });

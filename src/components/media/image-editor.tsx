@@ -109,6 +109,7 @@ export function ImageEditor({
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      if (value.aspect === "free") return; // no corte livre, os gestos pertencem à moldura
       (e.target as Element).setPointerCapture?.(e.pointerId);
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       setHint(false);
@@ -120,7 +121,7 @@ export function ImageEditor({
       }
       drag.current = { x: e.clientX, y: e.clientY, ox: value.offsetX, oy: value.offsetY };
     },
-    [value.offsetX, value.offsetY, value.zoom],
+    [value.offsetX, value.offsetY, value.zoom, value.aspect],
   );
 
   const onPointerMove = useCallback(
@@ -193,9 +194,18 @@ export function ImageEditor({
           className="absolute left-1/2 top-1/2 h-full w-full object-cover will-change-transform"
           style={{
             filter: cssFilter(value),
-            transform: `translate(calc(-50% + ${value.offsetX * 50}%), calc(-50% + ${value.offsetY * 50}%)) scale(${value.zoom}) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`,
+            transform: freeMode
+              ? `translate(-50%, -50%) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`
+              : `translate(calc(-50% + ${value.offsetX * 50}%), calc(-50% + ${value.offsetY * 50}%)) scale(${value.zoom}) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`,
           }}
         />
+        {freeMode ? (
+          <CropOverlay
+            crop={value.crop ?? { x: 8, y: 8, w: 84, h: 84 }}
+            onCrop={(crop) => onChange({ ...value, crop })}
+            frameRef={frameRef}
+          />
+        ) : null}
         {/* guias de recorte */}
         <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">
           {Array.from({ length: 9 }).map((_, i) => (

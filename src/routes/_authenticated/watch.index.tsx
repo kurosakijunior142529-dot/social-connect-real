@@ -73,6 +73,7 @@ function WatchIndex() {
   const [title, setTitle] = useState("");
   const [visibility, setVisibility] = useState<RoomVisibility>("public");
   const [newCategory, setNewCategory] = useState<string>("geral");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [code, setCode] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -153,6 +154,7 @@ function WatchIndex() {
           title: roomTitle,
           visibility,
           category: newCategory,
+          scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
         })
         .select("id")
         .single();
@@ -378,6 +380,19 @@ function WatchIndex() {
                 <p className="text-[11px] text-muted-foreground">
                   {VISIBILITY_OPTIONS.find((v) => v.id === visibility)?.hint}
                 </p>
+
+                <div className="space-y-1 pt-1">
+                  <label className="text-[11px] font-medium text-muted-foreground" htmlFor="schedule-room">
+                    Agendar para depois (opcional)
+                  </label>
+                  <Input
+                    id="schedule-room"
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(e) => setScheduledAt(e.target.value)}
+                    className="h-11 rounded-2xl bg-background"
+                  />
+                </div>
 
                 <Button type="submit" disabled={creating} className="h-12 w-full rounded-2xl">
                   {creating ? "Criando…" : "Criar e entrar"}

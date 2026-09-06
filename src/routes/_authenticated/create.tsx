@@ -204,6 +204,21 @@ function CreatePage() {
         </div>
       </Link>
 
+      <Link
+        to="/create/studio"
+        className="flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/10 p-4 shadow-lg transition active:scale-[0.99]"
+      >
+        <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/20">
+          <Wand2 className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold">Vibely Studio</div>
+          <div className="text-xs text-muted-foreground">
+            Timeline, filtros, efeitos, música na batida, texto animado e IA
+          </div>
+        </div>
+      </Link>
+
 
       <div className="flex gap-2">
         {([

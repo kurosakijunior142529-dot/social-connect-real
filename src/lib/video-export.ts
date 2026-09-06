@@ -120,13 +120,14 @@ export async function captureFrame(srcUrl: string, at: number): Promise<Blob | n
  * sem invadir o conteúdo do vídeo.
  */
 function cornerRect(corner: WatermarkCorner, w: number, h: number) {
-  const rw = Math.round(Math.min(w * 0.22, h * 0.16));
-  const rh = Math.round(Math.min(h * 0.055, w * 0.09));
-  const m = Math.round(Math.min(w, h) * 0.012);
+  const rw = Math.round(Math.min(w * 0.32, h * 0.2));
+  const rh = Math.round(Math.min(h * 0.085, w * 0.15));
+  const m = Math.round(Math.min(w, h) * 0.004);
   const x = corner === "br" || corner === "tr" ? w - rw - m : m;
   const y = corner === "br" || corner === "bl" ? h - rh - m : m;
   return { x, y, w: rw, h: rh };
 }
+
 
 /**
  * Content-aware clean-up: reconstrói apenas o retângulo da marca d'água com os

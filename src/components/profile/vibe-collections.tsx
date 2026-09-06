@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedMediaThumb } from "@/components/signed-image";
@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Check, Pin, Plus, Sparkles, Star, Trash2, X, Pencil } from "lucide-react";
+import { uploadMedia } from "@/lib/media";
+import { moderateMedia } from "@/lib/moderation.functions";
+import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
+import { Check, ImagePlus, Loader2, Pin, Plus, Sparkles, Star, Trash2, X, Pencil } from "lucide-react";
 
 type Collection = {
   id: string;
@@ -241,6 +244,35 @@ function CollectionEditor({
   const [selected, setSelected] = useState<string[]>([]);
   const [cover, setCover] = useState<string | null>(collection?.cover_path ?? null);
   const [saving, setSaving] = useState(false);
+  const [uploads, setUploads] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  /** Envia foto/vídeo direto para a coleção, sem publicar como Vibe no feed. */
+  async function onUpload(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const check = await checkFile(file);
+      if (!check.ok) throw new Error(check.error);
+      const [dataUrl, sha256] = await Promise.all([previewDataUrl(file), sha256Hex(file)]);
+      await moderateMedia({
+        data: { dataUrl, sha256, mime: check.mime, size: file.size, surface: "public", contentType: "story" },
+      } as any);
+      const path = await uploadMedia("stories", profileId, file);
+      const mediaType = file.type.startsWith("video") ? "video" : "image";
+      const opt = { id: `upload:${path}`, media_url: path, media_type: mediaType, caption: null };
+      setUploads((prev) => [...prev, opt]);
+      setSelected((prev) => [...prev, path]);
+      setCover((c) => c ?? path);
+      toast.success("Mídia adicionada à coleção");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Não foi possível enviar a mídia");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   /** Todas as Vibes do dono (inclusive expiradas) + itens já salvos na coleção. */
   const source = useQuery({
@@ -276,7 +308,7 @@ function CollectionEditor({
     }
   }, [source.data, collection]);
 
-  const options = source.data?.options ?? [];
+  const options = useMemo(() => [...uploads, ...(source.data?.options ?? [])], [uploads, source.data]);
   const optionByPath = useMemo(() => {
     const map: Record<string, any> = {};
     for (const o of options) map[o.media_url] = o;
@@ -326,7 +358,8 @@ function CollectionEditor({
         const opt = optionByPath[path];
         return {
           collection_id: collectionId,
-          story_id: opt && !String(opt.id).startsWith("item:") ? opt.id : null,
+          story_id:
+            opt && !String(opt.id).startsWith("item:") && !String(opt.id).startsWith("upload:") ? opt.id : null,
           bucket: "stories",
           media_path: path,
           media_type: opt?.media_type ?? "image",
@@ -408,13 +441,26 @@ function CollectionEditor({
 
           <div className="space-y-2">
             <Label>Vibes da coleção {selected.length ? `(${selected.length})` : ""}</Label>
-            {options.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                Você ainda não publicou Vibes para guardar aqui.
-              </p>
-            ) : (
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {options.map((o: any) => {
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={(e) => onUpload(e.target.files?.[0])}
+            />
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+                className="flex aspect-[3/4] flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 text-primary transition hover:bg-primary/10 disabled:opacity-60"
+              >
+                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+                <span className="px-1 text-center text-[10px] font-semibold leading-tight">
+                  {uploading ? "Enviando…" : "Enviar da galeria"}
+                </span>
+              </button>
+              {options.map((o: any) => {
                   const active = selected.includes(o.media_url);
                   const order = selected.indexOf(o.media_url) + 1;
                   return (
@@ -453,9 +499,13 @@ function CollectionEditor({
                       ) : null}
                     </button>
                   );
-                })}
-              </div>
-            )}
+                 })}
+            </div>
+            {options.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Envie fotos e vídeos direto da galeria ou escolha Vibes que você já publicou.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex gap-2 pb-4">

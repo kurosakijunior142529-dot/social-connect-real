@@ -440,6 +440,13 @@ export function VideoPlayer({
       {/* Marca d'água do app */}
       <VideoWatermark username={watermarkUsername} className="bottom-6" />
 
+      {/* Dica de toque para abrir em tela cheia */}
+      {expandHref ? (
+        <span className="pointer-events-none absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/45 text-white backdrop-blur ring-1 ring-white/15">
+          <Maximize2 className="h-4 w-4" />
+        </span>
+      ) : null}
+
       {/* Elegant loader */}
       {loading ? (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">

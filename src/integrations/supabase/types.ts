@@ -1056,6 +1056,39 @@ export type Database = {
         }
         Relationships: []
       }
+      hashtag_edges: {
+        Row: {
+          a_id: string
+          b_id: string
+          weight: number
+        }
+        Insert: {
+          a_id: string
+          b_id: string
+          weight?: number
+        }
+        Update: {
+          a_id?: string
+          b_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hashtag_edges_a_id_fkey"
+            columns: ["a_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hashtag_edges_b_id_fkey"
+            columns: ["b_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hashtag_views: {
         Row: {
           created_at: string
@@ -1088,25 +1121,34 @@ export type Database = {
       hashtags: {
         Row: {
           created_at: string
+          description: string | null
           display_tag: string
+          growth: number
           id: string
           post_count: number
+          recent_count: number
           tag: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          description?: string | null
           display_tag: string
+          growth?: number
           id?: string
           post_count?: number
+          recent_count?: number
           tag: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          description?: string | null
           display_tag?: string
+          growth?: number
           id?: string
           post_count?: number
+          recent_count?: number
           tag?: string
           updated_at?: string
         }
@@ -2156,6 +2198,32 @@ export type Database = {
           },
         ]
       }
+      post_views: {
+        Row: {
+          post_id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          post_id: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          post_id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_views_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string
@@ -2878,6 +2946,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_topic_affinity: {
+        Row: {
+          topic: string
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          topic: string
+          updated_at?: string
+          user_id: string
+          weight?: number
+        }
+        Update: {
+          topic?: string
+          updated_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       vibe_checkins: {
         Row: {
           created_at: string
@@ -3458,6 +3547,7 @@ export type Database = {
       }
       live_heartbeat: { Args: { _live_id: string }; Returns: undefined }
       log_hashtag_view: { Args: { _tag: string }; Returns: undefined }
+      log_post_view: { Args: { _post_id: string }; Returns: undefined }
       log_search: { Args: { _term: string }; Returns: undefined }
       log_security_event: {
         Args: {
@@ -3587,6 +3677,15 @@ export type Database = {
           xp_gained: number
         }[]
       }
+      popular_searches: {
+        Args: { _limit?: number }
+        Returns: {
+          display_term: string
+          growth: number
+          hits: number
+          term: string
+        }[]
+      }
       public_post_preview: {
         Args: { _id: string }
         Returns: {
@@ -3604,6 +3703,34 @@ export type Database = {
       push_dispatch: {
         Args: { _id: string; _kind: string }
         Returns: undefined
+      }
+      recommended_for_me: {
+        Args: { _limit?: number }
+        Returns: {
+          image: string
+          kind: string
+          label: string
+          slug: string
+          sublabel: string
+        }[]
+      }
+      recompute_my_affinity: { Args: never; Returns: undefined }
+      recompute_trends: { Args: never; Returns: undefined }
+      related_hashtags: {
+        Args: { _limit?: number; _tag: string }
+        Returns: {
+          display_tag: string
+          post_count: number
+          tag: string
+          weight: number
+        }[]
+      }
+      related_searches: {
+        Args: { _limit?: number; _q: string }
+        Returns: {
+          kind: string
+          term: string
+        }[]
       }
       report_ephemeral_capture: { Args: { _id: string }; Returns: undefined }
       request_withdrawal: {
@@ -3631,6 +3758,21 @@ export type Database = {
           title: string
         }[]
       }
+      search_ask_context: { Args: { _q: string }; Returns: Json }
+      search_did_you_mean: {
+        Args: { _q: string }
+        Returns: {
+          kind: string
+          suggestion: string
+        }[]
+      }
+      search_places: {
+        Args: { _limit?: number; _q: string }
+        Returns: {
+          people: number
+          place: string
+        }[]
+      }
       search_suggest: {
         Args: { _q: string }
         Returns: {
@@ -3639,6 +3781,38 @@ export type Database = {
           label: string
           score: number
           sublabel: string
+        }[]
+      }
+      search_v2: {
+        Args: {
+          _filter?: string
+          _kind?: string
+          _limit?: number
+          _offset?: number
+          _period?: string
+          _place?: string
+          _q: string
+          _sort?: string
+        }
+        Returns: {
+          author_avatar: string
+          author_badge: string
+          author_display: string
+          author_username: string
+          author_verified: boolean
+          count1: number
+          count2: number
+          created_at: string
+          id: string
+          image: string
+          kind: string
+          media_type: string
+          post_kind: string
+          score: number
+          seen: boolean
+          subtitle: string
+          title: string
+          views: number
         }[]
       }
       send_live_gift: {
@@ -3722,6 +3896,16 @@ export type Database = {
           growth: number
           hits: number
           term: string
+        }[]
+      }
+      trending_topics: {
+        Args: { _limit?: number }
+        Returns: {
+          growth: number
+          kind: string
+          label: string
+          posts: number
+          slug: string
         }[]
       }
       view_ephemeral_message: { Args: { _id: string }; Returns: string }

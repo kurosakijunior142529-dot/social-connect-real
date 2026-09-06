@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { WatchRoomsRail } from "@/components/watch-rooms-rail";
-import { OnlineBubbles } from "@/components/presence/online-bubbles";
+
 import { WhatsNewCard } from "@/components/whats-new-card";
 
 import { PlusSquare, Radio, Bell, Sparkles } from "lucide-react";

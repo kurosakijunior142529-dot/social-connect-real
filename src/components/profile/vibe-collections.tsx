@@ -307,7 +307,7 @@ function CollectionEditor({
     }
   }, [source.data, collection]);
 
-  const options = source.data?.options ?? [];
+  const options = useMemo(() => [...uploads, ...(source.data?.options ?? [])], [uploads, source.data]);
   const optionByPath = useMemo(() => {
     const map: Record<string, any> = {};
     for (const o of options) map[o.media_url] = o;

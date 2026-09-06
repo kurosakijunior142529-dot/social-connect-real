@@ -128,6 +128,27 @@ function ProfileContent() {
   });
   const isSupporter = supporterBadge.data === true;
 
+  // Atualiza o selo assim que uma assinatura do dono do perfil muda.
+  const profileId = profile?.id;
+  useEffect(() => {
+    if (!profileId) return;
+    const ch = supabase
+      .channel(`supporter-${profileId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "channel_subscriptions", filter: `subscriber_id=eq.${profileId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["supporter-badge", profileId] });
+          qc.invalidateQueries({ queryKey: ["supporting", profileId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [profileId, qc]);
+
+
 
   const vibes = useQuery({
     queryKey: ["profile-vibes", profile?.id],

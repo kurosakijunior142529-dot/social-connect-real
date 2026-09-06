@@ -120,17 +120,14 @@ function ProfileContent() {
   const supporterBadge = useQuery({
     queryKey: ["supporter-badge", profile?.id],
     enabled: !!profile?.id,
-    staleTime: 60_000,
+    staleTime: 30_000,
     queryFn: async () => {
-      const { count } = await (supabase as any)
-        .from("channel_subscriptions")
-        .select("id", { count: "exact", head: true })
-        .eq("subscriber_id", profile.id)
-        .eq("status", "active");
-      return (count ?? 0) > 0;
+      const { data } = await (supabase as any).rpc("is_supporter", { _user: profile.id });
+      return data === true;
     },
   });
   const isSupporter = supporterBadge.data === true;
+
 
   const vibes = useQuery({
     queryKey: ["profile-vibes", profile?.id],

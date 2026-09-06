@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, Languages, MessageCircle } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { translateText } from "@/lib/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
@@ -33,6 +35,32 @@ export type FeedPost = {
 function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: string | null }) {
   const queryClient = useQueryClient();
   const [popKey, setPopKey] = useState(0);
+  const [captionTranslation, setCaptionTranslation] = useState<string | null>(null);
+  const [translatingCaption, setTranslatingCaption] = useState(false);
+  const runTranslate = useServerFn(translateText);
+
+  async function translateCaption() {
+    if (!post.caption || !currentUserId || translatingCaption) return;
+    if (captionTranslation) {
+      setCaptionTranslation(null);
+      return;
+    }
+    setTranslatingCaption(true);
+    try {
+      const { data: profile } = await (supabase as any)
+        .from("profiles")
+        .select("language")
+        .eq("id", currentUserId)
+        .maybeSingle();
+      const target = (profile?.language as string) || "pt-BR";
+      const r = await runTranslate({ data: { text: post.caption, target } });
+      if (r?.text && r.text !== post.caption) setCaptionTranslation(r.text);
+    } catch {
+      /* mantém a legenda original */
+    } finally {
+      setTranslatingCaption(false);
+    }
+  }
 
   const toggleLike = useMutation({
     mutationFn: async () => {
@@ -145,6 +173,11 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
               <span className="mt-4 block h-px w-16 rounded-full bg-primary/50" />
             </Link>
           ) : null}
+          {captionTranslation && post.media_type === "text" ? (
+            <p className="mx-3 -mt-1 rounded-2xl bg-[color:var(--surface-2)] px-4 py-3 text-[14px] leading-snug text-foreground/80">
+              {captionTranslation}
+            </p>
+          ) : null}
           {post.poll_id ? <PollCard pollId={post.poll_id} currentUserId={currentUserId} /> : null}
         </div>
       ) : post.media_type === "video" ? (
@@ -214,8 +247,19 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             >
               {author?.username}
             </Link>
-            {post.caption}
+            {captionTranslation ?? post.caption}
           </p>
+        ) : null}
+        {post.caption ? (
+          <button
+            type="button"
+            onClick={translateCaption}
+            disabled={translatingCaption}
+            className="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-muted-foreground transition hover:text-primary disabled:opacity-50"
+          >
+            <Languages className="h-3.5 w-3.5" />
+            {translatingCaption ? "Traduzindo..." : captionTranslation ? "Ver original" : "Traduzir legenda"}
+          </button>
         ) : null}
       </div>
     </article>

@@ -15,7 +15,7 @@ type Friend = {
   avatar_url: string | null;
 };
 
-/** Bolhas de amigos online em tempo real, no topo do feed. */
+/** Bolhas de amigos online em tempo real, no topo das conversas. */
 export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Friend | null>(null);

@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { WatchRoomsRail } from "@/components/watch-rooms-rail";
-import { PlusSquare, Tv, Gamepad2, Radio, Bell } from "lucide-react";
+import { PlusSquare, Tv, Gamepad2, Radio, Bell, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -106,6 +106,8 @@ function FeedPage() {
 
       <WatchRoomsRail />
 
+      <DailyPromptCard />
+
       <OnboardingSuggestions currentUserId={user.id} />
 
 
@@ -134,6 +136,41 @@ function FeedPage() {
       ) : (
         <EmptyFeed />
       )}
+    </div>
+  );
+}
+
+function DailyPromptCard() {
+  const prompt = useQuery({
+    queryKey: ["daily-prompt"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("today_prompt");
+      if (error) return null;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row?.prompt as string) ?? null;
+    },
+  });
+
+  if (!prompt.data) return null;
+
+  return (
+    <div className="px-4 pb-3">
+      <Link
+        to="/stories/new"
+        className="flex items-center gap-3 rounded-[22px] border border-primary/25 bg-[radial-gradient(circle_at_0%_0%,rgba(215,255,58,0.12),transparent_45%),var(--surface)] p-3.5 transition active:scale-[0.99]"
+      >
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_16px_var(--primary)]">
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Vibe do dia</div>
+          <div className="truncate text-[14px] font-medium">{prompt.data}</div>
+        </div>
+        <span className="shrink-0 rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-[12px] font-semibold">
+          Postar
+        </span>
+      </Link>
     </div>
   );
 }

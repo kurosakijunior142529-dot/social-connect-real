@@ -7,7 +7,7 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus, Tv } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv, Flame } from "lucide-react";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -111,7 +111,7 @@ function DirectList({ userId }: { userId: string }) {
         return !hidden?.has(other);
       });
       const otherIds = list.map((c) => (c.user_a === userId ? c.user_b : c.user_a));
-      const [profilesRes, lastMessagesRes] = await Promise.all([
+      const [profilesRes, lastMessagesRes, streaksRes] = await Promise.all([
         otherIds.length
           ? supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", otherIds)
           : Promise.resolve({ data: [] as any[] }),
@@ -122,15 +122,30 @@ function DirectList({ userId }: { userId: string }) {
               .in("conversation_id", list.map((c) => c.id))
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[] }),
+        list.length
+          ? (supabase as any)
+              .from("chat_streaks")
+              .select("conversation_id, streak, last_both_day")
+              .in("conversation_id", list.map((c) => c.id))
+          : Promise.resolve({ data: [] as any[] }),
       ]);
       const profiles = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
       const lastByConv = new Map<string, any>();
       for (const m of lastMessagesRes.data ?? []) {
         if (!lastByConv.has(m.conversation_id)) lastByConv.set(m.conversation_id, m);
       }
+      // Streak vale se o último dia em que ambos falaram foi hoje ou ontem (horário de SP)
+      const spToday = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const spYesterday = new Date(Date.now() - 27 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const streakByConv = new Map<string, number>();
+      for (const s of (streaksRes.data ?? []) as any[]) {
+        if (s.last_both_day === spToday || s.last_both_day === spYesterday) {
+          streakByConv.set(s.conversation_id, s.streak ?? 0);
+        }
+      }
       return list.map((c) => {
         const otherId = c.user_a === userId ? c.user_b : c.user_a;
-        return { ...c, other: profiles.get(otherId), last: lastByConv.get(c.id) };
+        return { ...c, other: profiles.get(otherId), last: lastByConv.get(c.id), streak: streakByConv.get(c.id) ?? 0 };
       });
     },
   });
@@ -158,7 +173,18 @@ function DirectList({ userId }: { userId: string }) {
               <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12 rounded-full border border-white/10" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <div className="truncate text-[15px] font-semibold"><VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} /></div>
+                  <div className="truncate text-[15px] font-semibold flex items-center gap-1.5">
+                    <VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} />
+                    {c.streak > 0 && (
+                      <span
+                        title={`Sequência de ${c.streak} ${c.streak === 1 ? "dia" : "dias"} conversando`}
+                        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-bold text-orange-400"
+                      >
+                        <Flame className="h-3 w-3" fill="currentColor" />
+                        {c.streak}
+                      </span>
+                    )}
+                  </div>
                   {c.last ? (
                     <div className="text-[10px] shrink-0 tabular uppercase tracking-widest text-muted-foreground">
                       {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}

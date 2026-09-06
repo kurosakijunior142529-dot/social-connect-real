@@ -73,6 +73,7 @@ function WatchIndex() {
   const [title, setTitle] = useState("");
   const [visibility, setVisibility] = useState<RoomVisibility>("public");
   const [newCategory, setNewCategory] = useState<string>("geral");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [code, setCode] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -153,6 +154,7 @@ function WatchIndex() {
           title: roomTitle,
           visibility,
           category: newCategory,
+          scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
         })
         .select("id")
         .single();
@@ -379,6 +381,19 @@ function WatchIndex() {
                   {VISIBILITY_OPTIONS.find((v) => v.id === visibility)?.hint}
                 </p>
 
+                <div className="space-y-1 pt-1">
+                  <label className="text-[11px] font-medium text-muted-foreground" htmlFor="schedule-room">
+                    Agendar para depois (opcional)
+                  </label>
+                  <Input
+                    id="schedule-room"
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(e) => setScheduledAt(e.target.value)}
+                    className="h-11 rounded-2xl bg-background"
+                  />
+                </div>
+
                 <Button type="submit" disabled={creating} className="h-12 w-full rounded-2xl">
                   {creating ? "Criando…" : "Criar e entrar"}
                 </Button>
@@ -479,7 +494,13 @@ function WatchIndex() {
                                 <Users className="mr-1 inline h-3 w-3" />
                                 {r.member_count}/{r.max_members}
                               </span>
-                              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-primary">ao vivo</span>
+                              {r.scheduled_at && new Date(r.scheduled_at).getTime() > Date.now() - 3600_000 ? (
+                                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-500">
+                                  🗓 {new Date(r.scheduled_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-primary">ao vivo</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -598,6 +619,11 @@ function WatchIndex() {
                               {formatDistanceToNowStrict(new Date(r.created_at), { locale: ptBR, addSuffix: true })}
                             </div>
                             <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              {r.scheduled_at && new Date(r.scheduled_at).getTime() > Date.now() - 3600_000 ? (
+                                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-500">
+                                  🗓 {new Date(r.scheduled_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              ) : null}
                               <span className="rounded-full bg-[color:var(--surface-2)] px-2 py-0.5">
                                 {r.visibility === "public" ? (
                                   <>

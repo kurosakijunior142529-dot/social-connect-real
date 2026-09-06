@@ -57,6 +57,7 @@ import {
 import { MUSIC_VIBES, renderVibe } from "@/lib/music-catalog";
 import { applyBeatEffect, autoEdit, applyAiPlan, type AutoEditStyle } from "@/lib/studio/auto-edit";
 import { studioAiEditPlan, studioAiImage, type AiToolId } from "@/lib/studio/ai.functions";
+import { suggestCaptions } from "@/lib/ai.functions";
 import type { MediaMeta } from "./use-studio-media";
 import { Chip, Empty, PanelTitle, Row, SliderRow } from "./ui";
 import { Button } from "@/components/ui/button";
@@ -1405,6 +1406,9 @@ const STYLES: { id: AutoEditStyle; label: string; desc: string }[] = [
 function AutoPanel({ project, replace, aiAvailable }: PanelProps) {
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [scriptWords, setScriptWords] = useState("");
+  const [scriptIdeas, setScriptIdeas] = useState<string[]>([]);
+  const [scriptBusy, setScriptBusy] = useState(false);
 
   return (
     <div className="space-y-3">
@@ -1460,6 +1464,45 @@ function AutoPanel({ project, replace, aiAvailable }: PanelProps) {
             {busy ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Wand2 className="mr-1 h-3.5 w-3.5" />}
             Montar edição
           </Button>
+
+          <PanelTitle>Roteiro por 3 palavras</PanelTitle>
+          <Textarea
+            rows={1}
+            value={scriptWords}
+            onChange={(e) => setScriptWords(e.target.value)}
+            placeholder="Ex: praia, amigos, pôr do sol"
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={scriptBusy || scriptWords.trim().length < 3}
+            onClick={async () => {
+              setScriptBusy(true);
+              try {
+                const r = await suggestCaptions({
+                  data: { hint: `roteiro de vídeo curto em 3 cenas sobre: ${scriptWords.trim()}` },
+                });
+                setScriptIdeas(r.captions);
+              } catch {
+                toast.error("A IA não conseguiu montar o roteiro agora");
+              } finally {
+                setScriptBusy(false);
+              }
+            }}
+          >
+            {scriptBusy ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />}
+            Gerar ideias
+          </Button>
+          {scriptIdeas.length ? (
+            <div className="space-y-1.5">
+              {scriptIdeas.map((idea, i) => (
+                <div key={i} className="rounded-xl bg-[color:var(--surface-2)] px-3 py-2 text-xs text-foreground/85">
+                  <span className="mr-1.5 font-semibold text-primary">Cena {i + 1}</span>
+                  {idea}
+                </div>
+              ))}
+            </div>
+          ) : null}
         </>
       )}
     </div>

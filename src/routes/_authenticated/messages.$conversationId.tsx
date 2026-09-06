@@ -19,6 +19,7 @@ import {
   toggleReaction,
 } from "@/components/chat-extras";
 import { useAiActions } from "@/hooks/use-ai-actions";
+import { useAutoTranslateEnabled } from "@/lib/chat-settings";
 import { toast } from "sonner";
 import { AttachMenu } from "@/components/chat/attach-menu";
 import { AudioRecorder } from "@/components/chat/audio-recorder";
@@ -64,6 +65,16 @@ function ConversationPage() {
   const { startCall } = useCall();
   const ai = useAiActions();
   const presence = useConversationPresence(`dm-${conversationId}`, user.id);
+  const [autoTranslate, setAutoTranslate] = useAutoTranslateEnabled();
+  const myLang = useQuery({
+    queryKey: ["my-language", user.id],
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("profiles").select("language").eq("id", user.id).maybeSingle();
+      return (data?.language as string) || "pt-BR";
+    },
+  });
+
 
   const conv = useQuery({
     queryKey: ["conversation", conversationId],
@@ -438,6 +449,32 @@ function ConversationPage() {
     [visibleMessages],
   );
 
+  // Tradução automática: traduz mensagens recebidas para o idioma do perfil.
+  useEffect(() => {
+    if (!autoTranslate) return;
+    const target = myLang.data ?? "pt-BR";
+    const pending = visibleMessages
+      .filter((m: any) => m.sender_id !== user.id && m.content && !translations[m.id])
+      .slice(-30);
+    if (!pending.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const m of pending) {
+        if (cancelled) break;
+        try {
+          const r = await ai.translate(m.content, target);
+          if (!cancelled && r) setTranslations((p) => (p[m.id] ? p : { ...p, [m.id]: r }));
+        } catch {
+          /* falha silenciosa: mensagem original continua visível */
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoTranslate, myLang.data, visibleMessages.length]);
+
   // grouping metadata: date separators + consecutive bubbles from same sender
   const rows = useMemo(() => {
     const GROUP_MS = 5 * 60_000;
@@ -558,6 +595,8 @@ function ConversationPage() {
               onOpenPinned={() => setPinnedOpen(true)}
               onOpenWallpaper={() => setWallpaperOpen(true)}
               onOpenCustomize={() => setCustomizeOpen(true)}
+              autoTranslate={autoTranslate}
+              onToggleAutoTranslate={setAutoTranslate}
             />
 
           </>

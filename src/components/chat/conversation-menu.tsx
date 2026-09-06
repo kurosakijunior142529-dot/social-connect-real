@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag, Palette, Sparkles } from "lucide-react";
+import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag, Palette, Sparkles, Languages, Check } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,8 @@ export function ConversationMenu({
   onOpenWallpaper,
   onOpenCustomize,
   onReport,
+  autoTranslate,
+  onToggleAutoTranslate,
 }: {
   scope: "dm" | "chat";
   parentId: string;
@@ -31,6 +33,8 @@ export function ConversationMenu({
   onOpenWallpaper?: () => void;
   onOpenCustomize?: () => void;
   onReport?: () => void;
+  autoTranslate?: boolean;
+  onToggleAutoTranslate?: (on: boolean) => void;
 }) {
   const qc = useQueryClient();
   const muteTable = scope === "dm" ? "muted_conversations" : "muted_chats";
@@ -98,6 +102,12 @@ export function ConversationMenu({
         {scope === "dm" && onOpenWallpaper ? (
           <DropdownMenuItem onSelect={onOpenWallpaper}>
             <Palette className="h-4 w-4 mr-2" /> Papel de parede
+          </DropdownMenuItem>
+        ) : null}
+        {scope === "dm" && onToggleAutoTranslate ? (
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onToggleAutoTranslate(!autoTranslate); }}>
+            <Languages className="h-4 w-4 mr-2" /> Traduzir automaticamente
+            {autoTranslate ? <Check className="h-4 w-4 ml-auto text-primary" /> : null}
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem onSelect={toggleMute} disabled={busy}>

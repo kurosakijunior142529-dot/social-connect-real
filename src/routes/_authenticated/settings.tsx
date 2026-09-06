@@ -10,13 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Bell, Bookmark, Camera, ImagePlus, LogOut, BellOff, Moon, Shield, Sparkles, Store, Sun, Tv } from "lucide-react";
+import { Bell, Bookmark, Camera, ImagePlus, Languages, LogOut, BellOff, Moon, Shield, Sparkles, Store, Sun, Tv } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
 import { AvatarEditor } from "@/components/user/avatar-editor";
 import { InterestsEditor } from "@/components/profile/interests-editor";
 import { useAppTheme } from "@/lib/theme";
 import { PushSettings } from "@/components/settings/push-settings";
-import { useSmartRepliesEnabled } from "@/lib/chat-settings";
+import { useSmartRepliesEnabled, TRANSLATE_LANGUAGES } from "@/lib/chat-settings";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,
@@ -292,6 +292,16 @@ function SettingsPage() {
 
       <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>
+          <h2 className="text-base font-semibold">Meu idioma</h2>
+          <p className="text-[13px] text-muted-foreground">
+            Usado para traduzir legendas e mensagens quando você pedir tradução.
+          </p>
+        </div>
+        <LanguagePicker userId={user.id} />
+      </section>
+
+      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+        <div>
           <h2 className="text-base font-semibold">Interesses</h2>
           <p className="text-[13px] text-muted-foreground">Personalize recomendações ou escolha não informar.</p>
         </div>
@@ -367,5 +377,45 @@ function SettingsShortcut({
       <span className="text-primary">{icon}</span>
       <span className="min-w-0 truncate">{label}</span>
     </Link>
+  );
+}
+
+function LanguagePicker({ userId }: { userId: string }) {
+  const queryClient = useQueryClient();
+  const lang = useQuery({
+    queryKey: ["my-language", userId],
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("profiles").select("language").eq("id", userId).maybeSingle();
+      return (data?.language as string) || "pt-BR";
+    },
+  });
+
+  async function save(value: string) {
+    const { error } = await (supabase as any).from("profiles").update({ language: value }).eq("id", userId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    queryClient.setQueryData(["my-language", userId], value);
+    toast.success("Idioma atualizado");
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)] px-3 py-2">
+      <Languages className="h-4 w-4 shrink-0 text-primary" />
+      <select
+        value={lang.data ?? "pt-BR"}
+        onChange={(e) => void save(e.target.value)}
+        className="w-full bg-transparent text-sm font-medium outline-none"
+        aria-label="Meu idioma"
+      >
+        {TRANSLATE_LANGUAGES.map((l) => (
+          <option key={l.code} value={l.code} className="bg-background text-foreground">
+            {l.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

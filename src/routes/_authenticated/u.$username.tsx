@@ -26,7 +26,9 @@ import {
   Pencil,
   Plus,
   Trophy,
+  Crown,
 } from "lucide-react";
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
 
 import { VerifiedBadge } from "@/components/verified-badge";
@@ -95,6 +97,23 @@ function ProfileContent() {
   const isBlockedPair = iBlocked || blockedMe;
 
   const { data: coverUrl } = useSignedUrl("covers", profile?.cover_url ?? null);
+  const { openCheckout, checkoutElement } = useStripeCheckout();
+
+  const supportQuery = useQuery({
+    queryKey: ["supporting", profile?.id, user.id],
+    enabled: !!profile?.id && !isMe,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("channel_subscriptions")
+        .select("id")
+        .eq("creator_id", profile.id)
+        .eq("subscriber_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+      return !!data;
+    },
+  });
+  const supporting = supportQuery.data === true;
 
   const vibes = useQuery({
     queryKey: ["profile-vibes", profile?.id],
@@ -295,6 +314,17 @@ function ProfileContent() {
                   {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
                 </Button>
                 <Button onClick={openChat} variant="outline" className="gap-2"><MessageCircle className="h-4 w-4" /> Mensagem</Button>
+                {profile.is_creator ? (
+                  <Button
+                    onClick={() =>
+                      openCheckout({ priceId: "channel_sub_monthly", creatorId: profile.id })
+                    }
+                    variant={supporting ? "secondary" : "outline"}
+                    className="gap-2"
+                  >
+                    <Crown className="h-4 w-4" /> {supporting ? "Apoiador" : "Apoiar"}
+                  </Button>
+                ) : null}
                 <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} />
               </>
             )}
@@ -407,6 +437,7 @@ function ProfileContent() {
       )}
       </div>
       {vibeViewerOpen && vibeGroups.length ? <StoryViewer groups={vibeGroups} startIndex={0} viewerId={user.id} onClose={() => setVibeViewerOpen(false)} /> : null}
+      {checkoutElement}
     </div>
   );
 }

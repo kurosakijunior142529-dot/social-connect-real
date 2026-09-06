@@ -2552,6 +2552,33 @@ export type Database = {
         }
         Relationships: []
       }
+      translation_cache: {
+        Row: {
+          created_at: string
+          id: string
+          source_hash: string
+          source_text: string
+          target_lang: string
+          translated_text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_hash: string
+          source_text: string
+          target_lang: string
+          translated_text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_hash?: string
+          source_text?: string
+          target_lang?: string
+          translated_text?: string
+        }
+        Relationships: []
+      }
       user_achievements: {
         Row: {
           achievement_id: string
@@ -2873,6 +2900,7 @@ export type Database = {
           is_private: boolean
           max_members: number
           provider: string
+          scheduled_at: string | null
           title: string | null
           updated_at: string
           video_id: string | null
@@ -2889,6 +2917,7 @@ export type Database = {
           is_private?: boolean
           max_members?: number
           provider?: string
+          scheduled_at?: string | null
           title?: string | null
           updated_at?: string
           video_id?: string | null
@@ -2905,6 +2934,7 @@ export type Database = {
           is_private?: boolean
           max_members?: number
           provider?: string
+          scheduled_at?: string | null
           title?: string | null
           updated_at?: string
           video_id?: string | null
@@ -3113,20 +3143,28 @@ export type Database = {
       list_public_watch_rooms: {
         Args: { _category?: string; _limit?: number; _search?: string }
         Returns: {
-          category: string
-          cover_url: string
+          category: string | null
+          closed_at: string | null
+          cover_url: string | null
           created_at: string
-          host_avatar_url: string
-          host_display_name: string
           host_id: string
-          host_username: string
           id: string
+          invite_code: string
+          is_private: boolean
           max_members: number
-          member_count: number
           provider: string
-          title: string
-          video_id: string
+          scheduled_at: string | null
+          title: string | null
+          updated_at: string
+          video_id: string | null
+          visibility: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "watch_rooms"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       live_heartbeat: { Args: { _live_id: string }; Returns: undefined }
       log_security_event: {

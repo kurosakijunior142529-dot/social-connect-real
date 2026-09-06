@@ -148,6 +148,13 @@
       "when": 1788660565484,
       "tag": "0020_public_post_preview_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788660858885,
+      "tag": "0021_user_locations_nearby",
+      "breakpoints": true
     }
   ]
 }

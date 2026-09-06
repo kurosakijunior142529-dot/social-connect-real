@@ -207,20 +207,24 @@ export function ImageEditor({
           />
         ) : null}
         {/* guias de recorte */}
-        <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="border border-white/20" />
-          ))}
-        </div>
+        {!freeMode && (
+          <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="border border-white/20" />
+            ))}
+          </div>
+        )}
         {/* dica de gestos */}
         {hint && (
           <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white backdrop-blur">
-              <Hand className="h-3.5 w-3.5" /> Arraste para mover · dois dedos para zoom
+              <Hand className="h-3.5 w-3.5" />{" "}
+              {freeMode ? "Arraste a moldura ou puxe os cantos" : "Arraste para mover · dois dedos para zoom"}
             </span>
           </div>
         )}
         {/* zoom rápido */}
+        {!freeMode && (
         <div className="absolute right-2 top-2 flex flex-col gap-1.5">
           <button
             type="button"

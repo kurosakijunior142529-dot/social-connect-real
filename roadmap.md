@@ -8,5 +8,5 @@
 - [x] Refinar interface das Vibes (visualizador, trilho, publicação)
 - [x] Mover conquistas para página dedicada
 - [ ] Conectar Firebase Cloud Messaging no novo workspace
-- [ ] Corrigir remoção de marca d'água em vídeos
-- [ ] Corrigir privacidade do bucket de realidades (leitura restrita)
+- [x] Corrigir remoção de marca d'água em vídeos
+- [x] Corrigir privacidade do bucket de realidades (leitura restrita)

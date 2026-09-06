@@ -243,6 +243,7 @@ export function ImageEditor({
             <ZoomOut className="h-4 w-4" />
           </button>
         </div>
+        )}
       </div>
 
       {/* Abas */}
@@ -270,7 +271,13 @@ export function ImageEditor({
               <button
                 key={a.id}
                 type="button"
-                onClick={() => onChange({ ...value, aspect: a.id })}
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    aspect: a.id,
+                    crop: a.id === "free" ? (value.crop ?? { x: 8, y: 8, w: 84, h: 84 }) : value.crop,
+                  })
+                }
                 className={cn(
                   "rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition",
                   value.aspect === a.id
@@ -302,12 +309,19 @@ export function ImageEditor({
             </button>
             <button
               type="button"
-              onClick={() => onChange({ ...defaultImageEdit, aspect: value.aspect })}
+              onClick={() =>
+                onChange({
+                  ...defaultImageEdit,
+                  aspect: value.aspect,
+                  crop: value.aspect === "free" ? { x: 8, y: 8, w: 84, h: 84 } : null,
+                })
+              }
               className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-[12px] font-medium text-muted-foreground transition hover:border-white/25"
             >
               <RefreshCw className="h-3.5 w-3.5" /> Redefinir
             </button>
           </div>
+          {!freeMode && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Zoom</span>

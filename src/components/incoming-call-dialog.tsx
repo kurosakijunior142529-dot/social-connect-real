@@ -63,46 +63,44 @@ export function IncomingCallDialog({ incoming, onAccept, onReject }: Props) {
     incoming.other.display_name ?? incoming.other.username ?? "Alguém";
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-3xl bg-card p-6 shadow-2xl border animate-in slide-in-from-bottom-4">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-            {incoming.type === "video" ? <Video className="h-3 w-3" /> : <Phone className="h-3 w-3" />}
-            Chamada de {incoming.type === "video" ? "vídeo" : "voz"} recebida
+    <div className="fixed inset-0 z-[110] flex flex-col items-center justify-between bg-[#050505] px-8 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(4rem,env(safe-area-inset-top))] text-white">
+      <div className="flex flex-1 flex-col items-center justify-center gap-7 text-center">
+        <div className="relative grid place-items-center">
+          <span className="absolute h-64 w-64 rounded-full bg-primary/20 blur-[70px]" />
+          <div className="relative rounded-full bg-white/10 p-[2px]">
+            <UserAvatar
+              avatarPath={incoming.other.avatar_url ?? null}
+              displayName={name}
+              className="h-36 w-36 border-2 border-black"
+            />
           </div>
-          <UserAvatar
-            avatarPath={incoming.other.avatar_url ?? null}
-            displayName={name}
-            className="h-24 w-24 ring-4 ring-primary/30 animate-pulse"
-          />
-          <div className="text-xl font-semibold">{name}</div>
-          {incoming.other.username && (
-            <div className="text-sm text-muted-foreground">@{incoming.other.username}</div>
-          )}
         </div>
 
-        <div className="mt-6 flex items-center justify-around">
-          <button
-            onClick={onReject}
-            className="flex flex-col items-center gap-2"
-            aria-label="Recusar"
-          >
-            <span className="h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center text-white shadow-lg">
-              <PhoneOff className="h-6 w-6" />
-            </span>
-            <span className="text-xs">Recusar</span>
-          </button>
-          <button
-            onClick={onAccept}
-            className="flex flex-col items-center gap-2"
-            aria-label="Atender"
-          >
-            <span className="h-14 w-14 rounded-full bg-green-600 hover:bg-green-700 flex items-center justify-center text-white shadow-lg animate-pulse">
-              <Phone className="h-6 w-6" />
-            </span>
-            <span className="text-xs">Atender</span>
-          </button>
+        <div className="space-y-1.5">
+          <h1 className="text-[28px] font-semibold tracking-tight">{name}</h1>
+          {incoming.other.username && (
+            <p className="text-[13px] text-white/40">@{incoming.other.username}</p>
+          )}
+          <p className="flex items-center justify-center gap-1.5 pt-1 text-[13px] text-white/55">
+            {incoming.type === "video" ? <Video className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
+            Chamada de {incoming.type === "video" ? "vídeo" : "voz"}
+          </p>
         </div>
+      </div>
+
+      <div className="flex w-full max-w-xs items-center justify-between">
+        <button onClick={onReject} className="flex flex-col items-center gap-2.5" aria-label="Recusar">
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-red-600 transition active:scale-90">
+            <PhoneOff className="h-6 w-6" />
+          </span>
+          <span className="text-[12px] text-white/50">Recusar</span>
+        </button>
+        <button onClick={onAccept} className="flex flex-col items-center gap-2.5" aria-label="Atender">
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-primary text-primary-foreground transition active:scale-90">
+            <Phone className="h-6 w-6" />
+          </span>
+          <span className="text-[12px] text-white/50">Atender</span>
+        </button>
       </div>
     </div>
   );

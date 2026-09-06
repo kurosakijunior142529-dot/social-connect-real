@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { WatchRoomsRail } from "@/components/watch-rooms-rail";
-import { PlusSquare, Tv, Gamepad2, Radio, Bell } from "lucide-react";
+import { PlusSquare, Tv, Gamepad2, Radio, Bell, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -105,6 +105,8 @@ function FeedPage() {
       </div>
 
       <WatchRoomsRail />
+
+      <DailyPromptCard />
 
       <OnboardingSuggestions currentUserId={user.id} />
 

@@ -170,6 +170,7 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
               </button>
               <Link
                 to="/reels"
+                search={{ post: undefined }}
                 onClick={() => setSelected(null)}
                 className="flex items-center justify-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-3 text-sm font-semibold"
               >

@@ -39,7 +39,7 @@ export function WhatsNewCard() {
     <section className="mx-4 mb-4 rounded-3xl bg-[color:var(--surface)] p-4 ring-1 ring-primary/20">
       <div className="flex items-start gap-2">
         <div className="flex-1">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" /> {t("whatsNew.title")}
           </div>
           <p className="mt-1 text-[13px] text-muted-foreground">{t("whatsNew.subtitle")}</p>
@@ -60,7 +60,7 @@ export function WhatsNewCard() {
             to={i.to}
             className="flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)] px-3 py-2.5 text-[13px] font-medium active:scale-[0.98]"
           >
-            <span className="text-primary">{i.icon}</span>
+            <span className="text-primary/80">{i.icon}</span>
             <span className="truncate">{i.label}</span>
           </Link>
         ))}

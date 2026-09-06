@@ -27,15 +27,12 @@ export function CallMiniBar({ name, avatarUrl, status, startedAt, onExpand, onHa
 
   return (
     <div className="fixed inset-x-3 top-3 z-[95] animate-in slide-in-from-top-4 fade-in duration-300 pt-[env(safe-area-inset-top)]">
-      <div className="glass-heavy mx-auto flex w-full max-w-md items-center gap-3 rounded-2xl border border-primary/25 px-3 py-2 shadow-elegant">
-        <span className="relative">
-          <span className="absolute inset-0 animate-ping rounded-full bg-primary/25" />
-          <UserAvatar avatarPath={avatarUrl ?? null} displayName={name} className="h-9 w-9 ring-2 ring-primary/50" />
-        </span>
+      <div className="mx-auto flex w-full max-w-md items-center gap-3 rounded-full border border-white/[0.08] bg-black/70 px-3 py-2 backdrop-blur-2xl">
+        <UserAvatar avatarPath={avatarUrl ?? null} displayName={name} className="h-9 w-9" />
         <button type="button" onClick={onExpand} className="min-w-0 flex-1 text-left">
-          <div className="truncate text-sm font-semibold">{name}</div>
-          <div className="flex items-center gap-1.5 text-xs text-primary">
-            <Phone className="h-3 w-3" />
+          <div className="truncate text-[14px] font-medium text-white">{name}</div>
+          <div className="flex items-center gap-1.5 text-[12px] text-white/45">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             <span className="tabular-nums">{label}</span>
           </div>
         </button>
@@ -43,7 +40,7 @@ export function CallMiniBar({ name, avatarUrl, status, startedAt, onExpand, onHa
           type="button"
           onClick={onExpand}
           aria-label="Voltar para a chamada"
-          className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)] transition active:scale-90"
+          className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.08] text-white/70 transition active:scale-90"
         >
           <Maximize2 className="h-4 w-4" />
         </button>
@@ -51,7 +48,7 @@ export function CallMiniBar({ name, avatarUrl, status, startedAt, onExpand, onHa
           type="button"
           onClick={onHangup}
           aria-label="Encerrar chamada"
-          className="grid h-9 w-9 place-items-center rounded-full bg-red-600 text-white shadow-lg shadow-red-900/40 transition active:scale-90"
+          className="grid h-9 w-9 place-items-center rounded-full bg-red-600 text-white transition active:scale-90"
         >
           <PhoneOff className="h-4 w-4" />
         </button>

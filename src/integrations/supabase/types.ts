@@ -1895,6 +1895,54 @@ export type Database = {
         }
         Relationships: []
       }
+      music_tracks: {
+        Row: {
+          album: string | null
+          artist: string
+          audio_source: string
+          audio_url: string | null
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          duration_ms: number
+          external_id: string | null
+          id: string
+          is_available: boolean
+          provider: string
+          title: string
+        }
+        Insert: {
+          album?: string | null
+          artist?: string
+          audio_source?: string
+          audio_url?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number
+          external_id?: string | null
+          id?: string
+          is_available?: boolean
+          provider?: string
+          title: string
+        }
+        Update: {
+          album?: string | null
+          artist?: string
+          audio_source?: string
+          audio_url?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number
+          external_id?: string | null
+          id?: string
+          is_available?: boolean
+          provider?: string
+          title?: string
+        }
+        Relationships: []
+      }
       muted_chats: {
         Row: {
           chat_id: string
@@ -2232,6 +2280,10 @@ export type Database = {
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
           media_url: string | null
+          music_end_ms: number | null
+          music_start_ms: number | null
+          music_track_id: string | null
+          music_volume: number | null
           poll_id: string | null
           post_kind: string
           thumbnail_url: string | null
@@ -2244,6 +2296,10 @@ export type Database = {
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url?: string | null
+          music_end_ms?: number | null
+          music_start_ms?: number | null
+          music_track_id?: string | null
+          music_volume?: number | null
           poll_id?: string | null
           post_kind?: string
           thumbnail_url?: string | null
@@ -2256,12 +2312,23 @@ export type Database = {
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url?: string | null
+          music_end_ms?: number | null
+          music_start_ms?: number | null
+          music_track_id?: string | null
+          music_volume?: number | null
           poll_id?: string | null
           post_kind?: string
           thumbnail_url?: string | null
           view_count?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "posts_music_track_id_fkey"
+            columns: ["music_track_id"]
+            isOneToOne: false
+            referencedRelation: "music_tracks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "posts_poll_id_fkey"
             columns: ["poll_id"]

@@ -343,7 +343,7 @@ export function VideoPlayer({
       // Toque simples: com `expandHref`, abre o vídeo em tela cheia;
       // senão, alterna play ou revela os controles.
       if (expandHref) {
-        void navigate({ to: expandHref });
+        void navigate({ href: expandHref } as any);
       } else if (showControls || !autoPlayInView) {
         togglePlay();
       } else {

@@ -1056,6 +1056,62 @@ export type Database = {
         }
         Relationships: []
       }
+      hashtag_views: {
+        Row: {
+          created_at: string
+          hashtag_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hashtag_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hashtag_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hashtag_views_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hashtags: {
+        Row: {
+          created_at: string
+          display_tag: string
+          id: string
+          post_count: number
+          tag: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_tag: string
+          id?: string
+          post_count?: number
+          tag: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_tag?: string
+          id?: string
+          post_count?: number
+          tag?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hidden_posts: {
         Row: {
           created_at: string
@@ -2067,6 +2123,39 @@ export type Database = {
         }
         Relationships: []
       }
+      post_hashtags: {
+        Row: {
+          created_at: string
+          hashtag_id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          hashtag_id: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          hashtag_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_hashtags_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_hashtags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string
@@ -2417,6 +2506,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      search_queries: {
+        Row: {
+          created_at: string
+          display_term: string
+          id: string
+          term: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_term: string
+          id?: string
+          term: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_term?: string
+          id?: string
+          term?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       security_events: {
         Row: {
@@ -3264,6 +3377,37 @@ export type Database = {
         Args: { _env?: string; _user: string }
         Returns: boolean
       }
+      hashtag_feed: {
+        Args: {
+          _limit?: number
+          _offset?: number
+          _sort?: string
+          _tag: string
+        }
+        Returns: {
+          author_avatar: string
+          author_display: string
+          author_username: string
+          caption: string
+          comments: number
+          created_at: string
+          id: string
+          likes: number
+          media_type: string
+          media_url: string
+          post_kind: string
+          thumbnail_url: string
+          view_count: number
+        }[]
+      }
+      hashtag_info: {
+        Args: { _tag: string }
+        Returns: {
+          display_tag: string
+          post_count: number
+          tag: string
+        }[]
+      }
       is_blocked_pair: { Args: { _a: string; _b: string }; Returns: boolean }
       is_chat_member: {
         Args: { _chat: string; _user: string }
@@ -3313,6 +3457,8 @@ export type Database = {
         }
       }
       live_heartbeat: { Args: { _live_id: string }; Returns: undefined }
+      log_hashtag_view: { Args: { _tag: string }; Returns: undefined }
+      log_search: { Args: { _term: string }; Returns: undefined }
       log_security_event: {
         Args: {
           _event: string
@@ -3370,6 +3516,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      my_search_history: {
+        Args: { _limit?: number }
+        Returns: {
+          created_at: string
+          display_term: string
+          id: string
+        }[]
+      }
       nearby_users: {
         Args: { _limit?: number; _radius_km?: number }
         Returns: {
@@ -3386,6 +3540,7 @@ export type Database = {
         }[]
       }
       normalize_invite_code: { Args: { _code: string }; Returns: string }
+      normalize_search: { Args: { _t: string }; Returns: string }
       notify_user: {
         Args: {
           _actor: string
@@ -3455,6 +3610,37 @@ export type Database = {
         Args: { _amount_coins: number; _bank_account_id: string }
         Returns: string
       }
+      search_all: {
+        Args: { _kind?: string; _limit?: number; _offset?: number; _q: string }
+        Returns: {
+          author_avatar: string
+          author_badge: string
+          author_display: string
+          author_username: string
+          author_verified: boolean
+          count1: number
+          count2: number
+          created_at: string
+          id: string
+          image: string
+          kind: string
+          media_type: string
+          post_kind: string
+          score: number
+          subtitle: string
+          title: string
+        }[]
+      }
+      search_suggest: {
+        Args: { _q: string }
+        Returns: {
+          image: string
+          kind: string
+          label: string
+          score: number
+          sublabel: string
+        }[]
+      }
       send_live_gift: {
         Args: { _gift_id: string; _live_id: string; _message?: string }
         Returns: {
@@ -3482,6 +3668,8 @@ export type Database = {
         Args: { _mood: string; _note?: string }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       stop_sharing_location: { Args: never; Returns: undefined }
       submit_game_score: {
         Args: { _game: string; _score: number }
@@ -3496,6 +3684,14 @@ export type Database = {
         }
         Returns: string
       }
+      suggested_for_me: {
+        Args: { _limit?: number }
+        Returns: {
+          kind: string
+          label: string
+          sublabel: string
+        }[]
+      }
       sync_achievements: {
         Args: { _user?: string }
         Returns: {
@@ -3509,6 +3705,23 @@ export type Database = {
         Returns: {
           id: string
           prompt: string
+        }[]
+      }
+      trending_hashtags: {
+        Args: { _limit?: number }
+        Returns: {
+          display_tag: string
+          post_count: number
+          recent: number
+          tag: string
+        }[]
+      }
+      trending_searches: {
+        Args: { _limit?: number }
+        Returns: {
+          growth: number
+          hits: number
+          term: string
         }[]
       }
       view_ephemeral_message: { Args: { _id: string }; Returns: string }

@@ -169,6 +169,13 @@
       "when": 1788694091683,
       "tag": "0023_ephemeral_dm_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788703865226,
+      "tag": "0024_search_and_hashtags",
+      "breakpoints": true
     }
   ]
 }

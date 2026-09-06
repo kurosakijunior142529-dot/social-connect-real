@@ -25,16 +25,28 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
     queryKey: ["presence-friends", currentUserId],
     staleTime: 60_000,
     queryFn: async (): Promise<Friend[]> => {
-      const { data: follows } = await supabase
-        .from("follows")
-        .select("following_id")
-        .eq("follower_id", currentUserId);
-      const ids = (follows ?? []).map((f) => f.following_id);
-      if (ids.length === 0) return [];
+      const [{ data: following }, { data: followers }, { data: convs }] = await Promise.all([
+        supabase.from("follows").select("following_id").eq("follower_id", currentUserId),
+        supabase.from("follows").select("follower_id").eq("following_id", currentUserId),
+        supabase
+          .from("conversations")
+          .select("user_a, user_b")
+          .or(`user_a.eq.${currentUserId},user_b.eq.${currentUserId}`)
+          .order("last_message_at", { ascending: false })
+          .limit(30),
+      ]);
+      const ids = new Set<string>();
+      for (const f of following ?? []) ids.add(f.following_id);
+      for (const f of followers ?? []) ids.add(f.follower_id);
+      for (const c of (convs ?? []) as any[]) {
+        ids.add(c.user_a === currentUserId ? c.user_b : c.user_a);
+      }
+      ids.delete(currentUserId);
+      if (ids.size === 0) return [];
       const { data } = await supabase
         .from("profiles")
         .select("id, username, display_name, avatar_url")
-        .in("id", ids.slice(0, 200));
+        .in("id", Array.from(ids).slice(0, 200));
       return (data ?? []) as Friend[];
     },
   });
@@ -57,7 +69,7 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
     }
   };
 
-  if (onlineFriends.length === 0) return null;
+  const hasOnline = onlineFriends.length > 0;
 
   return (
     <>
@@ -84,6 +96,18 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
             </Link>
           </div>
           <div className="flex gap-2.5 overflow-x-auto scrollbar-none [scroll-snap-type:x_proximity]">
+            {!hasOnline && (
+              <div className="flex min-w-0 flex-1 items-center gap-2 py-1 text-[11px] text-muted-foreground">
+                <span className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full border border-dashed border-border bg-[color:var(--surface-2)]">
+                  <MessageCircle className="h-4 w-4 opacity-60" />
+                </span>
+                <span className="leading-snug">
+                  Ninguém online agora.
+                  <br />
+                  Quando um amigo abrir o app, ele aparece aqui.
+                </span>
+              </div>
+            )}
             {onlineFriends.map((f) => (
               <button
                 key={f.id}

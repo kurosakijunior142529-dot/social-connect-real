@@ -14,11 +14,15 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/reels")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    post: typeof search.post === "string" ? search.post : undefined,
+  }),
   component: ReelsPage,
 });
 
 function ReelsPage() {
   const { user } = Route.useRouteContext();
+  const { post: startPostId } = Route.useSearch();
   const blocks = useBlocks();
   const hidden = blocks.data?.hidden;
   const [muted, setMuted] = useState(() => !isSoundOn());

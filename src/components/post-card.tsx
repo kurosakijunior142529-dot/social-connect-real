@@ -100,14 +100,19 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
   const author = post.author;
 
   return (
-    <article className="social-card mx-3 mb-4 overflow-hidden rounded-[24px]">
+    <article className="social-card mx-3 mb-5 overflow-hidden rounded-[28px] border border-white/[0.06] shadow-elegant transition-shadow">
       <header className="flex items-center gap-3 px-4 py-3.5">
-        <Link to="/u/$username" params={{ username: author?.username ?? "" }}>
+        <Link
+          to="/u/$username"
+          params={{ username: author?.username ?? "" }}
+          className="rounded-full bg-[conic-gradient(from_140deg,var(--primary),color-mix(in_oklab,var(--primary)_25%,transparent),var(--primary))] p-[2px]"
+        >
           <UserAvatar
             avatarPath={author?.avatar_url}
             displayName={author?.display_name ?? "?"}
             verified={!!author?.is_verified}
             badgeVariant={(author?.badge_variant as any) ?? null}
+            className="ring-2 ring-background"
           />
         </Link>
         <div className="flex-1 min-w-0 leading-tight">

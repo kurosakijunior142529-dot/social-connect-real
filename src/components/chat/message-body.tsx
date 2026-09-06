@@ -7,6 +7,7 @@ import { FileText, MapPin, Download, Pause, Play, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmojiText } from "@/components/chat/app-emoji";
 import { VideoPlayer } from "@/components/media/video-player";
+import { EphemeralBody } from "@/components/chat/ephemeral-body";
 
 type Msg = {
   id: string;
@@ -33,6 +34,16 @@ function useChatSigned(bucket: string | null | undefined, path: string | null | 
 
 export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   const kind = msg.kind ?? "text";
+
+  if ((msg as any)?.meta?.ephemeral) {
+    return (
+      <EphemeralBody
+        msg={msg}
+        mine={mine}
+        render={(m) => <MessageBody msg={{ ...m, meta: { ...(m.meta ?? {}), ephemeral: false } }} mine={mine} />}
+      />
+    );
+  }
 
   if (kind === "post") return <PostShareBody msg={msg} />;
   if (kind === "gif") return <GifBody msg={msg} />;

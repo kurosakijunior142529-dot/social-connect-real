@@ -100,13 +100,15 @@ function CreatePage() {
         if (!verdict.allow) throw new Error(verdict.reason || "Enquete bloqueada pelas regras da comunidade");
       }
 
+      // Enquete não leva texto de legenda: só a enquete é publicada.
+      const finalCaption = mode === "poll" ? "" : text;
       const pollId = mode === "poll" ? await createPoll(poll, user.id) : null;
       const { error } = await supabase.from("posts").insert({
         author_id: user.id,
         media_url: null,
         media_type: "text" as any,
         post_kind: "post",
-        caption: text,
+        caption: finalCaption,
         poll_id: pollId,
       } as any);
       if (error) throw error;
@@ -324,48 +326,46 @@ function CreatePage() {
           </div>
         ) : null}
 
-        <Textarea
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          placeholder={
-            mode === "text"
-              ? "O que você quer dizer?"
-              : mode === "poll"
-                ? "Contexto da enquete (opcional)…"
-                : "Escreva uma legenda…"
-          }
-          maxLength={500}
-          rows={mode === "text" ? 6 : 4}
-          className="rounded-2xl resize-none"
-        />
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => void suggestCaptionIdeas()}
-            disabled={thinkingCaptions}
-            className="flex items-center gap-1.5 text-xs font-medium text-primary transition active:scale-95 disabled:opacity-50"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {thinkingCaptions ? "Pensando…" : "Sugerir legenda"}
-          </button>
-          <span className="text-xs text-muted-foreground">{caption.length}/500</span>
-        </div>
-        {captionIdeas.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {captionIdeas.map((idea) => (
+        {mode !== "poll" ? (
+          <>
+            <Textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder={mode === "text" ? "O que você quer dizer?" : "Escreva uma legenda…"}
+              maxLength={500}
+              rows={mode === "text" ? 6 : 4}
+              className="rounded-2xl resize-none"
+            />
+            <div className="flex items-center justify-between">
               <button
-                key={idea}
                 type="button"
-                onClick={() => {
-                  setCaption(idea);
-                  setCaptionIdeas([]);
-                }}
-                className="rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-left text-xs text-foreground/80 transition hover:bg-primary/15 hover:text-primary"
+                onClick={() => void suggestCaptionIdeas()}
+                disabled={thinkingCaptions}
+                className="flex items-center gap-1.5 text-xs font-medium text-primary transition active:scale-95 disabled:opacity-50"
               >
-                {idea}
+                <Sparkles className="h-3.5 w-3.5" />
+                {thinkingCaptions ? "Pensando…" : "Sugerir legenda"}
               </button>
-            ))}
-          </div>
+              <span className="text-xs text-muted-foreground">{caption.length}/500</span>
+            </div>
+            {captionIdeas.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {captionIdeas.map((idea) => (
+                  <button
+                    key={idea}
+                    type="button"
+                    onClick={() => {
+                      setCaption(idea);
+                      setCaptionIdeas([]);
+                    }}
+                    className="rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-left text-xs text-foreground/80 transition hover:bg-primary/15 hover:text-primary"
+                  >
+                    {idea}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </>
         ) : null}
 
         <Button

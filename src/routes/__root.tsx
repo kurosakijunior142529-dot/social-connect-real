@@ -203,10 +203,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SplashScreen />
-      <ConnectionIndicator />
-      <Outlet />
-      <Toaster position="top-center" richColors />
+      <I18nProvider>
+        <ProfileLocaleSync />
+        <SplashScreen />
+        <ConnectionIndicator />
+        <Outlet />
+        <Toaster position="top-center" richColors />
+      </I18nProvider>
     </QueryClientProvider>
   );
 }
+

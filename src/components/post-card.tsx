@@ -15,8 +15,6 @@ import { PostOwnerMenu } from "@/components/post-owner-menu";
 import { SavePostButton } from "@/components/save-post-button";
 import { RepostButton } from "@/components/repost-button";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNowStrict } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { useBlocks } from "@/hooks/use-blocks";
 import { PollCard } from "@/components/polls/poll-card";
 

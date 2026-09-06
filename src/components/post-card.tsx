@@ -15,6 +15,7 @@ import { PostOwnerMenu } from "@/components/post-owner-menu";
 import { SavePostButton } from "@/components/save-post-button";
 import { RepostButton } from "@/components/repost-button";
 import { cn } from "@/lib/utils";
+import { RichCaption } from "@/components/rich-caption";
 import { useBlocks } from "@/hooks/use-blocks";
 import { PollCard } from "@/components/polls/poll-card";
 
@@ -169,7 +170,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
                       : "text-[16px] leading-relaxed",
                 )}
               >
-                {post.caption}
+                <RichCaption text={post.caption} />
               </p>
               <span className="mt-4 block h-px w-16 rounded-full bg-primary/30" />
             </Link>
@@ -259,7 +260,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             >
               {author?.username}
             </Link>
-            {captionTranslation ?? post.caption}
+            <RichCaption text={captionTranslation ?? post.caption} />
           </p>
         ) : null}
         {post.caption ? (

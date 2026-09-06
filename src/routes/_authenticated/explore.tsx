@@ -220,7 +220,7 @@ function SuggestionList({
             className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition active:bg-[color:var(--surface-2)]"
           >
             {r.kind === "user" ? (
-              <UserAvatar avatarPath={r.image} displayName={r.label} size="sm" />
+              <UserAvatar avatarPath={r.image} displayName={r.label} className="h-9 w-9" />
             ) : (
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[color:var(--surface-2)] text-muted-foreground">
                 {r.kind === "hashtag" ? <Hash className="h-4 w-4" /> : <Search className="h-4 w-4" />}
@@ -493,7 +493,7 @@ function ResultsView({
                   <VerifiedName
                     name={u.title ?? ""}
                     verified={!!u.author_verified}
-                    badgeVariant={u.author_badge}
+                    badgeVariant={u.author_badge as never}
                   />
                 </div>
                 <div className="truncate text-[12px] text-muted-foreground">

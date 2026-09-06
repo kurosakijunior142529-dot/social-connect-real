@@ -25,6 +25,7 @@ import { emptyProject, type StudioProject } from "@/lib/studio/types";
 import { fmtTime, projectDuration } from "@/lib/studio/timeline";
 import { exportProject, supportedHeights, type ExportQuality } from "@/lib/studio/export";
 import { fontMap } from "@/lib/studio/render";
+import { FONTS } from "@/lib/studio/catalog";
 import { saveProject } from "@/lib/studio/drafts";
 import { studioAiStatus } from "@/lib/studio/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -156,7 +157,7 @@ function StudioPage() {
         quality,
         sources,
         audioBlobs,
-        fonts: fontMap(),
+        fonts: fontMap(FONTS),
         watermark: { username: (user as any)?.user_metadata?.username ?? null },
         onProgress: setProgress,
       });

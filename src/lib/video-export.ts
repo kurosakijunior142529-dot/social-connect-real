@@ -145,59 +145,72 @@ function cleanRegion(
   const { x, y, w, h } = rect;
   if (w <= 2 || h <= 2) return;
 
-  // faixas doadoras coladas na região (acima e abaixo quando existirem)
-  const topY = y - h >= 0 ? y - h : y;
-  const bottomY = y + h + h <= canvasH ? y + h : y;
-  const donorX = Math.max(0, Math.min(canvasW - w, x));
+  // Faixas doadoras que NÃO encostam na marca. Se a faixa escolhida fosse a
+  // própria região (caso dos cantos colados na borda), a marca era clonada de
+  // volta e continuava aparecendo — por isso só entram doadores válidos.
+  type Donor = { x: number; y: number; flipY: boolean };
+  const donors: Donor[] = [];
+  if (y - h >= 0) donors.push({ x, y: y - h, flipY: true }); // acima
+  if (y + 2 * h <= canvasH) donors.push({ x, y: y + h, flipY: true }); // abaixo
+  if (x - w >= 0) donors.push({ x: x - w, y, flipY: false }); // à esquerda
+  if (x + 2 * w <= canvasW) donors.push({ x: x + w, y, flipY: false }); // à direita
+  if (!donors.length) {
+    // região maior que o quadro em todos os lados: usa o quadro inteiro borrado
+    donors.push({ x: Math.max(0, Math.min(canvasW - w, x)), y: Math.max(0, Math.min(canvasH - h, y)), flipY: false });
+  }
 
   scratch.width = w;
   scratch.height = h;
   sctx.clearRect(0, 0, w, h);
 
-  // 1. clona a faixa de cima, espelhada verticalmente (continuidade natural)
+  donors.slice(0, 3).forEach((d, i) => {
+    sctx.save();
+    sctx.globalAlpha = i === 0 ? 1 : 0.5;
+    if (d.flipY) {
+      sctx.translate(0, h);
+      sctx.scale(1, -1);
+    }
+    sctx.drawImage(ctx.canvas, d.x, d.y, w, h, 0, 0, w, h);
+    sctx.restore();
+  });
+
+  // suavização para apagar a textura clonada sem borrar o resto do vídeo
   sctx.save();
-  sctx.translate(0, h);
-  sctx.scale(1, -1);
-  sctx.drawImage(ctx.canvas, donorX, topY, w, h, 0, 0, w, h);
-  sctx.restore();
-  // 2. mistura a faixa de baixo para completar a textura
-  sctx.save();
-  sctx.globalAlpha = 0.5;
-  sctx.drawImage(ctx.canvas, donorX, bottomY, w, h, 0, 0, w, h);
-  sctx.restore();
-  // 3. suavização leve e limitada, só para apagar o resto da textura clonada
-  sctx.save();
-  sctx.filter = `blur(${Math.min(4, Math.max(1.5, Math.round(Math.min(w, h) * 0.05)))}px)`;
+  sctx.filter = `blur(${Math.min(10, Math.max(3, Math.round(Math.min(w, h) * 0.12)))}px)`;
   sctx.drawImage(scratch, 0, 0);
   sctx.restore();
-  // 4. degradê nas bordas do patch para não deixar emenda visível
+
+  // degradê nas bordas do patch para não deixar emenda visível
   sctx.save();
   sctx.globalCompositeOperation = "destination-in";
-  const fx = Math.max(2, Math.round(w * 0.12));
-  const fy = Math.max(2, Math.round(h * 0.18));
+  const fx = Math.max(2, Math.round(w * 0.08));
+  const fy = Math.max(2, Math.round(h * 0.12));
   const gx = sctx.createLinearGradient(0, 0, w, 0);
-  gx.addColorStop(0, "rgba(0,0,0,0)");
+  gx.addColorStop(0, "rgba(0,0,0,0.45)");
   gx.addColorStop(fx / w, "rgba(0,0,0,1)");
   gx.addColorStop(1 - fx / w, "rgba(0,0,0,1)");
-  gx.addColorStop(1, "rgba(0,0,0,0)");
+  gx.addColorStop(1, "rgba(0,0,0,0.45)");
   sctx.fillStyle = gx;
   sctx.fillRect(0, 0, w, h);
-  sctx.globalCompositeOperation = "destination-in";
   const gy = sctx.createLinearGradient(0, 0, 0, h);
-  gy.addColorStop(0, "rgba(0,0,0,0)");
+  gy.addColorStop(0, "rgba(0,0,0,0.45)");
   gy.addColorStop(fy / h, "rgba(0,0,0,1)");
   gy.addColorStop(1 - fy / h, "rgba(0,0,0,1)");
-  gy.addColorStop(1, "rgba(0,0,0,0)");
+  gy.addColorStop(1, "rgba(0,0,0,0.45)");
   sctx.fillStyle = gy;
   sctx.fillRect(0, 0, w, h);
   sctx.restore();
 
-  // 5. aplica somente sobre o retângulo da marca d'água
+  // aplica somente sobre o retângulo da marca d'água
   ctx.save();
+  ctx.globalAlpha = Math.max(0.85, Math.min(1, strength));
+  ctx.drawImage(scratch, x, y, w, h);
+  // segunda passada garante cobertura total do miolo (onde fica o logo)
   ctx.globalAlpha = Math.max(0.6, Math.min(1, strength));
   ctx.drawImage(scratch, x, y, w, h);
   ctx.restore();
 }
+
 
 /** Desenha a marca d'água do Vibely (canto inferior direito) no canvas. */
 export function drawVibelyWatermark(

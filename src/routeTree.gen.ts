@@ -14,6 +14,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedCreateRouteImport } from './routes/_authenticated/create'
 import { Route as AuthenticatedExploreRouteImport } from './routes/_authenticated/explore'
 import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
+import { Route as AuthenticatedNearbyRouteImport } from './routes/_authenticated/nearby'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedProRouteImport } from './routes/_authenticated/pro'
 import { Route as AuthenticatedReelsRouteImport } from './routes/_authenticated/reels'
@@ -92,6 +93,11 @@ const AuthenticatedExploreRoute = AuthenticatedExploreRouteImport.update({
 const AuthenticatedMusicRoute = AuthenticatedMusicRouteImport.update({
   id: '/music',
   path: '/music',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNearbyRoute = AuthenticatedNearbyRouteImport.update({
+  id: '/nearby',
+  path: '/nearby',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedNotificationsRoute =
@@ -401,6 +407,7 @@ export interface FileRoutesByFullPath {
   '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
   '/music': typeof AuthenticatedMusicRoute
+  '/nearby': typeof AuthenticatedNearbyRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pro': typeof AuthenticatedProRoute
   '/reels': typeof AuthenticatedReelsRoute
@@ -461,6 +468,7 @@ export interface FileRoutesByTo {
   '/create': typeof AuthenticatedCreateRoute
   '/explore': typeof AuthenticatedExploreRoute
   '/music': typeof AuthenticatedMusicRoute
+  '/nearby': typeof AuthenticatedNearbyRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pro': typeof AuthenticatedProRoute
   '/reels': typeof AuthenticatedReelsRoute
@@ -523,6 +531,7 @@ export interface FileRoutesById {
   '/_authenticated/create': typeof AuthenticatedCreateRoute
   '/_authenticated/explore': typeof AuthenticatedExploreRoute
   '/_authenticated/music': typeof AuthenticatedMusicRoute
+  '/_authenticated/nearby': typeof AuthenticatedNearbyRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pro': typeof AuthenticatedProRoute
   '/_authenticated/reels': typeof AuthenticatedReelsRoute
@@ -587,6 +596,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/explore'
     | '/music'
+    | '/nearby'
     | '/notifications'
     | '/pro'
     | '/reels'
@@ -647,6 +657,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/explore'
     | '/music'
+    | '/nearby'
     | '/notifications'
     | '/pro'
     | '/reels'
@@ -708,6 +719,7 @@ export interface FileRouteTypes {
     | '/_authenticated/create'
     | '/_authenticated/explore'
     | '/_authenticated/music'
+    | '/_authenticated/nearby'
     | '/_authenticated/notifications'
     | '/_authenticated/pro'
     | '/_authenticated/reels'
@@ -813,6 +825,13 @@ declare module '@tanstack/react-router' {
       path: '/music'
       fullPath: '/music'
       preLoaderRoute: typeof AuthenticatedMusicRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/nearby': {
+      id: '/_authenticated/nearby'
+      path: '/nearby'
+      fullPath: '/nearby'
+      preLoaderRoute: typeof AuthenticatedNearbyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/notifications': {
@@ -1237,6 +1256,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCreateRoute: typeof AuthenticatedCreateRoute
   AuthenticatedExploreRoute: typeof AuthenticatedExploreRoute
   AuthenticatedMusicRoute: typeof AuthenticatedMusicRoute
+  AuthenticatedNearbyRoute: typeof AuthenticatedNearbyRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedProRoute: typeof AuthenticatedProRoute
   AuthenticatedReelsRoute: typeof AuthenticatedReelsRoute
@@ -1288,6 +1308,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCreateRoute: AuthenticatedCreateRoute,
   AuthenticatedExploreRoute: AuthenticatedExploreRoute,
   AuthenticatedMusicRoute: AuthenticatedMusicRoute,
+  AuthenticatedNearbyRoute: AuthenticatedNearbyRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedProRoute: AuthenticatedProRoute,
   AuthenticatedReelsRoute: AuthenticatedReelsRoute,

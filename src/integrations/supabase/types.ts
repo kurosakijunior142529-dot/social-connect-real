@@ -2688,6 +2688,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_locations: {
+        Row: {
+          city: string | null
+          lat: number
+          lng: number
+          sharing: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          lat: number
+          lng: number
+          sharing?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          lat?: number
+          lng?: number
+          sharing?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_locations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -3291,6 +3326,21 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      nearby_users: {
+        Args: { _limit?: number; _radius_km?: number }
+        Returns: {
+          avatar_url: string
+          badge_variant: string
+          bearing: number
+          city: string
+          display_name: string
+          distance_km: number
+          i_follow: boolean
+          id: string
+          is_verified: boolean
+          username: string
+        }[]
+      }
       normalize_invite_code: { Args: { _code: string }; Returns: string }
       notify_user: {
         Args: {
@@ -3379,6 +3429,11 @@ export type Database = {
         Args: { _conversation: string; _type: string; _value?: string }
         Returns: undefined
       }
+      set_my_location: {
+        Args: { _city?: string; _lat: number; _lng: number }
+        Returns: undefined
+      }
+      stop_sharing_location: { Args: never; Returns: undefined }
       submit_game_score: {
         Args: { _game: string; _score: number }
         Returns: number

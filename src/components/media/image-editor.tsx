@@ -74,15 +74,22 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+/** Conjuntos de proporções por contexto. */
+export const FEED_ASPECTS = ["0.8", "original", "free"] as const; // padrão Instagram 4:5
+export const STORY_ASPECTS = ["0.5625", "original", "free"] as const;
+
 /** Editor de fotos: recorte com arraste/pinça, giro, espelho, filtros e ajustes. */
 export function ImageEditor({
   src,
   value,
   onChange,
+  aspects,
 }: {
   src: string;
   value: ImageEditState;
   onChange: (v: ImageEditState) => void;
+  /** IDs de proporção permitidos (padrão: todos). */
+  aspects?: readonly string[];
 }) {
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [tab, setTab] = useState<Tab>("crop");

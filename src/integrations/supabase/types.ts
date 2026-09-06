@@ -3450,6 +3450,7 @@ export type Database = {
         Args: { _id: string; _kind: string }
         Returns: undefined
       }
+      report_ephemeral_capture: { Args: { _id: string }; Returns: undefined }
       request_withdrawal: {
         Args: { _amount_coins: number; _bank_account_id: string }
         Returns: string
@@ -3510,6 +3511,7 @@ export type Database = {
           prompt: string
         }[]
       }
+      view_ephemeral_message: { Args: { _id: string }; Returns: string }
       watch_room_invite_preview: {
         Args: { _code: string }
         Returns: {

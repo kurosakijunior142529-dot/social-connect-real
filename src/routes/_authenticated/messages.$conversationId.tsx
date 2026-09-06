@@ -32,7 +32,7 @@ import { ChatSearchBar } from "@/components/chat/search-bar";
 import { TypingIndicator, useConversationPresence } from "@/components/chat/typing-indicator";
 import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
-import { Smile } from "lucide-react";
+import { Smile, Timer } from "lucide-react";
 import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-panel";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
 import { useChatPrefs } from "@/lib/bubble-themes";
@@ -291,13 +291,16 @@ function ConversationPage() {
         media_name: file.name,
         media_size: file.size,
         poster_url,
+        ...(ephemeral ? { meta: { ephemeral: true } } : {}),
       });
+      if (ephemeral) setEphemeral(false);
       toast.success("Enviado", { id: toastId });
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao enviar", { id: toastId });
     }
   }
 
+  const [ephemeral, setEphemeral] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<PanelTab>("emoji");
 
@@ -340,7 +343,9 @@ function ConversationPage() {
         media_type: file.type,
         media_size: file.size,
         media_duration_ms: durationMs,
+        ...(ephemeral ? { meta: { ephemeral: true } } : {}),
       });
+      if (ephemeral) setEphemeral(false);
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao enviar áudio");
     } finally {
@@ -437,7 +442,12 @@ function ConversationPage() {
   const iBlocked = otherId ? blocks.data?.blocked.has(otherId) ?? false : false;
 
   const visibleMessages = useMemo(() => {
-    let list = (messages.data ?? []).filter((m) => !blocks.data?.blockedBy.has(m.sender_id));
+    const now = Date.now();
+    let list = (messages.data ?? []).filter(
+      (m) =>
+        !blocks.data?.blockedBy.has(m.sender_id) &&
+        !(m.expires_at && new Date(m.expires_at).getTime() < now && m.sender_id !== user.id),
+    );
     if (searchOpen && searchQ.trim()) {
       const q = searchQ.trim().toLowerCase();
       list = list.filter((m) => (m.content ?? "").toLowerCase().includes(q));
@@ -742,6 +752,22 @@ function ConversationPage() {
           className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
         >
           <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+        <button
+          type="button"
+          disabled={isBlockedPair}
+          aria-label="Recado que some"
+          title="Recado que some (foto, vídeo ou áudio some após ser visto)"
+          onClick={() => {
+            setEphemeral((v) => !v);
+            if (!ephemeral) toast.info("Próxima foto, vídeo ou áudio some depois de visto");
+          }}
+          className={cn(
+            "p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40",
+            ephemeral && "bg-primary/15 text-primary",
+          )}
+        >
+          <Timer className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
         <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)]/60 px-4 py-2.5 border border-[color:var(--hairline)] transition-colors focus-within:border-primary/40">

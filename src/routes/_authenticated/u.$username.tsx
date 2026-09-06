@@ -22,7 +22,7 @@ import {
   Repeat2,
   Camera,
   Loader2,
-  Menu,
+  
   Pencil,
   Plus,
   Trophy,

@@ -639,19 +639,19 @@ export function MediaCell({
 function VideoThumb({ path }: { path: string }) {
   const [ref, inView] = useInView<HTMLDivElement>();
   const { data: url } = useSignedUrl("posts", inView ? path : null);
+  const [failed, setFailed] = useState(false);
   return (
-    <div ref={ref} className="h-full w-full">
-      {url ? (
+    <div ref={ref} className="h-full w-full bg-gradient-to-br from-[color:var(--surface-2)] to-black">
+      {url && !failed ? (
         <video
           src={`${url}#t=0.1`}
           muted
           playsInline
           preload="metadata"
+          onError={() => setFailed(true)}
           className="h-full w-full object-cover"
         />
-      ) : (
-        <div className="h-full w-full animate-pulse bg-[color:var(--surface-2)]" />
-      )}
+      ) : null}
     </div>
   );
 }

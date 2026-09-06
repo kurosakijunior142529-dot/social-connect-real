@@ -17,8 +17,11 @@ import {
   Hand,
 } from "lucide-react";
 
+export type CropRect = { x: number; y: number; w: number; h: number }; // % da imagem (0..100)
+
 export type ImageEditState = {
-  aspect: string; // "original" | "1" | "0.8" | "0.5625" | "1.7778"
+  aspect: string; // "original" | "free" | "1" | "0.8" | "0.5625" | "1.7778"
+  crop: CropRect | null; // corte livre (manual)
   zoom: number;
   offsetX: number; // -1..1 relative to free space
   offsetY: number;
@@ -32,6 +35,7 @@ export type ImageEditState = {
 
 export const defaultImageEdit: ImageEditState = {
   aspect: "1",
+  crop: null,
   zoom: 1,
   offsetX: 0,
   offsetY: 0,
@@ -45,6 +49,7 @@ export const defaultImageEdit: ImageEditState = {
 
 const ASPECTS: { id: string; label: string; value: number | null }[] = [
   { id: "original", label: "Original", value: null },
+  { id: "free", label: "Livre", value: null },
   { id: "1", label: "1:1", value: 1 },
   { id: "0.8", label: "4:5", value: 0.8 },
   { id: "0.5625", label: "9:16", value: 9 / 16 },

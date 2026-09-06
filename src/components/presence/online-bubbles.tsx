@@ -74,13 +74,10 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
   return (
     <>
       <section className="px-3 pb-2">
-        <div className="relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[radial-gradient(circle_at_0%_0%,color-mix(in_oklab,var(--primary)_6%,transparent),transparent_55%),var(--surface)] p-2.5 shadow-elegant">
+        <div className="relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[color:var(--surface)] p-2.5">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
               <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Online agora
               </span>
@@ -115,7 +112,7 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
                 onClick={() => setSelected(f)}
                 className="flex w-[54px] shrink-0 flex-col items-center gap-1 [scroll-snap-align:start] transition active:scale-95"
               >
-                <span className="relative grid place-items-center rounded-full bg-[conic-gradient(from_140deg,var(--primary),color-mix(in_oklab,var(--primary)_25%,transparent),var(--primary))] p-[2px]">
+                <span className="relative grid place-items-center rounded-full bg-primary/70 p-[1.5px]">
                   <span className="rounded-full bg-background p-[1.5px]">
                     <UserAvatar
                       avatarPath={f.avatar_url}
@@ -123,7 +120,7 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
                       className="h-10 w-10"
                     />
                   </span>
-                  <span className="absolute bottom-0 right-0 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary shadow-[0_0_10px_var(--primary)]" />
+                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background bg-primary" />
                 </span>
                 <span className="w-full truncate text-center text-[10px] font-medium text-foreground/80">
                   {f.display_name ?? f.username}

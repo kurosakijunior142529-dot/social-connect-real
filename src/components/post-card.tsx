@@ -105,7 +105,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         <Link
           to="/u/$username"
           params={{ username: author?.username ?? "" }}
-          className="rounded-full bg-[conic-gradient(from_140deg,var(--primary),color-mix(in_oklab,var(--primary)_25%,transparent),var(--primary))] p-[2px]"
+          className="rounded-full bg-white/[0.08] p-[1.5px]"
         >
           <UserAvatar
             avatarPath={author?.avatar_url}

@@ -66,7 +66,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
         <div className="social-card no-scrollbar relative flex gap-3 overflow-x-auto rounded-[22px] px-3 py-3">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[color:color-mix(in_oklab,var(--primary)_60%,transparent)] to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
           />
           {/* Your story: either add or view */}
           {myGroup ? (
@@ -74,7 +74,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
               onClick={() => setViewing({ groups, index: 0 })}
               className="flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl py-1 transition-transform hover:-translate-y-0.5"
             >
-              <span className="rounded-full bg-gradient-brand p-[2px] shadow-[0_0_16px_-2px_color-mix(in_oklab,var(--primary)_65%,transparent)]">
+              <span className="rounded-full bg-gradient-brand p-[2px]">
                 <UserAvatar
                   avatarPath={currentProfile?.avatar_url}
                   displayName={currentProfile?.display_name ?? "?"}
@@ -94,7 +94,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
                   displayName={currentProfile?.display_name ?? "?"}
                   className="h-14 w-14 opacity-90"
                 />
-                <span className="absolute -bottom-0 -right-0 grid h-5 w-5 place-items-center rounded-full bg-gradient-brand ring-2 ring-background shadow-[0_0_12px_-2px_color-mix(in_oklab,var(--primary)_75%,transparent)]">
+                <span className="absolute -bottom-0 -right-0 grid h-5 w-5 place-items-center rounded-full bg-primary ring-2 ring-background">
                   <Plus className="h-3 w-3 text-primary-foreground" />
                 </span>
               </div>
@@ -108,7 +108,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
               onClick={() => setViewing({ groups, index: myGroup ? idx + 1 : idx })}
               className="flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl py-1 transition-transform hover:-translate-y-0.5"
             >
-              <span className="rounded-full bg-gradient-brand p-[2px] shadow-[0_0_14px_-3px_color-mix(in_oklab,var(--primary)_60%,transparent)]">
+              <span className="rounded-full bg-gradient-brand p-[2px]">
                 <UserAvatar
                   avatarPath={g.profile?.avatar_url}
                   displayName={g.profile?.display_name ?? "?"}

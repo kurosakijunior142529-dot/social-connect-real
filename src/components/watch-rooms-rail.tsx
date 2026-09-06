@@ -21,9 +21,9 @@ export function WatchRoomsRail() {
     <section className="space-y-2 px-4 pb-2">
       <div className="flex items-center justify-between">
         <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-          <Radio className="h-4 w-4 text-primary" /> Salas rolando agora
+          <Radio className="h-4 w-4 text-muted-foreground" /> Salas rolando agora
         </h2>
-        <Link to="/watch" className="text-xs font-medium text-primary">
+        <Link to="/watch" className="text-xs font-medium text-muted-foreground transition hover:text-foreground">
           Ver todas
         </Link>
       </div>
@@ -33,7 +33,7 @@ export function WatchRoomsRail() {
             key={r.id}
             to="/watch/$roomId"
             params={{ roomId: r.id }}
-            className="w-44 shrink-0 rounded-2xl bg-[color:var(--surface)] p-3 transition active:scale-[0.97]"
+            className="w-44 shrink-0 rounded-2xl border border-white/[0.06] bg-[color:var(--surface)] p-3 transition active:scale-[0.97]"
           >
             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />

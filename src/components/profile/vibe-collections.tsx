@@ -254,6 +254,7 @@ function CollectionEditor({
     setUploading(true);
     try {
       const check = await checkFile(file);
+      if (!check.ok) throw new Error(check.error);
       const [dataUrl, sha256] = await Promise.all([previewDataUrl(file), sha256Hex(file)]);
       await moderateMedia({
         data: { dataUrl, sha256, mime: check.mime, size: file.size, surface: "public", contentType: "story" },

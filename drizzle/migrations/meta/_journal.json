@@ -211,6 +211,13 @@
       "when": 1788731229648,
       "tag": "0029_realities_bucket_privacy",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1788732054045,
+      "tag": "0030_hide_reality_rooms_from_watch",
+      "breakpoints": true
     }
   ]
 }

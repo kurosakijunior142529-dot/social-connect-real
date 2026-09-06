@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useInView } from "@/hooks/use-in-view";
+import { useSignedUrl } from "@/hooks/use-signed-url";
 import { SignedImage } from "@/components/signed-image";
 import { UserAvatar } from "@/components/user-avatar";
 import { VerifiedName } from "@/components/verified-badge";
@@ -630,5 +632,26 @@ export function MediaCell({
     <Link to="/p/$id" params={{ id }}>
       {content}
     </Link>
+  );
+}
+
+/** Primeiro quadro do vídeo como miniatura (posts de vídeo não têm imagem salva). */
+function VideoThumb({ path }: { path: string }) {
+  const [ref, inView] = useInView<HTMLDivElement>();
+  const { data: url } = useSignedUrl("posts", inView ? path : null);
+  return (
+    <div ref={ref} className="h-full w-full">
+      {url ? (
+        <video
+          src={`${url}#t=0.1`}
+          muted
+          playsInline
+          preload="metadata"
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="h-full w-full animate-pulse bg-[color:var(--surface-2)]" />
+      )}
+    </div>
   );
 }

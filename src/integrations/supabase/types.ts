@@ -3124,6 +3124,7 @@ export type Database = {
         Args: { _chat: string; _user: string }
         Returns: boolean
       }
+      is_supporter: { Args: { _user: string }; Returns: boolean }
       is_watch_host: {
         Args: { _room: string; _user: string }
         Returns: boolean

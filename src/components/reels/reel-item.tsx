@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { logPostView } from "@/lib/search";
 import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -135,6 +136,13 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     if (!v) return;
     v.playbackRate = speeding ? 2 : 1;
   }, [speeding]);
+
+  // Registra a visualização só quando o vídeo fica realmente em foco por 2s.
+  useEffect(() => {
+    if (!visible) return;
+    const t = setTimeout(() => void logPostView(post.id), 2000);
+    return () => clearTimeout(t);
+  }, [visible, post.id]);
 
   // saved state
   const savedQ = useQuery({

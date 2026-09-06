@@ -100,13 +100,15 @@ function CreatePage() {
         if (!verdict.allow) throw new Error(verdict.reason || "Enquete bloqueada pelas regras da comunidade");
       }
 
+      // Enquete não leva texto de legenda: só a enquete é publicada.
+      const finalCaption = mode === "poll" ? "" : text;
       const pollId = mode === "poll" ? await createPoll(poll, user.id) : null;
       const { error } = await supabase.from("posts").insert({
         author_id: user.id,
         media_url: null,
         media_type: "text" as any,
         post_kind: "post",
-        caption: text,
+        caption: finalCaption,
         poll_id: pollId,
       } as any);
       if (error) throw error;

@@ -357,7 +357,8 @@ function CollectionEditor({
         const opt = optionByPath[path];
         return {
           collection_id: collectionId,
-          story_id: opt && !String(opt.id).startsWith("item:") ? opt.id : null,
+          story_id:
+            opt && !String(opt.id).startsWith("item:") && !String(opt.id).startsWith("upload:") ? opt.id : null,
           bucket: "stories",
           media_path: path,
           media_type: opt?.media_type ?? "image",

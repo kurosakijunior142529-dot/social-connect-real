@@ -261,7 +261,10 @@ function WatchRoomPage() {
         if (cancelled) return;
         if (!adapter.playable) {
           setUnavailable(adapter.unavailableMessage ?? null);
+          setRequirement(adapter.requirement ?? null);
           container.innerHTML = "";
+        } else {
+          setRequirement(null);
         }
         setPlayerReady(true);
       })

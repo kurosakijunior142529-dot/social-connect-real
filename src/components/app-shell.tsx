@@ -136,7 +136,7 @@ export function AppShell({
         <div className="px-6 pt-8 pb-7">
           <Link to="/" className="inline-flex items-center gap-2">
             <span className="text-[26px] font-display font-semibold">vibely</span>
-            <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_16px_var(--primary)]" />
+            <span className="h-2 w-2 rounded-full bg-primary" />
           </Link>
         </div>
         <nav className="flex-1 space-y-0.5 px-3">

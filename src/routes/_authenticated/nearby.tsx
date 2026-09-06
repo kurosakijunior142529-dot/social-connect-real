@@ -78,7 +78,7 @@ function NearbyPage() {
       const { error } = await supabase.rpc("set_my_location", {
         _lat: position.coords.latitude,
         _lng: position.coords.longitude,
-        _city: null,
+        _city: undefined,
       });
       if (error) throw error;
     },

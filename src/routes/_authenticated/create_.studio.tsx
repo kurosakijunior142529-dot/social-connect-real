@@ -10,7 +10,6 @@ import {
   Film,
   Gauge,
   Image as ImageIcon,
-  Layers,
   Loader2,
   Maximize2,
   Minimize2,

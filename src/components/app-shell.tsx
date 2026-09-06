@@ -69,7 +69,9 @@ export function AppShell({
       cancelled = true;
     };
   }, [userId]);
+  const t = useT();
   const unread = useUnreadNotifications(userId);
+
   const unreadCount = unread.data ?? 0;
 
   const items: NavItem[] = [

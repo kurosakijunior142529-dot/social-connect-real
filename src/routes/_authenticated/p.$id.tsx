@@ -80,9 +80,9 @@ function PostDetailPage() {
         </header>
         <div className="bg-black">
           {p.media_type === "video" ? (
-            <SignedVideo bucket="posts" path={p.media_url} className="w-full aspect-square object-cover" />
+            <SignedVideo bucket="posts" path={p.media_url} className="w-full max-h-[80vh] aspect-[4/5]" fit="contain" />
           ) : (
-            <SignedImage bucket="posts" path={p.media_url} alt={p.caption ?? ""} className="w-full aspect-square object-cover" />
+            <SignedImage bucket="posts" path={p.media_url} alt={p.caption ?? ""} className="w-full h-auto max-h-[80vh] object-contain" />
           )}
         </div>
         <div className="p-4 space-y-3">

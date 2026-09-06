@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, Heart, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Download, Heart, Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { VideoWatermark } from "@/components/media/watermark";
 import { isSoundOn, setSoundOn, subscribeSound } from "@/lib/media/sound-pref";
@@ -38,6 +39,10 @@ type Props = {
   autoPlayInView?: boolean;
   /** Nome sugerido do arquivo ao baixar. */
   downloadName?: string;
+  /** Como o vídeo preenche a moldura. "contain" mostra tudo sem cortar. */
+  fit?: "cover" | "contain";
+  /** Quando definido, o toque simples no vídeo abre este link (tela cheia). */
+  expandHref?: string;
 };
 
 type Burst = { id: number; x: number; y: number };
@@ -55,7 +60,10 @@ export function VideoPlayer({
   watermarkUsername,
   autoPlayInView = true,
   downloadName,
+  fit = "cover",
+  expandHref,
 }: Props) {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const thinBarRef = useRef<HTMLDivElement>(null);
   const lastTime = useRef(0);
@@ -332,9 +340,15 @@ export function VideoPlayer({
     }
     tapRef.current.last = now;
     tapRef.current.timer = window.setTimeout(() => {
-      // Single tap: if controls are visible, toggle play; otherwise reveal controls.
-      if (showControls || !autoPlayInView) togglePlay();
-      else reveal();
+      // Toque simples: com `expandHref`, abre o vídeo em tela cheia;
+      // senão, alterna play ou revela os controles.
+      if (expandHref) {
+        void navigate({ href: expandHref } as any);
+      } else if (showControls || !autoPlayInView) {
+        togglePlay();
+      } else {
+        reveal();
+      }
       tapRef.current.timer = null;
     }, 280);
   };
@@ -371,7 +385,7 @@ export function VideoPlayer({
         disableRemotePlayback
         controlsList="nodownload noplaybackrate noremoteplayback"
         x-webkit-airplay="deny"
-        className="h-full w-full object-cover"
+        className={cn("h-full w-full", fit === "contain" ? "object-contain" : "object-cover")}
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
           setLoading(false);
@@ -425,6 +439,13 @@ export function VideoPlayer({
 
       {/* Marca d'água do app */}
       <VideoWatermark username={watermarkUsername} className="bottom-6" />
+
+      {/* Dica de toque para abrir em tela cheia */}
+      {expandHref ? (
+        <span className="pointer-events-none absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/45 text-white backdrop-blur ring-1 ring-white/15">
+          <Maximize2 className="h-4 w-4" />
+        </span>
+      ) : null}
 
       {/* Elegant loader */}
       {loading ? (

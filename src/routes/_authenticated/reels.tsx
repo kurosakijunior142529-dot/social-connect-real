@@ -14,11 +14,15 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/reels")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    post: typeof search.post === "string" ? search.post : undefined,
+  }),
   component: ReelsPage,
 });
 
 function ReelsPage() {
   const { user } = Route.useRouteContext();
+  const { post: startPostId } = Route.useSearch();
   const blocks = useBlocks();
   const hidden = blocks.data?.hidden;
   const [muted, setMuted] = useState(() => !isSoundOn());
@@ -39,22 +43,32 @@ function ReelsPage() {
   useEffect(() => { if (!hasLives && tab === "live") setTab("fyp"); }, [hasLives, tab]);
 
   const query = useQuery({
-    queryKey: ["reels", user.id, "blocks", hidden ? hidden.size : 0],
+    queryKey: ["reels", user.id, "blocks", hidden ? hidden.size : 0, startPostId ?? null],
     enabled: !!blocks.data,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     placeholderData: (prev: any) => prev,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("media_type", "video")
-        .eq("post_kind", "reel")
-        .order("created_at", { ascending: false })
-        .limit(12);
+      const [{ data, error }, startRes] = await Promise.all([
+        supabase
+          .from("posts")
+          .select("*")
+          .eq("media_type", "video")
+          .eq("post_kind", "reel")
+          .order("created_at", { ascending: false })
+          .limit(12),
+        startPostId
+          ? supabase.from("posts").select("*").eq("id", startPostId).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ]);
       if (error) throw error;
       let posts = (data ?? []) as any[];
       if (hidden && hidden.size > 0) posts = posts.filter((p) => !hidden.has(p.author_id));
+      // Vídeo vindo do feed: entra como primeiro item, mesmo não sendo reel.
+      const startPost = (startRes as any)?.data;
+      if (startPost && startPost.media_type === "video") {
+        posts = [startPost, ...posts.filter((p) => p.id !== startPost.id)];
+      }
       if (posts.length === 0) return [] as FeedPost[];
 
       const ids = posts.map((p) => p.id);

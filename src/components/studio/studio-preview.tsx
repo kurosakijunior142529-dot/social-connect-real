@@ -193,8 +193,14 @@ export const StudioPreview = forwardRef<PreviewHandle, Props>(function StudioPre
   return (
     <canvas
       ref={canvasRef}
-      className="h-full w-full object-contain"
-      style={{ aspectRatio: `${w} / ${h}` }}
+      className="block rounded-2xl bg-black shadow-2xl"
+      style={{
+        aspectRatio: `${w} / ${h}`,
+        width: "auto",
+        height: "auto",
+        maxWidth: "100%",
+        maxHeight: "100%",
+      }}
     />
   );
 });

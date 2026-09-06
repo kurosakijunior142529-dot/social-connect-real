@@ -173,7 +173,18 @@ function DirectList({ userId }: { userId: string }) {
               <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12 rounded-full border border-white/10" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <div className="truncate text-[15px] font-semibold"><VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} /></div>
+                  <div className="truncate text-[15px] font-semibold flex items-center gap-1.5">
+                    <VerifiedName name={c.other?.display_name} verified={(c.other as any)?.is_verified} badgeVariant={(c.other as any)?.badge_variant} />
+                    {c.streak > 0 && (
+                      <span
+                        title={`Sequência de ${c.streak} ${c.streak === 1 ? "dia" : "dias"} conversando`}
+                        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-bold text-orange-400"
+                      >
+                        <Flame className="h-3 w-3" fill="currentColor" />
+                        {c.streak}
+                      </span>
+                    )}
+                  </div>
                   {c.last ? (
                     <div className="text-[10px] shrink-0 tabular uppercase tracking-widest text-muted-foreground">
                       {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}

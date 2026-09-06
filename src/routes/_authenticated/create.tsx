@@ -5,7 +5,8 @@ import { uploadMedia } from "@/lib/media";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ImagePlus, Video, Wand2, X } from "lucide-react";
+import { ImagePlus, Sparkles, Video, Wand2, X } from "lucide-react";
+import { suggestCaptions } from "@/lib/ai.functions";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
 import {
   ImageEditor,
@@ -38,6 +39,22 @@ function CreatePage() {
   const [trim, setTrim] = useState<TrimState>(defaultTrim);
   const [imgEdit, setImgEdit] = useState<ImageEditState>(defaultImageEdit);
   const [progress, setProgress] = useState(0);
+  const [captionIdeas, setCaptionIdeas] = useState<string[]>([]);
+  const [thinkingCaptions, setThinkingCaptions] = useState(false);
+  const runSuggest = useServerFn(suggestCaptions);
+
+  async function suggestCaptionIdeas() {
+    if (thinkingCaptions) return;
+    setThinkingCaptions(true);
+    try {
+      const r = await runSuggest({ data: { hint: caption.trim() || undefined } });
+      setCaptionIdeas(r.captions);
+    } catch {
+      toast.error("Não consegui pensar em legendas agora");
+    } finally {
+      setThinkingCaptions(false);
+    }
+  }
   const [mode, setMode] = useState<Mode>("media");
   const [poll, setPoll] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
   const moderate = useServerFn(moderateMedia);
@@ -320,7 +337,35 @@ function CreatePage() {
           rows={mode === "text" ? 6 : 4}
           className="rounded-2xl resize-none"
         />
-        <div className="text-right text-xs text-muted-foreground">{caption.length}/500</div>
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => void suggestCaptionIdeas()}
+            disabled={thinkingCaptions}
+            className="flex items-center gap-1.5 text-xs font-medium text-primary transition active:scale-95 disabled:opacity-50"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {thinkingCaptions ? "Pensando…" : "Sugerir legenda"}
+          </button>
+          <span className="text-xs text-muted-foreground">{caption.length}/500</span>
+        </div>
+        {captionIdeas.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {captionIdeas.map((idea) => (
+              <button
+                key={idea}
+                type="button"
+                onClick={() => {
+                  setCaption(idea);
+                  setCaptionIdeas([]);
+                }}
+                className="rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-left text-xs text-foreground/80 transition hover:bg-primary/15 hover:text-primary"
+              >
+                {idea}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         <Button
           type="submit"

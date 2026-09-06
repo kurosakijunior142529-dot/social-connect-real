@@ -17,6 +17,7 @@ import { InterestsEditor } from "@/components/profile/interests-editor";
 import { useAppTheme } from "@/lib/theme";
 import { PushSettings } from "@/components/settings/push-settings";
 import { useSmartRepliesEnabled, TRANSLATE_LANGUAGES } from "@/lib/chat-settings";
+import { useI18n, LOCALES, type LocaleCode } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   component: SettingsPage,

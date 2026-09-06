@@ -3140,51 +3140,32 @@ export type Database = {
         }[]
       }
       join_watch_room_impl: { Args: { _room: string }; Returns: string }
-      list_public_watch_rooms:
-        | {
-            Args: { _limit?: number }
-            Returns: {
-              category: string | null
-              closed_at: string | null
-              cover_url: string | null
-              created_at: string
-              host_id: string
-              id: string
-              invite_code: string
-              is_private: boolean
-              max_members: number
-              provider: string
-              scheduled_at: string | null
-              title: string | null
-              updated_at: string
-              video_id: string | null
-              visibility: string
-            }[]
-            SetofOptions: {
-              from: "*"
-              to: "watch_rooms"
-              isOneToOne: false
-              isSetofReturn: true
-            }
-          }
-        | {
-            Args: { _category?: string; _limit?: number; _search?: string }
-            Returns: {
-              category: string
-              cover_url: string
-              created_at: string
-              host_avatar_url: string
-              host_display_name: string
-              host_id: string
-              host_username: string
-              id: string
-              max_members: number
-              member_count: number
-              provider: string
-              title: string
-              video_id: string
-            }[]
-          }
+      list_public_watch_rooms: {
+        Args: { _category?: string; _limit?: number; _search?: string }
+        Returns: {
+          category: string | null
+          closed_at: string | null
+          cover_url: string | null
+          created_at: string
+          host_id: string
+          id: string
+          invite_code: string
+          is_private: boolean
+          max_members: number
+          provider: string
+          scheduled_at: string | null
+          title: string | null
+          updated_at: string
+          video_id: string | null
+          visibility: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "watch_rooms"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       live_heartbeat: { Args: { _live_id: string }; Returns: undefined }
       log_security_event: {
         Args: {

@@ -113,6 +113,13 @@
       "when": 1788657850685,
       "tag": "0015_translation_cache_and_room_scheduling",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788658464062,
+      "tag": "0016_fix_watch_rooms_rpc_signature",
+      "breakpoints": true
     }
   ]
 }

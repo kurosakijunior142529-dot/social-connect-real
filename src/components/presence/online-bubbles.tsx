@@ -74,17 +74,17 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
   return (
     <>
       <section className="px-3 pb-2">
-        <div className="relative overflow-hidden rounded-[20px] border border-primary/20 bg-[radial-gradient(circle_at_0%_0%,color-mix(in_oklab,var(--primary)_10%,transparent),transparent_55%),var(--surface)] p-2.5 shadow-elegant">
+        <div className="relative overflow-hidden rounded-[20px] border border-white/[0.07] bg-[radial-gradient(circle_at_0%_0%,color-mix(in_oklab,var(--primary)_6%,transparent),transparent_55%),var(--surface)] p-2.5 shadow-elegant">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
               </span>
-              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary">
+              <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Online agora
               </span>
-              <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold tabular text-primary">
+              <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold tabular text-primary/90">
                 {onlineFriends.length}
               </span>
             </div>
@@ -134,7 +134,7 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
               to="/nearby"
               className="flex w-[54px] shrink-0 flex-col items-center gap-1 [scroll-snap-align:start]"
             >
-              <span className="grid h-[46px] w-[46px] place-items-center rounded-full border border-dashed border-primary/40 bg-[color:var(--surface-2)] text-primary">
+              <span className="grid h-[46px] w-[46px] place-items-center rounded-full border border-dashed border-white/15 bg-[color:var(--surface-2)] text-muted-foreground">
                 <MapPin className="h-4 w-4" />
               </span>
               <span className="w-full truncate text-center text-[10px] text-muted-foreground">Descobrir</span>
@@ -159,7 +159,7 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
                 ring
               />
             ) : null}
-            <p className="text-center text-xs text-primary">Está no app agora</p>
+            <p className="text-center text-xs text-muted-foreground">Está no app agora</p>
             <div className="grid w-full gap-2">
               <button
                 type="button"

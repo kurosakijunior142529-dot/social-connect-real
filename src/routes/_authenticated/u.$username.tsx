@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link, Outlet, useChildMatches } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { SignedMediaThumb } from "@/components/signed-image";

@@ -509,7 +509,8 @@ function WatchRoomPage() {
           </div>
           {PREMIUM_PROVIDERS.includes(provider) ? (
             <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Cada pessoa assiste na própria conta do {PROVIDER_LABEL[provider]} (assinatura ativa necessária).
+              {PROVIDER_LABEL[provider]}: reprodução dentro da sala depende da integração oficial do serviço
+              (cada pessoa usa a própria assinatura).
               {!isHost ? " A troca de serviço é feita pelo anfitrião." : ""}
             </p>
           ) : null}

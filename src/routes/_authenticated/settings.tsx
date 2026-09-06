@@ -152,53 +152,101 @@ function SettingsPage() {
   }
 
 
+  const completion = (() => {
+    const p = profile.data;
+    const checks = [
+      Boolean(p?.avatar_url),
+      Boolean(p?.cover_url),
+      Boolean((p?.display_name ?? "").trim()),
+      Boolean((p?.bio ?? "").trim()),
+      Boolean((p?.location ?? "").trim() || (p?.website ?? "").trim()),
+      Boolean((p?.interests ?? []).length),
+    ];
+    const done = checks.filter(Boolean).length;
+    return Math.round((done / checks.length) * 100);
+  })();
+
   return (
-    <div className="space-y-6 max-w-lg">
+    <div className="space-y-6 max-w-lg pb-8">
       <header className="space-y-1">
         <div className="text-[11px] uppercase tracking-[0.25em] text-primary">sua conta</div>
         <h1 className="text-3xl font-display font-black">Configurações</h1>
       </header>
 
-      {/* Cover */}
-      <label className="relative block h-36 rounded-3xl overflow-hidden bg-gradient-to-br from-primary/30 to-secondary cursor-pointer group">
-        {coverUrl ? <img src={coverUrl} alt="" className="h-full w-full object-cover" /> : null}
-        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition grid place-items-center">
-          <div className="rounded-full bg-white/10 backdrop-blur px-3 py-1.5 text-xs text-white flex items-center gap-1.5">
-            <ImagePlus className="h-4 w-4" /> {uploading === "cover" ? "Enviando…" : "Trocar capa"}
+      {/* Hero de identidade */}
+      <section className="overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] shadow-elegant">
+        <label className="relative block h-32 cursor-pointer bg-gradient-brand group">
+          {coverUrl ? <img src={coverUrl} alt="" className="h-full w-full object-cover" /> : null}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          <div className="absolute right-3 top-3 rounded-full bg-black/45 backdrop-blur px-3 py-1.5 text-[11px] font-medium text-white flex items-center gap-1.5 transition group-active:scale-95">
+            <ImagePlus className="h-3.5 w-3.5" /> {uploading === "cover" ? "Enviando…" : "Trocar capa"}
+          </div>
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick("cover", e.target.files?.[0] ?? null)} />
+        </label>
+
+        <div className="px-4 pb-4">
+          <div className="-mt-11 flex items-end gap-3">
+            <label className="relative cursor-pointer">
+              <div className="rounded-full ring-4 ring-[color:var(--surface)] bg-background">
+                <UserAvatar
+                  avatarPath={profile.data?.avatar_url}
+                  displayName={profile.data?.display_name ?? "?"}
+                  className="h-[84px] w-[84px]"
+                />
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-elegant">
+                <Camera className="h-4 w-4" />
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick("avatar", e.target.files?.[0] ?? null)} />
+            </label>
+            <div className="min-w-0 flex-1 pb-1">
+              <div className="truncate text-lg font-display font-bold leading-tight">
+                {profile.data?.display_name || "Seu nome"}
+              </div>
+              <div className="truncate text-[13px] text-muted-foreground">@{profile.data?.username ?? "—"}</div>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] font-medium">
+              <span className="text-muted-foreground uppercase tracking-wider">Perfil completo</span>
+              <span className="text-primary">{completion}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-[color:var(--surface-2)]">
+              <div
+                className="h-full rounded-full bg-gradient-brand transition-all duration-500"
+                style={{ width: `${completion}%` }}
+              />
+            </div>
           </div>
         </div>
-        <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick("cover", e.target.files?.[0] ?? null)} />
-      </label>
+      </section>
 
-      {/* Avatar */}
-      <div className="flex items-center gap-4 -mt-16 px-4">
-        <div className="rounded-full ring-4 ring-background bg-background">
-          <UserAvatar
-            avatarPath={profile.data?.avatar_url}
-            displayName={profile.data?.display_name ?? "?"}
-            className="h-20 w-20"
-          />
+      <form onSubmit={save} className="space-y-4 rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4">
+        <div className="flex items-center gap-2">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-[color:var(--surface-2)] text-primary">
+            <UserRound className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold leading-tight">Editar perfil</h2>
+            <p className="text-[12px] text-muted-foreground">Como as pessoas veem você no Vibely.</p>
+          </div>
         </div>
-        <label className="cursor-pointer">
-          <Button asChild variant="outline" className="rounded-full gap-2" disabled={uploading === "avatar"}>
-            <span><Camera className="h-4 w-4" /> {uploading === "avatar" ? "Enviando…" : "Trocar foto"}</span>
-          </Button>
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick("avatar", e.target.files?.[0] ?? null)} />
-        </label>
-      </div>
 
-      <form onSubmit={save} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="un">Usuário (@)</Label>
           <div className="flex gap-2">
-            <Input
-              id="un"
-              value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
-              maxLength={20}
-              className="rounded-xl"
-              placeholder="seu_usuario"
-            />
+            <div className="flex flex-1 items-center gap-1 rounded-xl bg-[color:var(--surface-2)] pl-3">
+              <AtSign className="h-4 w-4 shrink-0 text-primary" />
+              <Input
+                id="un"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                maxLength={20}
+                className="border-0 bg-transparent px-2 focus-visible:ring-0"
+                placeholder="seu_usuario"
+              />
+            </div>
             <Button
               type="button"
               variant="outline"
@@ -258,6 +306,9 @@ function SettingsPage() {
           {saving ? "Salvando…" : "Salvar"}
         </Button>
       </form>
+
+      <EmailSection currentEmail={user.email ?? ""} />
+
 
       <PushSettings userId={user.id} />
 

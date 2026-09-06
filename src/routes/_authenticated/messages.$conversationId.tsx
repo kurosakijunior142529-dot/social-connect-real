@@ -449,6 +449,32 @@ function ConversationPage() {
     [visibleMessages],
   );
 
+  // Tradução automática: traduz mensagens recebidas para o idioma do perfil.
+  useEffect(() => {
+    if (!autoTranslate) return;
+    const target = myLang.data ?? "pt-BR";
+    const pending = visibleMessages
+      .filter((m: any) => m.sender_id !== user.id && m.content && !translations[m.id])
+      .slice(-30);
+    if (!pending.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const m of pending) {
+        if (cancelled) break;
+        try {
+          const r = await ai.translate(m.content, target);
+          if (!cancelled && r) setTranslations((p) => (p[m.id] ? p : { ...p, [m.id]: r }));
+        } catch {
+          /* falha silenciosa: mensagem original continua visível */
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoTranslate, myLang.data, visibleMessages.length]);
+
   // grouping metadata: date separators + consecutive bubbles from same sender
   const rows = useMemo(() => {
     const GROUP_MS = 5 * 60_000;

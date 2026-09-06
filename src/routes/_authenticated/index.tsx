@@ -107,8 +107,6 @@ function FeedPage() {
 
       <WhatsNewCard />
 
-      <OnlineBubbles currentUserId={user.id} />
-
       <WatchRoomsRail />
 
 

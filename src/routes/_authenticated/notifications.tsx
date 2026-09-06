@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { VerifiedName } from "@/components/verified-badge";
+import { useT } from "@/lib/i18n";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNotifications, markAllRead, type NotificationRow } from "@/hooks/use-notifications";

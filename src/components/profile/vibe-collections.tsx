@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedMediaThumb } from "@/components/signed-image";
@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { Check, Pin, Plus, Sparkles, Star, Trash2, X, Pencil } from "lucide-react";
+import { uploadMedia } from "@/lib/media";
+import { moderateMedia } from "@/lib/moderation.functions";
+import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
+import { Check, ImagePlus, Loader2, Pin, Plus, Sparkles, Star, Trash2, X, Pencil } from "lucide-react";
 
 type Collection = {
   id: string;
@@ -241,6 +244,34 @@ function CollectionEditor({
   const [selected, setSelected] = useState<string[]>([]);
   const [cover, setCover] = useState<string | null>(collection?.cover_path ?? null);
   const [saving, setSaving] = useState(false);
+  const [uploads, setUploads] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  /** Envia foto/vídeo direto para a coleção, sem publicar como Vibe no feed. */
+  async function onUpload(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const check = await checkFile(file);
+      const [dataUrl, sha256] = await Promise.all([previewDataUrl(file), sha256Hex(file)]);
+      await moderateMedia({
+        data: { dataUrl, sha256, mime: check.mime, size: file.size, surface: "public", contentType: "story" },
+      } as any);
+      const path = await uploadMedia("stories", profileId, file);
+      const mediaType = file.type.startsWith("video") ? "video" : "image";
+      const opt = { id: `upload:${path}`, media_url: path, media_type: mediaType, caption: null };
+      setUploads((prev) => [...prev, opt]);
+      setSelected((prev) => [...prev, path]);
+      setCover((c) => c ?? path);
+      toast.success("Mídia adicionada à coleção");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Não foi possível enviar a mídia");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   /** Todas as Vibes do dono (inclusive expiradas) + itens já salvos na coleção. */
   const source = useQuery({

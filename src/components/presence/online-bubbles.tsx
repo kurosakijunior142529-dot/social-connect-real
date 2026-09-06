@@ -25,16 +25,28 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
     queryKey: ["presence-friends", currentUserId],
     staleTime: 60_000,
     queryFn: async (): Promise<Friend[]> => {
-      const { data: follows } = await supabase
-        .from("follows")
-        .select("following_id")
-        .eq("follower_id", currentUserId);
-      const ids = (follows ?? []).map((f) => f.following_id);
-      if (ids.length === 0) return [];
+      const [{ data: following }, { data: followers }, { data: convs }] = await Promise.all([
+        supabase.from("follows").select("following_id").eq("follower_id", currentUserId),
+        supabase.from("follows").select("follower_id").eq("following_id", currentUserId),
+        supabase
+          .from("conversations")
+          .select("user_a, user_b")
+          .or(`user_a.eq.${currentUserId},user_b.eq.${currentUserId}`)
+          .order("last_message_at", { ascending: false })
+          .limit(30),
+      ]);
+      const ids = new Set<string>();
+      for (const f of following ?? []) ids.add(f.following_id);
+      for (const f of followers ?? []) ids.add(f.follower_id);
+      for (const c of (convs ?? []) as any[]) {
+        ids.add(c.user_a === currentUserId ? c.user_b : c.user_a);
+      }
+      ids.delete(currentUserId);
+      if (ids.size === 0) return [];
       const { data } = await supabase
         .from("profiles")
         .select("id, username, display_name, avatar_url")
-        .in("id", ids.slice(0, 200));
+        .in("id", Array.from(ids).slice(0, 200));
       return (data ?? []) as Friend[];
     },
   });

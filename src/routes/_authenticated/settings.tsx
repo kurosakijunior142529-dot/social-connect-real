@@ -379,3 +379,43 @@ function SettingsShortcut({
     </Link>
   );
 }
+
+function LanguagePicker({ userId }: { userId: string }) {
+  const queryClient = useQueryClient();
+  const lang = useQuery({
+    queryKey: ["my-language", userId],
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("profiles").select("language").eq("id", userId).maybeSingle();
+      return (data?.language as string) || "pt-BR";
+    },
+  });
+
+  async function save(value: string) {
+    const { error } = await (supabase as any).from("profiles").update({ language: value }).eq("id", userId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    queryClient.setQueryData(["my-language", userId], value);
+    toast.success("Idioma atualizado");
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)] px-3 py-2">
+      <Languages className="h-4 w-4 shrink-0 text-primary" />
+      <select
+        value={lang.data ?? "pt-BR"}
+        onChange={(e) => void save(e.target.value)}
+        className="w-full bg-transparent text-sm font-medium outline-none"
+        aria-label="Meu idioma"
+      >
+        {TRANSLATE_LANGUAGES.map((l) => (
+          <option key={l.code} value={l.code} className="bg-background text-foreground">
+            {l.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}

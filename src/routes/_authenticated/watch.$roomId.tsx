@@ -439,6 +439,15 @@ function WatchRoomPage() {
 
   return (
     <div className="flex flex-col gap-3 md:flex-row md:h-[calc(100vh-2rem)]">
+      <ForwardDialog
+        open={inviteOpen}
+        onOpenChange={setInviteOpen}
+        userId={user.id}
+        message={{
+          kind: "text",
+          content: `🎬 Vem assistir "${room.title ?? "comigo"}" comigo no Vibely! ${inviteLink}`,
+        }}
+      />
       {/* Player pane */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)]">
         <header className="flex items-center gap-2 px-3 py-3 hairline-b glass-heavy sticky top-0 z-10">

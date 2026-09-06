@@ -19,7 +19,6 @@
   "nav.ai": "Vibely AI",
   "nav.voice": "Áudio",
   "nav.admin": "Painel",
-
   "common.cancel": "Cancelar",
   "common.save": "Salvar",
   "common.saving": "Salvando...",
@@ -44,7 +43,6 @@
   "common.offline": "Offline",
   "common.error": "Algo deu errado",
   "common.empty": "Nada por aqui ainda",
-
   "feed.title": "Início",
   "feed.empty": "Seu feed está vazio. Siga pessoas para ver publicações.",
   "feed.newPosts": "Novas publicações",
@@ -59,13 +57,11 @@
   "feed.viewsCount": "{count} visualizações",
   "feed.onlineNow": "Online agora",
   "feed.vibeOfDay": "Vibe do dia",
-
   "translate.action": "Traduzir",
   "translate.showOriginal": "Ver original",
   "translate.translating": "Traduzindo...",
   "translate.failed": "Não foi possível traduzir agora",
   "translate.translatedFrom": "Traduzido automaticamente",
-
   "settings.title": "Ajustes",
   "settings.language": "Idioma do app",
   "settings.languageHint": "A interface aparece no idioma escolhido em todos os seus aparelhos.",
@@ -77,7 +73,6 @@
   "settings.privacy": "Privacidade",
   "settings.notifications": "Notificações",
   "settings.support": "Ajuda",
-
   "profile.followers": "Seguidores",
   "profile.following": "Seguindo",
   "profile.posts": "Publicações",
@@ -88,7 +83,6 @@
   "profile.editProfile": "Editar perfil",
   "profile.supporter": "Apoiador",
   "profile.support": "Apoiar",
-
   "messages.title": "Mensagens",
   "messages.empty": "Nenhuma conversa ainda",
   "messages.newChat": "Nova conversa",
@@ -96,19 +90,37 @@
   "messages.typing": "digitando...",
   "messages.online": "online",
   "messages.lastSeen": "visto por último {time}",
-
   "notifications.title": "Notificações",
   "notifications.empty": "Sem notificações por enquanto",
-
   "error.404.title": "Página não encontrada",
   "error.404.body": "O conteúdo que você procura não existe ou foi removido.",
   "error.404.cta": "Voltar ao feed",
   "error.generic.title": "Algo deu errado",
   "error.generic.body": "Tente novamente ou volte para o início.",
   "error.generic.home": "Início",
-
   "time.now": "agora",
   "time.minute": "{count} min",
   "time.hour": "{count} h",
-  "time.day": "{count} d"
+  "time.day": "{count} d",
+  "more.title": "Mais",
+  "more.new": "Novo",
+  "more.nearbyHint": "Descubra perfis por perto",
+  "more.watchHint": "Assista junto com amigos",
+  "more.aiHint": "Converse com a Vibely AI",
+  "more.livesHint": "Transmissões ao vivo",
+  "more.notificationsHint": "Suas novidades",
+  "more.savedHint": "Publicações guardadas",
+  "more.gamesHint": "Jogue com a galera",
+  "more.voiceHint": "Salas de voz",
+  "more.marketplaceHint": "Compre e venda",
+  "more.walletHint": "Moedas e ganhos",
+  "more.proHint": "Recursos exclusivos",
+  "more.accountHint": "Ajustes e privacidade",
+  "more.adminHint": "Ferramentas de administração",
+  "whatsNew.title": "Novidades",
+  "whatsNew.subtitle": "Chegaram coisas novas — toque para experimentar.",
+  "whatsNew.bubbles": "Balões personalizados",
+  "whatsNew.nearby": "Por perto",
+  "whatsNew.streak": "Sequência de conversa",
+  "whatsNew.watch": "Streaming Amigo"
 }

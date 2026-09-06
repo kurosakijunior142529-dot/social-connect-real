@@ -9,6 +9,7 @@ import { StoriesRail } from "@/components/stories-rail";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { WatchRoomsRail } from "@/components/watch-rooms-rail";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
+import { WhatsNewCard } from "@/components/whats-new-card";
 
 import { PlusSquare, Tv, Gamepad2, Radio, Bell, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -105,6 +106,8 @@ function FeedPage() {
       <div className="pb-4 pt-3">
         <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
       </div>
+
+      <WhatsNewCard />
 
       <OnlineBubbles currentUserId={user.id} />
 

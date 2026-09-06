@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useUnreadNotifications } from "@/hooks/use-notifications";
 import { signOutAndClearSession } from "@/lib/auth-session";
+import { MobileMoreSheet } from "@/components/mobile-more-sheet";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
@@ -331,6 +332,7 @@ export function AppShell({
                 </Link>
               );
             })}
+            <MobileMoreSheet onSignOut={handleSignOut} />
           </div>
         </div>
       </nav>

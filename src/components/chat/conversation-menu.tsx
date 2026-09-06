@@ -104,7 +104,7 @@ export function ConversationMenu({
         </DropdownMenuItem>
         {scope === "dm" && onOpenWallpaper ? (
           <DropdownMenuItem onSelect={onOpenWallpaper}>
-            <Palette className="h-4 w-4 mr-2" /> Papel de parede
+            <Sparkles className="h-4 w-4 mr-2" /> Papel de parede
           </DropdownMenuItem>
         ) : null}
         {scope === "dm" && onToggleAutoTranslate ? (

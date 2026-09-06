@@ -2,9 +2,15 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Hash } from "lucide-react";
+import { ArrowLeft, Hash, TrendingUp } from "lucide-react";
 import { MediaCell } from "./explore";
-import { fetchHashtagFeed, fetchHashtagInfo, logHashtagView } from "@/lib/search";
+import {
+  fetchHashtagFeed,
+  fetchHashtagInfo,
+  fetchRelatedHashtags,
+  logHashtagView,
+} from "@/lib/search";
+
 
 export const Route = createFileRoute("/_authenticated/t/$tag")({
   ssr: false,

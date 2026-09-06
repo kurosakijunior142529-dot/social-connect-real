@@ -183,16 +183,18 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         </div>
       ) : post.media_type === "video" ? (
         <div className="space-y-3">
-           <div className="relative mx-3 overflow-hidden rounded-[22px] bg-background ring-1 ring-white/[0.06]">
-            <SignedVideo
-              bucket="posts"
-              path={post.media_url ?? ""}
-              className="w-full aspect-[4/5] object-cover"
-              watermarkUsername={author?.username}
-              onDoubleTapLike={() => {
-                if (!post.liked_by_me) toggleLike.mutate();
-              }}
-            />
+            <div className="relative mx-3 overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]">
+             <SignedVideo
+               bucket="posts"
+               path={post.media_url ?? ""}
+               className="w-full max-h-[80vh] aspect-[4/5]"
+               fit="contain"
+               expandHref={`/reels?post=${post.id}`}
+               watermarkUsername={author?.username}
+               onDoubleTapLike={() => {
+                 if (!post.liked_by_me) toggleLike.mutate();
+               }}
+             />
           </div>
           {post.poll_id ? <PollCard pollId={post.poll_id} currentUserId={currentUserId} /> : null}
         </div>
@@ -200,13 +202,13 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         <Link
           to="/p/$id"
           params={{ id: post.id }}
-           className="mx-3 block overflow-hidden rounded-[22px] bg-surface ring-1 ring-white/[0.06]"
+            className="mx-3 block overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]"
         >
           <SignedImage
             bucket="posts"
             path={post.media_url ?? ""}
             alt={post.caption ?? "post"}
-            className="w-full aspect-square object-cover"
+            className="w-full h-auto max-h-[80vh] object-contain"
           />
         </Link>
       )}

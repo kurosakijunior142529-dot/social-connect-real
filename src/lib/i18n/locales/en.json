@@ -19,7 +19,6 @@
   "nav.ai": "Vibely AI",
   "nav.voice": "Audio",
   "nav.admin": "Admin",
-
   "common.cancel": "Cancel",
   "common.save": "Save",
   "common.saving": "Saving...",
@@ -44,7 +43,6 @@
   "common.offline": "Offline",
   "common.error": "Something went wrong",
   "common.empty": "Nothing here yet",
-
   "feed.title": "Home",
   "feed.empty": "Your feed is empty. Follow people to see posts.",
   "feed.newPosts": "New posts",
@@ -59,13 +57,11 @@
   "feed.viewsCount": "{count} views",
   "feed.onlineNow": "Online now",
   "feed.vibeOfDay": "Vibe of the day",
-
   "translate.action": "Translate",
   "translate.showOriginal": "Show original",
   "translate.translating": "Translating...",
   "translate.failed": "Couldn't translate right now",
   "translate.translatedFrom": "Translated automatically",
-
   "settings.title": "Settings",
   "settings.language": "App language",
   "settings.languageHint": "The interface shows in the language you pick, on all your devices.",
@@ -77,7 +73,6 @@
   "settings.privacy": "Privacy",
   "settings.notifications": "Notifications",
   "settings.support": "Help",
-
   "profile.followers": "Followers",
   "profile.following": "Following",
   "profile.posts": "Posts",
@@ -88,7 +83,6 @@
   "profile.editProfile": "Edit profile",
   "profile.supporter": "Supporter",
   "profile.support": "Support",
-
   "messages.title": "Messages",
   "messages.empty": "No conversations yet",
   "messages.newChat": "New chat",
@@ -96,19 +90,38 @@
   "messages.typing": "typing...",
   "messages.online": "online",
   "messages.lastSeen": "last seen {time}",
-
   "notifications.title": "Notifications",
   "notifications.empty": "No notifications yet",
-
   "error.404.title": "Page not found",
   "error.404.body": "The content you're looking for doesn't exist or was removed.",
   "error.404.cta": "Back to feed",
   "error.generic.title": "Something went wrong",
   "error.generic.body": "Try again or go back home.",
   "error.generic.home": "Home",
-
   "time.now": "now",
   "time.minute": "{count}m",
   "time.hour": "{count}h",
-  "time.day": "{count}d"
+  "time.day": "{count}d",
+  "more.title": "More",
+  "more.new": "New",
+  "more.nearbyHint": "Discover people nearby",
+  "more.watchHint": "Watch together with friends",
+  "more.aiHint": "Chat with Vibely AI",
+  "more.livesHint": "Live streams",
+  "more.notificationsHint": "Your updates",
+  "more.savedHint": "Saved posts",
+  "more.gamesHint": "Play with others",
+  "more.voiceHint": "Voice rooms",
+  "more.marketplaceHint": "Buy and sell",
+  "more.walletHint": "Coins and earnings",
+  "more.proHint": "Exclusive features",
+  "more.accountHint": "Settings and privacy",
+  "more.adminHint": "Admin tools",
+  "whatsNew.title": "What's new",
+  "whatsNew.subtitle": "New things just landed — tap to try them.",
+  "whatsNew.bubbles": "Custom chat bubbles",
+  "whatsNew.nearby": "Nearby",
+  "whatsNew.streak": "Chat streak",
+  "whatsNew.watch": "Watch party",
+  "actions.close": "Close"
 }

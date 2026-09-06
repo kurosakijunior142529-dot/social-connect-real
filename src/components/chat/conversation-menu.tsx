@@ -88,20 +88,23 @@ export function ConversationMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 glass border-white/10">
+        {onOpenCustomize ? (
+          <>
+            <DropdownMenuItem onSelect={onOpenCustomize} className="text-primary focus:text-primary">
+              <Palette className="h-4 w-4 mr-2" /> Personalizar balões e cores
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuItem onSelect={onOpenSearch}>
           <Search className="h-4 w-4 mr-2" /> Buscar mensagens
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onOpenPinned}>
           <Pin className="h-4 w-4 mr-2" /> Mensagens fixadas
         </DropdownMenuItem>
-        {onOpenCustomize ? (
-          <DropdownMenuItem onSelect={onOpenCustomize}>
-            <Sparkles className="h-4 w-4 mr-2" /> Personalizar conversa
-          </DropdownMenuItem>
-        ) : null}
         {scope === "dm" && onOpenWallpaper ? (
           <DropdownMenuItem onSelect={onOpenWallpaper}>
-            <Palette className="h-4 w-4 mr-2" /> Papel de parede
+            <Sparkles className="h-4 w-4 mr-2" /> Papel de parede
           </DropdownMenuItem>
         ) : null}
         {scope === "dm" && onToggleAutoTranslate ? (

@@ -31,6 +31,8 @@ export interface StreamingProviderAdapter {
   readonly playable: boolean;
   /** Mensagem exibida quando não há integração oficial disponível. */
   readonly unavailableMessage?: string;
+  /** Integração oficial/licenciada necessária para reprodução embutida. */
+  readonly requirement?: string;
 
   initialize(): Promise<void>;
   play(): Promise<void>;
@@ -55,10 +57,3 @@ export const PROVIDER_OPTIONS: StreamingProvider[] = ["youtube", "prime", "netfl
 
 /** Serviços pagos: cada participante assiste na própria conta/assinatura. */
 export const PREMIUM_PROVIDERS: StreamingProvider[] = ["prime", "netflix", "disney"];
-
-/** App/site oficial de cada serviço premium (aberto fora do app). */
-export const PROVIDER_URL: Partial<Record<StreamingProvider, string>> = {
-  prime: "https://www.primevideo.com",
-  netflix: "https://www.netflix.com",
-  disney: "https://www.disneyplus.com",
-};

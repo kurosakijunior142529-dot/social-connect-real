@@ -167,6 +167,16 @@ export function AppShell({
             Salvos
           </Link>
           <Link
+            to="/nearby"
+            className={cn(
+              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              pathname.startsWith("/nearby") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
+            )}
+          >
+            <MapPin className="h-[18px] w-[18px]" strokeWidth={1.6} />
+            Por perto
+          </Link>
+          <Link
             to="/marketplace"
             className={cn(
               "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
@@ -176,6 +186,7 @@ export function AppShell({
             <Store className="h-[18px] w-[18px]" strokeWidth={1.6} />
             Marketplace
           </Link>
+
           <Link
             to="/watch"
             className={cn(

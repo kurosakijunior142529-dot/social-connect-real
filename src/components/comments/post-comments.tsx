@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, X, Smile, SmilePlus, Heart } from "lucide-react";
 import { EmojiText, AppEmojiPicker } from "@/components/chat/app-emoji";
+import { useTranslatable } from "@/components/i18n/translate-text";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { StickerPicker, type StickerItem } from "@/components/chat/sticker-picker";

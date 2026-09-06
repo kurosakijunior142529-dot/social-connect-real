@@ -292,6 +292,16 @@ function SettingsPage() {
 
       <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>
+          <h2 className="text-base font-semibold">Meu idioma</h2>
+          <p className="text-[13px] text-muted-foreground">
+            Usado para traduzir legendas e mensagens quando você pedir tradução.
+          </p>
+        </div>
+        <LanguagePicker userId={user.id} />
+      </section>
+
+      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+        <div>
           <h2 className="text-base font-semibold">Interesses</h2>
           <p className="text-[13px] text-muted-foreground">Personalize recomendações ou escolha não informar.</p>
         </div>

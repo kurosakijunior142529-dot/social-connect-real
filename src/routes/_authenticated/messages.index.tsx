@@ -43,7 +43,7 @@ function MessagesPage() {
             <DropdownMenuTrigger asChild>
               <button
                 aria-label="Novo"
-                className="grid h-10 w-10 place-items-center rounded-full border border-primary/25 bg-[color:var(--surface-2)] text-primary transition hover:bg-primary/10 active:scale-95"
+                className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-[color:var(--surface-2)] text-primary transition hover:bg-surface active:scale-95"
               >
                 <Plus className="h-5 w-5" strokeWidth={2.4} />
               </button>

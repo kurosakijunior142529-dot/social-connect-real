@@ -301,6 +301,21 @@
   background: conic-gradient(from 210deg, var(--chat-mine), color-mix(in oklab, var(--chat-mine) 25%, transparent) 45%, var(--chat-mine));
 }
 
+/* Destaques (coleções de Vibes) — entrada em cascata + brilho suave */
+@keyframes gem-enter {
+  from { opacity: 0; transform: translateY(14px) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.gem-enter { animation: gem-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.gem-glow {
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--gem-accent, #22E06A) 30%, transparent));
+  transition: filter 0.35s ease;
+}
+.group:hover .gem-glow,
+.group:focus-visible .gem-glow {
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--gem-accent, #22E06A) 60%, transparent));
+}
+
 @keyframes heart-pop {
   0% { transform: scale(1); }
   40% { transform: scale(1.35); }

@@ -100,9 +100,10 @@ export function VibeCollections({
       </div>
 
       <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
-        {list.map((c) => (
+        {list.map((c, i) => (
           <CollectionCover
             key={c.id}
+            index={i}
             collection={c}
             count={counts.data?.[c.id] ?? 0}
             isMe={isMe}
@@ -140,18 +141,23 @@ function CollectionCover({
   collection,
   count,
   isMe,
+  index = 0,
   onOpen,
   onEdit,
 }: {
   collection: Collection;
   count: number;
   isMe: boolean;
+  index?: number;
   onOpen: () => void;
   onEdit: () => void;
 }) {
   const size = collection.is_pinned ? 96 : 78;
   return (
-    <div className="relative shrink-0 text-center">
+    <div
+      className="gem-enter relative shrink-0 text-center"
+      style={{ animationDelay: `${Math.min(index, 8) * 70}ms` }}
+    >
       <button
         type="button"
         onClick={onOpen}
@@ -160,14 +166,14 @@ function CollectionCover({
         style={{ width: size + 10 }}
       >
         <span
-          className="relative mx-auto block transition-transform group-hover:scale-105"
+          className="gem-glow relative mx-auto block transition-transform duration-300 group-hover:scale-105 group-active:scale-95"
           style={{
             width: size,
             height: size,
             clipPath: GEM_CLIP,
             background: `linear-gradient(135deg, ${collection.accent}, transparent 70%)`,
             padding: 3,
-            filter: `drop-shadow(0 0 14px ${collection.accent}55)`,
+            ["--gem-accent" as any]: collection.accent,
           }}
         >
           <span className="block h-full w-full overflow-hidden bg-[color:var(--surface-2)]" style={{ clipPath: GEM_CLIP }}>

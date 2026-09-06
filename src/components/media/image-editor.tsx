@@ -17,8 +17,11 @@ import {
   Hand,
 } from "lucide-react";
 
+export type CropRect = { x: number; y: number; w: number; h: number }; // % da imagem (0..100)
+
 export type ImageEditState = {
-  aspect: string; // "original" | "1" | "0.8" | "0.5625" | "1.7778"
+  aspect: string; // "original" | "free" | "1" | "0.8" | "0.5625" | "1.7778"
+  crop: CropRect | null; // corte livre (manual)
   zoom: number;
   offsetX: number; // -1..1 relative to free space
   offsetY: number;
@@ -32,6 +35,7 @@ export type ImageEditState = {
 
 export const defaultImageEdit: ImageEditState = {
   aspect: "1",
+  crop: null,
   zoom: 1,
   offsetX: 0,
   offsetY: 0,
@@ -45,6 +49,7 @@ export const defaultImageEdit: ImageEditState = {
 
 const ASPECTS: { id: string; label: string; value: number | null }[] = [
   { id: "original", label: "Original", value: null },
+  { id: "free", label: "Livre", value: null },
   { id: "1", label: "1:1", value: 1 },
   { id: "0.8", label: "4:5", value: 0.8 },
   { id: "0.5625", label: "9:16", value: 9 / 16 },
@@ -89,7 +94,9 @@ export function ImageEditor({
 
   const rotated = value.rotation === 90 || value.rotation === 270;
   const imgRatio = natural ? (rotated ? natural.h / natural.w : natural.w / natural.h) : 1;
+  const freeMode = value.aspect === "free";
   const aspect = useMemo(() => {
+    if (value.aspect === "free") return imgRatio;
     const found = ASPECTS.find((a) => a.id === value.aspect);
     return found?.value ?? imgRatio;
   }, [value.aspect, imgRatio]);
@@ -102,6 +109,7 @@ export function ImageEditor({
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      if (value.aspect === "free") return; // no corte livre, os gestos pertencem à moldura
       (e.target as Element).setPointerCapture?.(e.pointerId);
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       setHint(false);
@@ -113,7 +121,7 @@ export function ImageEditor({
       }
       drag.current = { x: e.clientX, y: e.clientY, ox: value.offsetX, oy: value.offsetY };
     },
-    [value.offsetX, value.offsetY, value.zoom],
+    [value.offsetX, value.offsetY, value.zoom, value.aspect],
   );
 
   const onPointerMove = useCallback(
@@ -186,24 +194,37 @@ export function ImageEditor({
           className="absolute left-1/2 top-1/2 h-full w-full object-cover will-change-transform"
           style={{
             filter: cssFilter(value),
-            transform: `translate(calc(-50% + ${value.offsetX * 50}%), calc(-50% + ${value.offsetY * 50}%)) scale(${value.zoom}) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`,
+            transform: freeMode
+              ? `translate(-50%, -50%) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`
+              : `translate(calc(-50% + ${value.offsetX * 50}%), calc(-50% + ${value.offsetY * 50}%)) scale(${value.zoom}) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`,
           }}
         />
+        {freeMode ? (
+          <CropOverlay
+            crop={value.crop ?? { x: 8, y: 8, w: 84, h: 84 }}
+            onCrop={(crop) => onChange({ ...value, crop })}
+            frameRef={frameRef}
+          />
+        ) : null}
         {/* guias de recorte */}
-        <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="border border-white/20" />
-          ))}
-        </div>
+        {!freeMode && (
+          <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className="border border-white/20" />
+            ))}
+          </div>
+        )}
         {/* dica de gestos */}
         {hint && (
           <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white backdrop-blur">
-              <Hand className="h-3.5 w-3.5" /> Arraste para mover · dois dedos para zoom
+              <Hand className="h-3.5 w-3.5" />{" "}
+              {freeMode ? "Arraste a moldura ou puxe os cantos" : "Arraste para mover · dois dedos para zoom"}
             </span>
           </div>
         )}
         {/* zoom rápido */}
+        {!freeMode && (
         <div className="absolute right-2 top-2 flex flex-col gap-1.5">
           <button
             type="button"
@@ -222,6 +243,7 @@ export function ImageEditor({
             <ZoomOut className="h-4 w-4" />
           </button>
         </div>
+        )}
       </div>
 
       {/* Abas */}
@@ -249,7 +271,13 @@ export function ImageEditor({
               <button
                 key={a.id}
                 type="button"
-                onClick={() => onChange({ ...value, aspect: a.id })}
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    aspect: a.id,
+                    crop: a.id === "free" ? (value.crop ?? { x: 8, y: 8, w: 84, h: 84 }) : value.crop,
+                  })
+                }
                 className={cn(
                   "rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition",
                   value.aspect === a.id
@@ -281,12 +309,19 @@ export function ImageEditor({
             </button>
             <button
               type="button"
-              onClick={() => onChange({ ...defaultImageEdit, aspect: value.aspect })}
+              onClick={() =>
+                onChange({
+                  ...defaultImageEdit,
+                  aspect: value.aspect,
+                  crop: value.aspect === "free" ? { x: 8, y: 8, w: 84, h: 84 } : null,
+                })
+              }
               className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-3.5 py-1.5 text-[12px] font-medium text-muted-foreground transition hover:border-white/25"
             >
               <RefreshCw className="h-3.5 w-3.5" /> Redefinir
             </button>
           </div>
+          {!freeMode && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Zoom</span>
@@ -300,6 +335,7 @@ export function ImageEditor({
               onValueChange={([z]) => onChange({ ...value, zoom: z })}
             />
           </div>
+          )}
         </div>
       )}
 
@@ -361,6 +397,118 @@ export function ImageEditor({
   );
 }
 
+type CropDragMode = "move" | "nw" | "ne" | "sw" | "se";
+const CROP_MIN = 8; // % mínimo
+
+/** Moldura de corte livre: arrastar move, cantos redimensionam. */
+function CropOverlay({
+  crop,
+  onCrop,
+  frameRef,
+}: {
+  crop: CropRect;
+  onCrop: (c: CropRect) => void;
+  frameRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const drag = useRef<{ mode: CropDragMode; sx: number; sy: number; start: CropRect } | null>(null);
+
+  const pct = (clientX: number, clientY: number) => {
+    const rect = frameRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return { px: 0, py: 0 };
+    return {
+      px: ((clientX - drag.current!.sx) / rect.width) * 100,
+      py: ((clientY - drag.current!.sy) / rect.height) * 100,
+    };
+  };
+
+  const start = (mode: CropDragMode) => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    drag.current = { mode, sx: e.clientX, sy: e.clientY, start: { ...crop } };
+  };
+
+  const move = (e: React.PointerEvent) => {
+    const d = drag.current;
+    if (!d) return;
+    e.stopPropagation();
+    const { px, py } = pct(e.clientX, e.clientY);
+    const s = d.start;
+    let { x, y, w, h } = s;
+    if (d.mode === "move") {
+      x = clamp(s.x + px, 0, 100 - s.w);
+      y = clamp(s.y + py, 0, 100 - s.h);
+    } else {
+      if (d.mode.includes("w")) {
+        const nx = clamp(s.x + px, 0, s.x + s.w - CROP_MIN);
+        w = s.w + (s.x - nx);
+        x = nx;
+      }
+      if (d.mode.includes("e")) {
+        w = clamp(s.w + px, CROP_MIN, 100 - s.x);
+      }
+      if (d.mode.includes("n")) {
+        const ny = clamp(s.y + py, 0, s.y + s.h - CROP_MIN);
+        h = s.h + (s.y - ny);
+        y = ny;
+      }
+      if (d.mode.includes("s")) {
+        h = clamp(s.h + py, CROP_MIN, 100 - s.y);
+      }
+    }
+    onCrop({ x, y, w, h });
+  };
+
+  const end = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    drag.current = null;
+  };
+
+  const handleCls =
+    "absolute h-5 w-5 rounded-full border-2 border-white bg-primary shadow-md touch-none";
+
+  return (
+    <div className="absolute inset-0 touch-none select-none">
+      {/* área escurecida + moldura */}
+      <div
+        role="presentation"
+        className="absolute cursor-move border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"
+        style={{ left: `${crop.x}%`, top: `${crop.y}%`, width: `${crop.w}%`, height: `${crop.h}%` }}
+        onPointerDown={start("move")}
+        onPointerMove={move}
+        onPointerUp={end}
+        onPointerCancel={end}
+      >
+        {/* grade terços */}
+        <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-50">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="border border-white/25" />
+          ))}
+        </div>
+        {/* alças */}
+        {(["nw", "ne", "sw", "se"] as CropDragMode[]).map((m) => (
+          <span
+            key={m}
+            role="presentation"
+            className={handleCls}
+            style={{
+              left: m.includes("w") ? -10 : undefined,
+              right: m.includes("e") ? -10 : undefined,
+              top: m.includes("n") ? -10 : undefined,
+              bottom: m.includes("s") ? -10 : undefined,
+              cursor: m === "nw" || m === "se" ? "nwse-resize" : "nesw-resize",
+            }}
+            onPointerDown={start(m)}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={end}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Adjust({
   icon,
   label,
@@ -414,6 +562,39 @@ export async function exportEditedImage(src: string, v: ImageEditState, maxSide 
   const rotated = v.rotation === 90 || v.rotation === 270;
   const iw = rotated ? img.naturalHeight : img.naturalWidth;
   const ih = rotated ? img.naturalWidth : img.naturalHeight;
+
+  // Corte livre: renderiza a imagem girada/espelhada e recorta a moldura escolhida
+  if (v.aspect === "free" && v.crop) {
+    const tmp = document.createElement("canvas");
+    tmp.width = iw;
+    tmp.height = ih;
+    const tctx = tmp.getContext("2d")!;
+    tctx.translate(iw / 2, ih / 2);
+    tctx.rotate((v.rotation * Math.PI) / 180);
+    tctx.scale(v.flip ? -1 : 1, 1);
+    tctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+
+    const sx = (v.crop.x / 100) * iw;
+    const sy = (v.crop.y / 100) * ih;
+    const sw = (v.crop.w / 100) * iw;
+    const sh = (v.crop.h / 100) * ih;
+    const scale = Math.min(1, maxSide / Math.max(sw, sh));
+    const outW = Math.max(1, Math.round(sw * scale));
+    const outH = Math.max(1, Math.round(sh * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, outW, outH);
+    ctx.filter = cssFilter(v);
+    ctx.drawImage(tmp, sx, sy, sw, sh, 0, 0, outW, outH);
+    const blob: Blob = await new Promise((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error("Falha ao gerar a imagem"))), "image/jpeg", 0.92),
+    );
+    return new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" });
+  }
+
   const found = ASPECTS.find((a) => a.id === v.aspect);
   const target = found?.value ?? iw / ih;
 

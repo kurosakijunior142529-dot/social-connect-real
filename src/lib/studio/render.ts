@@ -1,4 +1,11 @@
-import { applyPostEffect, effectFilter, effectTransform, type CamTransform, type EffectRuntime } from "./effects";
+import {
+  applyPostEffect,
+  drawAtmosphere,
+  effectFilter,
+  effectTransform,
+  type CamTransform,
+  type EffectRuntime,
+} from "./effects";
 import { FILTERS, filterById } from "./catalog";
 import {
   clipDuration,

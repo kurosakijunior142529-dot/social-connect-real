@@ -73,30 +73,30 @@ export function AppShell({
   const unreadCount = unread.data ?? 0;
 
   const items: NavItem[] = [
-    { to: "/", label: "Feed", Icon: Home },
-    { to: "/reels", label: "Reels", Icon: Play },
-    { to: "/lives", label: "Lives", Icon: Radio },
-    { to: "/explore", label: "Explorar", Icon: Search },
-    { to: "/create", label: "Criar", Icon: PlusSquare },
-    { to: "/notifications", label: "Alertas", Icon: Bell },
-    { to: "/messages", label: "Conversas", Icon: MessageCircle },
+    { to: "/", label: t("nav.home"), Icon: Home },
+    { to: "/reels", label: t("nav.reels"), Icon: Play },
+    { to: "/lives", label: t("nav.lives"), Icon: Radio },
+    { to: "/explore", label: t("nav.explore"), Icon: Search },
+    { to: "/create", label: t("nav.create"), Icon: PlusSquare },
+    { to: "/notifications", label: t("nav.notifications"), Icon: Bell },
+    { to: "/messages", label: t("nav.messages"), Icon: MessageCircle },
     {
       to: currentUsername ? `/u/${currentUsername}` : "/settings",
-      label: "Perfil",
+      label: t("nav.profile"),
       Icon: UserIcon,
     },
   ];
 
   // Mobile bottom nav: Home · Reels · Pesquisar · Criar · Conversas · Perfil
   const mobileItems: NavItem[] = [
-    { to: "/", label: "Feed", Icon: Home },
-    { to: "/reels", label: "Reels", Icon: Play },
-    { to: "/explore", label: "Pesquisar", Icon: Search },
-    { to: "/create", label: "Criar", Icon: PlusSquare },
-    { to: "/messages", label: "Conversas", Icon: MessageCircle },
+    { to: "/", label: t("nav.home"), Icon: Home },
+    { to: "/reels", label: t("nav.reels"), Icon: Play },
+    { to: "/explore", label: t("nav.explore"), Icon: Search },
+    { to: "/create", label: t("nav.create"), Icon: PlusSquare },
+    { to: "/messages", label: t("nav.messages"), Icon: MessageCircle },
     {
       to: currentUsername ? `/u/${currentUsername}` : "/settings",
-      label: "Perfil",
+      label: t("nav.profile"),
       Icon: UserIcon,
     },
   ];
@@ -164,7 +164,7 @@ export function AppShell({
             )}
           >
             <Bookmark className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Salvos
+            {t("nav.saved")}
           </Link>
           <Link
             to="/nearby"
@@ -174,7 +174,7 @@ export function AppShell({
             )}
           >
             <MapPin className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Por perto
+            {t("nav.nearby")}
           </Link>
           <Link
             to="/marketplace"
@@ -184,7 +184,7 @@ export function AppShell({
             )}
           >
             <Store className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Marketplace
+            {t("nav.marketplace")}
           </Link>
 
           <Link
@@ -195,7 +195,7 @@ export function AppShell({
             )}
           >
             <Tv className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Streaming Amigo
+            {t("nav.watch")}
           </Link>
           <Link
             to="/games"
@@ -205,7 +205,7 @@ export function AppShell({
             )}
           >
             <Gamepad2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Jogos
+            {t("nav.games")}
           </Link>
           <Link
             to="/voice"
@@ -215,7 +215,7 @@ export function AppShell({
             )}
           >
             <Headphones className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Canais de voz
+            {t("nav.voice")}
           </Link>
           <Link
             to="/ai"
@@ -235,7 +235,7 @@ export function AppShell({
             )}
           >
             <Wallet className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Carteira
+            {t("nav.wallet")}
           </Link>
           <Link
             to="/pro"
@@ -254,7 +254,7 @@ export function AppShell({
             to="/account"
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]"
           >
-            <SettingsIcon className="h-[18px] w-[18px]" strokeWidth={1.6} /> Conta
+            <SettingsIcon className="h-[18px] w-[18px]" strokeWidth={1.6} /> {t("settings.account")}
           </Link>
           <Button
             variant="ghost"
@@ -262,7 +262,7 @@ export function AppShell({
             onClick={handleSignOut}
           >
             <LogOut className="h-[18px] w-[18px]" />
-            Sair
+            {t("nav.logout")}
           </Button>
         </div>
       </aside>

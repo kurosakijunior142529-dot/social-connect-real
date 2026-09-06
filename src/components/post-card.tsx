@@ -100,14 +100,19 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
   const author = post.author;
 
   return (
-    <article className="social-card mx-3 mb-4 overflow-hidden rounded-[24px]">
+    <article className="social-card mx-3 mb-5 overflow-hidden rounded-[28px] border border-white/[0.06] shadow-elegant transition-shadow">
       <header className="flex items-center gap-3 px-4 py-3.5">
-        <Link to="/u/$username" params={{ username: author?.username ?? "" }}>
+        <Link
+          to="/u/$username"
+          params={{ username: author?.username ?? "" }}
+          className="rounded-full bg-[conic-gradient(from_140deg,var(--primary),color-mix(in_oklab,var(--primary)_25%,transparent),var(--primary))] p-[2px]"
+        >
           <UserAvatar
             avatarPath={author?.avatar_url}
             displayName={author?.display_name ?? "?"}
             verified={!!author?.is_verified}
             badgeVariant={(author?.badge_variant as any) ?? null}
+            className="ring-2 ring-background"
           />
         </Link>
         <div className="flex-1 min-w-0 leading-tight">
@@ -178,7 +183,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         </div>
       ) : post.media_type === "video" ? (
         <div className="space-y-3">
-           <div className="overflow-hidden bg-background">
+           <div className="relative mx-3 overflow-hidden rounded-[22px] bg-background ring-1 ring-white/[0.06]">
             <SignedVideo
               bucket="posts"
               path={post.media_url ?? ""}
@@ -195,7 +200,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         <Link
           to="/p/$id"
           params={{ id: post.id }}
-           className="block overflow-hidden bg-surface"
+           className="mx-3 block overflow-hidden rounded-[22px] bg-surface ring-1 ring-white/[0.06]"
         >
           <SignedImage
             bucket="posts"
@@ -206,28 +211,37 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         </Link>
       )}
 
-      <div className="space-y-2 px-4 pb-4 pt-3">
-        <div className="flex items-center gap-5">
+      <div className="space-y-2.5 px-4 pb-4 pt-3.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => toggleLike.mutate()}
-            className="flex items-center gap-1.5 group"
+            className={cn(
+              "group flex items-center gap-1.5 rounded-full px-3 py-1.5 transition active:scale-95",
+              post.liked_by_me ? "bg-primary/15" : "bg-[color:var(--surface-2)]",
+            )}
             aria-label={post.liked_by_me ? "Descurtir" : "Curtir"}
           >
             <Heart
               key={popKey}
               className={cn(
-                "h-[22px] w-[22px] transition",
+                "h-[19px] w-[19px] transition",
                 post.liked_by_me
                   ? "fill-primary text-primary animate-heart-pop"
                   : "text-foreground",
               )}
-              strokeWidth={post.liked_by_me ? 2 : 1.6}
+              strokeWidth={post.liked_by_me ? 2 : 1.7}
             />
-            <span className="text-[13px] font-medium tabular">{post.likes_count}</span>
+            <span className={cn("text-[13px] font-semibold tabular", post.liked_by_me && "text-primary")}>
+              {post.likes_count}
+            </span>
           </button>
-          <Link to="/p/$id" params={{ id: post.id }} className="flex items-center gap-1.5">
-            <MessageCircle className="h-[22px] w-[22px]" strokeWidth={1.6} />
-            <span className="text-[13px] font-medium tabular">{post.comments_count}</span>
+          <Link
+            to="/p/$id"
+            params={{ id: post.id }}
+            className="flex items-center gap-1.5 rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 transition active:scale-95"
+          >
+            <MessageCircle className="h-[19px] w-[19px]" strokeWidth={1.7} />
+            <span className="text-[13px] font-semibold tabular">{post.comments_count}</span>
           </Link>
           <RepostButton postId={post.id} userId={currentUserId} />
           <div className="ml-auto">

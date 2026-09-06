@@ -61,9 +61,9 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
 
   return (
     <>
-      <section className="px-4 pb-3">
-        <div className="rounded-[22px] border border-primary/20 bg-[color:var(--surface)] p-3">
-          <div className="mb-2.5 flex items-center justify-between">
+      <section className="px-3 pb-3">
+        <div className="relative overflow-hidden rounded-[24px] border border-primary/25 bg-[radial-gradient(circle_at_0%_0%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent_55%),var(--surface)] p-3.5 shadow-elegant">
+          <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
@@ -72,32 +72,49 @@ export function OnlineBubbles({ currentUserId }: { currentUserId: string }) {
               <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
                 Online agora
               </span>
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold tabular text-primary">
+                {onlineFriends.length}
+              </span>
             </div>
-            <Link to="/nearby" className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+            <Link
+              to="/nearby"
+              className="flex items-center gap-1 rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition active:scale-95"
+            >
               <MapPin className="h-3.5 w-3.5" /> Por perto
             </Link>
           </div>
-          <div className="flex gap-3 overflow-x-auto scrollbar-none">
+          <div className="flex gap-3.5 overflow-x-auto scrollbar-none [scroll-snap-type:x_proximity]">
             {onlineFriends.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 onClick={() => setSelected(f)}
-                className="flex w-[68px] shrink-0 flex-col items-center gap-1.5"
+                className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 [scroll-snap-align:start] transition active:scale-95"
               >
-                <span className="relative">
-                  <UserAvatar
-                    avatarPath={f.avatar_url}
-                    displayName={f.display_name ?? f.username}
-                    className="h-14 w-14"
-                  />
-                  <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-primary shadow-[0_0_10px_var(--primary)]" />
+                <span className="relative grid place-items-center rounded-full bg-[conic-gradient(from_140deg,var(--primary),color-mix(in_oklab,var(--primary)_25%,transparent),var(--primary))] p-[2px]">
+                  <span className="rounded-full bg-background p-[2px]">
+                    <UserAvatar
+                      avatarPath={f.avatar_url}
+                      displayName={f.display_name ?? f.username}
+                      className="h-14 w-14"
+                    />
+                  </span>
+                  <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 animate-pulse rounded-full border-2 border-background bg-primary shadow-[0_0_12px_var(--primary)]" />
                 </span>
-                <span className="w-full truncate text-center text-[11px] text-muted-foreground">
+                <span className="w-full truncate text-center text-[11px] font-medium text-foreground/80">
                   {f.display_name ?? f.username}
                 </span>
               </button>
             ))}
+            <Link
+              to="/nearby"
+              className="flex w-[70px] shrink-0 flex-col items-center gap-1.5 [scroll-snap-align:start]"
+            >
+              <span className="grid h-[62px] w-[62px] place-items-center rounded-full border border-dashed border-primary/40 bg-[color:var(--surface-2)] text-primary">
+                <MapPin className="h-5 w-5" />
+              </span>
+              <span className="w-full truncate text-center text-[11px] text-muted-foreground">Descobrir</span>
+            </Link>
           </div>
         </div>
       </section>

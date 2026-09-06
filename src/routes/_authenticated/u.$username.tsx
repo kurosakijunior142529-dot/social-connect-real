@@ -22,7 +22,7 @@ import {
   Repeat2,
   Camera,
   Loader2,
-  Menu,
+  
   Pencil,
   Plus,
   Trophy,
@@ -300,15 +300,6 @@ function ProfileContent() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         {isMe ? <CoverUploader userId={user.id} onDone={() => profileQuery.refetch()} /> : null}
 
-        {isMe ? (
-          <Link
-            to="/account"
-            className="glass absolute right-4 top-4 z-20 grid h-10 w-10 place-items-center rounded-full text-foreground hover:bg-surface-2"
-            aria-label="Abrir menu da conta"
-          >
-            <Menu className="h-5 w-5" />
-          </Link>
-        ) : null}
         <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-3 px-4 pb-4 md:flex-row md:items-end md:px-6 md:pb-5">
           <div className="relative shrink-0 self-start">
             <div className="rounded-full bg-background p-1 ring-2 ring-primary shadow-[0_0_28px_color-mix(in_oklab,var(--primary)_32%,transparent)]">

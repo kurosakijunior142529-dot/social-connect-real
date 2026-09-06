@@ -11,7 +11,7 @@ import { WatchRoomsRail } from "@/components/watch-rooms-rail";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { WhatsNewCard } from "@/components/whats-new-card";
 
-import { PlusSquare, Tv, Gamepad2, Radio, Bell, Sparkles } from "lucide-react";
+import { PlusSquare, Radio, Bell, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -93,8 +93,6 @@ function FeedPage() {
           <div className="flex shrink-0 items-center gap-1">
             <ThemeToggle />
             <HeaderAction to="/lives" label="Lives" icon={<Radio className="h-4 w-4" />} />
-            <HeaderAction to="/watch" label="Streaming" icon={<Tv className="h-4 w-4" />} />
-            <HeaderAction to="/games" label="Jogos" icon={<Gamepad2 className="h-4 w-4" />} />
             <HeaderAction to="/notifications" label="Notificações" icon={<Bell className="h-4 w-4" />} />
           </div>
 

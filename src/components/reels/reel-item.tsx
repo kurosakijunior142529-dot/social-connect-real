@@ -190,8 +190,9 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
 
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/p/${post.id}`;
+    return `${window.location.origin}/s/${post.id}`;
   }, [post.id]);
+
 
   const handleShare = () => setShareOpen(true);
 

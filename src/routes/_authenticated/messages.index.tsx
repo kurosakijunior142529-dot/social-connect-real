@@ -8,6 +8,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Users, Megaphone, Plus, Tv, Flame } from "lucide-react";
+import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
 import { cn } from "@/lib/utils";

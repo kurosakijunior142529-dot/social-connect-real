@@ -25,7 +25,24 @@ export const translateText = createServerFn({ method: "POST" })
       })
       .parse(i),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    // Shared cache: the same sentence translated to the same language is only
+    // billed once. Best-effort — a cache failure never blocks the translation.
+    let hash: string | null = null;
+    try {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data.text));
+      hash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      const { data: cached } = await (context.supabase as any)
+        .from("translation_cache")
+        .select("translated_text")
+        .eq("source_hash", hash)
+        .eq("target_lang", data.target)
+        .maybeSingle();
+      if (cached?.translated_text) return { text: cached.translated_text as string };
+    } catch {
+      /* cache read is optional */
+    }
+
     const contextBlock = data.context
       ? `Previous line (context only, DO NOT translate it):\n${data.context}\n\n`
       : "";
@@ -33,7 +50,40 @@ export const translateText = createServerFn({ method: "POST" })
       model: gateway()(MODEL),
       prompt: `${contextBlock}Translate the following text to language code "${data.target}". It may be a partial sentence from a live conversation; translate it naturally anyway. Return ONLY the translation, no quotes, no notes.\n\n${data.text}`,
     });
-    return { text: out.trim() };
+    const translated = out.trim();
+
+    if (hash && translated) {
+      try {
+        await (context.supabase as any)
+          .from("translation_cache")
+          .upsert(
+            { source_hash: hash, target_lang: data.target, source_text: data.text, translated_text: translated },
+            { onConflict: "source_hash,target_lang" },
+          );
+      } catch {
+        /* cache write is optional */
+      }
+    }
+    return { text: translated };
+  });
+
+// Suggest 3 short captions for a post, in pt-BR by default.
+export const suggestCaptions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ hint: z.string().max(300).optional() }).parse(i ?? {}),
+  )
+  .handler(async ({ data }) => {
+    const { text } = await generateText({
+      model: gateway()(MODEL),
+      prompt: `Sugira exatamente 3 legendas curtas e autênticas (máx. 12 palavras cada) para um post em uma rede social jovem brasileira. Uma linha por legenda, sem numeração, sem aspas, sem explicações. Tema: ${data.hint?.trim() || "momento do dia a dia, vibe positiva"}.`,
+    });
+    const captions = text
+      .split("\n")
+      .map((s) => s.replace(/^[\d.\-*\s]+/, "").replace(/^"|"$/g, "").trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    return { captions };
   });
 
 // Translate several snippets at once (used when the live-caption language changes).

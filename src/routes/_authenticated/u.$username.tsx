@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link, Outlet, useChildMatches } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { SignedMediaThumb } from "@/components/signed-image";
@@ -120,17 +120,35 @@ function ProfileContent() {
   const supporterBadge = useQuery({
     queryKey: ["supporter-badge", profile?.id],
     enabled: !!profile?.id,
-    staleTime: 60_000,
+    staleTime: 30_000,
     queryFn: async () => {
-      const { count } = await (supabase as any)
-        .from("channel_subscriptions")
-        .select("id", { count: "exact", head: true })
-        .eq("subscriber_id", profile.id)
-        .eq("status", "active");
-      return (count ?? 0) > 0;
+      const { data } = await (supabase as any).rpc("is_supporter", { _user: profile.id });
+      return data === true;
     },
   });
   const isSupporter = supporterBadge.data === true;
+
+  // Atualiza o selo assim que uma assinatura do dono do perfil muda.
+  const profileId = profile?.id;
+  useEffect(() => {
+    if (!profileId) return;
+    const ch = supabase
+      .channel(`supporter-${profileId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "channel_subscriptions", filter: `subscriber_id=eq.${profileId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["supporter-badge", profileId] });
+          queryClient.invalidateQueries({ queryKey: ["supporting", profileId] });
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [profileId, queryClient]);
+
+
 
   const vibes = useQuery({
     queryKey: ["profile-vibes", profile?.id],

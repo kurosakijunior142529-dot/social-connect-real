@@ -120,6 +120,13 @@
       "when": 1788658464062,
       "tag": "0016_fix_watch_rooms_rpc_signature",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788659406885,
+      "tag": "0017_is_supporter_function",
+      "breakpoints": true
     }
   ]
 }

@@ -394,6 +394,18 @@ export function CallScreen({
             </ControlButton>
           ) : null}
 
+          {screenShareSupported && onToggleScreenShare ? (
+            <ControlButton
+              active={screenSharing}
+              onClick={() => void onToggleScreenShare()}
+              label={screenSharing ? "Parar de compartilhar a tela" : "Compartilhar a tela"}
+            >
+              {screenSharing ? <MonitorOff className="h-5 w-5" /> : <MonitorUp className="h-5 w-5" />}
+            </ControlButton>
+          ) : null}
+
+
+
           <ControlButton
             active={translationEnabled}
             onClick={() => setSheet("settings")}

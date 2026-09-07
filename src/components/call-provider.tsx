@@ -18,6 +18,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { translateText, translateBatch } from "@/lib/ai.functions";
 import { transcribeCallClip } from "@/lib/call-transcribe.functions";
 import { startSttFallback, type SttFallbackHandle } from "@/lib/call-stt-fallback";
+import { speakCallTranslation } from "@/lib/call-speech.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getCallAccess } from "@/lib/calls.functions";

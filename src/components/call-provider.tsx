@@ -1097,6 +1097,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const changeSpokenLanguage = useCallback((language: string) => {
     setSpokenLanguage(language);
+    spokenAutoRef.current = language === "auto";
     spokenLangRef.current = language === "auto" ? navigator.language || "pt-BR" : language;
   }, []);
 

@@ -18,6 +18,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { translateText, translateBatch } from "@/lib/ai.functions";
 import { transcribeCallClip } from "@/lib/call-transcribe.functions";
 import { startSttFallback, type SttFallbackHandle } from "@/lib/call-stt-fallback";
+import { speakCallTranslation } from "@/lib/call-speech.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getCallAccess } from "@/lib/calls.functions";
@@ -141,6 +142,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [mediaConnected, setMediaConnected] = useState(false);
   const [connectionLabel, setConnectionLabel] = useState("Conectando");
   const previousUserIdRef = useRef<string | null>(null);
+
+  // Screen sharing, spoken translation and transcript state.
+  const [remoteScreenStream, setRemoteScreenStream] = useState<MediaStream | null>(null);
+  const remoteScreenStreamRef = useRef<MediaStream>(new MediaStream());
+  const [screenSharing, setScreenSharing] = useState(false);
+  const screenSharingRef = useRef(false);
+  const [screenAudioShared, setScreenAudioShared] = useState(false);
+  const [spokenLanguage, setSpokenLanguage] = useState("auto");
+  const spokenAutoRef = useRef(true);
+  const [speakTranslations, setSpeakTranslations] = useState(false);
+  const speakTranslationsRef = useRef(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const ttsBusyUntilRef = useRef(0);
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const lastUnclearRef = useRef(0);
+  const pushUnclearRef = useRef<(() => void) | null>(null);
+  const speakTranslatedRef = useRef<((text: string) => void) | null>(null);
+  const speak = useServerFn(speakCallTranslation);
 
   const teardown = useCallback(() => {
     if (channelRef.current) {
@@ -282,15 +301,31 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const access = await getCallAccessToken({ data: { callId } });
       const room = new Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
-      room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, _publication: RemoteTrackPublication, _participant: RemoteParticipant) => {
+      room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, _participant: RemoteParticipant) => {
         const mediaTrack = track.mediaStreamTrack;
+        const isScreen =
+          publication.source === Track.Source.ScreenShare ||
+          publication.source === Track.Source.ScreenShareAudio;
+        if (isScreen) {
+          const screen = remoteScreenStreamRef.current;
+          if (!screen.getTracks().some((current) => current.id === mediaTrack.id)) screen.addTrack(mediaTrack);
+          setRemoteScreenStream(screen);
+          setTrackUpdate((value) => value + 1);
+          return;
+        }
         if (!remote.getTracks().some((current) => current.id === mediaTrack.id)) remote.addTrack(mediaTrack);
         setRemoteStream(remote);
         setTrackUpdate((value) => value + 1);
         if (track.kind === Track.Kind.Audio) setConnectionLabel("Áudio recebido");
       });
       room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
-        remote.removeTrack(track.mediaStreamTrack);
+        const screen = remoteScreenStreamRef.current;
+        if (screen.getTracks().some((current) => current.id === track.mediaStreamTrack.id)) {
+          screen.removeTrack(track.mediaStreamTrack);
+          setRemoteScreenStream(screen.getTracks().length ? screen : null);
+        } else {
+          remote.removeTrack(track.mediaStreamTrack);
+        }
         setTrackUpdate((value) => value + 1);
       });
       room.on(RoomEvent.Reconnecting, () => {

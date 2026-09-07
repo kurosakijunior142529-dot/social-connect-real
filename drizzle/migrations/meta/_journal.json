@@ -225,6 +225,13 @@
       "when": 1788737568877,
       "tag": "0031_music_tracks_and_post_music",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1788753854102,
+      "tag": "0032_restrict_live_reactions_select",
+      "breakpoints": true
     }
   ]
 }

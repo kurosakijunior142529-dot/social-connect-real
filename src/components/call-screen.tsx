@@ -6,6 +6,8 @@ import {
   Mic,
   MicOff,
   Minimize2,
+  MonitorOff,
+  MonitorUp,
   PhoneOff,
   Signal,
   Sparkles,
@@ -35,11 +37,22 @@ type Props = {
   };
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  remoteScreenStream?: MediaStream | null;
   connectionLabel: string;
   mediaConnected: boolean;
   captions: CallCaption[];
   translationEnabled: boolean;
   translationLanguage: string;
+  spokenLanguage?: string;
+  onSpokenLanguageChange?: (language: string) => void;
+  speakTranslations?: boolean;
+  onToggleSpeakTranslations?: () => void;
+  showTranscript?: boolean;
+  onToggleShowTranscript?: () => void;
+  screenSharing?: boolean;
+  screenAudioShared?: boolean;
+  screenShareSupported?: boolean;
+  onToggleScreenShare?: () => void | Promise<void>;
   onToggleTranslation: () => void;
   onTranslationLanguageChange: (language: string) => void;
   onRetryCaption: (id: string) => void;
@@ -55,11 +68,22 @@ export function CallScreen({
   call,
   localStream,
   remoteStream,
+  remoteScreenStream,
   connectionLabel,
   mediaConnected,
   captions,
   translationEnabled,
   translationLanguage,
+  spokenLanguage = "auto",
+  onSpokenLanguageChange,
+  speakTranslations = false,
+  onToggleSpeakTranslations,
+  showTranscript = false,
+  onToggleShowTranscript,
+  screenSharing = false,
+  screenAudioShared = false,
+  screenShareSupported = false,
+  onToggleScreenShare,
   onToggleTranslation,
   onTranslationLanguageChange,
   onRetryCaption,
@@ -68,6 +92,7 @@ export function CallScreen({
   onMinimize,
   onHangup,
 }: Props) {
+  const screenRef = useRef<HTMLVideoElement>(null);
   const localRef = useRef<HTMLVideoElement>(null);
   const remoteRef = useRef<HTMLVideoElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
@@ -101,6 +126,15 @@ export function CallScreen({
       remoteRef.current.play().catch(() => {});
     }
   }, [remoteStream]);
+
+  useEffect(() => {
+    if (screenRef.current && remoteScreenStream) {
+      screenRef.current.srcObject = remoteScreenStream;
+      screenRef.current.muted = false;
+      screenRef.current.play().catch(() => {});
+    }
+  }, [remoteScreenStream]);
+
 
   useEffect(() => {
     if (call.status !== "accepted") return;
@@ -181,6 +215,23 @@ export function CallScreen({
             )}
           />
         ) : null}
+
+        {remoteScreenStream ? (
+          <video
+            ref={screenRef}
+            autoPlay
+            playsInline
+            className="absolute inset-0 z-[5] h-full w-full bg-black object-contain"
+          />
+        ) : null}
+
+        {screenSharing ? (
+          <div className="absolute left-1/2 top-4 z-[6] -translate-x-1/2 rounded-full border border-primary/30 bg-primary/15 px-4 py-1.5 text-[12px] font-medium text-primary backdrop-blur-xl">
+            Você está compartilhando sua tela{screenAudioShared ? " e o áudio" : ""}
+          </div>
+        ) : null}
+
+
 
         {showStage && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 px-8">
@@ -345,6 +396,18 @@ export function CallScreen({
             </ControlButton>
           ) : null}
 
+          {screenShareSupported && onToggleScreenShare ? (
+            <ControlButton
+              active={screenSharing}
+              onClick={() => void onToggleScreenShare()}
+              label={screenSharing ? "Parar de compartilhar a tela" : "Compartilhar a tela"}
+            >
+              {screenSharing ? <MonitorOff className="h-5 w-5" /> : <MonitorUp className="h-5 w-5" />}
+            </ControlButton>
+          ) : null}
+
+
+
           <ControlButton
             active={translationEnabled}
             onClick={() => setSheet("settings")}
@@ -419,6 +482,56 @@ export function CallScreen({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {onSpokenLanguageChange ? (
+                  <div className="space-y-1.5">
+                    <span className="text-[12px] text-white/45">Idioma que eu falo</span>
+                    <Select value={spokenLanguage} onValueChange={onSpokenLanguageChange}>
+                      <SelectTrigger
+                        className="h-12 w-full rounded-2xl border-white/10 bg-white/[0.06] text-white"
+                        aria-label="Idioma falado"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[130]">
+                        <SelectItem value="auto">✨ Detectar automaticamente</SelectItem>
+                        {CALL_LANGUAGES.map((lang) => (
+                          <SelectItem key={lang.value} value={lang.value}>
+                            {lang.flag} {lang.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                {onToggleSpeakTranslations ? (
+                  <button
+                    type="button"
+                    onClick={onToggleSpeakTranslations}
+                    className="flex w-full items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 text-[14px] text-white/80 transition active:scale-[0.99]"
+                  >
+                    Ouvir a tradução em voz alta
+                    <span className={cn("text-[13px] font-semibold", speakTranslations ? "text-primary" : "text-white/40")}>
+                      {speakTranslations ? "Ligado" : "Desligado"}
+                    </span>
+                  </button>
+                ) : null}
+
+                {onToggleShowTranscript ? (
+                  <button
+                    type="button"
+                    onClick={onToggleShowTranscript}
+                    className="flex w-full items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 text-[14px] text-white/80 transition active:scale-[0.99]"
+                  >
+                    Mostrar transcrição na tela
+                    <span className={cn("text-[13px] font-semibold", showTranscript ? "text-primary" : "text-white/40")}>
+                      {showTranscript ? "Ligado" : "Desligado"}
+                    </span>
+                  </button>
+                ) : null}
+
+
 
                 <div className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3">
                   <VolumeX className="h-4 w-4 text-white/40" />

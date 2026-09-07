@@ -1016,11 +1016,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
           call={active}
           localStream={localStream}
           remoteStream={remoteStream}
+          remoteScreenStream={remoteScreenStream}
           connectionLabel={connectionLabel}
           mediaConnected={mediaConnected}
           captions={captions}
           translationEnabled={translationEnabled}
           translationLanguage={translationLanguage}
+          spokenLanguage={spokenLanguage}
+          onSpokenLanguageChange={changeSpokenLanguage}
+          speakTranslations={speakTranslations}
+          onToggleSpeakTranslations={toggleSpeakTranslations}
+          showTranscript={showTranscript}
+          onToggleShowTranscript={() => setShowTranscript((v) => !v)}
+          screenSharing={screenSharing}
+          screenAudioShared={screenAudioShared}
+          screenShareSupported={screenShareSupported}
+          onToggleScreenShare={toggleScreenShare}
           onToggleTranslation={toggleTranslation}
           onTranslationLanguageChange={changeTranslationLanguage}
           onRetryCaption={retryCaption}

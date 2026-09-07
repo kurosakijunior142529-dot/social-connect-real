@@ -73,3 +73,28 @@ export function timeOnAir(startedAt: string | null | undefined): string {
   if (h < 24) return `há ${h} h`;
   return `há ${Math.floor(h / 24)} d`;
 }
+
+/** Duração de um replay, no formato 1h 12min / 42min. */
+export function replayDuration(startedAt?: string | null, endedAt?: string | null): string | null {
+  if (!startedAt || !endedAt) return null;
+  const mins = Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 60000));
+  if (mins < 1) return "menos de 1min";
+  if (mins < 60) return `${mins}min`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}min`;
+}
+
+export type SocialGraph = { following: Set<string>; friends: Set<string> };
+
+/** Quem o usuário segue e quem segue de volta (amigos). */
+export async function fetchSocialGraph(userId: string | null | undefined): Promise<SocialGraph> {
+  if (!userId) return { following: new Set(), friends: new Set() };
+  const [{ data: out }, { data: inc }] = await Promise.all([
+    supabase.from("follows").select("following_id").eq("follower_id", userId),
+    supabase.from("follows").select("follower_id").eq("following_id", userId),
+  ]);
+  const following = new Set((out ?? []).map((r: any) => r.following_id as string));
+  const followers = new Set((inc ?? []).map((r: any) => r.follower_id as string));
+  const friends = new Set([...following].filter((id) => followers.has(id)));
+  return { following, friends };
+}
+

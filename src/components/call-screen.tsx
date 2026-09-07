@@ -35,11 +35,22 @@ type Props = {
   };
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  remoteScreenStream?: MediaStream | null;
   connectionLabel: string;
   mediaConnected: boolean;
   captions: CallCaption[];
   translationEnabled: boolean;
   translationLanguage: string;
+  spokenLanguage?: string;
+  onSpokenLanguageChange?: (language: string) => void;
+  speakTranslations?: boolean;
+  onToggleSpeakTranslations?: () => void;
+  showTranscript?: boolean;
+  onToggleShowTranscript?: () => void;
+  screenSharing?: boolean;
+  screenAudioShared?: boolean;
+  screenShareSupported?: boolean;
+  onToggleScreenShare?: () => void | Promise<void>;
   onToggleTranslation: () => void;
   onTranslationLanguageChange: (language: string) => void;
   onRetryCaption: (id: string) => void;
@@ -55,11 +66,22 @@ export function CallScreen({
   call,
   localStream,
   remoteStream,
+  remoteScreenStream,
   connectionLabel,
   mediaConnected,
   captions,
   translationEnabled,
   translationLanguage,
+  spokenLanguage = "auto",
+  onSpokenLanguageChange,
+  speakTranslations = false,
+  onToggleSpeakTranslations,
+  showTranscript = false,
+  onToggleShowTranscript,
+  screenSharing = false,
+  screenAudioShared = false,
+  screenShareSupported = false,
+  onToggleScreenShare,
   onToggleTranslation,
   onTranslationLanguageChange,
   onRetryCaption,
@@ -68,6 +90,7 @@ export function CallScreen({
   onMinimize,
   onHangup,
 }: Props) {
+  const screenRef = useRef<HTMLVideoElement>(null);
   const localRef = useRef<HTMLVideoElement>(null);
   const remoteRef = useRef<HTMLVideoElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);

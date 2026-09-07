@@ -789,7 +789,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
             transcribe({
               data: {
                 audio,
-                language: spokenLangRef.current,
+                // "auto" lets the model detect the language of the speech.
+                language: spokenAutoRef.current ? undefined : spokenLangRef.current,
                 context: captionsMirrorRef.current
                   .slice(-2)
                   .map((item) => item.original)

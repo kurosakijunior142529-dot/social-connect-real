@@ -481,6 +481,56 @@ export function CallScreen({
                   </Select>
                 </div>
 
+                {onSpokenLanguageChange ? (
+                  <div className="space-y-1.5">
+                    <span className="text-[12px] text-white/45">Idioma que eu falo</span>
+                    <Select value={spokenLanguage} onValueChange={onSpokenLanguageChange}>
+                      <SelectTrigger
+                        className="h-12 w-full rounded-2xl border-white/10 bg-white/[0.06] text-white"
+                        aria-label="Idioma falado"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[130]">
+                        <SelectItem value="auto">✨ Detectar automaticamente</SelectItem>
+                        {CALL_LANGUAGES.map((lang) => (
+                          <SelectItem key={lang.value} value={lang.value}>
+                            {lang.flag} {lang.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : null}
+
+                {onToggleSpeakTranslations ? (
+                  <button
+                    type="button"
+                    onClick={onToggleSpeakTranslations}
+                    className="flex w-full items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 text-[14px] text-white/80 transition active:scale-[0.99]"
+                  >
+                    Ouvir a tradução em voz alta
+                    <span className={cn("text-[13px] font-semibold", speakTranslations ? "text-primary" : "text-white/40")}>
+                      {speakTranslations ? "Ligado" : "Desligado"}
+                    </span>
+                  </button>
+                ) : null}
+
+                {onToggleShowTranscript ? (
+                  <button
+                    type="button"
+                    onClick={onToggleShowTranscript}
+                    className="flex w-full items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 text-[14px] text-white/80 transition active:scale-[0.99]"
+                  >
+                    Mostrar transcrição na tela
+                    <span className={cn("text-[13px] font-semibold", showTranscript ? "text-primary" : "text-white/40")}>
+                      {showTranscript ? "Ligado" : "Desligado"}
+                    </span>
+                  </button>
+                ) : null}
+
+
+
                 <div className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3">
                   <VolumeX className="h-4 w-4 text-white/40" />
                   <input

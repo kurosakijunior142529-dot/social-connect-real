@@ -6,6 +6,8 @@ import {
   Mic,
   MicOff,
   Minimize2,
+  MonitorOff,
+  MonitorUp,
   PhoneOff,
   Signal,
   Sparkles,

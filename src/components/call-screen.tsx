@@ -126,6 +126,15 @@ export function CallScreen({
   }, [remoteStream]);
 
   useEffect(() => {
+    if (screenRef.current && remoteScreenStream) {
+      screenRef.current.srcObject = remoteScreenStream;
+      screenRef.current.muted = false;
+      screenRef.current.play().catch(() => {});
+    }
+  }, [remoteScreenStream]);
+
+
+  useEffect(() => {
     if (call.status !== "accepted") return;
     const start = Date.now();
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);

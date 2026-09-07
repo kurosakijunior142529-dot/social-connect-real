@@ -75,8 +75,11 @@ export type CallCaption = {
   speaker: "me" | "other";
   original: string;
   translated?: string;
-  /** pending = translating, done = translated, failed = show original + retry */
-  status: "pending" | "done" | "failed";
+  /**
+   * pending = translating, done = translated, failed = show original + retry,
+   * unclear = audio was too noisy to transcribe with confidence
+   */
+  status: "pending" | "done" | "failed" | "unclear";
   error?: string;
 };
 

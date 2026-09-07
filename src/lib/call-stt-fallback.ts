@@ -97,6 +97,12 @@ export function startSttFallback(
     onError?: (error: unknown) => void;
     onStateChange?: (state: SttCaptureState) => void;
     remoteStream?: MediaStream | null;
+    /**
+     * While this returns true the capture is discarded entirely (used while the
+     * translation is being spoken through the speaker, so the system never
+     * transcribes its own voice).
+     */
+    shouldPause?: () => boolean;
   },
 ): SttFallbackHandle | null {
   const audioTracks = stream.getAudioTracks();

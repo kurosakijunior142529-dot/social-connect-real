@@ -774,6 +774,8 @@ export function CallProvider({ children }: { children: ReactNode }) {
     let consecutiveFailures = 0;
     const handle = startSttFallback(stream, {
       remoteStream: persistentRemoteStreamRef.current,
+      shouldPause: () => Date.now() < ttsBusyUntilRef.current,
+
 
       onClip: async (audio) => {
         if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;

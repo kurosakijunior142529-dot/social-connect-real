@@ -142,6 +142,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [connectionLabel, setConnectionLabel] = useState("Conectando");
   const previousUserIdRef = useRef<string | null>(null);
 
+  // Screen sharing, spoken translation and transcript state.
+  const [remoteScreenStream, setRemoteScreenStream] = useState<MediaStream | null>(null);
+  const remoteScreenStreamRef = useRef<MediaStream>(new MediaStream());
+  const [screenSharing, setScreenSharing] = useState(false);
+  const screenSharingRef = useRef(false);
+  const [screenAudioShared, setScreenAudioShared] = useState(false);
+  const [spokenLanguage, setSpokenLanguage] = useState("auto");
+  const spokenAutoRef = useRef(true);
+  const [speakTranslations, setSpeakTranslations] = useState(false);
+  const speakTranslationsRef = useRef(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const ttsBusyUntilRef = useRef(0);
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const lastUnclearRef = useRef(0);
+  const pushUnclearRef = useRef<(() => void) | null>(null);
+  const speakTranslatedRef = useRef<((text: string) => void) | null>(null);
+  const speak = useServerFn(speakCallTranslation);
+
   const teardown = useCallback(() => {
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);

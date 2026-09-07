@@ -214,6 +214,23 @@ export function CallScreen({
           />
         ) : null}
 
+        {remoteScreenStream ? (
+          <video
+            ref={screenRef}
+            autoPlay
+            playsInline
+            className="absolute inset-0 z-[5] h-full w-full bg-black object-contain"
+          />
+        ) : null}
+
+        {screenSharing ? (
+          <div className="absolute left-1/2 top-4 z-[6] -translate-x-1/2 rounded-full border border-primary/30 bg-primary/15 px-4 py-1.5 text-[12px] font-medium text-primary backdrop-blur-xl">
+            Você está compartilhando sua tela{screenAudioShared ? " e o áudio" : ""}
+          </div>
+        ) : null}
+
+
+
         {showStage && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-8 px-8">
             {/* Single soft halo that breathes with the voice */}

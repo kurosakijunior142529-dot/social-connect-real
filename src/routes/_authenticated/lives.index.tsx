@@ -1,22 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Radio, Sparkles, Search, Users, Play, History } from "lucide-react";
+import { Radio, Sparkles, Search, Users, Play, History, Flame, Heart, UserPlus, Grid3x3, Eye } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMemo, useState } from "react";
 import { formatViewers } from "@/lib/live-utils";
-import { fetchActiveLives, fetchPastLives, timeOnAir, type LiveFeedRow } from "@/lib/lives-feed";
+import {
+  fetchActiveLives,
+  fetchPastLives,
+  fetchSocialGraph,
+  replayDuration,
+  timeOnAir,
+  type LiveFeedRow,
+} from "@/lib/lives-feed";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/lives/")({
   head: () => ({
     meta: [
       { title: "Lives — Vibely" },
-      { name: "description", content: "Descubra transmissões ao vivo agora." },
+      { name: "description", content: "Central de transmissões ao vivo, replays e criadores do Vibely." },
       { property: "og:title", content: "Lives — Vibely" },
-      { property: "og:description", content: "Descubra transmissões ao vivo agora." },
+      { property: "og:description", content: "Central de transmissões ao vivo, replays e criadores do Vibely." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -25,6 +34,7 @@ export const Route = createFileRoute("/_authenticated/lives/")({
 });
 
 function LivesFeed() {
+  const { user } = useAuth();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
 
@@ -37,6 +47,28 @@ function LivesFeed() {
   const past = useQuery({
     queryKey: ["lives-feed", "past"],
     queryFn: () => fetchPastLives(20),
+  });
+
+  const graph = useQuery({
+    queryKey: ["lives-social-graph", user?.id ?? ""],
+    queryFn: () => fetchSocialGraph(user?.id),
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const followingIds = useMemo(() => Array.from(graph.data?.following ?? []), [graph.data]);
+
+  const followedCreators = useQuery({
+    queryKey: ["lives-followed-creators", followingIds.slice(0, 12).join(",")],
+    enabled: followingIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url, is_verified, badge_variant")
+        .in("id", followingIds.slice(0, 12));
+      return data ?? [];
+    },
   });
 
   const matches = (r: LiveFeedRow) =>
@@ -54,22 +86,33 @@ function LivesFeed() {
 
   const lives = cat === "all" ? allLives : allLives.filter((r) => r.category === cat);
   const [featured, ...rest] = lives;
+
+  const following = lives.filter((r) => graph.data?.following.has(r.host_id));
+  const friends = lives.filter((r) => graph.data?.friends.has(r.host_id));
+  const popular = [...lives].sort((a, b) => (b.viewer_count ?? 0) - (a.viewer_count ?? 0)).slice(0, 8);
+  const recommended = lives
+    .filter((r) => !graph.data?.following.has(r.host_id) && r.host_id !== user?.id)
+    .slice(0, 8);
   const olds = (past.data ?? []).filter(matches);
 
+  const hasLives = lives.length > 0;
+
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="max-w-6xl mx-auto p-4 md:p-6 pb-28 space-y-6">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-primary text-[11px] uppercase tracking-[0.2em] font-semibold">
             <Radio className="h-3.5 w-3.5" /> Lives
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold mt-1">Transmissões ao vivo</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mt-1">Central de transmissões</h1>
           <p className="text-sm text-muted-foreground">
-            {allLives.length > 0 ? `${allLives.length} transmitindo agora` : "Descubra criadores ao vivo ou reveja replays."}
+            {allLives.length > 0
+              ? `${allLives.length} transmitindo agora`
+              : "Descubra criadores, reveja replays ou comece a sua."}
           </p>
         </div>
-        <Link to="/lives/new">
-          <Button className="rounded-full gap-2 shadow-elegant">
+        <Link to="/lives/new" className="shrink-0">
+          <Button className="rounded-full gap-2 shadow-elegant w-full md:w-auto h-11">
             <Sparkles className="h-4 w-4" /> Ir ao vivo
           </Button>
         </Link>
@@ -81,7 +124,7 @@ function LivesFeed() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por título, criador ou categoria…"
-          className="pl-9 rounded-full bg-background"
+          className="pl-9 h-11 rounded-full bg-background"
         />
       </div>
 
@@ -96,36 +139,133 @@ function LivesFeed() {
 
       {live.isLoading ? (
         <SkeletonGrid />
-      ) : lives.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="space-y-6">
-          {featured ? <FeaturedLive r={featured} /> : null}
-          {rest.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rest.map((r) => (
-                <LiveCard key={r.id} r={r} live />
-              ))}
+      ) : hasLives ? (
+        <div className="space-y-8">
+          <Section icon={<Radio className="h-4 w-4 text-primary" />} title="Ao vivo agora">
+            <div className="space-y-4">
+              {featured ? <FeaturedLive r={featured} /> : null}
+              {rest.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {rest.map((r) => (
+                    <LiveCard key={r.id} r={r} live />
+                  ))}
+                </div>
+              )}
             </div>
+          </Section>
+
+          {friends.length > 0 && (
+            <Rail icon={<Heart className="h-4 w-4 text-primary" />} title="Amigos ao vivo" rows={friends} live />
+          )}
+          {following.length > 0 && (
+            <Rail icon={<UserPlus className="h-4 w-4 text-primary" />} title="Seguindo" rows={following} live />
+          )}
+          {popular.length > 1 && (
+            <Rail icon={<Flame className="h-4 w-4 text-primary" />} title="Populares" rows={popular} live />
+          )}
+          {recommended.length > 0 && (
+            <Rail
+              icon={<Sparkles className="h-4 w-4 text-primary" />}
+              title="Recomendadas para você"
+              rows={recommended}
+              live
+            />
           )}
         </div>
+      ) : (
+        <CompactEmpty />
+      )}
+
+      {categories.length > 0 && (
+        <Section icon={<Grid3x3 className="h-4 w-4 text-muted-foreground" />} title="Categorias">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {categories.map((c) => {
+              const count = allLives.filter((r) => r.category === c).length;
+              return (
+                <button
+                  key={c}
+                  onClick={() => setCat(c)}
+                  className="rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface)] p-3 text-left hover:border-primary/40 transition"
+                >
+                  <p className="text-sm font-semibold capitalize truncate">{c}</p>
+                  <p className="text-[11px] text-muted-foreground">{count} ao vivo</p>
+                </button>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {!hasLives && (followedCreators.data?.length ?? 0) > 0 && (
+        <Section icon={<UserPlus className="h-4 w-4 text-muted-foreground" />} title="Criadores que você segue">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+            {(followedCreators.data ?? []).map((p: any) => (
+              <Link
+                key={p.id}
+                to="/u/$username"
+                params={{ username: p.username }}
+                className="w-[92px] shrink-0 text-center"
+              >
+                <UserAvatar
+                  avatarPath={p.avatar_url}
+                  displayName={p.display_name ?? p.username}
+                  className="h-16 w-16 mx-auto ring-2 ring-[color:var(--hairline)]"
+                />
+                <p className="mt-1.5 text-[12px] font-medium truncate flex items-center justify-center gap-0.5">
+                  <span className="truncate">{p.display_name ?? p.username}</span>
+                  {p.is_verified ? <VerifiedBadge variant={p.badge_variant} className="h-3 w-3 shrink-0" /> : null}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </Section>
       )}
 
       {olds.length > 0 && (
-        <section className="pt-2">
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <History className="h-4 w-4 text-muted-foreground" /> Replays
-          </h2>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+        <Section icon={<History className="h-4 w-4 text-muted-foreground" />} title="Replays recentes">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {olds.map((r) => (
-              <div key={r.id} className="w-[220px] shrink-0">
-                <LiveCard r={r} compact />
-              </div>
+              <ReplayCard key={r.id} r={r} />
             ))}
           </div>
-        </section>
+        </Section>
       )}
     </div>
+  );
+}
+
+function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-base md:text-lg font-semibold flex items-center gap-2">
+        {icon} {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function Rail({
+  icon,
+  title,
+  rows,
+  live,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  rows: LiveFeedRow[];
+  live?: boolean;
+}) {
+  return (
+    <Section icon={icon} title={title}>
+      <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 snap-x">
+        {rows.map((r) => (
+          <div key={r.id} className="w-[240px] shrink-0 snap-start">
+            <LiveCard r={r} live={live} compact />
+          </div>
+        ))}
+      </div>
+    </Section>
   );
 }
 
@@ -134,7 +274,7 @@ function CatPill({ label, active, onClick }: { label: string; active: boolean; o
     <button
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold capitalize transition-colors border",
+        "shrink-0 rounded-full px-4 py-2 text-xs font-semibold capitalize transition-colors border",
         active
           ? "bg-primary text-primary-foreground border-transparent shadow-elegant"
           : "bg-[color:var(--surface)] text-muted-foreground border-[color:var(--hairline)] hover:text-foreground",
@@ -174,12 +314,17 @@ function FeaturedLive({ r }: { r: LiveFeedRow }) {
       <div className="relative aspect-video md:aspect-[21/8] bg-black overflow-hidden">
         <Cover r={r} className="group-hover:scale-[1.02] transition duration-500" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-        <div className="absolute top-3 left-3 flex items-center gap-2">
+        <div className="absolute top-3 left-3 flex items-center gap-2 flex-wrap">
           <LiveBadge />
           <span className="rounded-md bg-black/60 text-white text-[11px] px-2 py-0.5 flex items-center gap-1">
             <Users className="h-3 w-3" /> {formatViewers(r.viewer_count ?? 0)}
           </span>
           <span className="rounded-md bg-black/60 text-white/80 text-[11px] px-2 py-0.5">{timeOnAir(r.started_at)}</span>
+          {r.category ? (
+            <span className="rounded-md bg-primary/85 text-primary-foreground text-[11px] font-semibold px-2 py-0.5 capitalize">
+              {r.category}
+            </span>
+          ) : null}
         </div>
         <div className="absolute inset-x-0 bottom-0 p-4 md:p-5 flex items-end gap-3">
           <div className="relative shrink-0">
@@ -195,7 +340,6 @@ function FeaturedLive({ r }: { r: LiveFeedRow }) {
             <p className="text-white/70 text-sm truncate flex items-center gap-1">
               {r.host?.display_name ?? r.host?.username ?? "Criador"}
               {r.host?.is_verified ? <VerifiedBadge variant={r.host?.badge_variant as any} className="h-3.5 w-3.5" /> : null}
-              {r.category ? <span className="opacity-60">· {r.category}</span> : null}
             </p>
           </div>
           <span className="hidden sm:inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold">
@@ -218,11 +362,20 @@ function LiveCard({ r, live = false, compact = false }: { r: LiveFeedRow; live?:
       <div className="relative aspect-video bg-black overflow-hidden">
         <Cover r={r} className="group-hover:scale-[1.03] transition duration-500" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
-        {live ? <span className="absolute top-2 left-2"><LiveBadge /></span> : (
+        {live ? (
+          <span className="absolute top-2 left-2">
+            <LiveBadge />
+          </span>
+        ) : (
           <span className="absolute top-2 left-2 rounded-md bg-black/70 text-white/80 text-[10px] font-semibold uppercase tracking-widest px-1.5 py-0.5">
             Replay
           </span>
         )}
+        {r.category ? (
+          <span className="absolute top-2 right-2 rounded-md bg-black/65 text-white/85 text-[10px] font-semibold px-1.5 py-0.5 capitalize">
+            {r.category}
+          </span>
+        ) : null}
         <span className="absolute bottom-2 right-2 text-[11px] font-semibold bg-black/70 text-white rounded px-1.5 py-0.5 flex items-center gap-1">
           <Users className="h-3 w-3" />
           {formatViewers((live ? r.viewer_count : r.peak_viewer_count) ?? 0)}
@@ -245,7 +398,6 @@ function LiveCard({ r, live = false, compact = false }: { r: LiveFeedRow; live?:
             <p className="text-[12px] text-muted-foreground truncate flex items-center gap-1">
               {r.host?.display_name ?? r.host?.username ?? "Criador"}
               {r.host?.is_verified ? <VerifiedBadge variant={r.host?.badge_variant as any} className="h-3 w-3" /> : null}
-              {r.category ? <span className="opacity-70">· {r.category}</span> : null}
             </p>
           </div>
         </div>
@@ -258,6 +410,44 @@ function LiveCard({ r, live = false, compact = false }: { r: LiveFeedRow; live?:
             ))}
           </div>
         ) : null}
+      </div>
+    </Link>
+  );
+}
+
+function ReplayCard({ r }: { r: LiveFeedRow }) {
+  const dur = replayDuration(r.started_at, r.ended_at);
+  return (
+    <Link
+      to="/live/$id"
+      params={{ id: r.id }}
+      search={{ host: undefined }}
+      className="group block rounded-2xl overflow-hidden bg-[color:var(--surface)] border border-[color:var(--hairline)] hover:border-primary/40 transition"
+    >
+      <div className="relative aspect-video bg-black overflow-hidden">
+        <Cover r={r} className="group-hover:scale-[1.03] transition duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        <span className="absolute top-2 left-2 rounded-md bg-black/75 text-white/85 text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5">
+          Replay
+        </span>
+        {dur ? (
+          <span className="absolute bottom-2 right-2 rounded bg-black/75 text-white text-[11px] px-1.5 py-0.5">{dur}</span>
+        ) : null}
+        <span className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition">
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground">
+            <Play className="h-5 w-5 fill-current" />
+          </span>
+        </span>
+      </div>
+      <div className="p-2.5 space-y-1">
+        <h3 className="text-sm font-semibold truncate leading-tight">{r.title}</h3>
+        <p className="text-[12px] text-muted-foreground truncate flex items-center gap-1">
+          {r.host?.display_name ?? r.host?.username ?? "Criador"}
+          {r.host?.is_verified ? <VerifiedBadge variant={r.host?.badge_variant as any} className="h-3 w-3" /> : null}
+        </p>
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+          <Eye className="h-3 w-3" /> {formatViewers(r.peak_viewer_count ?? r.viewer_count ?? 0)} visualizações
+        </p>
       </div>
     </Link>
   );
@@ -283,16 +473,20 @@ function SkeletonGrid() {
   );
 }
 
-function EmptyState() {
+function CompactEmpty() {
   return (
-    <div className="rounded-3xl border border-[color:var(--hairline)] bg-[color:var(--surface)] p-10 text-center">
-      <div className="relative mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-primary/25 to-transparent">
-        <Radio className="h-8 w-8 text-primary" />
+    <div className="flex items-center gap-3 rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface)] p-3">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/25 to-transparent">
+        <Radio className="h-5 w-5 text-primary" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold leading-tight">Ninguém ao vivo agora</p>
+        <p className="text-[12px] text-muted-foreground truncate">Veja replays abaixo ou comece a sua transmissão.</p>
       </div>
-      <h3 className="font-semibold text-lg">Ninguém ao vivo agora</h3>
-      <p className="text-sm text-muted-foreground mt-1">Seja você o primeiro a transmitir para a comunidade.</p>
-      <Link to="/lives/new">
-        <Button className="mt-4 rounded-full">Ir ao vivo</Button>
+      <Link to="/lives/new" className="shrink-0">
+        <Button size="sm" className="rounded-full">
+          Ir ao vivo
+        </Button>
       </Link>
     </div>
   );

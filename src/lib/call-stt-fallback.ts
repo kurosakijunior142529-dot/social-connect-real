@@ -210,6 +210,14 @@ export function startSttFallback(
     // Never queue audio behind a slow network request. Keeping only one clip in
     // flight prevents unbounded buffers and delayed captions on mobile.
     if (sending) return;
+    // Anti-echo: drop everything captured while our own translation is playing.
+    if (handlers.shouldPause?.()) {
+      pcm = tail.length > 0 ? [...tail] : [];
+      samples = pcm.reduce((n, c) => n + c.length, 0);
+      voicedSamples = 0;
+      silentSamples = 0;
+      return;
+    }
     const input = event.inputBuffer.getChannelData(0);
     const chunk = downsample(new Float32Array(input), ctx.sampleRate, TARGET_RATE);
 

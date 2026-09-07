@@ -802,8 +802,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
             if (timeoutId !== undefined) window.clearTimeout(timeoutId);
           });
           consecutiveFailures = 0;
-          if (translationEnabledRef.current && session === translationSessionRef.current && result.text) {
-            pushMyCaption(result.text, spokenLangRef.current);
+          if (translationEnabledRef.current && session === translationSessionRef.current) {
+            if (result.text) pushMyCaption(result.text, spokenLangRef.current);
+            else pushUnclearRef.current?.();
           }
         } catch (error: any) {
           consecutiveFailures += 1;

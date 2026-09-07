@@ -989,6 +989,117 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
   }, [active?.id]);
 
+  // ---- Screen sharing ---------------------------------------------------
+  // Uses the same LiveKit/WebRTC session as the call: no second infrastructure,
+  // and the native permission prompt of the OS/browser is always shown.
+  const screenShareSupported = useMemo(
+    () => typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getDisplayMedia === "function",
+    [],
+  );
+
+  const toggleScreenShare = useCallback(
+    async (withAudio = true) => {
+      const room = roomRef.current;
+      if (!room || room.state !== "connected") {
+        toast.info("Aguardando a conexão da chamada.");
+        return;
+      }
+      if (screenSharingRef.current) {
+        try {
+          await room.localParticipant.setScreenShareEnabled(false);
+        } catch (error) {
+          console.warn("[call] stop screen share failed", error);
+        }
+        screenSharingRef.current = false;
+        setScreenSharing(false);
+        setScreenAudioShared(false);
+        return;
+      }
+      if (!screenShareSupported) {
+        toast.error("Este dispositivo não permite compartilhar a tela pelo navegador.");
+        return;
+      }
+      const enable = async (audio: boolean) => {
+        await room.localParticipant.setScreenShareEnabled(
+          true,
+          { audio, systemAudio: audio ? "include" : "exclude", resolution: { width: 1280, height: 720 } } as never,
+        );
+      };
+      try {
+        try {
+          await enable(withAudio);
+          setScreenAudioShared(withAudio);
+        } catch (error: any) {
+          if (!withAudio || error?.name === "NotAllowedError") throw error;
+          // The device refused internal audio capture: share the picture only,
+          // never breaking the call.
+          await enable(false);
+          setScreenAudioShared(false);
+          toast.info("Este dispositivo não permite enviar o áudio interno. Compartilhando só a tela.");
+        }
+        screenSharingRef.current = true;
+        setScreenSharing(true);
+      } catch (error: any) {
+        if (error?.name === "NotAllowedError") {
+          toast.info("Compartilhamento de tela cancelado.");
+          return;
+        }
+        console.error("[call] screen share failed", error);
+        toast.error("Não foi possível compartilhar a tela.");
+      }
+    },
+    [screenShareSupported],
+  );
+
+  // ---- Spoken translation (text-to-speech) -------------------------------
+  const speakTranslated = useCallback(
+    (text: string) => {
+      if (!speakTranslationsRef.current) return;
+      const clean = text.trim();
+      if (!clean) return;
+      // Keep the microphone capture paused while we speak so the translation is
+      // never transcribed back as the user's own voice.
+      ttsBusyUntilRef.current = Date.now() + 2_000;
+      void speak({ data: { text: clean.slice(0, 600), voice: "alloy" } })
+        .then((result: { audio: string; mime: string }) => {
+          if (!speakTranslationsRef.current) return;
+          const audio = ttsAudioRef.current ?? new Audio();
+          ttsAudioRef.current = audio;
+          audio.src = `data:${result.mime};base64,${result.audio}`;
+          audio.onended = () => {
+            ttsBusyUntilRef.current = Date.now() + 400;
+          };
+          ttsBusyUntilRef.current = Date.now() + 20_000;
+          void audio.play().catch(() => {
+            ttsBusyUntilRef.current = 0;
+          });
+        })
+        .catch((error: unknown) => {
+          ttsBusyUntilRef.current = 0;
+          console.warn("[call-translation] speak failed", error);
+        });
+    },
+    [speak],
+  );
+  speakTranslatedRef.current = speakTranslated;
+
+  const toggleSpeakTranslations = useCallback(() => {
+    setSpeakTranslations((prev) => {
+      const next = !prev;
+      speakTranslationsRef.current = next;
+      if (!next) {
+        ttsAudioRef.current?.pause();
+        ttsBusyUntilRef.current = 0;
+      }
+      return next;
+    });
+  }, []);
+
+  const changeSpokenLanguage = useCallback((language: string) => {
+    setSpokenLanguage(language);
+    spokenLangRef.current = language === "auto" ? navigator.language || "pt-BR" : language;
+  }, []);
+
   const value = useMemo<Ctx>(
     () => ({ startCall: startCallWithAudioUnlock, activeCall: active }),
     [startCallWithAudioUnlock, active],

@@ -714,10 +714,34 @@ export function CallProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  /**
+   * Low confidence: the clip had voice but the transcript is unusable. We say so
+   * instead of inventing a sentence to translate.
+   */
+  const pushUnclear = useCallback(() => {
+    const now = Date.now();
+    if (now - lastUnclearRef.current < 8_000) return;
+    lastUnclearRef.current = now;
+    setCaptions((current) => [
+      ...current.slice(-60),
+      {
+        id: crypto.randomUUID(),
+        speaker: "me" as const,
+        original: "Não consegui entender claramente",
+        status: "unclear" as const,
+      },
+    ]);
+  }, []);
+  pushUnclearRef.current = pushUnclear;
+
   const pushMyCaption = useCallback(
     (text: string, sourceLang: string) => {
       const clean = text.trim();
-      if (!clean || isNoise(clean)) return;
+      if (!clean) return;
+      if (isNoise(clean)) {
+        pushUnclear();
+        return;
+      }
       const now = Date.now();
       if (lastTranscriptRef.current.text === clean && now - lastTranscriptRef.current.at < 8_000) return;
       // Anti-echo: ignore my "speech" when it just repeats what the other person said.

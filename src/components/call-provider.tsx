@@ -301,15 +301,31 @@ export function CallProvider({ children }: { children: ReactNode }) {
       const access = await getCallAccessToken({ data: { callId } });
       const room = new Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
-      room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, _publication: RemoteTrackPublication, _participant: RemoteParticipant) => {
+      room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, _participant: RemoteParticipant) => {
         const mediaTrack = track.mediaStreamTrack;
+        const isScreen =
+          publication.source === Track.Source.ScreenShare ||
+          publication.source === Track.Source.ScreenShareAudio;
+        if (isScreen) {
+          const screen = remoteScreenStreamRef.current;
+          if (!screen.getTracks().some((current) => current.id === mediaTrack.id)) screen.addTrack(mediaTrack);
+          setRemoteScreenStream(screen);
+          setTrackUpdate((value) => value + 1);
+          return;
+        }
         if (!remote.getTracks().some((current) => current.id === mediaTrack.id)) remote.addTrack(mediaTrack);
         setRemoteStream(remote);
         setTrackUpdate((value) => value + 1);
         if (track.kind === Track.Kind.Audio) setConnectionLabel("Áudio recebido");
       });
       room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
-        remote.removeTrack(track.mediaStreamTrack);
+        const screen = remoteScreenStreamRef.current;
+        if (screen.getTracks().some((current) => current.id === track.mediaStreamTrack.id)) {
+          screen.removeTrack(track.mediaStreamTrack);
+          setRemoteScreenStream(screen.getTracks().length ? screen : null);
+        } else {
+          remote.removeTrack(track.mediaStreamTrack);
+        }
         setTrackUpdate((value) => value + 1);
       });
       room.on(RoomEvent.Reconnecting, () => {

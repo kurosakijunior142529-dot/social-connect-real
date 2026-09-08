@@ -360,17 +360,35 @@ function LiveRoom() {
 
       if (t.isHost) {
         try {
-          const tracks = await createLocalTracks({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              channelCount: 1,
-              sampleRate: 48000,
-            },
-            video: { facingMode, resolution: { width: 1280, height: 720, frameRate: 30 } },
-          });
-          for (const tr of tracks) await r.localParticipant.publishTrack(tr);
+          const preset = QUALITY_PRESETS[videoQuality];
+          const audio = {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1,
+            sampleRate: 48000,
+          };
+          let tracks;
+          try {
+            tracks = await createLocalTracks({
+              audio,
+              video: { facingMode, resolution: { width: preset.width, height: preset.height, frameRate: preset.frameRate } },
+            });
+          } catch {
+            // Aparelho não suporta o preset escolhido: cai para Full HD.
+            tracks = await createLocalTracks({
+              audio,
+              video: { facingMode, resolution: { width: 1920, height: 1080, frameRate: 30 } },
+            });
+            toast.message("Seu aparelho não suporta essa qualidade. Usando Full HD.");
+          }
+          for (const tr of tracks) {
+            await r.localParticipant.publishTrack(tr, {
+              videoEncoding: tr.kind === "video"
+                ? { maxBitrate: bitrateFor(videoQuality), maxFramerate: preset.frameRate }
+                : undefined,
+            });
+          }
           // Bind local video preview
           const camPub = r.localParticipant.getTrackPublication(Track.Source.Camera) as LocalTrackPublication | undefined;
           if (camPub?.track && videoRef.current) {

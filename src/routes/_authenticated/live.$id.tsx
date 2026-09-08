@@ -919,6 +919,9 @@ function LiveRoom() {
                   <Send className="h-4 w-4" />
                 </button>
               </form>
+              <button onClick={() => setMobileSheet("gifts")} aria-label="Enviar presente" className="h-11 w-11 rounded-full bg-white/12 backdrop-blur-md text-white grid place-items-center">
+                <Gift className="h-5 w-5" />
+              </button>
               {isHost && (
                 <button onClick={() => setMobileSheet("panel")} aria-label="Painel do criador" className="h-11 w-11 rounded-full bg-white/12 backdrop-blur-md text-white grid place-items-center">
                   <BarChart3 className="h-5 w-5" />

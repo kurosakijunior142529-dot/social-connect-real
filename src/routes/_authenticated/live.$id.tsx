@@ -1169,3 +1169,14 @@ function TabBtn({ active, onClick, Icon, children }: { active: boolean; onClick:
     </button>
   );
 }
+
+/** Bitrate alvo por preset de qualidade (bits por segundo). */
+function bitrateFor(key: QualityKey) {
+  switch (key) {
+    case "4k120": return 24_000_000;
+    case "4k60": return 16_000_000;
+    case "1440p60": return 9_000_000;
+    case "1080p60": return 5_000_000;
+    default: return 2_500_000;
+  }
+}

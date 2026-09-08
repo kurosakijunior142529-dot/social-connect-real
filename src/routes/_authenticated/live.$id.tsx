@@ -1023,6 +1023,30 @@ function LiveRoom() {
                 </div>
               )}
               {isHost && (
+                <div className="rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface-2)] p-3">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Qualidade da imagem</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.keys(QUALITY_PRESETS) as QualityKey[]).map((k) => (
+                      <button
+                        key={k}
+                        onClick={() => changeQuality(k)}
+                        className={cn(
+                          "rounded-xl border px-3 py-2 text-[12px] font-medium text-left transition",
+                          videoQuality === k
+                            ? "border-primary/60 bg-primary/15 text-foreground"
+                            : "border-[color:var(--hairline)] hover:bg-white/5",
+                        )}
+                      >
+                        {QUALITY_PRESETS[k].label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Se o aparelho ou a internet não aguentar, a qualidade cai automaticamente.
+                  </p>
+                </div>
+              )}
+              {isHost && (
                 <button onClick={finish} className="w-full h-11 rounded-full bg-red-600 hover:bg-red-500 text-white text-sm font-semibold flex items-center justify-center gap-1.5">
                   <DoorOpen className="h-4 w-4" /> Encerrar transmissão
                 </button>

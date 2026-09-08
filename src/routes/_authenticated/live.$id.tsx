@@ -462,20 +462,63 @@ function LiveRoom() {
       toast.error("Este dispositivo não permite alternar câmera.");
     }
   };
+  /** Troca a qualidade da câmera durante a transmissão, sem encerrar a live. */
+  const changeQuality = async (key: QualityKey) => {
+    setVideoQuality(key);
+    const p = QUALITY_PRESETS[key];
+    if (!room) return;
+    try {
+      const camPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+      if (camPub?.track) {
+        await (camPub.track as any).restartTrack({
+          facingMode,
+          resolution: { width: p.width, height: p.height, frameRate: p.frameRate },
+        });
+        toast.success(`Qualidade: ${p.label}`);
+      }
+    } catch {
+      toast.error("Seu aparelho não suporta essa qualidade.");
+    }
+  };
+
+  /** Compartilha tela do PC, do celular (quando suportado) ou de um jogo. */
   const toggleScreen = async () => {
     if (!room) return;
     if (screenOn) {
       const pubs = Array.from(room.localParticipant.trackPublications.values()).filter((p) => p.source === Track.Source.ScreenShare || p.source === Track.Source.ScreenShareAudio);
       for (const pub of pubs) if (pub.track) await room.localParticipant.unpublishTrack(pub.track);
       setScreenOn(false);
-    } else {
+      return;
+    }
+    const canCapture = typeof navigator !== "undefined"
+      && !!(navigator.mediaDevices as any)?.getDisplayMedia;
+    if (!canCapture) {
+      toast.error("Este navegador não permite transmitir a tela. No celular, use o app do Vibely ou transmita pelo PC.");
+      return;
+    }
+    const p = QUALITY_PRESETS[videoQuality];
+    try {
+      let tracks;
       try {
-        const tracks = await createLocalScreenTracks({ audio: true, resolution: { width: 1920, height: 1080, frameRate: 30 } });
-        for (const t of tracks) await room.localParticipant.publishTrack(t);
-        setScreenOn(true);
+        tracks = await createLocalScreenTracks({
+          audio: true,
+          resolution: { width: p.width, height: p.height, frameRate: Math.min(p.frameRate, 60) },
+        });
       } catch {
-        toast.error("Compartilhamento de tela cancelado.");
+        tracks = await createLocalScreenTracks({ audio: true, resolution: { width: 1920, height: 1080, frameRate: 60 } });
       }
+      for (const t of tracks) {
+        await room.localParticipant.publishTrack(t, {
+          videoEncoding: t.kind === "video" ? { maxBitrate: bitrateFor(videoQuality), maxFramerate: Math.min(p.frameRate, 60) } : undefined,
+        });
+        if (t.kind === "video") {
+          t.mediaStreamTrack.addEventListener("ended", () => setScreenOn(false), { once: true });
+        }
+      }
+      setScreenOn(true);
+      toast.success("Transmitindo sua tela.");
+    } catch {
+      toast.error("Compartilhamento de tela cancelado.");
     }
   };
 

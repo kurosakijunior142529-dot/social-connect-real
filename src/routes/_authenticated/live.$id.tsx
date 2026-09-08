@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -19,10 +19,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/user-avatar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Mic, MicOff, Video, VideoOff, MonitorUp, MonitorOff,
   Heart, Send, MessageCircle, Users, DoorOpen, Gift, Share2, Radio, Signal,
-  RefreshCcw,
+  RefreshCcw, X, Pin, Trash2, ShieldBan, ShieldPlus, MoreVertical, Crown,
+  BarChart3, Flag, UserPlus, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -44,11 +52,14 @@ type Live = {
   thumbnail_url: string | null;
   status: "preparing" | "live" | "ended";
   started_at: string | null;
+  ended_at: string | null;
   viewer_count: number;
   peak_viewer_count: number;
   like_count: number;
   audience: string;
 };
+
+const QUICK_REACTIONS = ["❤️", "🔥", "👏", "😂", "🎉", "😮"];
 
 function LiveRoom() {
   const { id: liveId } = Route.useParams();
@@ -74,10 +85,13 @@ function LiveRoom() {
   const [reactions, setReactions] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const [giftQueue, setGiftQueue] = useState<GiftEvent[]>([]);
   const [activeGift, setActiveGift] = useState<GiftEvent | null>(null);
+  const [mobileSheet, setMobileSheet] = useState<null | "chat" | "people" | "gifts" | "panel">(null);
+  const [showReactionBar, setShowReactionBar] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const reactionCounter = useRef(0);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Live query
   const liveQ = useQuery({
@@ -85,7 +99,7 @@ function LiveRoom() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("lives")
-        .select("id, host_id, title, description, category, thumbnail_url, status, started_at, viewer_count, peak_viewer_count, like_count, audience")
+        .select("id, host_id, title, description, category, thumbnail_url, status, started_at, ended_at, viewer_count, peak_viewer_count, like_count, audience")
         .eq("id", liveId)
         .maybeSingle();
       if (error) throw error;
@@ -149,7 +163,67 @@ function LiveRoom() {
     staleTime: 5 * 60 * 1000,
   });
 
+  /** Presentes recebidos + ranking de apoiadores da transmissão. */
+  const supportersQ = useQuery({
+    queryKey: ["live-supporters", liveId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("live_gifts")
+        .select("sender_id, coins_spent")
+        .eq("live_id", liveId);
+      const rows = (data ?? []) as any[];
+      const totals = new Map<string, number>();
+      let coins = 0;
+      for (const r of rows) {
+        coins += r.coins_spent ?? 0;
+        totals.set(r.sender_id, (totals.get(r.sender_id) ?? 0) + (r.coins_spent ?? 0));
+      }
+      const ids = Array.from(totals.keys());
+      let pmap = new Map<string, any>();
+      if (ids.length) {
+        const { data: profiles } = await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids);
+        pmap = new Map((profiles ?? []).map((p) => [p.id, p]));
+      }
+      const top = ids
+        .map((id) => ({ id, coins: totals.get(id) ?? 0, profile: pmap.get(id) }))
+        .sort((a, b) => b.coins - a.coins)
+        .slice(0, 10);
+      return { count: rows.length, coins, top };
+    },
+  });
+
+  const modsQ = useQuery({
+    queryKey: ["live-mods", liveId],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("live_moderators").select("user_id").eq("live_id", liveId);
+      return ((data ?? []) as any[]).map((r) => r.user_id as string);
+    },
+  });
+
   const live = liveQ.data;
+  const hostId = live?.host_id;
+  const amHostUser = !!hostId && hostId === user.id;
+  const canModerate = amHostUser || (modsQ.data ?? []).includes(user.id);
+
+  const followQ = useQuery({
+    queryKey: ["live-follow", hostId, user.id],
+    queryFn: async () => {
+      if (!hostId || hostId === user.id) return false;
+      const { data } = await supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("following_id", hostId).maybeSingle();
+      return !!data;
+    },
+    enabled: !!hostId,
+  });
+
+  const toggleFollow = async () => {
+    if (!hostId || hostId === user.id) return;
+    if (followQ.data) {
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", hostId);
+    } else {
+      await supabase.from("follows").insert({ follower_id: user.id, following_id: hostId });
+    }
+    qc.invalidateQueries({ queryKey: ["live-follow", hostId, user.id] });
+  };
 
   // Track viewer presence
   useEffect(() => {
@@ -170,10 +244,11 @@ function LiveRoom() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "live_reactions", filter: `live_id=eq.${liveId}` }, (payload: any) => {
         const emoji = payload.new?.emoji ?? "❤️";
         const id = reactionCounter.current++;
-        setReactions((r) => [...r, { id, emoji, x: 20 + Math.random() * 60 }]);
+        setReactions((r) => [...r.slice(-14), { id, emoji, x: 20 + Math.random() * 60 }]);
         setTimeout(() => setReactions((r) => r.filter((x) => x.id !== id)), 3200);
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "live_gifts", filter: `live_id=eq.${liveId}` }, (payload: any) => {
+        qc.invalidateQueries({ queryKey: ["live-supporters", liveId] });
         const gift = giftCatalogQ.data?.find((g: any) => g.id === payload.new?.gift_id);
         if (gift) {
           setGiftQueue((q) => [...q, {
@@ -195,7 +270,6 @@ function LiveRoom() {
     setActiveGift(giftQueue[0]);
     setGiftQueue((q) => q.slice(1));
   }, [giftQueue, activeGift]);
-
 
   // Elapsed timer
   useEffect(() => {
@@ -322,6 +396,11 @@ function LiveRoom() {
     }
   }, [remoteStreams, live?.host_id, isHost, live]);
 
+  // Mantém o chat rolado no fim quando chegam mensagens novas.
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ block: "end" });
+  }, [chatQ.data?.length]);
+
   // Toggles
   const toggleMic = async () => {
     if (!room) return;
@@ -350,7 +429,7 @@ function LiveRoom() {
       if (camPub?.track) {
         await (camPub.track as any).restartTrack({ facingMode: next });
       }
-    } catch (err) {
+    } catch {
       toast.error("Este dispositivo não permite alternar câmera.");
     }
   };
@@ -365,7 +444,7 @@ function LiveRoom() {
         const tracks = await createLocalScreenTracks({ audio: true, resolution: { width: 1920, height: 1080, frameRate: 30 } });
         for (const t of tracks) await room.localParticipant.publishTrack(t);
         setScreenOn(true);
-      } catch (err: any) {
+      } catch {
         toast.error("Compartilhamento de tela cancelado.");
       }
     }
@@ -385,7 +464,8 @@ function LiveRoom() {
     try {
       await doEnd({ data: { liveId } });
       if (room) try { await room.disconnect(); } catch { /* noop */ }
-      navigate({ to: "/lives" });
+      qc.invalidateQueries({ queryKey: ["live", liveId] });
+      setMobileSheet(null);
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao encerrar");
     }
@@ -417,6 +497,32 @@ function LiveRoom() {
     toast.success(`${gift.emoji} ${gift.name} enviado!`);
   };
 
+  // ---- Moderação ----
+  const deleteMessage = async (id: string) => {
+    const { error } = await (supabase as any).from("live_chat_messages").update({ deleted: true }).eq("id", id);
+    if (error) return toast.error("Não foi possível apagar o comentário.");
+    qc.invalidateQueries({ queryKey: ["live-chat", liveId] });
+  };
+  const pinMessage = async (m: any) => {
+    const { error } = await (supabase as any).from("live_chat_messages").update({ pinned: !m.pinned }).eq("id", m.id);
+    if (error) return toast.error("Não foi possível fixar o comentário.");
+    qc.invalidateQueries({ queryKey: ["live-chat", liveId] });
+  };
+  const banUser = async (uid: string) => {
+    if (uid === hostId) return;
+    const { error } = await (supabase as any).from("live_bans").insert({ live_id: liveId, user_id: uid, banned_by: user.id });
+    if (error) return toast.error("Não foi possível remover o usuário.");
+    await (supabase as any).from("live_viewers").update({ left_at: new Date().toISOString() }).eq("live_id", liveId).eq("user_id", uid);
+    toast.success("Usuário removido da transmissão.");
+    qc.invalidateQueries({ queryKey: ["live-viewers", liveId] });
+  };
+  const addModerator = async (uid: string) => {
+    const { error } = await (supabase as any).from("live_moderators").insert({ live_id: liveId, user_id: uid, added_by: user.id });
+    if (error) return toast.error("Não foi possível adicionar moderador.");
+    toast.success("Moderador adicionado.");
+    qc.invalidateQueries({ queryKey: ["live-mods", liveId] });
+  };
+
   const share = async () => {
     const url = typeof window !== "undefined" ? `${window.location.origin}/live/${liveId}` : "";
     try {
@@ -434,17 +540,122 @@ function LiveRoom() {
       case ConnectionQuality.Good: return "text-primary";
       case ConnectionQuality.Poor: return "text-amber-400";
       case ConnectionQuality.Lost: return "text-red-400";
-      default: return "text-muted-foreground";
+      default: return "text-white/60";
     }
   }, [quality]);
+
+  const pinned = (chatQ.data ?? []).filter((m: any) => m.pinned).slice(-1)[0];
+  const lastMessages = (chatQ.data ?? []).slice(-6);
 
   if (liveQ.isLoading) return <div className="p-8 text-sm text-muted-foreground">Carregando live…</div>;
   if (!live) return <div className="p-8 text-sm text-muted-foreground">Live não encontrada.</div>;
 
+  const chatList = (
+    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      {chatQ.data?.length ? chatQ.data.map((m: any) => (
+        <ChatRow
+          key={m.id}
+          m={m}
+          hostId={live.host_id}
+          canModerate={canModerate}
+          amHostUser={amHostUser}
+          onPin={() => pinMessage(m)}
+          onDelete={() => deleteMessage(m.id)}
+          onBan={() => banUser(m.sender_id)}
+          onMod={() => addModerator(m.sender_id)}
+        />
+      )) : <p className="text-sm text-muted-foreground text-center py-6">Seja o primeiro a comentar 👋</p>}
+      <div ref={chatEndRef} />
+    </div>
+  );
+
+  const peopleList = (
+    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      {viewersQ.data?.map((v: any) => (
+        <div key={v.user_id} className="flex items-center gap-2 p-2 rounded-xl hover:bg-[color:var(--surface-2)]">
+          <UserAvatar avatarPath={v.profile?.avatar_url ?? null} displayName={v.profile?.display_name ?? v.profile?.username ?? "?"} className="h-8 w-8" />
+          <div className="text-sm flex-1 min-w-0 truncate">
+            {v.profile?.display_name ?? v.profile?.username ?? "Espectador"}
+            {v.user_id === live.host_id && <span className="ml-1 text-[10px] text-primary font-semibold">HOST</span>}
+            {(modsQ.data ?? []).includes(v.user_id) && v.user_id !== live.host_id && (
+              <span className="ml-1 text-[10px] text-amber-400 font-semibold">MOD</span>
+            )}
+          </div>
+          {canModerate && v.user_id !== live.host_id && v.user_id !== user.id && (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="h-7 w-7 grid place-items-center rounded-full hover:bg-white/10">
+                <MoreVertical className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {amHostUser && (
+                  <DropdownMenuItem onClick={() => addModerator(v.user_id)}>
+                    <ShieldPlus className="h-4 w-4 mr-2" /> Tornar moderador
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem className="text-red-400" onClick={() => banUser(v.user_id)}>
+                  <ShieldBan className="h-4 w-4 mr-2" /> Remover da live
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const giftsGrid = (
+    <div className="flex-1 overflow-y-auto p-3">
+      {!!supportersQ.data?.top.length && (
+        <div className="mb-3 rounded-2xl border border-[color:var(--hairline)] p-3">
+          <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2 flex items-center gap-1">
+            <Crown className="h-3.5 w-3.5 text-amber-400" /> Principais apoiadores
+          </div>
+          <div className="space-y-1.5">
+            {supportersQ.data.top.slice(0, 5).map((s, i) => (
+              <div key={s.id} className="flex items-center gap-2 text-sm">
+                <span className="w-4 text-xs text-muted-foreground">{i + 1}</span>
+                <UserAvatar avatarPath={s.profile?.avatar_url ?? null} displayName={s.profile?.display_name ?? "?"} className="h-6 w-6" />
+                <span className="flex-1 truncate">{s.profile?.display_name ?? s.profile?.username ?? "Apoiador"}</span>
+                <span className="text-primary text-xs font-semibold">{s.coins} 🪙</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-3 gap-2">
+        {giftCatalogQ.data?.map((g) => {
+          const meta = getGiftMeta(g.name);
+          const r = RARITY_STYLE[meta.rarity];
+          return (
+            <button
+              key={g.id}
+              onClick={() => sendGift(g)}
+              disabled={user.id === live.host_id}
+              className={cn(
+                "relative rounded-2xl border p-3 transition text-center disabled:opacity-40 overflow-hidden",
+                r.ring,
+                "hover:-translate-y-0.5",
+              )}
+              style={{
+                background: `linear-gradient(160deg, ${meta.color}18, transparent 70%)`,
+                boxShadow: r.glow,
+              }}
+            >
+              <div className="text-3xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{g.emoji}</div>
+              <div className="text-[11px] font-semibold mt-1 truncate">{g.name}</div>
+              <div className={cn("text-[9px] uppercase tracking-widest font-bold", r.text)}>{r.label}</div>
+              <div className="text-[10px] text-primary mt-0.5">{g.cost_coins} 🪙</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col md:flex-row h-[100dvh] md:h-[calc(100vh-2rem)] gap-3 p-2 md:p-3 bg-black">
+    <div className="flex flex-col md:flex-row h-[100dvh] md:h-[calc(100vh-2rem)] md:gap-3 md:p-3 bg-black">
       {/* VIDEO PANE */}
-      <div className="relative flex-1 min-w-0 rounded-3xl overflow-hidden bg-black border border-white/10">
+      <div className="relative flex-1 min-w-0 md:rounded-3xl overflow-hidden bg-black md:border md:border-white/10">
         <video
           ref={videoRef}
           className="w-full h-full object-contain bg-black"
@@ -457,41 +668,75 @@ function LiveRoom() {
         {/* Floating reactions */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           {reactions.map((r) => (
-            <span key={r.id} className="absolute bottom-0 text-3xl animate-float-up" style={{ left: `${r.x}%` }}>{r.emoji}</span>
+            <span key={r.id} className="absolute bottom-24 text-3xl animate-float-up" style={{ left: `${r.x}%` }}>{r.emoji}</span>
           ))}
         </div>
 
         <GiftAnimation event={activeGift} onDone={() => setActiveGift(null)} />
 
         {/* TOP overlay */}
-        <div className="absolute top-0 inset-x-0 p-3 flex items-start justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent">
-          <div className="flex items-center gap-2 min-w-0">
-            <UserAvatar avatarPath={hostProfileQ.data?.avatar_url ?? null} displayName={hostProfileQ.data?.display_name ?? hostProfileQ.data?.username ?? "?"} className="h-9 w-9 border-2 border-white/20" />
-            <div className="min-w-0">
-              <div className="text-white text-sm font-semibold truncate">{hostProfileQ.data?.display_name ?? hostProfileQ.data?.username ?? "Criador"}</div>
-              <div className="text-white/70 text-xs truncate">{live.title}</div>
+        <div className="absolute top-0 inset-x-0 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] bg-gradient-to-b from-black/80 via-black/40 to-transparent">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 rounded-full bg-black/40 backdrop-blur-md pl-1 pr-2 py-1">
+              <UserAvatar avatarPath={hostProfileQ.data?.avatar_url ?? null} displayName={hostProfileQ.data?.display_name ?? hostProfileQ.data?.username ?? "?"} className="h-9 w-9 border-2 border-primary/50" />
+              <div className="min-w-0">
+                <div className="text-white text-sm font-semibold truncate flex items-center gap-1">
+                  {hostProfileQ.data?.display_name ?? hostProfileQ.data?.username ?? "Criador"}
+                  {hostProfileQ.data?.is_verified && <Check className="h-3.5 w-3.5 text-primary" />}
+                </div>
+                <div className="text-white/70 text-[11px] truncate max-w-[42vw] md:max-w-xs">
+                  {live.title}{live.category ? ` · ${live.category}` : ""}
+                </div>
+              </div>
+              {!amHostUser && (
+                <button
+                  onClick={toggleFollow}
+                  className={cn(
+                    "ml-1 h-7 px-3 rounded-full text-[11px] font-semibold transition",
+                    followQ.data ? "bg-white/15 text-white" : "bg-primary text-primary-foreground",
+                  )}
+                >
+                  {followQ.data ? "Seguindo" : "Seguir"}
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {live.status === "live" && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-1.5 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Live
+                </span>
+              )}
+              <span className="rounded-md bg-black/60 text-white text-[11px] px-2 py-1 flex items-center gap-1">
+                <Users className="h-3 w-3" /> {formatViewers(viewersQ.data?.length ?? 0)}
+              </span>
+              <span className="hidden sm:inline rounded-md bg-black/60 text-white text-[11px] px-2 py-1 font-mono">{elapsed}</span>
+              <span className={cn("hidden sm:flex rounded-md bg-black/60 text-[11px] px-2 py-1 items-center gap-1", qualityColor)}>
+                <Signal className="h-3 w-3" />
+              </span>
+              <button
+                onClick={() => navigate({ to: "/lives" })}
+                aria-label="Fechar"
+                className="h-8 w-8 rounded-full bg-black/60 grid place-items-center text-white hover:bg-black/80"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            {live.status === "live" && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-1.5 py-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Live
+          {pinned && (
+            <div className="mt-2 flex items-start gap-2 rounded-xl bg-primary/15 border border-primary/30 px-2.5 py-1.5 text-white text-[12px] backdrop-blur-md">
+              <Pin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+              <span className="min-w-0">
+                <b className="mr-1">{pinned.profile?.display_name ?? pinned.profile?.username ?? "user"}</b>
+                {pinned.content}
               </span>
-            )}
-            <span className="rounded-md bg-black/60 text-white text-[11px] px-2 py-1 flex items-center gap-1">
-              <Users className="h-3 w-3" /> {formatViewers(viewersQ.data?.length ?? 0)}
-            </span>
-            <span className="rounded-md bg-black/60 text-white text-[11px] px-2 py-1 font-mono">{elapsed}</span>
-            <span className={cn("rounded-md bg-black/60 text-[11px] px-2 py-1 flex items-center gap-1", qualityColor)}>
-              <Signal className="h-3 w-3" />
-            </span>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Preparing overlay for host */}
         {isHost && live.status === "preparing" && (
           <div className="absolute inset-0 grid place-items-center bg-black/60 backdrop-blur-sm">
-            <div className="text-center space-y-4 max-w-sm">
+            <div className="text-center space-y-4 max-w-sm px-6">
               <Radio className="h-12 w-12 text-primary mx-auto animate-pulse" />
               <h2 className="text-white text-xl font-bold">Pronto para começar?</h2>
               <p className="text-white/70 text-sm">Verifique câmera e microfone abaixo. Quando tudo estiver ok, entre ao vivo.</p>
@@ -502,45 +747,137 @@ function LiveRoom() {
           </div>
         )}
 
-        {/* Ended overlay */}
+        {/* Resumo pós-live */}
         {live.status === "ended" && (
-          <div className="absolute inset-0 grid place-items-center bg-black/70">
-            <div className="text-center space-y-2">
-              <h2 className="text-white text-2xl font-bold">Transmissão encerrada</h2>
-              <p className="text-white/70 text-sm">Pico de {formatViewers(live.peak_viewer_count)} espectadores.</p>
-              <Button onClick={() => navigate({ to: "/lives" })} className="mt-3 rounded-full">Voltar ao feed</Button>
+          <div className="absolute inset-0 overflow-y-auto bg-black/85 backdrop-blur-sm p-5 grid place-items-center">
+            <div className="w-full max-w-sm rounded-3xl border border-[color:var(--hairline)] bg-[color:var(--surface)] p-5 space-y-4">
+              <div className="text-center">
+                <h2 className="text-xl font-bold">Transmissão encerrada</h2>
+                <p className="text-sm text-muted-foreground">{live.title}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Stat label="Duração" value={formatDuration(live.started_at, live.ended_at)} />
+                <Stat label="Pico de espectadores" value={formatViewers(live.peak_viewer_count)} />
+                <Stat label="Curtidas" value={formatViewers(live.like_count ?? 0)} />
+                <Stat label="Presentes" value={`${supportersQ.data?.count ?? 0} · ${supportersQ.data?.coins ?? 0} 🪙`} />
+              </div>
+              {!!supportersQ.data?.top.length && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">Principais apoiadores</div>
+                  <div className="space-y-1.5">
+                    {supportersQ.data.top.slice(0, 3).map((s, i) => (
+                      <div key={s.id} className="flex items-center gap-2 text-sm">
+                        <span className="w-4 text-xs text-muted-foreground">{i + 1}</span>
+                        <UserAvatar avatarPath={s.profile?.avatar_url ?? null} displayName={s.profile?.display_name ?? "?"} className="h-6 w-6" />
+                        <span className="flex-1 truncate">{s.profile?.display_name ?? s.profile?.username}</span>
+                        <span className="text-primary text-xs font-semibold">{s.coins} 🪙</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <Button onClick={() => navigate({ to: "/lives" })} className="w-full rounded-full">Voltar às lives</Button>
             </div>
           </div>
         )}
 
-        {/* BOTTOM controls */}
-        <div className="absolute bottom-0 inset-x-0 p-3 flex items-center gap-2 justify-center bg-gradient-to-t from-black/70 to-transparent">
-          {isHost ? (
-            <>
-              <IconBtn onClick={toggleMic} active={micOn} Icon={micOn ? Mic : MicOff} label={micOn ? "Mudo" : "Ativar"} />
-              <IconBtn onClick={toggleCam} active={camOn} Icon={camOn ? Video : VideoOff} label={camOn ? "Câmera" : "Ligar câmera"} />
-              <IconBtn onClick={flipCam} Icon={RefreshCcw} label="Flip" />
-              <IconBtn onClick={toggleScreen} active={screenOn} Icon={screenOn ? MonitorOff : MonitorUp} label={screenOn ? "Parar tela" : "Compartilhar tela"} />
-              <IconBtn onClick={share} Icon={Share2} label="Compartilhar" />
-              <button onClick={finish} className="ml-2 h-11 px-4 rounded-full bg-red-600 hover:bg-red-500 text-white text-sm font-semibold flex items-center gap-1.5">
-                <DoorOpen className="h-4 w-4" /> Encerrar
-              </button>
-            </>
-          ) : (
-            <>
-              <IconBtn onClick={() => sendReaction("❤️")} Icon={Heart} label="Curtir" />
-              <IconBtn onClick={() => setTab("gifts")} Icon={Gift} label="Presente" />
-              <IconBtn onClick={share} Icon={Share2} label="Compartilhar" />
-              <button onClick={() => navigate({ to: "/lives" })} className="ml-2 h-11 px-4 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-semibold">
-                Sair
-              </button>
-            </>
-          )}
-        </div>
+        {/* Comentários flutuantes (mobile) */}
+        {live.status !== "ended" && (
+          <div className="md:hidden pointer-events-none absolute bottom-[6.5rem] left-3 right-20 space-y-1.5">
+            {lastMessages.map((m: any) => (
+              <div key={m.id} className="flex items-start gap-1.5 text-[12px] text-white drop-shadow">
+                <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? "?"} className="h-5 w-5" />
+                <span className="rounded-2xl bg-black/45 backdrop-blur-sm px-2 py-1">
+                  <b className="text-primary mr-1">{m.profile?.display_name ?? m.profile?.username ?? "user"}</b>
+                  {m.content}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Barra lateral de ações (mobile) */}
+        {live.status !== "ended" && (
+          <div className="md:hidden absolute right-2 bottom-[6.5rem] flex flex-col items-center gap-3">
+            <RailBtn Icon={Heart} label="Curtir" onClick={() => { void sendReaction("❤️"); setShowReactionBar((v) => !v); }} />
+            {showReactionBar && (
+              <div className="flex flex-col gap-1 rounded-full bg-black/50 backdrop-blur-md p-1.5">
+                {QUICK_REACTIONS.map((e) => (
+                  <button key={e} className="text-xl" onClick={() => sendReaction(e)}>{e}</button>
+                ))}
+              </div>
+            )}
+            {!amHostUser && <RailBtn Icon={Gift} label="Presente" onClick={() => setMobileSheet("gifts")} />}
+            <RailBtn Icon={Users} label="Pessoas" onClick={() => setMobileSheet("people")} badge={viewersQ.data?.length} />
+            <RailBtn Icon={Share2} label="Compartilhar" onClick={share} />
+            {hostProfileQ.data?.username && (
+              <Link to="/u/$username" params={{ username: hostProfileQ.data.username }} aria-label="Perfil do criador">
+                <RailBtn Icon={UserPlus} label="Perfil" onClick={() => {}} />
+              </Link>
+            )}
+            {amHostUser ? (
+              <RailBtn Icon={BarChart3} label="Painel" onClick={() => setMobileSheet("panel")} />
+            ) : (
+              <RailBtn Icon={Flag} label="Denunciar" onClick={() => toast.success("Denúncia enviada para análise.")} />
+            )}
+          </div>
+        )}
+
+        {/* Barra inferior */}
+        {live.status !== "ended" && (
+          <div className="absolute bottom-0 inset-x-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 to-transparent">
+            {/* Mobile: comentar + controles do host */}
+            <div className="md:hidden flex items-center gap-2">
+              <form onSubmit={sendChat} className="flex-1 flex items-center gap-2">
+                <input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Comentar…"
+                  maxLength={500}
+                  className="flex-1 h-11 rounded-full bg-white/12 backdrop-blur-md px-4 text-sm text-white placeholder:text-white/50 outline-none focus:bg-white/20"
+                />
+                <button type="submit" aria-label="Enviar" className="h-11 w-11 rounded-full bg-primary text-primary-foreground grid place-items-center">
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
+              {isHost && (
+                <button onClick={() => setMobileSheet("panel")} aria-label="Painel do criador" className="h-11 w-11 rounded-full bg-white/12 backdrop-blur-md text-white grid place-items-center">
+                  <BarChart3 className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Desktop */}
+            <div className="hidden md:flex items-center gap-2 justify-center">
+              {isHost ? (
+                <>
+                  <IconBtn onClick={toggleMic} active={micOn} Icon={micOn ? Mic : MicOff} label={micOn ? "Mudo" : "Ativar"} />
+                  <IconBtn onClick={toggleCam} active={camOn} Icon={camOn ? Video : VideoOff} label={camOn ? "Câmera" : "Ligar câmera"} />
+                  <IconBtn onClick={flipCam} Icon={RefreshCcw} label="Flip" />
+                  <IconBtn onClick={toggleScreen} active={screenOn} Icon={screenOn ? MonitorOff : MonitorUp} label={screenOn ? "Parar tela" : "Compartilhar tela"} />
+                  <IconBtn onClick={share} Icon={Share2} label="Compartilhar" />
+                  <IconBtn onClick={() => setMobileSheet("panel")} Icon={BarChart3} label="Painel do criador" />
+                  <button onClick={finish} className="ml-2 h-11 px-4 rounded-full bg-red-600 hover:bg-red-500 text-white text-sm font-semibold flex items-center gap-1.5">
+                    <DoorOpen className="h-4 w-4" /> Encerrar
+                  </button>
+                </>
+              ) : (
+                <>
+                  <IconBtn onClick={() => sendReaction("❤️")} Icon={Heart} label="Curtir" />
+                  <IconBtn onClick={() => setTab("gifts")} Icon={Gift} label="Presente" />
+                  <IconBtn onClick={share} Icon={Share2} label="Compartilhar" />
+                  <button onClick={() => navigate({ to: "/lives" })} className="ml-2 h-11 px-4 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-semibold">
+                    Sair
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* SIDE PANEL */}
-      <aside className="md:w-[380px] flex flex-col rounded-3xl overflow-hidden bg-[color:var(--surface)] border border-[color:var(--hairline)]">
+      {/* SIDE PANEL (desktop) */}
+      <aside className="hidden md:flex md:w-[380px] flex-col rounded-3xl overflow-hidden bg-[color:var(--surface)] border border-[color:var(--hairline)]">
         <div className="flex hairline-b">
           <TabBtn active={tab === "chat"} onClick={() => setTab("chat")} Icon={MessageCircle}>Chat</TabBtn>
           <TabBtn active={tab === "people"} onClick={() => setTab("people")} Icon={Users}>Pessoas ({viewersQ.data?.length ?? 0})</TabBtn>
@@ -549,72 +886,156 @@ function LiveRoom() {
 
         {tab === "chat" && (
           <>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {chatQ.data?.length ? chatQ.data.map((m: any) => (
-                <div key={m.id} className={cn("flex items-start gap-2 rounded-xl p-2", m.is_highlighted ? "bg-primary/10 ring-1 ring-primary/40" : "")}>
-                  <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? m.profile?.username ?? "?"} className="h-6 w-6" />
-                  <div className="text-[13px] min-w-0 flex-1">
-                    <span className="font-semibold text-primary mr-1.5">{m.profile?.display_name ?? m.profile?.username ?? "user"}</span>
-                    <span className="break-words">{m.content}</span>
-                  </div>
-                </div>
-              )) : <p className="text-sm text-muted-foreground text-center py-6">Seja o primeiro a comentar 👋</p>}
-            </div>
+            {chatList}
             <form onSubmit={sendChat} className="flex gap-2 p-3 hairline-t">
               <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Diga algo…" maxLength={500} className="rounded-full bg-background" />
               <Button size="icon" type="submit" className="rounded-full"><Send className="h-4 w-4" /></Button>
             </form>
           </>
         )}
-
-        {tab === "people" && (
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {viewersQ.data?.map((v: any) => (
-              <div key={v.user_id} className="flex items-center gap-2 p-2 rounded-xl hover:bg-[color:var(--surface-2)]">
-                <UserAvatar avatarPath={v.profile?.avatar_url ?? null} displayName={v.profile?.display_name ?? v.profile?.username ?? "?"} className="h-8 w-8" />
-                <div className="text-sm flex-1 min-w-0 truncate">
-                  {v.profile?.display_name ?? v.profile?.username ?? "Espectador"}
-                  {v.user_id === live.host_id && <span className="ml-1 text-[10px] text-primary font-semibold">HOST</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {tab === "gifts" && (
-          <div className="flex-1 overflow-y-auto p-3 grid grid-cols-3 gap-2">
-            {giftCatalogQ.data?.map((g) => {
-              const meta = getGiftMeta(g.name);
-              const r = RARITY_STYLE[meta.rarity];
-              return (
-                <button
-                  key={g.id}
-                  onClick={() => sendGift(g)}
-                  disabled={user.id === live.host_id}
-                  className={cn(
-                    "relative rounded-2xl border p-3 transition text-center disabled:opacity-40 overflow-hidden",
-                    r.ring,
-                    "hover:-translate-y-0.5",
-                  )}
-                  style={{
-                    background: `linear-gradient(160deg, ${meta.color}18, transparent 70%)`,
-                    boxShadow: r.glow,
-                  }}
-                >
-                  <div className="text-3xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">{g.emoji}</div>
-                  <div className="text-[11px] font-semibold mt-1 truncate">{g.name}</div>
-                  <div className={cn("text-[9px] uppercase tracking-widest font-bold", r.text)}>{r.label}</div>
-                  <div className="text-[10px] text-primary mt-0.5">{g.cost_coins} 🪙</div>
-                </button>
-              );
-            })}
-            <p className="col-span-3 text-[11px] text-muted-foreground text-center mt-2">
-              Envie presentes épicos para apoiar o criador ✨
-            </p>
-          </div>
-        )}
+        {tab === "people" && peopleList}
+        {tab === "gifts" && giftsGrid}
       </aside>
+
+      {/* Sheets mobile + painel do criador */}
+      <Sheet open={mobileSheet !== null} onOpenChange={(o) => !o && setMobileSheet(null)}>
+        <SheetContent side="bottom" className="h-[75vh] flex flex-col p-0 rounded-t-3xl">
+          <SheetHeader className="p-4 pb-2">
+            <SheetTitle>
+              {mobileSheet === "gifts" ? "Presentes" : mobileSheet === "people" ? "Pessoas na live" : mobileSheet === "panel" ? "Painel do criador" : "Comentários"}
+            </SheetTitle>
+          </SheetHeader>
+          {mobileSheet === "gifts" && giftsGrid}
+          {mobileSheet === "people" && peopleList}
+          {mobileSheet === "chat" && chatList}
+          {mobileSheet === "panel" && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <Stat label="Espectadores agora" value={formatViewers(viewersQ.data?.length ?? 0)} />
+                <Stat label="Pico" value={formatViewers(live.peak_viewer_count)} />
+                <Stat label="Curtidas" value={formatViewers(live.like_count ?? 0)} />
+                <Stat label="Presentes" value={`${supportersQ.data?.count ?? 0} · ${supportersQ.data?.coins ?? 0} 🪙`} />
+                <Stat label="Tempo no ar" value={elapsed} />
+                <Stat label="Moderadores" value={`${modsQ.data?.length ?? 0}`} />
+              </div>
+              {!!supportersQ.data?.top.length && (
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-muted-foreground mb-2">Ranking de apoiadores</div>
+                  <div className="space-y-1.5">
+                    {supportersQ.data.top.map((s, i) => (
+                      <div key={s.id} className="flex items-center gap-2 text-sm">
+                        <span className="w-4 text-xs text-muted-foreground">{i + 1}</span>
+                        <UserAvatar avatarPath={s.profile?.avatar_url ?? null} displayName={s.profile?.display_name ?? "?"} className="h-6 w-6" />
+                        <span className="flex-1 truncate">{s.profile?.display_name ?? s.profile?.username}</span>
+                        <span className="text-primary text-xs font-semibold">{s.coins} 🪙</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {isHost && (
+                <div className="grid grid-cols-2 gap-2">
+                  <PanelBtn onClick={toggleMic} active={micOn} Icon={micOn ? Mic : MicOff} label={micOn ? "Microfone ligado" : "Microfone mudo"} />
+                  <PanelBtn onClick={toggleCam} active={camOn} Icon={camOn ? Video : VideoOff} label={camOn ? "Câmera ligada" : "Câmera desligada"} />
+                  <PanelBtn onClick={flipCam} Icon={RefreshCcw} label="Virar câmera" />
+                  <PanelBtn onClick={toggleScreen} active={screenOn} Icon={screenOn ? MonitorOff : MonitorUp} label={screenOn ? "Parar tela" : "Compartilhar tela"} />
+                  <PanelBtn onClick={() => setMobileSheet("people")} Icon={Users} label="Moderar pessoas" />
+                  <PanelBtn onClick={share} Icon={Share2} label="Convidar" />
+                </div>
+              )}
+              {isHost && (
+                <button onClick={finish} className="w-full h-11 rounded-full bg-red-600 hover:bg-red-500 text-white text-sm font-semibold flex items-center justify-center gap-1.5">
+                  <DoorOpen className="h-4 w-4" /> Encerrar transmissão
+                </button>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
+  );
+}
+
+function formatDuration(startedAt: string | null, endedAt: string | null) {
+  if (!startedAt || !endedAt) return "—";
+  const mins = Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 60000));
+  if (mins < 60) return `${mins}min`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}min`;
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface-2)] p-3">
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="text-base font-semibold mt-0.5">{value}</div>
+    </div>
+  );
+}
+
+function ChatRow({
+  m, hostId, canModerate, amHostUser, onPin, onDelete, onBan, onMod,
+}: {
+  m: any; hostId: string; canModerate: boolean; amHostUser: boolean;
+  onPin: () => void; onDelete: () => void; onBan: () => void; onMod: () => void;
+}) {
+  return (
+    <div className={cn("group flex items-start gap-2 rounded-xl p-2", m.is_highlighted || m.pinned ? "bg-primary/10 ring-1 ring-primary/40" : "")}>
+      <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? m.profile?.username ?? "?"} className="h-6 w-6" />
+      <div className="text-[13px] min-w-0 flex-1">
+        <span className="font-semibold text-primary mr-1.5">{m.profile?.display_name ?? m.profile?.username ?? "user"}</span>
+        <span className="break-words">{m.content}</span>
+      </div>
+      {canModerate && (
+        <DropdownMenu>
+          <DropdownMenuTrigger className="h-6 w-6 grid place-items-center rounded-full opacity-60 hover:opacity-100 hover:bg-white/10">
+            <MoreVertical className="h-3.5 w-3.5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onPin}>
+              <Pin className="h-4 w-4 mr-2" /> {m.pinned ? "Desafixar" : "Fixar comentário"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete}>
+              <Trash2 className="h-4 w-4 mr-2" /> Apagar comentário
+            </DropdownMenuItem>
+            {amHostUser && m.sender_id !== hostId && (
+              <DropdownMenuItem onClick={onMod}>
+                <ShieldPlus className="h-4 w-4 mr-2" /> Tornar moderador
+              </DropdownMenuItem>
+            )}
+            {m.sender_id !== hostId && (
+              <DropdownMenuItem className="text-red-400" onClick={onBan}>
+                <ShieldBan className="h-4 w-4 mr-2" /> Remover da live
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
+}
+
+function RailBtn({ Icon, label, onClick, badge }: { Icon: typeof Mic; label: string; onClick: () => void; badge?: number }) {
+  return (
+    <button onClick={onClick} aria-label={label} className="relative h-12 w-12 rounded-full bg-black/45 backdrop-blur-md grid place-items-center text-white active:scale-95 transition">
+      <Icon className="h-5 w-5" />
+      {typeof badge === "number" && badge > 0 && (
+        <span className="absolute -bottom-1 text-[10px] bg-black/70 rounded-full px-1.5">{formatViewers(badge)}</span>
+      )}
+    </button>
+  );
+}
+
+function PanelBtn({ onClick, Icon, label, active }: { onClick: () => void; Icon: typeof Mic; label: string; active?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "rounded-2xl border p-3 text-left text-[12px] font-medium flex items-center gap-2 transition",
+        active === false ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-[color:var(--hairline)] bg-[color:var(--surface-2)]",
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" /> {label}
+    </button>
   );
 }
 

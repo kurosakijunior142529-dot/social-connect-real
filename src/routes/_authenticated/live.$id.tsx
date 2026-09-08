@@ -61,6 +61,16 @@ type Live = {
 
 const QUICK_REACTIONS = ["❤️", "🔥", "👏", "😂", "🎉", "😮"];
 
+/** Presets de captura da câmera — até 4K e 120 fps quando o aparelho permitir. */
+type QualityKey = "720p30" | "1080p60" | "1440p60" | "4k60" | "4k120";
+const QUALITY_PRESETS: Record<QualityKey, { label: string; width: number; height: number; frameRate: number }> = {
+  "720p30": { label: "HD 720p · 30fps", width: 1280, height: 720, frameRate: 30 },
+  "1080p60": { label: "Full HD 1080p · 60fps", width: 1920, height: 1080, frameRate: 60 },
+  "1440p60": { label: "QHD 1440p · 60fps", width: 2560, height: 1440, frameRate: 60 },
+  "4k60": { label: "4K · 60fps", width: 3840, height: 2160, frameRate: 60 },
+  "4k120": { label: "4K · 120fps", width: 3840, height: 2160, frameRate: 120 },
+};
+
 function LiveRoom() {
   const { id: liveId } = Route.useParams();
   const { user } = Route.useRouteContext();
@@ -77,6 +87,7 @@ function LiveRoom() {
   const [camOn, setCamOn] = useState(true);
   const [screenOn, setScreenOn] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [videoQuality, setVideoQuality] = useState<QualityKey>("1080p60");
   const [quality, setQuality] = useState<ConnectionQuality>(ConnectionQuality.Unknown);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [elapsed, setElapsed] = useState("00:00");
@@ -349,17 +360,35 @@ function LiveRoom() {
 
       if (t.isHost) {
         try {
-          const tracks = await createLocalTracks({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              channelCount: 1,
-              sampleRate: 48000,
-            },
-            video: { facingMode, resolution: { width: 1280, height: 720, frameRate: 30 } },
-          });
-          for (const tr of tracks) await r.localParticipant.publishTrack(tr);
+          const preset = QUALITY_PRESETS[videoQuality];
+          const audio = {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1,
+            sampleRate: 48000,
+          };
+          let tracks;
+          try {
+            tracks = await createLocalTracks({
+              audio,
+              video: { facingMode, resolution: { width: preset.width, height: preset.height, frameRate: preset.frameRate } },
+            });
+          } catch {
+            // Aparelho não suporta o preset escolhido: cai para Full HD.
+            tracks = await createLocalTracks({
+              audio,
+              video: { facingMode, resolution: { width: 1920, height: 1080, frameRate: 30 } },
+            });
+            toast.message("Seu aparelho não suporta essa qualidade. Usando Full HD.");
+          }
+          for (const tr of tracks) {
+            await r.localParticipant.publishTrack(tr, {
+              videoEncoding: tr.kind === "video"
+                ? { maxBitrate: bitrateFor(videoQuality), maxFramerate: preset.frameRate }
+                : undefined,
+            });
+          }
           // Bind local video preview
           const camPub = r.localParticipant.getTrackPublication(Track.Source.Camera) as LocalTrackPublication | undefined;
           if (camPub?.track && videoRef.current) {
@@ -433,20 +462,63 @@ function LiveRoom() {
       toast.error("Este dispositivo não permite alternar câmera.");
     }
   };
+  /** Troca a qualidade da câmera durante a transmissão, sem encerrar a live. */
+  const changeQuality = async (key: QualityKey) => {
+    setVideoQuality(key);
+    const p = QUALITY_PRESETS[key];
+    if (!room) return;
+    try {
+      const camPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+      if (camPub?.track) {
+        await (camPub.track as any).restartTrack({
+          facingMode,
+          resolution: { width: p.width, height: p.height, frameRate: p.frameRate },
+        });
+        toast.success(`Qualidade: ${p.label}`);
+      }
+    } catch {
+      toast.error("Seu aparelho não suporta essa qualidade.");
+    }
+  };
+
+  /** Compartilha tela do PC, do celular (quando suportado) ou de um jogo. */
   const toggleScreen = async () => {
     if (!room) return;
     if (screenOn) {
       const pubs = Array.from(room.localParticipant.trackPublications.values()).filter((p) => p.source === Track.Source.ScreenShare || p.source === Track.Source.ScreenShareAudio);
       for (const pub of pubs) if (pub.track) await room.localParticipant.unpublishTrack(pub.track);
       setScreenOn(false);
-    } else {
+      return;
+    }
+    const canCapture = typeof navigator !== "undefined"
+      && !!(navigator.mediaDevices as any)?.getDisplayMedia;
+    if (!canCapture) {
+      toast.error("Este navegador não permite transmitir a tela. No celular, use o app do Vibely ou transmita pelo PC.");
+      return;
+    }
+    const p = QUALITY_PRESETS[videoQuality];
+    try {
+      let tracks;
       try {
-        const tracks = await createLocalScreenTracks({ audio: true, resolution: { width: 1920, height: 1080, frameRate: 30 } });
-        for (const t of tracks) await room.localParticipant.publishTrack(t);
-        setScreenOn(true);
+        tracks = await createLocalScreenTracks({
+          audio: true,
+          resolution: { width: p.width, height: p.height, frameRate: Math.min(p.frameRate, 60) },
+        });
       } catch {
-        toast.error("Compartilhamento de tela cancelado.");
+        tracks = await createLocalScreenTracks({ audio: true, resolution: { width: 1920, height: 1080, frameRate: 60 } });
       }
+      for (const t of tracks) {
+        await room.localParticipant.publishTrack(t, {
+          videoEncoding: t.kind === "video" ? { maxBitrate: bitrateFor(videoQuality), maxFramerate: Math.min(p.frameRate, 60) } : undefined,
+        });
+        if (t.kind === "video") {
+          t.mediaStreamTrack.addEventListener("ended", () => setScreenOn(false), { once: true });
+        }
+      }
+      setScreenOn(true);
+      toast.success("Transmitindo sua tela.");
+    } catch {
+      toast.error("Compartilhamento de tela cancelado.");
     }
   };
 
@@ -807,7 +879,14 @@ function LiveRoom() {
                 ))}
               </div>
             )}
-            {!amHostUser && <RailBtn Icon={Gift} label="Presente" onClick={() => setMobileSheet("gifts")} />}
+            <RailBtn Icon={Gift} label="Presente" onClick={() => setMobileSheet("gifts")} />
+            {isHost && (
+              <RailBtn
+                Icon={screenOn ? MonitorOff : MonitorUp}
+                label={screenOn ? "Parar tela" : "Compartilhar tela"}
+                onClick={toggleScreen}
+              />
+            )}
             <RailBtn Icon={Users} label="Pessoas" onClick={() => setMobileSheet("people")} badge={viewersQ.data?.length} />
             <RailBtn Icon={Share2} label="Compartilhar" onClick={share} />
             {hostProfileQ.data?.username && (
@@ -840,6 +919,9 @@ function LiveRoom() {
                   <Send className="h-4 w-4" />
                 </button>
               </form>
+              <button onClick={() => setMobileSheet("gifts")} aria-label="Enviar presente" className="h-11 w-11 rounded-full bg-white/12 backdrop-blur-md text-white grid place-items-center">
+                <Gift className="h-5 w-5" />
+              </button>
               {isHost && (
                 <button onClick={() => setMobileSheet("panel")} aria-label="Painel do criador" className="h-11 w-11 rounded-full bg-white/12 backdrop-blur-md text-white grid place-items-center">
                   <BarChart3 className="h-5 w-5" />
@@ -855,6 +937,7 @@ function LiveRoom() {
                   <IconBtn onClick={toggleCam} active={camOn} Icon={camOn ? Video : VideoOff} label={camOn ? "Câmera" : "Ligar câmera"} />
                   <IconBtn onClick={flipCam} Icon={RefreshCcw} label="Flip" />
                   <IconBtn onClick={toggleScreen} active={screenOn} Icon={screenOn ? MonitorOff : MonitorUp} label={screenOn ? "Parar tela" : "Compartilhar tela"} />
+                  <IconBtn onClick={() => setTab("gifts")} Icon={Gift} label="Presentes recebidos" />
                   <IconBtn onClick={share} Icon={Share2} label="Compartilhar" />
                   <IconBtn onClick={() => setMobileSheet("panel")} Icon={BarChart3} label="Painel do criador" />
                   <button onClick={finish} className="ml-2 h-11 px-4 rounded-full bg-red-600 hover:bg-red-500 text-white text-sm font-semibold flex items-center gap-1.5">
@@ -941,6 +1024,30 @@ function LiveRoom() {
                   <PanelBtn onClick={toggleScreen} active={screenOn} Icon={screenOn ? MonitorOff : MonitorUp} label={screenOn ? "Parar tela" : "Compartilhar tela"} />
                   <PanelBtn onClick={() => setMobileSheet("people")} Icon={Users} label="Moderar pessoas" />
                   <PanelBtn onClick={share} Icon={Share2} label="Convidar" />
+                </div>
+              )}
+              {isHost && (
+                <div className="rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface-2)] p-3">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Qualidade da imagem</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(Object.keys(QUALITY_PRESETS) as QualityKey[]).map((k) => (
+                      <button
+                        key={k}
+                        onClick={() => changeQuality(k)}
+                        className={cn(
+                          "rounded-xl border px-3 py-2 text-[12px] font-medium text-left transition",
+                          videoQuality === k
+                            ? "border-primary/60 bg-primary/15 text-foreground"
+                            : "border-[color:var(--hairline)] hover:bg-white/5",
+                        )}
+                      >
+                        {QUALITY_PRESETS[k].label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Se o aparelho ou a internet não aguentar, a qualidade cai automaticamente.
+                  </p>
                 </div>
               )}
               {isHost && (
@@ -1061,4 +1168,15 @@ function TabBtn({ active, onClick, Icon, children }: { active: boolean; onClick:
       <Icon className="h-3.5 w-3.5" /> {children}
     </button>
   );
+}
+
+/** Bitrate alvo por preset de qualidade (bits por segundo). */
+function bitrateFor(key: QualityKey) {
+  switch (key) {
+    case "4k120": return 24_000_000;
+    case "4k60": return 16_000_000;
+    case "1440p60": return 9_000_000;
+    case "1080p60": return 5_000_000;
+    default: return 2_500_000;
+  }
 }

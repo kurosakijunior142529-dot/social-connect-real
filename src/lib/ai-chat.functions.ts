@@ -60,7 +60,7 @@ export const listMessages = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await (context.supabase as any)
       .from("ai_messages")
-      .select("id, role, content, image_url, attachments, created_at")
+      .select("id, role, content, image_url, video_url, attachments, created_at")
       .eq("thread_id", data.threadId)
       .eq("user_id", context.userId)
       .order("created_at", { ascending: true });
@@ -70,6 +70,7 @@ export const listMessages = createServerFn({ method: "GET" })
       role: string;
       content: string;
       image_url: string | null;
+      video_url: string | null;
       attachments: { name: string; mime: string; kind: string }[] | null;
       created_at: string;
     }[];
@@ -366,15 +367,51 @@ export const generateImage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
+    if (!key) throw new Error("A geração de imagem não está configurada no servidor.");
+    const db = context.supabase as any;
+    const model = "google/gemini-3.1-flash-image";
+
+    // Limite diário simples (controle de custo).
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await db
+      .from("ai_generations")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .eq("kind", "image")
+      .gte("created_at", since);
+    if ((count ?? 0) >= 40) throw new Error("Limite de 40 imagens por dia atingido. Tente novamente amanhã.");
 
     // Save user prompt message first
-    await (context.supabase as any).from("ai_messages").insert({
+    await db.from("ai_messages").insert({
       thread_id: data.threadId,
       user_id: context.userId,
       role: "user",
       content: `/imagem ${data.prompt}`,
     });
+
+    const { data: gen } = await db
+      .from("ai_generations")
+      .insert({
+        user_id: context.userId,
+        thread_id: data.threadId,
+        kind: "image",
+        status: "processing",
+        prompt: data.prompt,
+        model,
+      })
+      .select("id")
+      .single();
+
+    const fail = async (message: string, detail: string) => {
+      console.error("[ai-image]", detail.slice(0, 500));
+      if (gen?.id) {
+        await db
+          .from("ai_generations")
+          .update({ status: "failed", error: detail.slice(0, 500), updated_at: new Date().toISOString() })
+          .eq("id", gen.id);
+      }
+      return new Error(message);
+    };
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
       method: "POST",
@@ -382,19 +419,24 @@ export const generateImage = createServerFn({ method: "POST" })
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-3.1-flash-image",
-        messages: [{ role: "user", content: data.prompt }],
-        modalities: ["image", "text"],
-      }),
+      body: JSON.stringify({ model, prompt: data.prompt }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(`Imagem falhou (${res.status}): ${body.slice(0, 200)}`);
+      const message =
+        res.status === 402
+          ? "Os créditos de IA acabaram. Adicione créditos para gerar imagens."
+          : res.status === 429
+            ? "Muitos pedidos agora. Tente de novo em instantes."
+            : res.status === 400
+              ? "Não consegui gerar com essa descrição. Tente descrever de outro jeito."
+              : "Não foi possível gerar a imagem agora.";
+      throw await fail(message, `HTTP ${res.status} ${body}`);
     }
     const json = await res.json() as any;
     const b64 = json?.data?.[0]?.b64_json;
-    if (!b64) throw new Error("A IA não retornou imagem");
+    if (!b64) throw await fail("A IA não retornou imagem. Tente de novo.", "sem b64_json");
+
 
     // Upload to posts bucket under <uid>/ai/ (storage RLS requires the first folder to be the user id)
     const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -402,7 +444,7 @@ export const generateImage = createServerFn({ method: "POST" })
     const { error: upErr } = await (context.supabase as any).storage
       .from("posts")
       .upload(path, buf, { contentType: "image/png", upsert: false });
-    if (upErr) throw new Error(upErr.message);
+    if (upErr) throw await fail("Não consegui salvar a imagem gerada.", upErr.message);
 
     const { data: aiMsg, error } = await (context.supabase as any)
       .from("ai_messages")
@@ -415,7 +457,14 @@ export const generateImage = createServerFn({ method: "POST" })
       })
       .select("id, role, content, image_url, attachments, created_at")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw await fail("Não consegui salvar a imagem gerada.", error.message);
+
+    if (gen?.id) {
+      await db
+        .from("ai_generations")
+        .update({ status: "completed", result_path: path, message_id: aiMsg?.id ?? null, updated_at: new Date().toISOString() })
+        .eq("id", gen.id);
+    }
 
     return { assistant: aiMsg };
   });

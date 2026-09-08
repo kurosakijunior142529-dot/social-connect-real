@@ -94,6 +94,71 @@ export type Database = {
           },
         ]
       }
+      ai_generations: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          error: string | null
+          id: string
+          job_id: string | null
+          kind: string
+          message_id: string | null
+          model: string
+          post_id: string | null
+          prompt: string
+          provider: string
+          result_path: string | null
+          status: string
+          thread_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          kind: string
+          message_id?: string | null
+          model: string
+          post_id?: string | null
+          prompt: string
+          provider?: string
+          result_path?: string | null
+          status?: string
+          thread_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          kind?: string
+          message_id?: string | null
+          model?: string
+          post_id?: string | null
+          prompt?: string
+          provider?: string
+          result_path?: string | null
+          status?: string
+          thread_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_generations_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_memories: {
         Row: {
           created_at: string
@@ -131,6 +196,7 @@ export type Database = {
           role: string
           thread_id: string
           user_id: string
+          video_url: string | null
         }
         Insert: {
           attachments?: Json
@@ -141,6 +207,7 @@ export type Database = {
           role: string
           thread_id: string
           user_id: string
+          video_url?: string | null
         }
         Update: {
           attachments?: Json
@@ -151,6 +218,7 @@ export type Database = {
           role?: string
           thread_id?: string
           user_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {

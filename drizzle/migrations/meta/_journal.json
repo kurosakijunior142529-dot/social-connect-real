@@ -232,6 +232,13 @@
       "when": 1788753854102,
       "tag": "0032_restrict_live_reactions_select",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788876572054,
+      "tag": "0033_ai_generations_and_video_messages",
+      "breakpoints": true
     }
   ]
 }

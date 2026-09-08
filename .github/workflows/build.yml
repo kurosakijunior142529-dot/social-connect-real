@@ -1,0 +1,189 @@
+name: Build Android APK
+
+# ============================================================================
+# Geração automática do APK do Vibely (Android) via GitHub Actions.
+#
+# Fluxo:
+#   1. Instala as dependências (Bun)
+#   2. Faz o build web (Vite → dist/client)
+#   3. Cria a plataforma Android se a pasta android/ não existir
+#   4. Sincroniza os assets web com o projeto Android (npx cap sync)
+#   5. Compila o APK com Gradle
+#   6. Publica o APK como artifact do workflow
+#
+# Gatilhos:
+#   - push em main/master que toque em código ou Capacitor
+#   - pull request em main/master
+#   - execução manual (workflow_dispatch)
+# ============================================================================
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Tipo do APK (debug ou release)'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+# Evita builds concorrentes duplicados no mesmo branch.
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Gerar APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Tipo do build: 'release' quando acionado manualmente com essa opção,
+      # senão 'debug'. Release sem assinatura produz um APK não instalável em
+      # produção — para distribuição assinada, configure os secrets abaixo.
+      BUILD_TYPE: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_type == 'release') && 'release' || 'debug' }}
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------------------------------
+      # Dependências web (Bun)
+      # --------------------------------------------------------------------------
+      - name: Configurar Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      # --------------------------------------------------------------------------
+      # Build web (Vite → dist/client)
+      # O capacitor.config.ts define webDir: 'dist/client'.
+      # --------------------------------------------------------------------------
+      - name: Build web
+        run: bun run build
+        env:
+          # Variáveis públicas necessárias ao build (edite conforme seu .env).
+          # Use GitHub Secrets para valores sensíveis quando o app crescer.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
+      # --------------------------------------------------------------------------
+      # Ambiente Android (JDK + Android SDK + Gradle)
+      # --------------------------------------------------------------------------
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0'
+
+      - name: Configurar cache do Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # --------------------------------------------------------------------------
+      # Plataforma Android
+      # Cria a pasta android/ se ela ainda não estiver versionada no repositório.
+      # Se você já commitou a pasta android/, esse passo é pulado.
+      # --------------------------------------------------------------------------
+      - name: Adicionar plataforma Android (se ausente)
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Pasta android/ não encontrada — criando com 'npx cap add android'"
+            npx cap add android
+          else
+            echo "Pasta android/ já existe — usando a versionada"
+          fi
+
+      - name: Sincronizar assets web com Android
+        run: npx cap sync android
+
+      # --------------------------------------------------------------------------
+      # Assinatura de release (opcional)
+      # Para gerar um APK de release assinado, crie um keystore localmente:
+      #   keytool -genkeypair -v -keystore vibely.keystore -alias vibely \
+      #     -keyalg RSA -keysize 2048 -validity 10000
+      # Depois adicione como GitHub Secrets (base64):
+      #   ANDROID_KEYSTORE       — base64 do arquivo .keystore
+      #   ANDROID_KEYSTORE_PASS  — senha do keystore
+      #   ANDROID_KEY_ALIAS      — alias da chave
+      #   ANDROID_KEY_PASS       — senha da chave
+      # e defina o input build_type=release ao rodar manualmente.
+      # --------------------------------------------------------------------------
+      - name: Decodificar keystore de release
+        if: env.BUILD_TYPE == 'release' && secrets.ANDROID_KEYSTORE != ''
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > $HOME/vibely.keystore
+          echo "KEYSTORE_PATH=$HOME/vibely.keystore" >> $GITHUB_ENV
+
+      - name: Configurar assinatura no Gradle (release)
+        if: env.BUILD_TYPE == 'release' && secrets.ANDROID_KEYSTORE != ''
+        working-directory: android
+        run: |
+          # Escreve as propriedades de assinatura no gradle.properties do app.
+          cat >> gradle.properties <<EOF
+          VIBELY_KEYSTORE=$KEYSTORE_PATH
+          VIBELY_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASS }}
+          VIBELY_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}
+          VIBELY_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASS }}
+          EOF
+
+      # --------------------------------------------------------------------------
+      # Compila o APK
+      # --------------------------------------------------------------------------
+      - name: Build do APK (${{ env.BUILD_TYPE }})
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          if [ "$BUILD_TYPE" = "release" ]; then
+            ./gradlew assembleRelease --no-daemon
+          else
+            ./gradlew assembleDebug --no-daemon
+          fi
+
+      # --------------------------------------------------------------------------
+      # Publica o APK como artifact do workflow
+      # --------------------------------------------------------------------------
+      - name: Localizar APK gerado
+        id: apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -1)
+          echo "path=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "APK encontrado em: $APK_PATH"
+
+      - name: Upload do APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vibely-${{ env.BUILD_TYPE }}-apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14

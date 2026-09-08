@@ -77,6 +77,7 @@ function LiveRoom() {
   const [camOn, setCamOn] = useState(true);
   const [screenOn, setScreenOn] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [videoQuality, setVideoQuality] = useState<QualityKey>("1080p60");
   const [quality, setQuality] = useState<ConnectionQuality>(ConnectionQuality.Unknown);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [elapsed, setElapsed] = useState("00:00");

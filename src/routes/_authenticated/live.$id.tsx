@@ -879,7 +879,14 @@ function LiveRoom() {
                 ))}
               </div>
             )}
-            {!amHostUser && <RailBtn Icon={Gift} label="Presente" onClick={() => setMobileSheet("gifts")} />}
+            <RailBtn Icon={Gift} label="Presente" onClick={() => setMobileSheet("gifts")} />
+            {isHost && (
+              <RailBtn
+                Icon={screenOn ? MonitorOff : MonitorUp}
+                label={screenOn ? "Parar tela" : "Compartilhar tela"}
+                onClick={toggleScreen}
+              />
+            )}
             <RailBtn Icon={Users} label="Pessoas" onClick={() => setMobileSheet("people")} badge={viewersQ.data?.length} />
             <RailBtn Icon={Share2} label="Compartilhar" onClick={share} />
             {hostProfileQ.data?.username && (

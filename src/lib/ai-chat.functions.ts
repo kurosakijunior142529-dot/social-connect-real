@@ -60,7 +60,7 @@ export const listMessages = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await (context.supabase as any)
       .from("ai_messages")
-      .select("id, role, content, image_url, attachments, created_at")
+      .select("id, role, content, image_url, video_url, attachments, created_at")
       .eq("thread_id", data.threadId)
       .eq("user_id", context.userId)
       .order("created_at", { ascending: true });
@@ -70,6 +70,7 @@ export const listMessages = createServerFn({ method: "GET" })
       role: string;
       content: string;
       image_url: string | null;
+      video_url: string | null;
       attachments: { name: string; mime: string; kind: string }[] | null;
       created_at: string;
     }[];

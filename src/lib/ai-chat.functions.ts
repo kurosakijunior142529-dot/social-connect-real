@@ -443,7 +443,7 @@ export const generateImage = createServerFn({ method: "POST" })
     const { error: upErr } = await (context.supabase as any).storage
       .from("posts")
       .upload(path, buf, { contentType: "image/png", upsert: false });
-    if (upErr) throw new Error(upErr.message);
+    if (upErr) throw await fail("Não consegui salvar a imagem gerada.", upErr.message);
 
     const { data: aiMsg, error } = await (context.supabase as any)
       .from("ai_messages")
@@ -456,7 +456,14 @@ export const generateImage = createServerFn({ method: "POST" })
       })
       .select("id, role, content, image_url, attachments, created_at")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw await fail("Não consegui salvar a imagem gerada.", error.message);
+
+    if (gen?.id) {
+      await db
+        .from("ai_generations")
+        .update({ status: "completed", result_path: path, message_id: aiMsg?.id ?? null, updated_at: new Date().toISOString() })
+        .eq("id", gen.id);
+    }
 
     return { assistant: aiMsg };
   });

@@ -35,7 +35,14 @@ export const Route = createFileRoute("/_authenticated/ai/$threadId")({
 });
 
 type Attachment = { name: string; mime: string; kind: string };
-type Msg = { id: string; role: string; content: string; image_url: string | null; attachments?: Attachment[] | null };
+type Msg = {
+  id: string;
+  role: string;
+  content: string;
+  image_url: string | null;
+  video_url?: string | null;
+  attachments?: Attachment[] | null;
+};
 
 function Mascot({ className, thinking }: { className?: string; thinking?: boolean }) {
   return (

@@ -61,6 +61,16 @@ type Live = {
 
 const QUICK_REACTIONS = ["❤️", "🔥", "👏", "😂", "🎉", "😮"];
 
+/** Presets de captura da câmera — até 4K e 120 fps quando o aparelho permitir. */
+type QualityKey = "720p30" | "1080p60" | "1440p60" | "4k60" | "4k120";
+const QUALITY_PRESETS: Record<QualityKey, { label: string; width: number; height: number; frameRate: number }> = {
+  "720p30": { label: "HD 720p · 30fps", width: 1280, height: 720, frameRate: 30 },
+  "1080p60": { label: "Full HD 1080p · 60fps", width: 1920, height: 1080, frameRate: 60 },
+  "1440p60": { label: "QHD 1440p · 60fps", width: 2560, height: 1440, frameRate: 60 },
+  "4k60": { label: "4K · 60fps", width: 3840, height: 2160, frameRate: 60 },
+  "4k120": { label: "4K · 120fps", width: 3840, height: 2160, frameRate: 120 },
+};
+
 function LiveRoom() {
   const { id: liveId } = Route.useParams();
   const { user } = Route.useRouteContext();

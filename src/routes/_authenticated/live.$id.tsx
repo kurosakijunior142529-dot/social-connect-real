@@ -937,6 +937,7 @@ function LiveRoom() {
                   <IconBtn onClick={toggleCam} active={camOn} Icon={camOn ? Video : VideoOff} label={camOn ? "Câmera" : "Ligar câmera"} />
                   <IconBtn onClick={flipCam} Icon={RefreshCcw} label="Flip" />
                   <IconBtn onClick={toggleScreen} active={screenOn} Icon={screenOn ? MonitorOff : MonitorUp} label={screenOn ? "Parar tela" : "Compartilhar tela"} />
+                  <IconBtn onClick={() => setTab("gifts")} Icon={Gift} label="Presentes recebidos" />
                   <IconBtn onClick={share} Icon={Share2} label="Compartilhar" />
                   <IconBtn onClick={() => setMobileSheet("panel")} Icon={BarChart3} label="Painel do criador" />
                   <button onClick={finish} className="ml-2 h-11 px-4 rounded-full bg-red-600 hover:bg-red-500 text-white text-sm font-semibold flex items-center gap-1.5">

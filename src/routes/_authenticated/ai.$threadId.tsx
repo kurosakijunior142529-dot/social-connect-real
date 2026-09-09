@@ -148,9 +148,14 @@ function AIThread() {
   });
 
   const submit = useCallback(async (override?: string) => {
-    const text = (override ?? input).trim();
+    let text = (override ?? input).trim();
     const files = attachments;
     if ((!text && !files.length) || sendingRef.current) return;
+    // O modo escolhido nos chips vira o comando correspondente.
+    if (!text.startsWith("/")) {
+      if (mode === "image") text = `/imagem ${text}`;
+      else if (mode === "video") text = `/video ${text}`;
+    }
     setInput("");
     setAttachments([]);
     setPending(text);

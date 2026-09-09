@@ -4,11 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText, Gem, Video, Upload } from "lucide-react";
 import {
   listThreads, listMessages, generateImage,
   createThread, deleteThread, renameThread, truncateFrom,
 } from "@/lib/ai-chat.functions";
+import { startVideo, checkVideo, publishGenerated } from "@/lib/ai-video.functions";
 import { saveAiFile } from "@/lib/ai-files.functions";
 import { AI_FILE_ACCEPT, extractFile, type ExtractedFile } from "@/lib/ai-extract";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSignedUrl } from "@/hooks/use-signed-url";
+import { useAuth } from "@/hooks/use-auth";
+import { useAiCredits } from "@/lib/ai-credits";
+import { AiCreditsSheet } from "@/components/ai/ai-credits-sheet";
 import { cn } from "@/lib/utils";
 import vibelyMascot from "@/assets/vibely-mascot.png";
 
@@ -73,6 +77,14 @@ function AIThread() {
   const rename = useServerFn(renameThread);
   const truncate = useServerFn(truncateFrom);
   const saveFile = useServerFn(saveAiFile);
+  const startVid = useServerFn(startVideo);
+  const checkVid = useServerFn(checkVideo);
+
+  const { user } = useAuth();
+  const credits = useAiCredits(user?.id);
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const [mode, setMode] = useState<"chat" | "image" | "video">("chat");
+  const [videoProgress, setVideoProgress] = useState<string | null>(null);
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -136,9 +148,14 @@ function AIThread() {
   });
 
   const submit = useCallback(async (override?: string) => {
-    const text = (override ?? input).trim();
+    let text = (override ?? input).trim();
     const files = attachments;
     if ((!text && !files.length) || sendingRef.current) return;
+    // O modo escolhido nos chips vira o comando correspondente.
+    if (!text.startsWith("/")) {
+      if (mode === "image") text = `/imagem ${text}`;
+      else if (mode === "video") text = `/video ${text}`;
+    }
     setInput("");
     setAttachments([]);
     setPending(text);
@@ -150,8 +167,33 @@ function AIThread() {
     try {
       if (text.startsWith("/imagem ") || text.startsWith("/img ")) {
         const prompt = text.replace(/^\/(imagem|img)\s+/, "");
+        setStatus("Criando sua imagem…");
         await genImg({ data: { threadId, prompt } });
         await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      } else if (text.startsWith("/video ") || text.startsWith("/vídeo ")) {
+        const prompt = text.replace(/^\/v[ií]deo\s+/, "");
+        setStatus("Enviando seu vídeo para a IA…");
+        const job = await startVid({ data: { threadId, prompt } });
+        await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+        // Acompanha o vídeo até ficar pronto (pode levar alguns minutos).
+        const started = Date.now();
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          if (Date.now() - started > 10 * 60 * 1000) {
+            setVideoProgress(null);
+            throw new Error("O vídeo está demorando mais que o normal. Ele aparece aqui assim que ficar pronto.");
+          }
+          const secs = Math.round((Date.now() - started) / 1000);
+          setVideoProgress(`Gerando vídeo… ${secs}s`);
+          setStatus(`Gerando vídeo… ${secs}s`);
+          await new Promise((r) => setTimeout(r, 6000));
+          const r = await checkVid({ data: { generationId: job.generationId } });
+          if (r.status === "completed") break;
+          if (r.status === "failed") throw new Error("A IA não conseguiu gerar esse vídeo. Tente outra descrição.");
+        }
+        setVideoProgress(null);
+        await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+        await qc.invalidateQueries({ queryKey: ["ai-usage", user?.id] });
       } else {
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;
@@ -237,7 +279,7 @@ function AIThread() {
       sendingRef.current = false;
       inputRef.current?.focus();
     }
-  }, [attachments, genImg, input, qc, saveFile, threadId]);
+  }, [attachments, genImg, input, mode, qc, saveFile, startVid, checkVid, threadId, user?.id]);
 
   function stopGeneration() {
     abortRef.current?.abort();
@@ -290,6 +332,12 @@ function AIThread() {
     const t = input.trim();
     if (!t) return toast.info("Descreva a imagem primeiro");
     submit(`/imagem ${t}`);
+  }
+
+  function askVideo() {
+    const t = input.trim();
+    if (t.length < 5) return toast.info("Descreva o vídeo com um pouco mais de detalhe");
+    submit(`/video ${t}`);
   }
 
   const msgs = (messages.data ?? []) as Msg[];
@@ -371,10 +419,19 @@ function AIThread() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">Vibely AI</div>
-            <div className="text-[11px] text-muted-foreground">
-              {sending ? "digitando…" : "textos, imagens, enquetes e publicações"}
+            <div className="text-[11px] text-muted-foreground truncate">
+              {videoProgress ?? (sending ? "digitando…" : "textos, imagens, vídeos e publicações")}
             </div>
           </div>
+          <button
+            onClick={() => setCreditsOpen(true)}
+            title="Créditos, limites e histórico"
+            className="flex items-center gap-1.5 rounded-full bg-[color:var(--surface-2)] ring-1 ring-primary/25 px-3 h-9 text-xs font-semibold hover:bg-[color:var(--surface)]"
+          >
+            <Gem className="h-3.5 w-3.5 text-primary" />
+            <span className="tabular">{(credits.data ?? 0).toLocaleString("pt-BR")}</span>
+            <Plus className="h-3 w-3 text-muted-foreground" />
+          </button>
           <Link
             to="/"
             aria-label="Sair do chat"
@@ -416,6 +473,23 @@ function AIThread() {
         </div>
 
         <div className="p-3 hairline-t bg-background">
+          <div className="mb-2 inline-flex w-full rounded-full bg-[color:var(--surface-2)] p-1">
+            {MODES.map((mo) => (
+              <button
+                key={mo.id}
+                onClick={() => setMode(mo.id)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition",
+                  mode === mo.id
+                    ? "bg-background text-foreground shadow-sm ring-1 ring-primary/25"
+                    : "text-muted-foreground",
+                )}
+              >
+                <mo.icon className={cn("h-3.5 w-3.5", mode === mo.id && "text-primary")} />
+                {mo.label}
+              </button>
+            ))}
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
             {QUICK.map((q) => (
               <button
@@ -466,9 +540,15 @@ function AIThread() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
               }}
-              placeholder="Pergunte, peça uma enquete, um post ou /imagem <descrição>"
-              rows={1}
-              className="min-h-[48px] max-h-40 resize-none border-0 bg-transparent px-0 py-3 focus-visible:ring-0 focus-visible:outline-none"
+              placeholder={
+                mode === "image"
+                  ? "Descreva a imagem que você quer criar…"
+                  : mode === "video"
+                    ? "Descreva o vídeo que você quer criar…"
+                    : "Pergunte, peça uma enquete, um post ou /imagem <descrição>"
+              }
+              rows={2}
+              className="min-h-[60px] max-h-44 resize-none border-0 bg-transparent px-0 py-3 text-base focus-visible:ring-0 focus-visible:outline-none"
             />
             <Button
               size="icon"
@@ -482,6 +562,9 @@ function AIThread() {
             </Button>
             <Button size="icon" variant="ghost" className="rounded-full shrink-0" onClick={askImage} disabled={sending} title="Gerar imagem">
               <ImageIcon className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="rounded-full shrink-0" onClick={askVideo} disabled={sending} title="Gerar vídeo">
+              <Video className="h-4 w-4" />
             </Button>
             {sending ? (
               <Button
@@ -510,6 +593,10 @@ function AIThread() {
           </p>
         </div>
       </div>
+
+      {creditsOpen && user?.id ? (
+        <AiCreditsSheet userId={user.id} onClose={() => setCreditsOpen(false)} />
+      ) : null}
     </div>
   );
 }
@@ -536,6 +623,7 @@ function MsgBubble({ m, onRetry, onEdit }: { m: Msg; onRetry?: () => void; onEdi
           isUser ? "bg-primary text-primary-foreground rounded-br-lg inline-block" : "bg-transparent px-0",
         )}>
           {m.image_url ? <AiImage path={m.image_url} /> : null}
+          {m.video_url ? <AiVideo path={m.video_url} /> : null}
           {m.attachments?.length ? (
             <div className="mb-1.5 flex flex-wrap gap-1.5">
               {m.attachments.map((a, i) => (
@@ -621,8 +709,65 @@ const MD = {
 function AiImage({ path }: { path: string }) {
   const url = useSignedUrl("posts", path);
   if (!url.data) return <div className="h-56 w-full rounded-xl bg-white/5 animate-pulse mb-2" />;
-  return <img src={url.data} alt="Imagem gerada" className="rounded-xl mb-2 max-h-80 w-auto" />;
+  return (
+    <div className="mb-2 space-y-2">
+      <img src={url.data} alt="Imagem gerada" className="rounded-2xl max-h-80 w-auto" />
+      <PublishButton path={path} kind="image" />
+    </div>
+  );
 }
+
+function AiVideo({ path }: { path: string }) {
+  const url = useSignedUrl("posts", path);
+  if (!url.data) return <div className="h-64 w-full max-w-[280px] rounded-2xl bg-white/5 animate-pulse mb-2" />;
+  return (
+    <div className="mb-2 space-y-2">
+      <video
+        src={url.data}
+        controls
+        playsInline
+        className="rounded-2xl max-h-[420px] w-auto bg-black"
+      />
+      <PublishButton path={path} kind="video" />
+    </div>
+  );
+}
+
+/** Publica no feed a imagem ou vídeo gerado. */
+function PublishButton({ path, kind }: { path: string; kind: "image" | "video" }) {
+  const publish = useServerFn(publishGenerated);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const nav = useNavigate();
+
+  async function go() {
+    setBusy(true);
+    try {
+      const r = await publish({ data: { path, kind } });
+      setDone(true);
+      toast.success("Publicado no seu perfil!", {
+        action: { label: "Ver", onClick: () => nav({ to: "/p/$id", params: { id: r.postId } }) },
+      });
+    } catch (e: any) {
+      toast.error(String(e?.message ?? "Não consegui publicar").slice(0, 140));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Button size="sm" variant="secondary" className="rounded-full" onClick={go} disabled={busy || done}>
+      {busy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : done ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+      {done ? "Publicado" : "Publicar no Vibely"}
+    </Button>
+  );
+}
+
+const MODES = [
+  { id: "chat" as const, label: "Conversar", icon: MessageSquare },
+  { id: "image" as const, label: "Imagem", icon: ImageIcon },
+  { id: "video" as const, label: "Vídeo", icon: Video },
+];
 
 const QUICK = [
   { label: "🔥 Bombando agora", prompt: "Quais são as publicações do momento no Vibely?" },

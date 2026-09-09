@@ -279,7 +279,7 @@ function AIThread() {
       sendingRef.current = false;
       inputRef.current?.focus();
     }
-  }, [attachments, genImg, input, qc, saveFile, threadId]);
+  }, [attachments, genImg, input, mode, qc, saveFile, startVid, checkVid, threadId, user?.id]);
 
   function stopGeneration() {
     abortRef.current?.abort();

@@ -10,6 +10,7 @@ import { getStripeEnvironment } from "@/lib/stripe";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { COIN_PACKS as AI_COIN_PACKS } from "@/lib/ai-credits";
 
 export const Route = createFileRoute("/_authenticated/pro")({
   head: () => ({
@@ -40,11 +41,7 @@ const PRO_FEATURES = [
   "Emblemas animados de reação",
 ];
 
-const COIN_PACKS = [
-  { priceId: "coins_100", coins: 100, price: "R$ 9,90", desc: "Ideal para começar" },
-  { priceId: "coins_500", coins: 500, price: "R$ 39,90", desc: "Mais popular", highlight: true },
-  { priceId: "coins_2000", coins: 2000, price: "R$ 129,90", desc: "Melhor valor" },
-];
+const COIN_PACKS = AI_COIN_PACKS;
 
 function ProPage() {
   const { user } = Route.useRouteContext();

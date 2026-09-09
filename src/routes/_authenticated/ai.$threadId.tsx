@@ -334,6 +334,12 @@ function AIThread() {
     submit(`/imagem ${t}`);
   }
 
+  function askVideo() {
+    const t = input.trim();
+    if (t.length < 5) return toast.info("Descreva o vídeo com um pouco mais de detalhe");
+    submit(`/video ${t}`);
+  }
+
   const msgs = (messages.data ?? []) as Msg[];
 
   return (

@@ -96,6 +96,8 @@ export type Database = {
       }
       ai_generations: {
         Row: {
+          aspect_ratio: string | null
+          cost_credits: number
           created_at: string
           duration_seconds: number | null
           error: string | null
@@ -107,13 +109,19 @@ export type Database = {
           post_id: string | null
           prompt: string
           provider: string
+          refunded: boolean
+          resolution: string | null
           result_path: string | null
           status: string
+          style: string | null
           thread_id: string | null
           updated_at: string
           user_id: string
+          with_audio: boolean | null
         }
         Insert: {
+          aspect_ratio?: string | null
+          cost_credits?: number
           created_at?: string
           duration_seconds?: number | null
           error?: string | null
@@ -125,13 +133,19 @@ export type Database = {
           post_id?: string | null
           prompt: string
           provider?: string
+          refunded?: boolean
+          resolution?: string | null
           result_path?: string | null
           status?: string
+          style?: string | null
           thread_id?: string | null
           updated_at?: string
           user_id: string
+          with_audio?: boolean | null
         }
         Update: {
+          aspect_ratio?: string | null
+          cost_credits?: number
           created_at?: string
           duration_seconds?: number | null
           error?: string | null
@@ -143,11 +157,15 @@ export type Database = {
           post_id?: string | null
           prompt?: string
           provider?: string
+          refunded?: boolean
+          resolution?: string | null
           result_path?: string | null
           status?: string
+          style?: string | null
           thread_id?: string | null
           updated_at?: string
           user_id?: string
+          with_audio?: boolean | null
         }
         Relationships: [
           {
@@ -3949,6 +3967,7 @@ export type Database = {
       }
       recompute_my_affinity: { Args: never; Returns: undefined }
       recompute_trends: { Args: never; Returns: undefined }
+      refund_ai_credits: { Args: { _generation: string }; Returns: number }
       related_hashtags: {
         Args: { _limit?: number; _tag: string }
         Returns: {
@@ -4077,6 +4096,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      spend_ai_credits: { Args: { _amount: number }; Returns: number }
       stop_sharing_location: { Args: never; Returns: undefined }
       submit_game_score: {
         Args: { _game: string; _score: number }

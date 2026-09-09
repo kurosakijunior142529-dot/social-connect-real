@@ -557,6 +557,9 @@ function AIThread() {
             <Button size="icon" variant="ghost" className="rounded-full shrink-0" onClick={askImage} disabled={sending} title="Gerar imagem">
               <ImageIcon className="h-4 w-4" />
             </Button>
+            <Button size="icon" variant="ghost" className="rounded-full shrink-0" onClick={askVideo} disabled={sending} title="Gerar vídeo">
+              <Video className="h-4 w-4" />
+            </Button>
             {sending ? (
               <Button
                 size="icon"

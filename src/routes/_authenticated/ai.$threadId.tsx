@@ -77,6 +77,14 @@ function AIThread() {
   const rename = useServerFn(renameThread);
   const truncate = useServerFn(truncateFrom);
   const saveFile = useServerFn(saveAiFile);
+  const startVid = useServerFn(startVideo);
+  const checkVid = useServerFn(checkVideo);
+
+  const { user } = useAuth();
+  const credits = useAiCredits(user?.id);
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const [mode, setMode] = useState<"chat" | "image" | "video">("chat");
+  const [videoProgress, setVideoProgress] = useState<string | null>(null);
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);

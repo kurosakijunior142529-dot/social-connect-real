@@ -587,6 +587,10 @@ function AIThread() {
           </p>
         </div>
       </div>
+
+      {creditsOpen && user?.id ? (
+        <AiCreditsSheet userId={user.id} onClose={() => setCreditsOpen(false)} />
+      ) : null}
     </div>
   );
 }

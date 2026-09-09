@@ -623,6 +623,7 @@ function MsgBubble({ m, onRetry, onEdit }: { m: Msg; onRetry?: () => void; onEdi
           isUser ? "bg-primary text-primary-foreground rounded-br-lg inline-block" : "bg-transparent px-0",
         )}>
           {m.image_url ? <AiImage path={m.image_url} /> : null}
+          {m.video_url ? <AiVideo path={m.video_url} /> : null}
           {m.attachments?.length ? (
             <div className="mb-1.5 flex flex-wrap gap-1.5">
               {m.attachments.map((a, i) => (

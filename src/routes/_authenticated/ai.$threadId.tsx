@@ -167,8 +167,33 @@ function AIThread() {
     try {
       if (text.startsWith("/imagem ") || text.startsWith("/img ")) {
         const prompt = text.replace(/^\/(imagem|img)\s+/, "");
+        setStatus("Criando sua imagem…");
         await genImg({ data: { threadId, prompt } });
         await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+      } else if (text.startsWith("/video ") || text.startsWith("/vídeo ")) {
+        const prompt = text.replace(/^\/v[ií]deo\s+/, "");
+        setStatus("Enviando seu vídeo para a IA…");
+        const job = await startVid({ data: { threadId, prompt } });
+        await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+        // Acompanha o vídeo até ficar pronto (pode levar alguns minutos).
+        const started = Date.now();
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          if (Date.now() - started > 10 * 60 * 1000) {
+            setVideoProgress(null);
+            throw new Error("O vídeo está demorando mais que o normal. Ele aparece aqui assim que ficar pronto.");
+          }
+          const secs = Math.round((Date.now() - started) / 1000);
+          setVideoProgress(`Gerando vídeo… ${secs}s`);
+          setStatus(`Gerando vídeo… ${secs}s`);
+          await new Promise((r) => setTimeout(r, 6000));
+          const r = await checkVid({ data: { generationId: job.generationId } });
+          if (r.status === "completed") break;
+          if (r.status === "failed") throw new Error("A IA não conseguiu gerar esse vídeo. Tente outra descrição.");
+        }
+        setVideoProgress(null);
+        await qc.invalidateQueries({ queryKey: ["ai-messages", threadId] });
+        await qc.invalidateQueries({ queryKey: ["ai-usage", user?.id] });
       } else {
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token;

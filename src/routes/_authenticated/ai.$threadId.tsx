@@ -709,8 +709,65 @@ const MD = {
 function AiImage({ path }: { path: string }) {
   const url = useSignedUrl("posts", path);
   if (!url.data) return <div className="h-56 w-full rounded-xl bg-white/5 animate-pulse mb-2" />;
-  return <img src={url.data} alt="Imagem gerada" className="rounded-xl mb-2 max-h-80 w-auto" />;
+  return (
+    <div className="mb-2 space-y-2">
+      <img src={url.data} alt="Imagem gerada" className="rounded-2xl max-h-80 w-auto" />
+      <PublishButton path={path} kind="image" />
+    </div>
+  );
 }
+
+function AiVideo({ path }: { path: string }) {
+  const url = useSignedUrl("posts", path);
+  if (!url.data) return <div className="h-64 w-full max-w-[280px] rounded-2xl bg-white/5 animate-pulse mb-2" />;
+  return (
+    <div className="mb-2 space-y-2">
+      <video
+        src={url.data}
+        controls
+        playsInline
+        className="rounded-2xl max-h-[420px] w-auto bg-black"
+      />
+      <PublishButton path={path} kind="video" />
+    </div>
+  );
+}
+
+/** Publica no feed a imagem ou vídeo gerado. */
+function PublishButton({ path, kind }: { path: string; kind: "image" | "video" }) {
+  const publish = useServerFn(publishGenerated);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const nav = useNavigate();
+
+  async function go() {
+    setBusy(true);
+    try {
+      const r = await publish({ data: { path, kind } });
+      setDone(true);
+      toast.success("Publicado no seu perfil!", {
+        action: { label: "Ver", onClick: () => nav({ to: "/p/$id", params: { id: r.postId } }) },
+      });
+    } catch (e: any) {
+      toast.error(String(e?.message ?? "Não consegui publicar").slice(0, 140));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Button size="sm" variant="secondary" className="rounded-full" onClick={go} disabled={busy || done}>
+      {busy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : done ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+      {done ? "Publicado" : "Publicar no Vibely"}
+    </Button>
+  );
+}
+
+const MODES = [
+  { id: "chat" as const, label: "Conversar", icon: MessageSquare },
+  { id: "image" as const, label: "Imagem", icon: ImageIcon },
+  { id: "video" as const, label: "Vídeo", icon: Video },
+];
 
 const QUICK = [
   { label: "🔥 Bombando agora", prompt: "Quais são as publicações do momento no Vibely?" },

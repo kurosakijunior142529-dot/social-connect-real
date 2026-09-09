@@ -534,9 +534,15 @@ function AIThread() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
               }}
-              placeholder="Pergunte, peça uma enquete, um post ou /imagem <descrição>"
-              rows={1}
-              className="min-h-[48px] max-h-40 resize-none border-0 bg-transparent px-0 py-3 focus-visible:ring-0 focus-visible:outline-none"
+              placeholder={
+                mode === "image"
+                  ? "Descreva a imagem que você quer criar…"
+                  : mode === "video"
+                    ? "Descreva o vídeo que você quer criar…"
+                    : "Pergunte, peça uma enquete, um post ou /imagem <descrição>"
+              }
+              rows={2}
+              className="min-h-[60px] max-h-44 resize-none border-0 bg-transparent px-0 py-3 text-base focus-visible:ring-0 focus-visible:outline-none"
             />
             <Button
               size="icon"

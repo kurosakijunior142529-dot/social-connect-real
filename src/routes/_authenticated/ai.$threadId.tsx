@@ -413,10 +413,19 @@ function AIThread() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">Vibely AI</div>
-            <div className="text-[11px] text-muted-foreground">
-              {sending ? "digitando…" : "textos, imagens, enquetes e publicações"}
+            <div className="text-[11px] text-muted-foreground truncate">
+              {videoProgress ?? (sending ? "digitando…" : "textos, imagens, vídeos e publicações")}
             </div>
           </div>
+          <button
+            onClick={() => setCreditsOpen(true)}
+            title="Créditos, limites e histórico"
+            className="flex items-center gap-1.5 rounded-full bg-[color:var(--surface-2)] ring-1 ring-primary/25 px-3 h-9 text-xs font-semibold hover:bg-[color:var(--surface)]"
+          >
+            <Gem className="h-3.5 w-3.5 text-primary" />
+            <span className="tabular">{(credits.data ?? 0).toLocaleString("pt-BR")}</span>
+            <Plus className="h-3 w-3 text-muted-foreground" />
+          </button>
           <Link
             to="/"
             aria-label="Sair do chat"

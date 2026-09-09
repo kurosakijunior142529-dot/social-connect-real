@@ -4,11 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText, Gem, Video, Upload } from "lucide-react";
 import {
   listThreads, listMessages, generateImage,
   createThread, deleteThread, renameThread, truncateFrom,
 } from "@/lib/ai-chat.functions";
+import { startVideo, checkVideo, publishGenerated } from "@/lib/ai-video.functions";
 import { saveAiFile } from "@/lib/ai-files.functions";
 import { AI_FILE_ACCEPT, extractFile, type ExtractedFile } from "@/lib/ai-extract";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSignedUrl } from "@/hooks/use-signed-url";
+import { useAuth } from "@/hooks/use-auth";
+import { useAiCredits } from "@/lib/ai-credits";
+import { AiCreditsSheet } from "@/components/ai/ai-credits-sheet";
 import { cn } from "@/lib/utils";
 import vibelyMascot from "@/assets/vibely-mascot.png";
 

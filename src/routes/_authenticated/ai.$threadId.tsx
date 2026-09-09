@@ -467,6 +467,23 @@ function AIThread() {
         </div>
 
         <div className="p-3 hairline-t bg-background">
+          <div className="mb-2 inline-flex w-full rounded-full bg-[color:var(--surface-2)] p-1">
+            {MODES.map((mo) => (
+              <button
+                key={mo.id}
+                onClick={() => setMode(mo.id)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition",
+                  mode === mo.id
+                    ? "bg-background text-foreground shadow-sm ring-1 ring-primary/25"
+                    : "text-muted-foreground",
+                )}
+              >
+                <mo.icon className={cn("h-3.5 w-3.5", mode === mo.id && "text-primary")} />
+                {mo.label}
+              </button>
+            ))}
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
             {QUICK.map((q) => (
               <button

@@ -20,6 +20,7 @@ import { useSignedUrl } from "@/hooks/use-signed-url";
 import { useAuth } from "@/hooks/use-auth";
 import { useAiCredits } from "@/lib/ai-credits";
 import { AiCreditsSheet } from "@/components/ai/ai-credits-sheet";
+import { AiVideoStudio } from "@/components/ai/ai-video-studio";
 import { cn } from "@/lib/utils";
 import vibelyMascot from "@/assets/vibely-mascot.png";
 
@@ -83,6 +84,7 @@ function AIThread() {
   const { user } = useAuth();
   const credits = useAiCredits(user?.id);
   const [creditsOpen, setCreditsOpen] = useState(false);
+  const [studioOpen, setStudioOpen] = useState(false);
   const [mode, setMode] = useState<"chat" | "image" | "video">("chat");
   const [videoProgress, setVideoProgress] = useState<string | null>(null);
 
@@ -335,9 +337,7 @@ function AIThread() {
   }
 
   function askVideo() {
-    const t = input.trim();
-    if (t.length < 5) return toast.info("Descreva o vídeo com um pouco mais de detalhe");
-    submit(`/video ${t}`);
+    setStudioOpen(true);
   }
 
   const msgs = (messages.data ?? []) as Msg[];
@@ -477,7 +477,7 @@ function AIThread() {
             {MODES.map((mo) => (
               <button
                 key={mo.id}
-                onClick={() => setMode(mo.id)}
+                onClick={() => (mo.id === "video" ? setStudioOpen(true) : setMode(mo.id))}
                 className={cn(
                   "flex-1 flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition",
                   mode === mo.id
@@ -596,6 +596,16 @@ function AIThread() {
 
       {creditsOpen && user?.id ? (
         <AiCreditsSheet userId={user.id} onClose={() => setCreditsOpen(false)} />
+      ) : null}
+
+      {studioOpen ? (
+        <AiVideoStudio
+          threadId={threadId}
+          userId={user?.id}
+          credits={credits.data ?? 0}
+          onClose={() => setStudioOpen(false)}
+          onCredits={() => setCreditsOpen(true)}
+        />
       ) : null}
     </div>
   );

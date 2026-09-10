@@ -26,6 +26,8 @@ function FeedPage() {
 
   const meProfile = useQuery({
     queryKey: ["me-profile-mini", user.id],
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
@@ -36,18 +38,34 @@ function FeedPage() {
     },
   });
 
-  // Carregamento progressivo: 6 posts por vez em vez de 24 de uma vez.
-  const [limit, setLimit] = useState(6);
-
-  const query = usePostsQuery({
-    key: ["feed", user.id, limit],
-    currentUserId: user.id,
-    fetchPosts: async () => {
+  // Quem eu sigo + posts ocultos: consultado uma vez e reaproveitado em cada
+  // página do feed (antes era refeito a cada rolagem).
+  const graph = useQuery({
+    queryKey: ["feed-graph", user.id],
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
       const [{ data: follows }, { data: hidden }] = await Promise.all([
         supabase.from("follows").select("following_id").eq("follower_id", user.id),
         supabase.from("hidden_posts").select("post_id").eq("user_id", user.id),
       ]);
-      const followingIds = (follows ?? []).map((f) => f.following_id);
+      return {
+        following: (follows ?? []).map((f) => f.following_id),
+        hidden: new Set((hidden ?? []).map((row) => row.post_id)),
+      };
+    },
+  });
+
+  // Carregamento progressivo: 6 posts por vez em vez de 24 de uma vez.
+  const [limit, setLimit] = useState(6);
+
+  const query = usePostsQuery({
+    key: ["feed", user.id, limit, graph.data ? 1 : 0],
+    currentUserId: user.id,
+    fetchPosts: async () => {
+      const followingIds = graph.data?.following ?? [];
+      const hiddenIds = graph.data?.hidden ?? new Set<string>();
       const authors = [...followingIds, user.id];
       let q = supabase
         .from("posts")
@@ -58,7 +76,6 @@ function FeedPage() {
       if (followingIds.length > 0) q = q.in("author_id", authors);
       const result = await q;
       if (result.error) return result;
-      const hiddenIds = new Set((hidden ?? []).map((row) => row.post_id));
       return { ...result, data: (result.data ?? []).filter((post) => !hiddenIds.has(post.id)) };
     },
   });
@@ -152,7 +169,9 @@ function FeedPage() {
 function DailyPromptCard() {
   const prompt = useQuery({
     queryKey: ["daily-prompt"],
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("today_prompt");
       if (error) return null;

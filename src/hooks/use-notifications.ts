@@ -39,6 +39,10 @@ export function useUnreadNotifications(userId: string | undefined) {
   return useQuery({
     queryKey: ["notifications-unread", userId],
     enabled: !!userId,
+    // O canal realtime acima invalida na hora; não precisa refazer a cada tela.
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { count, error } = await (supabase as any)
         .from("notifications")

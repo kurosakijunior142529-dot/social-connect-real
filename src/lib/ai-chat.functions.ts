@@ -366,10 +366,11 @@ export const generateImage = createServerFn({ method: "POST" })
     }).parse(i),
   )
   .handler(async ({ data, context }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("A geração de imagem não está configurada no servidor.");
     const db = context.supabase as any;
-    const model = "google/gemini-3.1-flash-image";
+    // Provedor oficial (Google) — a chave nunca sai do servidor.
+    const providers = await import("@/lib/ai-providers.server");
+    providers.googleKey();
+    const model = providers.GOOGLE_IMAGE_MODEL;
 
     // Limite diário simples (controle de custo).
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -380,6 +381,24 @@ export const generateImage = createServerFn({ method: "POST" })
       .eq("kind", "image")
       .gte("created_at", since);
     if ((count ?? 0) >= 40) throw new Error("Limite de 40 imagens por dia atingido. Tente novamente amanhã.");
+
+    // Franquia gratuita: as primeiras FREE_IMAGES imagens do usuário não custam créditos.
+    const { count: totalImages } = await db
+      .from("ai_generations")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .eq("kind", "image")
+      .eq("status", "completed");
+    const cost = (totalImages ?? 0) >= FREE_IMAGES ? IMAGE_COST_CREDITS : 0;
+    if (cost > 0) {
+      const { error: spendErr } = await db.rpc("spend_ai_credits", { _amount: cost });
+      if (spendErr) {
+        if (String(spendErr.message).includes("insufficient_credits")) {
+          throw new Error(`Você não possui créditos suficientes para gerar esta imagem (${cost} créditos).`);
+        }
+        throw new Error(spendErr.message);
+      }
+    }
 
     // Save user prompt message first
     await db.from("ai_messages").insert({

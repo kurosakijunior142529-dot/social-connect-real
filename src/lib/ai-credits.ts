@@ -11,6 +11,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { IMAGE_COST_CREDITS, VIDEO_COST_CREDITS } from "@/lib/ai-video-models";
 
 export type CoinPack = {
   priceId: string;

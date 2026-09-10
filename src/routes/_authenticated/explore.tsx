@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBlocks } from "@/hooks/use-blocks";
 import { searchAsk } from "@/lib/search-ask.functions";
+import { formatViewers } from "@/lib/live-utils";
 import {
   RESULT_TABS,
   SEEN_FILTERS,
@@ -730,6 +731,7 @@ function DiscoveryView({ onPick }: { onPick: (term: string) => void }) {
                 id={p.id}
                 path={p.thumbnail_url ?? p.media_url}
                 isVideo={p.media_type === "video" || p.post_kind === "reel"}
+                views={p.view_count ?? 0}
               />
             ))}
           </div>
@@ -887,6 +889,7 @@ function ResultsView({
                   path={m.image}
                   isVideo={m.kind === "video"}
                   likes={m.count1 ?? 0}
+                  views={m.views ?? 0}
                   seen={!!m.seen}
                 />
               ))}
@@ -1005,12 +1008,15 @@ export function MediaCell({
   path,
   isVideo,
   likes,
+  views,
   seen,
 }: {
   id: string;
   path: string | null;
   isVideo: boolean;
   likes?: number;
+  /** Visualizações — exibidas só aqui (navegar/pesquisar). */
+  views?: number | null;
   seen?: boolean;
 }) {
   const isVideoFile = !!path && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(path);
@@ -1042,6 +1048,12 @@ export function MediaCell({
         <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white">
           <Heart className="h-3 w-3 fill-current" />
           {likes}
+        </span>
+      ) : null}
+      {views && views > 0 ? (
+        <span className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular">
+          <Eye className="h-3 w-3" />
+          {formatViewers(views)}
         </span>
       ) : null}
     </div>

@@ -1005,12 +1005,15 @@ export function MediaCell({
   path,
   isVideo,
   likes,
+  views,
   seen,
 }: {
   id: string;
   path: string | null;
   isVideo: boolean;
   likes?: number;
+  /** Visualizações — exibidas só aqui (navegar/pesquisar). */
+  views?: number | null;
   seen?: boolean;
 }) {
   const isVideoFile = !!path && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(path);

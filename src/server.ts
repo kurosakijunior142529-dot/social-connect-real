@@ -35,6 +35,20 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+// The browser closing a connection mid-render (navigation, reload, tab close)
+// surfaces as ECONNRESET / "aborted". That is not an app error — never render
+// the error page or log it as a crash.
+function isClientAbort(request: Request, error?: unknown): boolean {
+  if (request.signal?.aborted) return true;
+  let current: unknown = error;
+  for (let i = 0; i < 5 && current; i++) {
+    const e = current as { code?: string; name?: string; message?: string; cause?: unknown };
+    if (e.code === "ECONNRESET" || e.name === "AbortError" || e.message === "aborted") return true;
+    current = e.cause;
+  }
+  return false;
+}
+
 function isH3SwallowedErrorBody(body: string): boolean {
   try {
     const payload = JSON.parse(body) as { unhandled?: unknown; message?: unknown };

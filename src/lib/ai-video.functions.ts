@@ -10,42 +10,15 @@ import {
 } from "@/lib/ai-video-models";
 
 /**
- * Geração de vídeo por IA.
- * - Veo 3.1: AI Gateway da Lovable (chave LOVABLE_API_KEY, só no servidor).
- * - Seedance 2.5: BytePlus ModelArk (chave BYTEPLUS_ARK_API_KEY, só no servidor).
- * Nenhuma chave é exposta ao navegador.
+ * Geração de vídeo por IA — SEMPRE pelas APIs oficiais dos modelos.
+ * - Veo 3.1: Google Generative Language API (GOOGLE_AI_API_KEY).
+ * - Seedance 2.5: BytePlus ModelArk (BYTEPLUS_ARK_API_KEY).
+ * O custo para o usuário é sempre em créditos internos do Vibely (`user_coins`).
+ * Nenhuma chave é exposta ao navegador e o saldo de IA da Lovable não é usado.
  */
-const GATEWAY = "https://ai.gateway.lovable.dev/v1/videos";
-const ARK_BASE = process.env["BYTEPLUS_ARK_BASE_URL"] || "https://ark.ap-southeast.bytepluses.com/api/v3";
 
 /** Limites simples de custo (por usuário / por dia). */
 const DAILY_VIDEO_LIMIT = 5;
-
-function gatewayKey() {
-  const key = process.env["LOVABLE_API_KEY"];
-  if (!key) throw new Error("A geração de vídeo não está configurada no servidor.");
-  return key;
-}
-
-function arkKey() {
-  const key = process.env["BYTEPLUS_ARK_API_KEY"];
-  if (!key) {
-    throw new Error(
-      "O Seedance 2.5 ainda não está configurado neste app. Use o Veo 3.1 ou peça ao administrador para adicionar a chave da BytePlus.",
-    );
-  }
-  return key;
-}
-
-/** Mensagem amigável a partir do status HTTP. */
-function friendlyError(status: number, body: string) {
-  console.error("[ai-video] provider error", status, body.slice(0, 500));
-  if (status === 401 || status === 403) return "A chave de acesso do modelo de vídeo foi recusada.";
-  if (status === 402) return "Os créditos de IA do app acabaram. Avise o administrador.";
-  if (status === 429) return "Muitos vídeos sendo gerados agora. Tente de novo em instantes.";
-  if (status === 400) return "Não consegui gerar com essa descrição. Tente descrever de outro jeito.";
-  return "Não foi possível gerar o vídeo agora.";
-}
 
 const StartSchema = z.object({
   threadId: z.string().uuid(),

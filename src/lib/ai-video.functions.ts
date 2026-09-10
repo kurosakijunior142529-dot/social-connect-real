@@ -272,6 +272,17 @@ export const checkVideo = createServerFn({ method: "POST" })
     return { status: "completed", path, error: null };
   });
 
+/** Diz quais modelos de vídeo estão realmente configurados no servidor. */
+export const videoProviderStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const providers = await import("@/lib/ai-providers.server");
+    return {
+      "veo-3.1": providers.hasGoogleKey(),
+      "seedance-2.5": providers.hasArkKey(),
+    } as Record<string, boolean>;
+  });
+
 /** Melhora a descrição do usuário para virar um prompt de vídeo melhor. */
 export const enhanceVideoPrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

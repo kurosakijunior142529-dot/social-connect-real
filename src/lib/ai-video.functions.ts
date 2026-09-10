@@ -78,8 +78,9 @@ export const startVideo = createServerFn({ method: "POST" })
       throw new Error(`Limite de ${DAILY_VIDEO_LIMIT} vídeos por dia atingido. Tente novamente amanhã.`);
     }
 
-    // Chave do provedor antes de cobrar qualquer crédito.
-    const providerKey = caps.id === "seedance-2.5" ? arkKey() : gatewayKey();
+    // Provedor oficial do modelo — validado ANTES de cobrar qualquer crédito.
+    const providers = await import("@/lib/ai-providers.server");
+    const providerKey = caps.id === "seedance-2.5" ? providers.arkKey() : providers.googleKey();
 
     // Cobrança de créditos (atômica). Falha aqui = nada é gerado.
     const { error: spendErr } = await db.rpc("spend_ai_credits", { _amount: VIDEO_COST_CREDITS });

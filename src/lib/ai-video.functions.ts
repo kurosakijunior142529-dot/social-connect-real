@@ -137,45 +137,37 @@ export const startVideo = createServerFn({ method: "POST" })
       if (data.imageDataUrl) {
         content.push({ type: "image_url", image_url: { url: data.imageDataUrl }, role: "first_frame" });
       }
-      const res = await fetch(`${ARK_BASE}/contents/generations/tasks`, {
+      const res = await fetch(`${providers.ARK_BASE}/contents/generations/tasks`, {
         method: "POST",
         headers: { Authorization: `Bearer ${providerKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: process.env["BYTEPLUS_SEEDANCE_MODEL"] || caps.backendModel, content }),
       });
       if (!res.ok) {
         const body = await res.text().catch(() => "");
-        throw await failGeneration(`HTTP ${res.status} ${body}`, friendlyError(res.status, body));
+        throw await failGeneration(`HTTP ${res.status} ${body}`, providers.friendlyProviderError(res.status, body));
       }
       const job = (await res.json()) as { id?: string; task_id?: string };
       jobId = (job.id ?? job.task_id) as string;
       if (!jobId) throw await failGeneration("sem id de tarefa", "Não foi possível gerar o vídeo agora.");
     } else {
-      const instance: any = { prompt };
-      if (data.negativePrompt) instance.negativePrompt = data.negativePrompt;
-      if (data.imageDataUrl) {
-        const { mimeType, base64 } = splitDataUrl(data.imageDataUrl);
-        instance.image = { bytesBase64Encoded: base64, mimeType };
-      }
-      const parameters: any = {
-        durationSeconds: seconds,
+      // Google Veo 3.1 — API oficial (operação de longa duração).
+      const image = data.imageDataUrl ? splitDataUrl(data.imageDataUrl) : undefined;
+      const started = await providers.veoStart({
+        prompt,
+        negativePrompt: data.negativePrompt,
+        seconds,
         resolution,
-        sampleCount: 1,
+        aspectRatio,
         generateAudio: withAudio,
-      };
-      // O Veo deduz a orientação da imagem — enviar aspectRatio junto é rejeitado.
-      if (!data.imageDataUrl) parameters.aspectRatio = aspectRatio;
-
-      const res = await fetch(GATEWAY, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${providerKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: caps.backendModel, instances: [instance], parameters }),
+        image: image ? { base64: image.base64, mimeType: image.mimeType } : undefined,
       });
-      if (!res.ok) {
-        const body = await res.text().catch(() => "");
-        throw await failGeneration(`HTTP ${res.status} ${body}`, friendlyError(res.status, body));
+      if (!started.ok) {
+        throw await failGeneration(
+          `HTTP ${started.status} ${started.body}`,
+          providers.friendlyProviderError(started.status, started.body),
+        );
       }
-      const job = (await res.json()) as { id: string };
-      jobId = job.id;
+      jobId = started.jobId;
     }
 
     await db

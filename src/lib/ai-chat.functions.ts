@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { FREE_IMAGES, IMAGE_COST_CREDITS } from "@/lib/ai-video-models";
 
 export const listThreads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -366,10 +367,11 @@ export const generateImage = createServerFn({ method: "POST" })
     }).parse(i),
   )
   .handler(async ({ data, context }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("A geração de imagem não está configurada no servidor.");
     const db = context.supabase as any;
-    const model = "google/gemini-3.1-flash-image";
+    // Provedor oficial (Google) — a chave nunca sai do servidor.
+    const providers = await import("@/lib/ai-providers.server");
+    providers.googleKey();
+    const model = providers.GOOGLE_IMAGE_MODEL;
 
     // Limite diário simples (controle de custo).
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -380,6 +382,24 @@ export const generateImage = createServerFn({ method: "POST" })
       .eq("kind", "image")
       .gte("created_at", since);
     if ((count ?? 0) >= 40) throw new Error("Limite de 40 imagens por dia atingido. Tente novamente amanhã.");
+
+    // Franquia gratuita: as primeiras FREE_IMAGES imagens do usuário não custam créditos.
+    const { count: totalImages } = await db
+      .from("ai_generations")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .eq("kind", "image")
+      .eq("status", "completed");
+    const cost = (totalImages ?? 0) >= FREE_IMAGES ? IMAGE_COST_CREDITS : 0;
+    if (cost > 0) {
+      const { error: spendErr } = await db.rpc("spend_ai_credits", { _amount: cost });
+      if (spendErr) {
+        if (String(spendErr.message).includes("insufficient_credits")) {
+          throw new Error(`Você não possui créditos suficientes para gerar esta imagem (${cost} créditos).`);
+        }
+        throw new Error(spendErr.message);
+      }
+    }
 
     // Save user prompt message first
     await db.from("ai_messages").insert({
@@ -398,6 +418,8 @@ export const generateImage = createServerFn({ method: "POST" })
         status: "processing",
         prompt: data.prompt,
         model,
+        provider: "google",
+        cost_credits: cost,
       })
       .select("id")
       .single();
@@ -409,37 +431,22 @@ export const generateImage = createServerFn({ method: "POST" })
           .from("ai_generations")
           .update({ status: "failed", error: detail.slice(0, 500), updated_at: new Date().toISOString() })
           .eq("id", gen.id);
+        // Estorna os créditos internos quando a geração não sai.
+        if (cost > 0) await db.rpc("refund_ai_credits", { _generation: gen.id });
       }
       return new Error(message);
     };
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model, prompt: data.prompt }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      const message =
-        res.status === 402
-          ? "Os créditos de IA acabaram. Adicione créditos para gerar imagens."
-          : res.status === 429
-            ? "Muitos pedidos agora. Tente de novo em instantes."
-            : res.status === 400
-              ? "Não consegui gerar com essa descrição. Tente descrever de outro jeito."
-              : "Não foi possível gerar a imagem agora.";
-      throw await fail(message, `HTTP ${res.status} ${body}`);
+    const image = await providers.googleImage(data.prompt);
+    if (!image.ok) {
+      throw await fail(
+        providers.friendlyProviderError(image.status, image.body),
+        `HTTP ${image.status} ${image.body}`,
+      );
     }
-    const json = await res.json() as any;
-    const b64 = json?.data?.[0]?.b64_json;
-    if (!b64) throw await fail("A IA não retornou imagem. Tente de novo.", "sem b64_json");
-
 
     // Upload to posts bucket under <uid>/ai/ (storage RLS requires the first folder to be the user id)
-    const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const buf = image.bytes;
     const path = `${context.userId}/ai/${crypto.randomUUID()}.png`;
     const { error: upErr } = await (context.supabase as any).storage
       .from("posts")

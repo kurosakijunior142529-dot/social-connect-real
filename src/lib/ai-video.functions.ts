@@ -10,42 +10,15 @@ import {
 } from "@/lib/ai-video-models";
 
 /**
- * Geração de vídeo por IA.
- * - Veo 3.1: AI Gateway da Lovable (chave LOVABLE_API_KEY, só no servidor).
- * - Seedance 2.5: BytePlus ModelArk (chave BYTEPLUS_ARK_API_KEY, só no servidor).
- * Nenhuma chave é exposta ao navegador.
+ * Geração de vídeo por IA — SEMPRE pelas APIs oficiais dos modelos.
+ * - Veo 3.1: Google Generative Language API (GOOGLE_AI_API_KEY).
+ * - Seedance 2.5: BytePlus ModelArk (BYTEPLUS_ARK_API_KEY).
+ * O custo para o usuário é sempre em créditos internos do Vibely (`user_coins`).
+ * Nenhuma chave é exposta ao navegador e o saldo de IA da Lovable não é usado.
  */
-const GATEWAY = "https://ai.gateway.lovable.dev/v1/videos";
-const ARK_BASE = process.env["BYTEPLUS_ARK_BASE_URL"] || "https://ark.ap-southeast.bytepluses.com/api/v3";
 
 /** Limites simples de custo (por usuário / por dia). */
 const DAILY_VIDEO_LIMIT = 5;
-
-function gatewayKey() {
-  const key = process.env["LOVABLE_API_KEY"];
-  if (!key) throw new Error("A geração de vídeo não está configurada no servidor.");
-  return key;
-}
-
-function arkKey() {
-  const key = process.env["BYTEPLUS_ARK_API_KEY"];
-  if (!key) {
-    throw new Error(
-      "O Seedance 2.5 ainda não está configurado neste app. Use o Veo 3.1 ou peça ao administrador para adicionar a chave da BytePlus.",
-    );
-  }
-  return key;
-}
-
-/** Mensagem amigável a partir do status HTTP. */
-function friendlyError(status: number, body: string) {
-  console.error("[ai-video] provider error", status, body.slice(0, 500));
-  if (status === 401 || status === 403) return "A chave de acesso do modelo de vídeo foi recusada.";
-  if (status === 402) return "Os créditos de IA do app acabaram. Avise o administrador.";
-  if (status === 429) return "Muitos vídeos sendo gerados agora. Tente de novo em instantes.";
-  if (status === 400) return "Não consegui gerar com essa descrição. Tente descrever de outro jeito.";
-  return "Não foi possível gerar o vídeo agora.";
-}
 
 const StartSchema = z.object({
   threadId: z.string().uuid(),
@@ -105,8 +78,9 @@ export const startVideo = createServerFn({ method: "POST" })
       throw new Error(`Limite de ${DAILY_VIDEO_LIMIT} vídeos por dia atingido. Tente novamente amanhã.`);
     }
 
-    // Chave do provedor antes de cobrar qualquer crédito.
-    const providerKey = caps.id === "seedance-2.5" ? arkKey() : gatewayKey();
+    // Provedor oficial do modelo — validado ANTES de cobrar qualquer crédito.
+    const providers = await import("@/lib/ai-providers.server");
+    const providerKey = caps.id === "seedance-2.5" ? providers.arkKey() : providers.googleKey();
 
     // Cobrança de créditos (atômica). Falha aqui = nada é gerado.
     const { error: spendErr } = await db.rpc("spend_ai_credits", { _amount: VIDEO_COST_CREDITS });
@@ -125,8 +99,8 @@ export const startVideo = createServerFn({ method: "POST" })
         kind: "video",
         status: "pending",
         prompt: data.prompt,
-        provider: caps.id === "seedance-2.5" ? "byteplus-modelark" : "lovable-ai-gateway",
-        model: caps.backendModel,
+        provider: caps.id === "seedance-2.5" ? "byteplus-modelark" : "google-veo",
+        model: caps.id === "seedance-2.5" ? caps.backendModel : providers.GOOGLE_VIDEO_MODEL,
         duration_seconds: seconds,
         resolution,
         aspect_ratio: aspectRatio,
@@ -163,45 +137,37 @@ export const startVideo = createServerFn({ method: "POST" })
       if (data.imageDataUrl) {
         content.push({ type: "image_url", image_url: { url: data.imageDataUrl }, role: "first_frame" });
       }
-      const res = await fetch(`${ARK_BASE}/contents/generations/tasks`, {
+      const res = await fetch(`${providers.ARK_BASE}/contents/generations/tasks`, {
         method: "POST",
         headers: { Authorization: `Bearer ${providerKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: process.env["BYTEPLUS_SEEDANCE_MODEL"] || caps.backendModel, content }),
       });
       if (!res.ok) {
         const body = await res.text().catch(() => "");
-        throw await failGeneration(`HTTP ${res.status} ${body}`, friendlyError(res.status, body));
+        throw await failGeneration(`HTTP ${res.status} ${body}`, providers.friendlyProviderError(res.status, body));
       }
       const job = (await res.json()) as { id?: string; task_id?: string };
       jobId = (job.id ?? job.task_id) as string;
       if (!jobId) throw await failGeneration("sem id de tarefa", "Não foi possível gerar o vídeo agora.");
     } else {
-      const instance: any = { prompt };
-      if (data.negativePrompt) instance.negativePrompt = data.negativePrompt;
-      if (data.imageDataUrl) {
-        const { mimeType, base64 } = splitDataUrl(data.imageDataUrl);
-        instance.image = { bytesBase64Encoded: base64, mimeType };
-      }
-      const parameters: any = {
-        durationSeconds: seconds,
+      // Google Veo 3.1 — API oficial (operação de longa duração).
+      const image = data.imageDataUrl ? splitDataUrl(data.imageDataUrl) : undefined;
+      const started = await providers.veoStart({
+        prompt,
+        negativePrompt: data.negativePrompt,
+        seconds,
         resolution,
-        sampleCount: 1,
+        aspectRatio,
         generateAudio: withAudio,
-      };
-      // O Veo deduz a orientação da imagem — enviar aspectRatio junto é rejeitado.
-      if (!data.imageDataUrl) parameters.aspectRatio = aspectRatio;
-
-      const res = await fetch(GATEWAY, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${providerKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: caps.backendModel, instances: [instance], parameters }),
+        image: image ? { base64: image.base64, mimeType: image.mimeType } : undefined,
       });
-      if (!res.ok) {
-        const body = await res.text().catch(() => "");
-        throw await failGeneration(`HTTP ${res.status} ${body}`, friendlyError(res.status, body));
+      if (!started.ok) {
+        throw await failGeneration(
+          `HTTP ${started.status} ${started.body}`,
+          providers.friendlyProviderError(started.status, started.body),
+        );
       }
-      const job = (await res.json()) as { id: string };
-      jobId = job.id;
+      jobId = started.jobId;
     }
 
     await db
@@ -251,9 +217,11 @@ export const checkVideo = createServerFn({ method: "POST" })
     /** Bytes do MP4 quando pronto, ou null enquanto processa. */
     let bytes: Uint8Array | null = null;
 
+    const providers = await import("@/lib/ai-providers.server");
+
     if (isArk) {
-      const res = await fetch(`${ARK_BASE}/contents/generations/tasks/${gen.job_id}`, {
-        headers: { Authorization: `Bearer ${arkKey()}` },
+      const res = await fetch(`${providers.ARK_BASE}/contents/generations/tasks/${gen.job_id}`, {
+        headers: { Authorization: `Bearer ${providers.arkKey()}` },
       });
       if (!res.ok) {
         console.error("[ai-video] ark poll failed", res.status);
@@ -271,25 +239,10 @@ export const checkVideo = createServerFn({ method: "POST" })
       if (!dl.ok) return { status: "processing", path: null, error: null };
       bytes = new Uint8Array(await dl.arrayBuffer());
     } else {
-      const res = await fetch(`${GATEWAY}/${gen.job_id}`, {
-        headers: { Authorization: `Bearer ${gatewayKey()}` },
-      });
-      if (!res.ok) {
-        console.error("[ai-video] poll failed", res.status);
-        return { status: "processing", path: null, error: null };
-      }
-      const job = (await res.json()) as { status: string; error?: { message?: string } };
-      if (job.status === "failed") return await markFailed(job.error?.message ?? "falha na geração");
-      if (job.status !== "completed") return { status: "processing", path: null, error: null };
-
-      const content = await fetch(`${GATEWAY}/${gen.job_id}/content`, {
-        headers: { Authorization: `Bearer ${gatewayKey()}` },
-      });
-      if (!content.ok) {
-        console.error("[ai-video] download failed", content.status);
-        return { status: "processing", path: null, error: null };
-      }
-      bytes = new Uint8Array(await content.arrayBuffer());
+      const poll = await providers.veoPoll(gen.job_id as string);
+      if (poll.state === "processing") return { status: "processing", path: null, error: null };
+      if (poll.state === "failed") return await markFailed(poll.detail);
+      bytes = poll.bytes;
     }
 
     const path = `${context.userId}/ai/${crypto.randomUUID()}.mp4`;

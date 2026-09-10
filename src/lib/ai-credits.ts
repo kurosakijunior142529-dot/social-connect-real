@@ -36,8 +36,8 @@ export const AI_DAILY_LIMITS = { image: 40, video: 5 } as const;
  */
 export const AI_COST_PER_ACTION: { text: number | null; image: number | null; video: number | null } = {
   text: null,
-  image: null,
-  video: null,
+  image: IMAGE_COST_CREDITS,
+  video: VIDEO_COST_CREDITS,
 };
 
 export type AiGeneration = {

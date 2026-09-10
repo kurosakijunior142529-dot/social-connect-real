@@ -169,7 +169,9 @@ function FeedPage() {
 function DailyPromptCard() {
   const prompt = useQuery({
     queryKey: ["daily-prompt"],
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("today_prompt");
       if (error) return null;

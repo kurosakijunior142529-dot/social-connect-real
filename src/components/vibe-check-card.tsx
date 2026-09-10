@@ -27,7 +27,9 @@ export function VibeCheckCard() {
 
   const q = useQuery({
     queryKey: ["vibe-checkins"],
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("friends_vibe_checkins");
       if (error) return [] as Row[];

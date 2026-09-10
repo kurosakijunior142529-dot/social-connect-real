@@ -217,9 +217,11 @@ export const checkVideo = createServerFn({ method: "POST" })
     /** Bytes do MP4 quando pronto, ou null enquanto processa. */
     let bytes: Uint8Array | null = null;
 
+    const providers = await import("@/lib/ai-providers.server");
+
     if (isArk) {
-      const res = await fetch(`${ARK_BASE}/contents/generations/tasks/${gen.job_id}`, {
-        headers: { Authorization: `Bearer ${arkKey()}` },
+      const res = await fetch(`${providers.ARK_BASE}/contents/generations/tasks/${gen.job_id}`, {
+        headers: { Authorization: `Bearer ${providers.arkKey()}` },
       });
       if (!res.ok) {
         console.error("[ai-video] ark poll failed", res.status);
@@ -237,25 +239,10 @@ export const checkVideo = createServerFn({ method: "POST" })
       if (!dl.ok) return { status: "processing", path: null, error: null };
       bytes = new Uint8Array(await dl.arrayBuffer());
     } else {
-      const res = await fetch(`${GATEWAY}/${gen.job_id}`, {
-        headers: { Authorization: `Bearer ${gatewayKey()}` },
-      });
-      if (!res.ok) {
-        console.error("[ai-video] poll failed", res.status);
-        return { status: "processing", path: null, error: null };
-      }
-      const job = (await res.json()) as { status: string; error?: { message?: string } };
-      if (job.status === "failed") return await markFailed(job.error?.message ?? "falha na geração");
-      if (job.status !== "completed") return { status: "processing", path: null, error: null };
-
-      const content = await fetch(`${GATEWAY}/${gen.job_id}/content`, {
-        headers: { Authorization: `Bearer ${gatewayKey()}` },
-      });
-      if (!content.ok) {
-        console.error("[ai-video] download failed", content.status);
-        return { status: "processing", path: null, error: null };
-      }
-      bytes = new Uint8Array(await content.arrayBuffer());
+      const poll = await providers.veoPoll(gen.job_id as string);
+      if (poll.state === "processing") return { status: "processing", path: null, error: null };
+      if (poll.state === "failed") return await markFailed(poll.detail);
+      bytes = poll.bytes;
     }
 
     const path = `${context.userId}/ai/${crypto.randomUUID()}.mp4`;

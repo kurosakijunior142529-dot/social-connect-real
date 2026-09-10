@@ -81,11 +81,26 @@ export async function veoStart(opts: VeoStart): Promise<{ ok: true; jobId: strin
   if (!opts.image) parameters["aspectRatio"] = opts.aspectRatio;
   if (opts.negativePrompt) parameters["negativePrompt"] = opts.negativePrompt;
 
-  const res = await fetch(`${GOOGLE_BASE}/models/${GOOGLE_VIDEO_MODEL}:predictLongRunning`, {
-    method: "POST",
-    headers: { "x-goog-api-key": googleKey(), "Content-Type": "application/json" },
-    body: JSON.stringify({ instances: [instance], parameters }),
-  });
+  const send = async () =>
+    fetch(`${GOOGLE_BASE}/models/${GOOGLE_VIDEO_MODEL}:predictLongRunning`, {
+      method: "POST",
+      headers: { "x-goog-api-key": googleKey(), "Content-Type": "application/json" },
+      body: JSON.stringify({ instances: [instance], parameters }),
+    });
+
+  let res = await send();
+  // Algumas versões do modelo não aceitam certos parâmetros opcionais
+  // (ex.: `generateAudio`). Nesse caso removemos o parâmetro citado e repetimos.
+  for (let attempt = 0; attempt < 3 && res.status === 400; attempt++) {
+    const body = await res.clone().text().catch(() => "");
+    const unsupported = ["generateAudio", "resolution", "negativePrompt", "aspectRatio"].find(
+      (p) => body.includes(`\`${p}\``) && p in parameters,
+    );
+    if (!unsupported) break;
+    delete parameters[unsupported];
+    res = await send();
+  }
+
   if (!res.ok) return { ok: false, status: res.status, body: await res.text().catch(() => "") };
   const json = (await res.json()) as { name?: string };
   if (!json.name) return { ok: false, status: 502, body: "operação sem nome" };

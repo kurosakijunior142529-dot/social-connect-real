@@ -24,11 +24,12 @@ const ICONS: Record<string, any> = {
   chat_invite: Users,
 };
 
-const ALLOWED = new Set(["like", "comment", "follow", "story_reaction", "chat_invite"]);
+const ALLOWED = new Set(["like", "comment", "follow", "story_reaction", "chat_invite", "system"]);
 
 function label(n: NotificationRow) {
   const name = n.actor?.display_name ?? "Alguém";
   switch (n.type) {
+    case "system": return (n.metadata?.message as string) ?? "Aviso do Vibely";
     case "like": return `${name} curtiu seu post`;
     case "comment": return `${name} comentou: "${n.metadata?.preview ?? ""}"`;
     case "follow": return `${name} começou a te seguir`;

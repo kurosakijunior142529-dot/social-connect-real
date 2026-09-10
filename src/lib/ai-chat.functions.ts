@@ -417,6 +417,8 @@ export const generateImage = createServerFn({ method: "POST" })
         status: "processing",
         prompt: data.prompt,
         model,
+        provider: "google",
+        cost_credits: cost,
       })
       .select("id")
       .single();
@@ -428,37 +430,22 @@ export const generateImage = createServerFn({ method: "POST" })
           .from("ai_generations")
           .update({ status: "failed", error: detail.slice(0, 500), updated_at: new Date().toISOString() })
           .eq("id", gen.id);
+        // Estorna os créditos internos quando a geração não sai.
+        if (cost > 0) await db.rpc("refund_ai_credits", { _generation: gen.id });
       }
       return new Error(message);
     };
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model, prompt: data.prompt }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      const message =
-        res.status === 402
-          ? "Os créditos de IA acabaram. Adicione créditos para gerar imagens."
-          : res.status === 429
-            ? "Muitos pedidos agora. Tente de novo em instantes."
-            : res.status === 400
-              ? "Não consegui gerar com essa descrição. Tente descrever de outro jeito."
-              : "Não foi possível gerar a imagem agora.";
-      throw await fail(message, `HTTP ${res.status} ${body}`);
+    const image = await providers.googleImage(data.prompt);
+    if (!image.ok) {
+      throw await fail(
+        providers.friendlyProviderError(image.status, image.body),
+        `HTTP ${image.status} ${image.body}`,
+      );
     }
-    const json = await res.json() as any;
-    const b64 = json?.data?.[0]?.b64_json;
-    if (!b64) throw await fail("A IA não retornou imagem. Tente de novo.", "sem b64_json");
-
 
     // Upload to posts bucket under <uid>/ai/ (storage RLS requires the first folder to be the user id)
-    const buf = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const buf = image.bytes;
     const path = `${context.userId}/ai/${crypto.randomUUID()}.png`;
     const { error: upErr } = await (context.supabase as any).storage
       .from("posts")

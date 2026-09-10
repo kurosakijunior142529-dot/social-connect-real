@@ -48,7 +48,11 @@ export function friendlyProviderError(status: number, body: string) {
   console.error("[ai-provider] error", status, body.slice(0, 500));
   if (status === 401 || status === 403) return "A chave de acesso do modelo foi recusada.";
   if (status === 402) return "A conta do modelo de IA está sem saldo. Avise o administrador.";
-  if (status === 429) return "Muitos pedidos agora. Tente de novo em instantes.";
+  if (status === 429) {
+    return body.includes("quota") || body.includes("RESOURCE_EXHAUSTED")
+      ? "A cota da conta de IA acabou. Avise o administrador para liberar o faturamento do modelo de vídeo."
+      : "Muitos pedidos agora. Tente de novo em instantes.";
+  }
   if (status === 400) return "Não consegui gerar com essa descrição. Tente descrever de outro jeito.";
   return "Não foi possível gerar agora.";
 }

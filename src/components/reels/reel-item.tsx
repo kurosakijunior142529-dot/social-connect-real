@@ -39,7 +39,7 @@ type Props = {
 
 type Burst = { id: number; x: number; y: number };
 
-export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, nextSrc }: Props) {
+export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, nextSrc, reason, onNotInterested }: Props) {
   const qc = useQueryClient();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -199,7 +199,8 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
         return old;
       });
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["reels"] }),
+    // Sem invalidar o feed: o VIR já entregou a ordem e recarregar embaralharia
+    // os vídeos no meio da rolagem. A atualização otimista basta.
   });
 
   const forceLike = useCallback(() => {
@@ -211,8 +212,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     mutationFn: async () => {
       if (saved) {
         await (supabase as any).from("saved_posts").delete().match({ user_id: currentUserId, post_id: post.id });
+        logVir(post.id, "unsave");
       } else {
         await (supabase as any).from("saved_posts").insert({ user_id: currentUserId, post_id: post.id });
+        logVir(post.id, "save");
       }
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["saved", currentUserId, post.id] }),
@@ -224,7 +227,20 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   }, [post.id]);
 
 
-  const handleShare = () => setShareOpen(true);
+  const handleShare = () => {
+    logVir(post.id, "share");
+    setShareOpen(true);
+  };
+
+  const handleNotInterested = () => {
+    toast.success("Ok, vamos mostrar menos conteúdos assim.");
+    onNotInterested?.(post.id);
+  };
+
+  const handleReport = () => {
+    logVir(post.id, "report");
+    toast.success("Denúncia registrada. Nossa equipe vai revisar.");
+  };
 
 
   // Gesture handling: single-tap play/pause, double-tap like burst, long-press 2x
@@ -408,7 +424,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           }
         />
         <ActionBtn
-          onClick={() => onOpenComments(post.id)}
+          onClick={() => { logVir(post.id, "comment_open"); onOpenComments(post.id); }}
           count={post.comments_count}
           label="Comentar"
           icon={<MessageCircle className="h-[26px] w-[26px] text-white" strokeWidth={1.6} />}

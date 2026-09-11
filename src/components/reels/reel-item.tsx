@@ -178,19 +178,26 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     mutationFn: async () => {
       if (post.liked_by_me) {
         await supabase.from("likes").delete().match({ user_id: currentUserId, post_id: post.id });
+        logVir(post.id, "unlike");
       } else {
         await supabase.from("likes").insert({ user_id: currentUserId, post_id: post.id });
+        logVir(post.id, "like");
       }
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["reels"] });
-      qc.setQueriesData<FeedPost[] | undefined>({ queryKey: ["reels"] }, (old) =>
-        old?.map((p) =>
-          p.id === post.id
-            ? { ...p, liked_by_me: !p.liked_by_me, likes_count: p.likes_count + (p.liked_by_me ? -1 : 1) }
-            : p,
-        ),
-      );
+      const patch = (p: FeedPost) =>
+        p.id === post.id
+          ? { ...p, liked_by_me: !p.liked_by_me, likes_count: p.likes_count + (p.liked_by_me ? -1 : 1) }
+          : p;
+      qc.setQueriesData<any>({ queryKey: ["reels"] }, (old: any) => {
+        if (!old) return old;
+        if (Array.isArray(old)) return old.map(patch);
+        if (Array.isArray(old.pages)) {
+          return { ...old, pages: old.pages.map((page: FeedPost[]) => page.map(patch)) };
+        }
+        return old;
+      });
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["reels"] }),
   });

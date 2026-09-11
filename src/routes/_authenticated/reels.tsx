@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { isSoundOn, setSoundOn, subscribeSound } from "@/lib/media/sound-pref";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Radio, Users, Play } from "lucide-react";
 import { ReelItem } from "@/components/reels/reel-item";
@@ -12,6 +12,7 @@ import { fetchActiveLives, timeOnAir, type LiveFeedRow } from "@/lib/lives-feed"
 import { formatViewers } from "@/lib/live-utils";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
+import { fetchVirFeed, virNotInterested } from "@/lib/vir";
 
 export const Route = createFileRoute("/_authenticated/reels")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -20,6 +21,11 @@ export const Route = createFileRoute("/_authenticated/reels")({
   component: ReelsPage,
 });
 
+const PAGE = 8;
+
+/** Reel já com o motivo da recomendação vindo do VIR. */
+type RankedPost = FeedPost & { vir_reason?: string | null; vir_source?: string | null };
+
 function ReelsPage() {
   const { user } = Route.useRouteContext();
   const { post: startPostId } = Route.useSearch();
@@ -27,6 +33,7 @@ function ReelsPage() {
   const hidden = blocks.data?.hidden;
   const [muted, setMuted] = useState(() => !isSoundOn());
   const [tab, setTab] = useState<"fyp" | "live">("fyp");
+  const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   useEffect(() => {
     const unsub = subscribeSound((on) => setMuted(!on));
     return () => { unsub(); };
@@ -42,45 +49,28 @@ function ReelsPage() {
   const hasLives = lives.length > 0;
   useEffect(() => { if (!hasLives && tab === "live") setTab("fyp"); }, [hasLives, tab]);
 
-  const query = useQuery({
-    queryKey: ["reels", user.id, "blocks", hidden ? hidden.size : 0, startPostId ?? null],
-    enabled: !!blocks.data,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-    placeholderData: (prev: any) => prev,
-    queryFn: async () => {
-      const [{ data, error }, startRes] = await Promise.all([
-        supabase
-          .from("posts")
-          .select("*")
-          .eq("media_type", "video")
-          .eq("post_kind", "reel")
-          .order("created_at", { ascending: false })
-          .limit(12),
-        startPostId
-          ? supabase.from("posts").select("*").eq("id", startPostId).maybeSingle()
-          : Promise.resolve({ data: null } as any),
-      ]);
-      if (error) throw error;
-      let posts = (data ?? []) as any[];
-      if (hidden && hidden.size > 0) posts = posts.filter((p) => !hidden.has(p.author_id));
-      // Vídeo vindo do feed: entra como primeiro item, mesmo não sendo reel.
-      const startPost = (startRes as any)?.data;
-      if (startPost && startPost.media_type === "video") {
-        posts = [startPost, ...posts.filter((p) => p.id !== startPost.id)];
-      }
-      if (posts.length === 0) return [] as FeedPost[];
+  /**
+   * Hidrata os ids devolvidos pelo VIR mantendo exatamente a ordem do ranking.
+   * O backend decide o quê e em que ordem; aqui só buscamos o conteúdo.
+   */
+  const hydrate = useCallback(
+    async (ids: string[], meta: Map<string, { reason: string | null; source: string | null }>) => {
+      if (ids.length === 0) return [] as RankedPost[];
+      const { data } = await supabase.from("posts").select("*").in("id", ids);
+      let rows = (data ?? []) as any[];
+      if (hidden && hidden.size > 0) rows = rows.filter((p) => !hidden.has(p.author_id));
+      const byId = new Map(rows.map((p) => [p.id, p]));
+      const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as any[];
+      if (ordered.length === 0) return [] as RankedPost[];
 
-      const ids = posts.map((p) => p.id);
-      const authorIds = Array.from(new Set(posts.map((p) => p.author_id)));
-
+      const postIds = ordered.map((p) => p.id);
+      const authorIds = Array.from(new Set(ordered.map((p) => p.author_id)));
       const [profilesRes, likesCountRes, commentsCountRes, myLikesRes] = await Promise.all([
         supabase.from("profiles").select("id, username, display_name, avatar_url, is_verified, badge_variant").in("id", authorIds),
-        supabase.from("likes").select("post_id").in("post_id", ids),
-        supabase.from("comments").select("post_id").in("post_id", ids),
-        supabase.from("likes").select("post_id").eq("user_id", user.id).in("post_id", ids),
+        supabase.from("likes").select("post_id").in("post_id", postIds),
+        supabase.from("comments").select("post_id").in("post_id", postIds),
+        supabase.from("likes").select("post_id").eq("user_id", user.id).in("post_id", postIds),
       ]);
-
       const profiles = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
       const likesCount = new Map<string, number>();
       for (const l of likesCountRes.data ?? []) likesCount.set(l.post_id, (likesCount.get(l.post_id) ?? 0) + 1);
@@ -88,17 +78,79 @@ function ReelsPage() {
       for (const c of commentsCountRes.data ?? []) commentsCount.set(c.post_id, (commentsCount.get(c.post_id) ?? 0) + 1);
       const myLikes = new Set((myLikesRes.data ?? []).map((l: any) => l.post_id));
 
-      return posts.map<FeedPost>((p) => ({
+      return ordered.map<RankedPost>((p) => ({
         ...p,
         author: profiles.get(p.author_id) ?? null,
         likes_count: likesCount.get(p.id) ?? 0,
         comments_count: commentsCount.get(p.id) ?? 0,
         liked_by_me: myLikes.has(p.id),
+        vir_reason: meta.get(p.id)?.reason ?? null,
+        vir_source: meta.get(p.id)?.source ?? null,
       }));
+    },
+    [hidden, user.id],
+  );
+
+  const feed = useInfiniteQuery({
+    queryKey: ["reels", user.id, hidden ? hidden.size : 0, startPostId ?? null],
+    enabled: !!blocks.data,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    initialPageParam: 0,
+    getNextPageParam: (last: RankedPost[], all: RankedPost[][]) =>
+      last.length === 0 ? undefined : all.reduce((n, p) => n + p.length, 0),
+    queryFn: async ({ pageParam }) => {
+      const offset = pageParam as number;
+      // 1) ranking do VIR (relevância, qualidade, diversidade, descoberta,
+      //    segunda chance, freshness — tudo calculado no backend).
+      const ranked = await fetchVirFeed(PAGE, offset, "reel");
+      const meta = new Map(ranked.map((r) => [r.post_id, { reason: r.reason, source: r.source }]));
+      let ids = ranked.map((r) => r.post_id);
+
+      // 2) fallback: se o VIR ainda não tem candidatos (conta nova, base vazia),
+      //    completamos com conteúdo recente para nunca deixar a tela vazia.
+      if (ids.length < PAGE) {
+        const { data } = await supabase
+          .from("posts")
+          .select("id")
+          .eq("media_type", "video")
+          .eq("post_kind", "reel")
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE - 1);
+        for (const row of data ?? []) if (!ids.includes(row.id)) ids.push(row.id);
+      }
+
+      // 3) vídeo aberto a partir do feed entra primeiro, sem sair do ranking.
+      if (offset === 0 && startPostId) ids = [startPostId, ...ids.filter((id) => id !== startPostId)];
+
+      return hydrate(ids, meta);
     },
   });
 
-  const posts = query.data ?? [];
+  const posts = useMemo(() => {
+    const seen = new Set<string>();
+    const out: RankedPost[] = [];
+    for (const p of feed.data?.pages.flat() ?? []) {
+      if (seen.has(p.id) || dismissed.has(p.id)) continue;
+      seen.add(p.id);
+      out.push(p);
+    }
+    return out;
+  }, [feed.data, dismissed]);
+
+  const onNotInterested = useCallback((postId: string) => {
+    setDismissed((prev) => new Set(prev).add(postId));
+    void virNotInterested(postId);
+  }, []);
+
+  const onScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      if (el.scrollHeight - el.scrollTop - el.clientHeight > el.clientHeight * 2) return;
+      if (feed.hasNextPage && !feed.isFetchingNextPage) void feed.fetchNextPage();
+    },
+    [feed],
+  );
 
   return (
     <div className="relative -mx-0 md:-mx-4 md:-mt-6">
@@ -127,12 +179,13 @@ function ReelsPage() {
       </header>
 
       <div
+        onScroll={onScroll}
         className="snap-y snap-mandatory overflow-y-scroll bg-black no-scrollbar rounded-none md:rounded-2xl md:overflow-hidden"
         style={{ height: "calc(100dvh - 96px)" }}
       >
         {tab === "live" ? (
           lives.map((l) => <LiveReelCard key={l.id} l={l} />)
-        ) : query.isLoading ? (
+        ) : feed.isLoading ? (
           <div className="h-full grid place-items-center text-white/60 text-sm">Carregando vídeos…</div>
         ) : posts.length === 0 ? (
           <div className="h-full grid place-items-center text-white/70 text-center px-8">
@@ -150,6 +203,8 @@ function ReelsPage() {
               muted={muted}
               onToggleMute={() => setSoundOn(muted)}
               onOpenComments={(id) => setOpenCommentsFor(id)}
+              reason={p.vir_reason ?? null}
+              onNotInterested={onNotInterested}
             />
           ))
         )}

@@ -4,7 +4,14 @@ import { logVir, useVirWatch } from "@/lib/vir";
 import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX, MoreHorizontal, EyeOff, Flag } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedUrl } from "@/hooks/use-signed-url";
@@ -24,11 +31,15 @@ type Props = {
   onOpenComments: (postId: string) => void;
   /** URL of the next reel to preload. */
   nextSrc?: string;
+  /** Explicação curta do VIR (ex.: "Porque você segue este criador"). */
+  reason?: string | null;
+  /** Chamado quando a pessoa marca "Não tenho interesse". */
+  onNotInterested?: (postId: string) => void;
 };
 
 type Burst = { id: number; x: number; y: number };
 
-export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, nextSrc }: Props) {
+export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, nextSrc, reason, onNotInterested }: Props) {
   const qc = useQueryClient();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -167,21 +178,29 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     mutationFn: async () => {
       if (post.liked_by_me) {
         await supabase.from("likes").delete().match({ user_id: currentUserId, post_id: post.id });
+        logVir(post.id, "unlike");
       } else {
         await supabase.from("likes").insert({ user_id: currentUserId, post_id: post.id });
+        logVir(post.id, "like");
       }
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["reels"] });
-      qc.setQueriesData<FeedPost[] | undefined>({ queryKey: ["reels"] }, (old) =>
-        old?.map((p) =>
-          p.id === post.id
-            ? { ...p, liked_by_me: !p.liked_by_me, likes_count: p.likes_count + (p.liked_by_me ? -1 : 1) }
-            : p,
-        ),
-      );
+      const patch = (p: FeedPost) =>
+        p.id === post.id
+          ? { ...p, liked_by_me: !p.liked_by_me, likes_count: p.likes_count + (p.liked_by_me ? -1 : 1) }
+          : p;
+      qc.setQueriesData<any>({ queryKey: ["reels"] }, (old: any) => {
+        if (!old) return old;
+        if (Array.isArray(old)) return old.map(patch);
+        if (Array.isArray(old.pages)) {
+          return { ...old, pages: old.pages.map((page: FeedPost[]) => page.map(patch)) };
+        }
+        return old;
+      });
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["reels"] }),
+    // Sem invalidar o feed: o VIR já entregou a ordem e recarregar embaralharia
+    // os vídeos no meio da rolagem. A atualização otimista basta.
   });
 
   const forceLike = useCallback(() => {
@@ -193,8 +212,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     mutationFn: async () => {
       if (saved) {
         await (supabase as any).from("saved_posts").delete().match({ user_id: currentUserId, post_id: post.id });
+        logVir(post.id, "unsave");
       } else {
         await (supabase as any).from("saved_posts").insert({ user_id: currentUserId, post_id: post.id });
+        logVir(post.id, "save");
       }
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["saved", currentUserId, post.id] }),
@@ -206,7 +227,20 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   }, [post.id]);
 
 
-  const handleShare = () => setShareOpen(true);
+  const handleShare = () => {
+    logVir(post.id, "share");
+    setShareOpen(true);
+  };
+
+  const handleNotInterested = () => {
+    toast.success("Ok, vamos mostrar menos conteúdos assim.");
+    onNotInterested?.(post.id);
+  };
+
+  const handleReport = () => {
+    logVir(post.id, "report");
+    toast.success("Denúncia registrada. Nossa equipe vai revisar.");
+  };
 
 
   // Gesture handling: single-tap play/pause, double-tap like burst, long-press 2x
@@ -390,7 +424,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           }
         />
         <ActionBtn
-          onClick={() => onOpenComments(post.id)}
+          onClick={() => { logVir(post.id, "comment_open"); onOpenComments(post.id); }}
           count={post.comments_count}
           label="Comentar"
           icon={<MessageCircle className="h-[26px] w-[26px] text-white" strokeWidth={1.6} />}

@@ -10,6 +10,7 @@ import { EmojiText, AppEmojiPicker } from "@/components/chat/app-emoji";
 import { useTranslatable } from "@/components/i18n/translate-text";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { logVir } from "@/lib/vir";
 import { StickerPicker, type StickerItem } from "@/components/chat/sticker-picker";
 
 type CommentRow = {
@@ -140,6 +141,7 @@ export function PostComments({
       toast.error(error.message ?? "Não foi possível comentar");
       return;
     }
+    logVir(postId, "comment", 0, "comments");
     refresh();
   }
 

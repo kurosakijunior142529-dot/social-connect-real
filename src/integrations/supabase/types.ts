@@ -987,6 +987,39 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_stats: {
+        Row: {
+          avg_quality: number
+          first_post_at: string | null
+          followers: number
+          posts_count: number
+          suspicion: number
+          trust: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_quality?: number
+          first_post_at?: string | null
+          followers?: number
+          posts_count?: number
+          suspicion?: number
+          trust?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_quality?: number
+          first_post_at?: string | null
+          followers?: number
+          posts_count?: number
+          suspicion?: number
+          trust?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_prompts: {
         Row: {
           active_on: string
@@ -2332,6 +2365,118 @@ export type Database = {
           },
         ]
       }
+      post_metrics: {
+        Row: {
+          author_id: string | null
+          comments: number
+          completes: number
+          confidence: number
+          follows_gained: number
+          impressions: number
+          last_stage_at: string
+          likes: number
+          negatives: number
+          post_id: string
+          profile_visits: number
+          quality: number
+          reached_50: number
+          replays: number
+          saves: number
+          second_chance_count: number
+          shares: number
+          skips: number
+          stage: number
+          starts: number
+          updated_at: string
+          watch_ms: number
+        }
+        Insert: {
+          author_id?: string | null
+          comments?: number
+          completes?: number
+          confidence?: number
+          follows_gained?: number
+          impressions?: number
+          last_stage_at?: string
+          likes?: number
+          negatives?: number
+          post_id: string
+          profile_visits?: number
+          quality?: number
+          reached_50?: number
+          replays?: number
+          saves?: number
+          second_chance_count?: number
+          shares?: number
+          skips?: number
+          stage?: number
+          starts?: number
+          updated_at?: string
+          watch_ms?: number
+        }
+        Update: {
+          author_id?: string | null
+          comments?: number
+          completes?: number
+          confidence?: number
+          follows_gained?: number
+          impressions?: number
+          last_stage_at?: string
+          likes?: number
+          negatives?: number
+          post_id?: string
+          profile_visits?: number
+          quality?: number
+          reached_50?: number
+          replays?: number
+          saves?: number
+          second_chance_count?: number
+          shares?: number
+          skips?: number
+          stage?: number
+          starts?: number
+          updated_at?: string
+          watch_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_metrics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_topics: {
+        Row: {
+          post_id: string
+          source: string
+          topic: string
+          weight: number
+        }
+        Insert: {
+          post_id: string
+          source?: string
+          topic: string
+          weight?: number
+        }
+        Update: {
+          post_id?: string
+          source?: string
+          topic?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_topics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_views: {
         Row: {
           post_id: string
@@ -3319,6 +3464,119 @@ export type Database = {
           },
         ]
       }
+      vir_baselines: {
+        Row: {
+          avg_completion: number
+          avg_engagement: number
+          kind: string
+          samples: number
+          updated_at: string
+        }
+        Insert: {
+          avg_completion?: number
+          avg_engagement?: number
+          kind: string
+          samples?: number
+          updated_at?: string
+        }
+        Update: {
+          avg_completion?: number
+          avg_engagement?: number
+          kind?: string
+          samples?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vir_config: {
+        Row: {
+          key: string
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      vir_events: {
+        Row: {
+          author_id: string | null
+          created_at: string
+          event: string
+          id: number
+          post_id: string | null
+          source: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          author_id?: string | null
+          created_at?: string
+          event: string
+          id?: number
+          post_id?: string | null
+          source?: string | null
+          user_id: string
+          value?: number
+        }
+        Update: {
+          author_id?: string | null
+          created_at?: string
+          event?: string
+          id?: number
+          post_id?: string | null
+          source?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vir_events_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vir_user_topics: {
+        Row: {
+          long_weight: number
+          short_weight: number
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          long_weight?: number
+          short_weight?: number
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          long_weight?: number
+          short_weight?: number
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       voice_channels: {
         Row: {
           created_at: string
@@ -4162,6 +4420,65 @@ export type Database = {
         }[]
       }
       view_ephemeral_message: { Args: { _id: string }; Returns: string }
+      vir_admin_config: {
+        Args: never
+        Returns: {
+          key: string
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "vir_config"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      vir_admin_set_config: {
+        Args: { _key: string; _value: Json }
+        Returns: undefined
+      }
+      vir_cfg: { Args: { _key: string }; Returns: Json }
+      vir_fairness_report: {
+        Args: never
+        Returns: {
+          avg_quality: number
+          bucket: string
+          creators: number
+          impressions: number
+          posts: number
+        }[]
+      }
+      vir_feed: {
+        Args: { _kind?: string; _limit?: number; _offset?: number }
+        Returns: {
+          author_id: string
+          post_id: string
+          reason: string
+          score: number
+          source: string
+        }[]
+      }
+      vir_index_post_topics: { Args: { _post_id: string }; Returns: undefined }
+      vir_log_event: {
+        Args: {
+          _event: string
+          _post_id: string
+          _source?: string
+          _value?: number
+        }
+        Returns: undefined
+      }
+      vir_not_interested: { Args: { _post_id: string }; Returns: undefined }
+      vir_recompute: { Args: never; Returns: undefined }
+      vir_touch_topics: {
+        Args: { _event: string; _post_id: string; _user: string }
+        Returns: undefined
+      }
+      vir_variant: { Args: { _user: string }; Returns: string }
+      vir_wilson: { Args: { _n: number; _pos: number }; Returns: number }
       watch_room_invite_preview: {
         Args: { _code: string }
         Returns: {

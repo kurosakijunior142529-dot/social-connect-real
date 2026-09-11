@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logPostView } from "@/lib/search";
+import { logVir, useVirWatch } from "@/lib/vir";
 import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -143,6 +144,9 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     const t = setTimeout(() => void logPostView(post.id), 2000);
     return () => clearTimeout(t);
   }, [visible, post.id]);
+
+  // Sinais de retenção para o VIR (início, 25/50/75%, conclusão, replay, skip).
+  useVirWatch(videoRef, visible, post.id);
 
   // saved state
   const savedQ = useQuery({

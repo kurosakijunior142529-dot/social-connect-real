@@ -4,7 +4,14 @@ import { logVir, useVirWatch } from "@/lib/vir";
 import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX, MoreHorizontal, EyeOff, Flag } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedUrl } from "@/hooks/use-signed-url";
@@ -24,6 +31,10 @@ type Props = {
   onOpenComments: (postId: string) => void;
   /** URL of the next reel to preload. */
   nextSrc?: string;
+  /** Explicação curta do VIR (ex.: "Porque você segue este criador"). */
+  reason?: string | null;
+  /** Chamado quando a pessoa marca "Não tenho interesse". */
+  onNotInterested?: (postId: string) => void;
 };
 
 type Burst = { id: number; x: number; y: number };

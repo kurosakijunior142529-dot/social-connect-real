@@ -140,6 +140,7 @@ export function PostComments({
       toast.error(error.message ?? "Não foi possível comentar");
       return;
     }
+    logVir(postId, "comment", 0, "comments");
     refresh();
   }
 

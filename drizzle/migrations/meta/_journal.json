@@ -253,6 +253,13 @@
       "when": 1789097884843,
       "tag": "0035_vir_ranking",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1789182122359,
+      "tag": "0036_post_view_counts",
+      "breakpoints": true
     }
   ]
 }

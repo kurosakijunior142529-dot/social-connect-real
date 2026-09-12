@@ -424,7 +424,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           }
         />
         <ActionBtn
-          onClick={() => { logVir(post.id, "comment_open"); onOpenComments(post.id); }}
+          onClick={() => { onOpenComments(post.id); }}
           count={post.comments_count}
           label="Comentar"
           icon={<MessageCircle className="h-[26px] w-[26px] text-white" strokeWidth={1.6} />}

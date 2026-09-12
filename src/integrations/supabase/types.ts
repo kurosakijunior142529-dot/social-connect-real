@@ -2365,9 +2365,58 @@ export type Database = {
           },
         ]
       }
+      post_media: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          height: number | null
+          id: string
+          media_type: string
+          media_url: string
+          position: number
+          post_id: string
+          thumbnail_url: string | null
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          height?: number | null
+          id?: string
+          media_type?: string
+          media_url: string
+          position?: number
+          post_id: string
+          thumbnail_url?: string | null
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          height?: number | null
+          id?: string
+          media_type?: string
+          media_url?: string
+          position?: number
+          post_id?: string
+          thumbnail_url?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_metrics: {
         Row: {
           author_id: string | null
+          carousel_completes: number
+          carousel_views: number
           comments: number
           completes: number
           confidence: number
@@ -2381,6 +2430,8 @@ export type Database = {
           quality: number
           reached_50: number
           replays: number
+          repost_impressions: number
+          reposts: number
           saves: number
           second_chance_count: number
           shares: number
@@ -2392,6 +2443,8 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
+          carousel_completes?: number
+          carousel_views?: number
           comments?: number
           completes?: number
           confidence?: number
@@ -2405,6 +2458,8 @@ export type Database = {
           quality?: number
           reached_50?: number
           replays?: number
+          repost_impressions?: number
+          reposts?: number
           saves?: number
           second_chance_count?: number
           shares?: number
@@ -2416,6 +2471,8 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
+          carousel_completes?: number
+          carousel_views?: number
           comments?: number
           completes?: number
           confidence?: number
@@ -2429,6 +2486,8 @@ export type Database = {
           quality?: number
           reached_50?: number
           replays?: number
+          repost_impressions?: number
+          reposts?: number
           saves?: number
           second_chance_count?: number
           shares?: number
@@ -4229,6 +4288,20 @@ export type Database = {
       }
       recompute_my_affinity: { Args: never; Returns: undefined }
       recompute_trends: { Args: never; Returns: undefined }
+      reel_repost_context: {
+        Args: { _post_ids: string[] }
+        Returns: {
+          avatar_url: string
+          comment: string
+          created_at: string
+          display_name: string
+          is_following: boolean
+          post_id: string
+          total_reposts: number
+          user_id: string
+          username: string
+        }[]
+      }
       refund_ai_credits: { Args: { _generation: string }; Returns: number }
       related_hashtags: {
         Args: { _limit?: number; _tag: string }

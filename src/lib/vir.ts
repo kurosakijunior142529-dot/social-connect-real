@@ -29,7 +29,16 @@ export type VirEvent =
   | "skip"
   | "not_interested"
   | "report"
-  | "hide";
+  | "hide"
+  | "pause"
+  | "resume"
+  | "repost"
+  | "unrepost"
+  | "media_view"
+  | "media_next"
+  | "media_prev"
+  | "carousel_complete"
+  | "carousel_abandon";
 
 const rpc = supabase.rpc.bind(supabase) as unknown as (
   fn: string,
@@ -83,6 +92,7 @@ export function useVirWatch(
   ref: RefObject<HTMLVideoElement | null>,
   active: boolean,
   postId: string,
+  source = "reels",
 ) {
   const state = useRef({
     impression: false,
@@ -101,7 +111,7 @@ export function useVirWatch(
     const s = state.current;
     if (!s.impression) {
       s.impression = true;
-      logVir(postId, "impression");
+      logVir(postId, "impression", 0, source);
     }
     const v = ref.current;
     if (!v) return;
@@ -109,7 +119,7 @@ export function useVirWatch(
     const onPlay = () => {
       if (!s.started) {
         s.started = true;
-        logVir(postId, "video_start");
+        logVir(postId, "video_start", 0, source);
       }
     };
 
@@ -120,18 +130,18 @@ export function useVirWatch(
       if (t > s.lastTime) s.watchedMs += (t - s.lastTime) * 1000;
       // reinício do loop depois de assistir quase tudo = replay
       if (t < s.lastTime - 0.5 && s.maxRatio >= 0.9) {
-        logVir(postId, "replay", s.watchedMs);
+        logVir(postId, "replay", s.watchedMs, source);
         s.m25 = s.m50 = s.m75 = s.completed = false;
       }
       s.lastTime = t;
       const ratio = t / d;
       if (ratio > s.maxRatio) s.maxRatio = ratio;
-      if (!s.m25 && ratio >= 0.25) { s.m25 = true; logVir(postId, "watch_25", s.watchedMs); }
-      if (!s.m50 && ratio >= 0.5) { s.m50 = true; logVir(postId, "watch_50", s.watchedMs); }
-      if (!s.m75 && ratio >= 0.75) { s.m75 = true; logVir(postId, "watch_75", s.watchedMs); }
+      if (!s.m25 && ratio >= 0.25) { s.m25 = true; logVir(postId, "watch_25", s.watchedMs, source); }
+      if (!s.m50 && ratio >= 0.5) { s.m50 = true; logVir(postId, "watch_50", s.watchedMs, source); }
+      if (!s.m75 && ratio >= 0.75) { s.m75 = true; logVir(postId, "watch_75", s.watchedMs, source); }
       if (!s.completed && ratio >= 0.95) {
         s.completed = true;
-        logVir(postId, "video_complete", s.watchedMs);
+        logVir(postId, "video_complete", s.watchedMs, source);
       }
     };
 
@@ -142,8 +152,8 @@ export function useVirWatch(
       v.removeEventListener("play", onPlay);
       v.removeEventListener("timeupdate", onTime);
       // saiu cedo demais: sinal negativo suave
-      if (s.started && s.maxRatio < 0.25) logVir(postId, "skip", s.watchedMs);
+      if (s.started && s.maxRatio < 0.25) logVir(postId, "skip", s.watchedMs, source);
       s.lastTime = 0;
     };
-  }, [active, postId, ref]);
+  }, [active, postId, ref, source]);
 }

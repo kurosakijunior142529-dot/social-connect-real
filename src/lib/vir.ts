@@ -48,7 +48,7 @@ export function logVir(
     _event: event,
     _value: Math.round(value),
     _source: source,
-  }).catch(() => {});
+  }).then(() => {}, () => {});
 }
 
 /** "Não tenho interesse": esconde o post e ensina o algoritmo. */

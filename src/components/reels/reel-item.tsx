@@ -21,6 +21,10 @@ import type { FeedPost } from "@/components/post-card";
 import { ShareSheet } from "@/components/share/share-sheet";
 import { RepostButton } from "@/components/repost-button";
 import { VideoWatermark } from "@/components/media/watermark";
+import { ReelSlide } from "@/components/reels/reel-slide";
+import { repostHeadline, type ReelMedia, type RepostInfo } from "@/lib/reels/carousel";
+import { Repeat2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
 type Props = {
@@ -35,11 +39,15 @@ type Props = {
   reason?: string | null;
   /** Chamado quando a pessoa marca "Não tenho interesse". */
   onNotInterested?: (postId: string) => void;
+  /** Mídias extras do Reel (carrossel de até 10 itens). */
+  medias?: ReelMedia[];
+  /** Quem republicou este Reel (autoria original é sempre preservada). */
+  reposts?: RepostInfo[];
 };
 
 type Burst = { id: number; x: number; y: number };
 
-export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, nextSrc, reason, onNotInterested }: Props) {
+export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, nextSrc, reason, onNotInterested, medias, reposts }: Props) {
   const qc = useQueryClient();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -55,6 +63,30 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   const [scrubberActive, setScrubberActive] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const progressRef = useRef<HTMLDivElement | null>(null);
+  const [index, setIndex] = useState(0);
+  const [carouselVideo, setCarouselVideo] = useState<HTMLVideoElement | null>(null);
+  const [repostsOpen, setRepostsOpen] = useState(false);
+
+  /** Lista de mídias do Reel: as extras quando existirem, senão a mídia principal. */
+  const slides = useMemo<ReelMedia[]>(() => {
+    if (medias && medias.length > 0) return medias.slice(0, 10);
+    return [
+      {
+        id: post.id,
+        post_id: post.id,
+        position: 0,
+        media_type: (post as any).media_type === "image" ? "image" : "video",
+        media_url: post.media_url ?? "",
+        thumbnail_url: (post as any).thumbnail_url ?? null,
+      },
+    ];
+  }, [medias, post]);
+  const multi = slides.length > 1;
+  const current = slides[Math.min(index, slides.length - 1)];
+  const fromRepost = !!(reposts && reposts.length > 0);
+  const virSource = fromRepost ? "repost" : "reels";
+  const maxSeenRef = useRef(0);
+  const mediaStartRef = useRef(0);
 
 
   const { data: url } = useSignedUrl("posts", post.media_url);
@@ -156,8 +188,51 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     return () => clearTimeout(t);
   }, [visible, post.id]);
 
+  useEffect(() => {
+    if (multi) videoRef.current = carouselVideo;
+  }, [multi, carouselVideo]);
+
   // Sinais de retenção para o VIR (início, 25/50/75%, conclusão, replay, skip).
-  useVirWatch(videoRef, visible, post.id);
+  useVirWatch(
+    videoRef,
+    visible && (!multi || !!carouselVideo || current?.media_type === "image"),
+    post.id,
+    virSource,
+  );
+
+  // Eventos de carrossel: quanto tempo em cada mídia, avanço, retorno,
+  // conclusão e abandono antes do final.
+  useEffect(() => {
+    if (!multi || !visible) return;
+    mediaStartRef.current = Date.now();
+    maxSeenRef.current = Math.max(maxSeenRef.current, index);
+    if (index >= slides.length - 1) logVir(post.id, "carousel_complete", slides.length, virSource);
+    return () => {
+      const dwell = Date.now() - mediaStartRef.current;
+      logVir(post.id, "media_view", dwell, virSource);
+    };
+  }, [multi, visible, index, slides.length, post.id, virSource]);
+
+  useEffect(() => {
+    if (!multi) return;
+    return () => {
+      if (maxSeenRef.current < slides.length - 1) {
+        logVir(post.id, "carousel_abandon", maxSeenRef.current + 1, virSource);
+      }
+    };
+  }, [multi, slides.length, post.id, virSource]);
+
+  const goTo = useCallback(
+    (next: number) => {
+      const clamped = Math.max(0, Math.min(slides.length - 1, next));
+      setIndex((prev) => {
+        if (clamped === prev) return prev;
+        logVir(post.id, clamped > prev ? "media_next" : "media_prev", clamped, virSource);
+        return clamped;
+      });
+    },
+    [slides.length, post.id, virSource],
+  );
 
   // saved state
   const savedQ = useQuery({
@@ -244,9 +319,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
 
 
   // Gesture handling: single-tap play/pause, double-tap like burst, long-press 2x
-  const tapRef = useRef<{ last: number; timer: number | null; longTimer: number | null; startY: number; moved: boolean }>({
-    last: 0, timer: null, longTimer: null, startY: 0, moved: false,
-  });
+  const tapRef = useRef<{
+    last: number; timer: number | null; longTimer: number | null;
+    startY: number; startX: number; moved: boolean; horizontal: boolean; dx: number;
+  }>({ last: 0, timer: null, longTimer: null, startY: 0, startX: 0, moved: false, horizontal: false, dx: 0 });
 
   const spawnBurst = (x: number, y: number) => {
     const id = Date.now() + Math.random();
@@ -256,7 +332,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     tapRef.current.startY = e.clientY;
+    tapRef.current.startX = e.clientX;
     tapRef.current.moved = false;
+    tapRef.current.horizontal = false;
+    tapRef.current.dx = 0;
     tapRef.current.longTimer = window.setTimeout(() => {
       setSpeeding(true);
       try { navigator.vibrate?.(20); } catch { /* noop */ }
@@ -271,9 +350,16 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (Math.abs(e.clientY - tapRef.current.startY) > 8) {
+    const dx = e.clientX - tapRef.current.startX;
+    const dy = e.clientY - tapRef.current.startY;
+    tapRef.current.dx = dx;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
       tapRef.current.moved = true;
       clearLong();
+      // Direção predominante: horizontal troca de mídia, vertical troca de Reel.
+      if (multi && !tapRef.current.horizontal && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        tapRef.current.horizontal = true;
+      }
     }
   };
 
@@ -281,6 +367,12 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     const wasSpeeding = speeding;
     clearLong();
     if (wasSpeeding) { setSpeeding(false); return; }
+    if (tapRef.current.horizontal) {
+      const dx = tapRef.current.dx;
+      if (Math.abs(dx) > 45) goTo(index + (dx < 0 ? 1 : -1));
+      tapRef.current.horizontal = false;
+      return;
+    }
     if (tapRef.current.moved) return;
 
     const now = Date.now();
@@ -298,7 +390,10 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     }
     tapRef.current.last = now;
     tapRef.current.timer = window.setTimeout(() => {
-      setPaused((p) => !p);
+      setPaused((p) => {
+        logVir(post.id, p ? "resume" : "pause", 0, virSource);
+        return !p;
+      });
       tapRef.current.timer = null;
     }, 260);
   };

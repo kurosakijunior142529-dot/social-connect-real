@@ -422,7 +422,24 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
         />
       ) : null}
 
-      {url ? (
+      {multi ? (
+        <div
+          className="absolute inset-0 flex h-full w-full transition-transform duration-300 ease-out will-change-transform"
+          style={{ transform: `translate3d(-${index * 100}%,0,0)` }}
+        >
+          {slides.map((m, i) => (
+            <ReelSlide
+              key={m.id}
+              media={m}
+              active={visible && i === index}
+              near={near && Math.abs(i - index) <= 1}
+              muted={muted}
+              paused={paused}
+              onVideoRef={i === index ? setCarouselVideo : undefined}
+            />
+          ))}
+        </div>
+      ) : url ? (
         <video
           ref={videoRef}
           poster={posterUrl ?? undefined}
@@ -444,10 +461,69 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           }}
         />
       ) : null}
-      {!url || !ready ? (
+      {!multi && (!url || !ready) ? (
         <div className="absolute inset-0 grid place-items-center">
           <div className="h-11 w-11 rounded-full border-2 border-white/15 border-t-primary animate-spin shadow-[0_0_24px_-4px_rgba(34,224,106,0.6)]" />
         </div>
+      ) : null}
+
+      {/* Carrossel: contador, setas (desktop) e pontinhos */}
+      {multi ? (
+        <>
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur z-20">
+            {index + 1} / {slides.length}
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); goTo(index - 1); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            aria-label="Mídia anterior"
+            className={cn(
+              "hidden md:grid absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur z-20",
+              index === 0 && "opacity-0 pointer-events-none",
+            )}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); goTo(index + 1); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            aria-label="Próxima mídia"
+            className={cn(
+              "hidden md:grid absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur z-20",
+              index >= slides.length - 1 && "opacity-0 pointer-events-none",
+            )}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <div className="pointer-events-none absolute bottom-[76px] left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
+            {slides.map((m, i) => (
+              <span
+                key={m.id}
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  i === index ? "w-4 bg-white" : "w-1.5 bg-white/40",
+                )}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      {/* Banner de republicação — autoria original sempre preservada */}
+      {fromRepost ? (
+        <button
+          onClick={(e) => { e.stopPropagation(); setRepostsOpen(true); }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
+          className="absolute top-14 left-3 z-20 flex max-w-[70%] items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-left text-[12px] text-white backdrop-blur"
+        >
+          <Repeat2 className="h-4 w-4 shrink-0 text-primary" />
+          <span className="truncate">
+            {repostHeadline(reposts!)} · criado por @{post.author?.username ?? ""}
+          </span>
+        </button>
       ) : null}
 
 
@@ -626,7 +702,33 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           },
         }}
       />
+      <Dialog open={repostsOpen} onOpenChange={setRepostsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Republicações</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[50vh] space-y-3 overflow-y-auto">
+            {(reposts ?? []).map((r) => (
+              <Link
+                key={`${r.user_id}-${r.created_at}`}
+                to="/u/$username"
+                params={{ username: r.username ?? "" }}
+                className="flex items-center gap-3"
+                onClick={() => setRepostsOpen(false)}
+              >
+                <UserAvatar avatarPath={r.avatar_url} displayName={r.display_name ?? r.username ?? "?"} className="h-9 w-9" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{r.display_name ?? `@${r.username ?? ""}`}</p>
+                  {r.comment ? <p className="truncate text-xs text-muted-foreground">{r.comment}</p> : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
+
 
   );
 }

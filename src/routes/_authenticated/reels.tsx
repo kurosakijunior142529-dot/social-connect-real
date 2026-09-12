@@ -13,6 +13,7 @@ import { formatViewers } from "@/lib/live-utils";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { fetchVirFeed, virNotInterested } from "@/lib/vir";
+import { fetchPostMedia, fetchRepostContext } from "@/lib/reels/carousel";
 
 export const Route = createFileRoute("/_authenticated/reels")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -143,6 +144,22 @@ function ReelsPage() {
     void virNotInterested(postId);
   }, []);
 
+  // Mídias extras (carrossel) e quem republicou — buscados em lote para os
+  // Reels já carregados, sem alterar o feed tradicional.
+  const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
+  const extras = useQuery({
+    queryKey: ["reels-extras", postIds.join(",")],
+    enabled: postIds.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [medias, reposts] = await Promise.all([
+        fetchPostMedia(postIds),
+        fetchRepostContext(postIds),
+      ]);
+      return { medias, reposts };
+    },
+  });
+
   const onScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const el = e.currentTarget;
@@ -205,6 +222,8 @@ function ReelsPage() {
               onOpenComments={(id) => setOpenCommentsFor(id)}
               reason={p.vir_reason ?? null}
               onNotInterested={onNotInterested}
+              medias={extras.data?.medias.get(p.id)}
+              reposts={extras.data?.reposts.get(p.id)}
             />
           ))
         )}

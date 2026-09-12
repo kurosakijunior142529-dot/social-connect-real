@@ -702,7 +702,33 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           },
         }}
       />
+      <Dialog open={repostsOpen} onOpenChange={setRepostsOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">Republicações</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[50vh] space-y-3 overflow-y-auto">
+            {(reposts ?? []).map((r) => (
+              <Link
+                key={`${r.user_id}-${r.created_at}`}
+                to="/u/$username"
+                params={{ username: r.username ?? "" }}
+                className="flex items-center gap-3"
+                onClick={() => setRepostsOpen(false)}
+              >
+                <UserAvatar avatarPath={r.avatar_url} displayName={r.display_name ?? r.username ?? "?"} className="h-9 w-9" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{r.display_name ?? `@${r.username ?? ""}`}</p>
+                  {r.comment ? <p className="truncate text-xs text-muted-foreground">{r.comment}</p> : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
+
 
   );
 }

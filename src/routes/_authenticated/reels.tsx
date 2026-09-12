@@ -143,6 +143,22 @@ function ReelsPage() {
     void virNotInterested(postId);
   }, []);
 
+  // Mídias extras (carrossel) e quem republicou — buscados em lote para os
+  // Reels já carregados, sem alterar o feed tradicional.
+  const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
+  const extras = useQuery({
+    queryKey: ["reels-extras", postIds.join(",")],
+    enabled: postIds.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const [medias, reposts] = await Promise.all([
+        fetchPostMedia(postIds),
+        fetchRepostContext(postIds),
+      ]);
+      return { medias, reposts };
+    },
+  });
+
   const onScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const el = e.currentTarget;

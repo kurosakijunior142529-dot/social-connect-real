@@ -13,6 +13,7 @@ import { formatViewers } from "@/lib/live-utils";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { fetchVirFeed, virNotInterested } from "@/lib/vir";
+import { fetchPostMedia, fetchRepostContext } from "@/lib/reels/carousel";
 
 export const Route = createFileRoute("/_authenticated/reels")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -221,6 +222,8 @@ function ReelsPage() {
               onOpenComments={(id) => setOpenCommentsFor(id)}
               reason={p.vir_reason ?? null}
               onNotInterested={onNotInterested}
+              medias={extras.data?.medias.get(p.id)}
+              reposts={extras.data?.reposts.get(p.id)}
             />
           ))
         )}

@@ -2587,6 +2587,7 @@ export type Database = {
           is_creator: boolean
           is_minor: boolean
           is_verified: boolean
+          language: string
           location: string | null
           pronouns: string | null
           read_receipts: boolean
@@ -2615,6 +2616,7 @@ export type Database = {
           is_creator?: boolean
           is_minor?: boolean
           is_verified?: boolean
+          language?: string
           location?: string | null
           pronouns?: string | null
           read_receipts?: boolean
@@ -2643,6 +2645,7 @@ export type Database = {
           is_creator?: boolean
           is_minor?: boolean
           is_verified?: boolean
+          language?: string
           location?: string | null
           pronouns?: string | null
           read_receipts?: boolean
@@ -4090,6 +4093,7 @@ export type Database = {
           is_creator: boolean
           is_minor: boolean
           is_verified: boolean
+          language: string
           location: string | null
           pronouns: string | null
           read_receipts: boolean

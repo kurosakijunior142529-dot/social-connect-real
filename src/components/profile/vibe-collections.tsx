@@ -89,7 +89,7 @@ export function VibeCollections({
   if (!isMe && list.length === 0) return null;
 
   return (
-    <section>
+    <section className="min-w-0">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-xs font-bold uppercase text-primary">Permanentes</p>
@@ -102,7 +102,7 @@ export function VibeCollections({
         ) : null}
       </div>
 
-      <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
+      <div className="no-scrollbar -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 pt-1 sm:gap-4">
         {list.map((c, i) => (
           <CollectionCover
             key={c.id}
@@ -110,13 +110,15 @@ export function VibeCollections({
             collection={c}
             count={counts.data?.[c.id] ?? 0}
             isMe={isMe}
+            selected={playing?.id === c.id}
             onOpen={() => setPlaying(c)}
             onEdit={() => setEditing(c)}
           />
         ))}
         {list.length === 0 ? (
-          <div className="flex w-full items-center justify-center rounded-xl border border-dashed border-border py-6 text-sm text-muted-foreground">
+          <button type="button" onClick={() => setEditing("new")} className="flex min-h-28 w-full items-center justify-center rounded-xl border border-dashed border-primary/25 bg-primary/5 px-5 text-center text-sm text-muted-foreground transition hover:bg-primary/10">
             Guarde suas melhores Vibes para sempre em uma coleção.
+          </button>
           </div>
         ) : null}
       </div>
@@ -144,6 +146,7 @@ function CollectionCover({
   collection,
   count,
   isMe,
+  selected,
   index = 0,
   onOpen,
   onEdit,
@@ -151,31 +154,32 @@ function CollectionCover({
   collection: Collection;
   count: number;
   isMe: boolean;
+  selected: boolean;
   index?: number;
   onOpen: () => void;
   onEdit: () => void;
 }) {
-  const size = collection.is_pinned ? 96 : 78;
+  const size = collection.is_pinned ? 100 : 84;
   return (
     <div
-      className="gem-enter relative shrink-0 text-center"
+      className="gem-enter relative shrink-0 snap-start text-center"
       style={{ animationDelay: `${Math.min(index, 8) * 70}ms` }}
     >
       <button
         type="button"
         onClick={onOpen}
-        className="group block"
+        className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`Abrir coleção ${collection.title}`}
         style={{ width: size + 10 }}
       >
         <span
-          className="gem-glow relative mx-auto block transition-transform duration-300 group-hover:scale-105 group-active:scale-95"
+          className={`gem-glow relative mx-auto block transition-transform duration-200 group-hover:scale-105 group-active:scale-95 ${selected ? "scale-105" : ""}`}
           style={{
             width: size,
             height: size,
             clipPath: GEM_CLIP,
             background: `linear-gradient(135deg, ${collection.accent}, transparent 70%)`,
-            padding: 3,
+             padding: selected ? 4 : 3,
             ["--gem-accent" as any]: collection.accent,
           }}
         >
@@ -195,10 +199,10 @@ function CollectionCover({
             )}
           </span>
         </span>
-        <span className="mt-2 block truncate text-xs font-medium" style={{ maxWidth: size + 10 }}>
+         <span className={`mt-2 block truncate text-xs font-semibold ${selected ? "text-primary" : ""}`} style={{ maxWidth: size + 10 }}>
           {collection.title}
         </span>
-        <span className="block text-[11px] text-muted-foreground">
+        <span className="mt-0.5 block text-[10px] text-muted-foreground">
           {count} {count === 1 ? "vibe" : "vibes"}
           {isMe && collection.view_count ? ` · ${collection.view_count} views` : ""}
         </span>

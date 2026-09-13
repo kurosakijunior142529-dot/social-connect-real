@@ -22,9 +22,7 @@ import {
   Repeat2,
   Camera,
   Loader2,
-  
   Pencil,
-  Trophy,
   Crown,
 } from "lucide-react";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";

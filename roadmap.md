@@ -10,3 +10,4 @@
 - [ ] Conectar Firebase Cloud Messaging no novo workspace
 - [x] Corrigir remoção de marca d'água em vídeos
 - [x] Corrigir privacidade do bucket de realidades (leitura restrita)
+- [ ] Refinar profissionalmente o perfil e validar em celulares

@@ -659,7 +659,32 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
             {post.caption}
           </p>
         ) : null}
+
+        {friends.length > 0 ? (
+          <div
+            className="flex w-fit items-center gap-2 rounded-full bg-black/35 py-1 pl-1 pr-3 backdrop-blur-md animate-fade-in"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+          >
+            <div className="flex -space-x-2">
+              {friends.slice(0, 3).map((f) => (
+                <UserAvatar
+                  key={f.id}
+                  avatarPath={f.avatar_url}
+                  displayName={f.display_name ?? f.username ?? "?"}
+                  className="h-6 w-6 ring-2 ring-black/60"
+                />
+              ))}
+            </div>
+            <span className="text-[11.5px] text-white/85">
+              {friends.length === 1
+                ? `${friends[0].display_name ?? `@${friends[0].username ?? ""}`} curtiu`
+                : `${friends[0].display_name ?? `@${friends[0].username ?? ""}`} e mais ${friends.length - 1} curtiram`}
+            </span>
+          </div>
+        ) : null}
       </div>
+
 
       {/* Ultra thin progress bar — expands on interaction */}
       <div

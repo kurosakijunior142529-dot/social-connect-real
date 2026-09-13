@@ -296,10 +296,14 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     onSettled: () => qc.invalidateQueries({ queryKey: ["saved", currentUserId, post.id] }),
   });
 
+  const friendsQ = useReelFriends(post.id, currentUserId, visible);
+  const friends = friendsQ.data ?? [];
+
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return `${window.location.origin}/s/${post.id}`;
   }, [post.id]);
+
 
 
   const handleShare = () => {

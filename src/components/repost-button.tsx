@@ -111,18 +111,29 @@ export function RepostButton({ postId, userId, className, variant = "feed", show
             className="rounded-2xl resize-none"
           />
           <div className="text-right text-xs text-muted-foreground">{comment.length}/280</div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-full">
               Cancelar
             </Button>
-            <Button
-              onClick={() => toggle.mutate(comment)}
-              disabled={toggle.isPending}
-              className="rounded-full bg-gradient-brand"
-            >
-              {toggle.isPending ? "Republicando…" : "Republicar"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => toggle.mutate(undefined)}
+                disabled={toggle.isPending}
+                className="rounded-full"
+              >
+                Republicar agora
+              </Button>
+              <Button
+                onClick={() => toggle.mutate(comment)}
+                disabled={toggle.isPending || !comment.trim()}
+                className="rounded-full bg-gradient-brand"
+              >
+                {toggle.isPending ? "Republicando…" : "Com comentário"}
+              </Button>
+            </div>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </>

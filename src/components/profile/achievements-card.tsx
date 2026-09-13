@@ -48,7 +48,7 @@ export function AchievementsCard({ userId, isMe }: { userId: string; isMe: boole
   const pct = Math.min(100, Math.round(((data.points % 100) / 100) * 100));
 
   return (
-    <div className="relative overflow-hidden rounded-2xl p-4 space-y-3 glass ring-1 ring-[color:var(--hairline)]">
+    <div className="relative space-y-3 overflow-hidden rounded-xl p-4 glass ring-1 ring-[color:var(--hairline)] transition duration-200 hover:ring-primary/25">
       {/* brilho ambiente do card */}
       <div
         aria-hidden
@@ -85,7 +85,7 @@ export function AchievementsCard({ userId, isMe }: { userId: string; isMe: boole
               key={a.id}
               title={`${a.name} — ${a.description}${done ? "" : ` (${a.current}/${a.threshold})`}`}
               className={cn(
-                "group relative shrink-0 w-[96px] overflow-hidden rounded-2xl p-2 text-center ring-1 transition-transform duration-300 hover:-translate-y-0.5",
+                "group relative w-[96px] shrink-0 overflow-hidden rounded-xl p-2 text-center ring-1 transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.97]",
                 done
                   ? cn("achv-card bg-[color:var(--surface-2)] ring-2", tier.ring, tier.glow)
                   : "bg-[color:var(--surface)] ring-[color:var(--hairline)] opacity-55",

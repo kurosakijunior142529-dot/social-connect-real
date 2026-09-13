@@ -311,6 +311,13 @@
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--gem-accent, #22E06A) 30%, transparent));
   transition: filter 0.35s ease;
 }
+
+@keyframes profile-enter-keyframes {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.profile-enter { animation: profile-enter-keyframes 280ms var(--ease-out-quart) both; }
+.profile-tabs [role="tabpanel"] { animation: profile-enter-keyframes 220ms var(--ease-out-quart) both; }
 .group:hover .gem-glow,
 .group:focus-visible .gem-glow {
   filter: drop-shadow(0 0 22px color-mix(in srgb, var(--gem-accent, #22E06A) 60%, transparent));

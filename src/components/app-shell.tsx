@@ -125,6 +125,7 @@ export function AppShell({
     pathname === "/settings" ||
     pathname === "/games" ||
     pathname === "/saved";
+  const isProfile = pathname.startsWith("/u/");
 
   const Badge = () =>
     unreadCount > 0 ? (
@@ -288,7 +289,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="pb-24 md:pl-64 md:pb-8">
+      <main className={cn("pb-24 md:pl-64 md:pb-8", isProfile && "pb-28")}>
         <div className={cn("mx-auto md:px-5 md:pt-6", pathname.startsWith("/u/") ? "max-w-6xl" : "max-w-2xl")}>{content}</div>
       </main>
 
@@ -313,8 +314,8 @@ export function AppShell({
 
       {/* Mobile bottom nav — floating pill */}
       <nav className="md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none">
-        <div className="pointer-events-auto mx-3 mb-3 overflow-hidden rounded-[24px] glass-heavy">
-          <div className="flex items-center justify-between px-2 py-2">
+        <div className={cn("pointer-events-auto mx-3 mb-3 overflow-hidden rounded-[24px] glass-heavy", isProfile && "shadow-[0_18px_48px_-22px_color-mix(in_oklab,var(--primary)_28%,transparent)]")}>
+          <div className={cn("flex items-center justify-between px-2 py-2", isProfile && "min-h-16")}>
             {mobileItems.map(({ to, label, Icon }) => {
               const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");
               const isCreate = to === "/create";

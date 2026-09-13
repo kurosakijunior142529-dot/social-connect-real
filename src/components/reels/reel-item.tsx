@@ -579,18 +579,19 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       </button>
 
       {/* Actions column */}
-      <div className="absolute right-2.5 bottom-28 flex flex-col items-center gap-3.5 text-white z-20">
+      <div className="absolute right-2 bottom-28 z-20 flex flex-col items-center gap-2.5 rounded-[26px] bg-black/15 px-1 py-2.5 text-white backdrop-blur-[2px]">
         <ActionBtn
           onClick={() => { toggleLike.mutate(); try { navigator.vibrate?.(10); } catch { /* noop */ } }}
           count={post.likes_count}
+          active={post.liked_by_me}
           label={post.liked_by_me ? "Descurtir" : "Curtir"}
           icon={
             <Heart
               className={cn(
-                "h-[26px] w-[26px] transition-transform duration-200",
-                post.liked_by_me ? "fill-primary text-primary scale-110 drop-shadow-[0_0_8px_rgba(34,224,106,0.35)]" : "text-white",
+                "h-[25px] w-[25px] transition-all duration-200",
+                post.liked_by_me ? "fill-primary text-primary scale-110" : "text-white",
               )}
-              strokeWidth={1.6}
+              strokeWidth={1.7}
             />
           }
         />
@@ -598,27 +599,29 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           onClick={() => { onOpenComments(post.id); }}
           count={post.comments_count}
           label="Comentar"
-          icon={<MessageCircle className="h-[26px] w-[26px] text-white" strokeWidth={1.6} />}
+          icon={<MessageCircle className="h-[25px] w-[25px] text-white" strokeWidth={1.7} />}
         />
-        <div className="flex flex-col items-center text-white">
-          <RepostButton postId={post.id} userId={currentUserId} variant="reel" />
+        <div className="flex w-[52px] flex-col items-center">
+          <RepostButton postId={post.id} userId={currentUserId} variant="reel" className="reel-rail-action" />
         </div>
         <ActionBtn
           onClick={handleShare}
-          label="Compartilhar"
-          icon={<Share2 className="h-[26px] w-[26px] text-white" strokeWidth={1.6} />}
+          label="Enviar"
+          icon={<Share2 className="h-[25px] w-[25px] text-white" strokeWidth={1.7} />}
         />
         <ActionBtn
-          onClick={() => toggleSave.mutate()}
+          onClick={() => { toggleSave.mutate(); try { navigator.vibrate?.(8); } catch { /* noop */ } }}
+          active={saved}
           label={saved ? "Salvo" : "Salvar"}
           icon={
             <Bookmark
-              className={cn("h-[26px] w-[26px]", saved ? "fill-primary text-primary" : "text-white")}
-              strokeWidth={1.6}
+              className={cn("h-[25px] w-[25px] transition-all", saved ? "fill-primary text-primary scale-110" : "text-white")}
+              strokeWidth={1.7}
             />
           }
         />
       </div>
+
 
       {/* Author + caption */}
       <div className="absolute left-4 right-16 bottom-9 text-white space-y-2.5 z-10">

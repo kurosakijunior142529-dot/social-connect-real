@@ -373,23 +373,13 @@ function ProfileContent() {
             {profile.featured_username ? <Link to="/u/$username" params={{ username: profile.featured_username }} className="font-medium text-primary hover:underline">com @{profile.featured_username}</Link> : null}
           </div>
           {(profile.interests?.length ?? 0) > 0 ? <div className="mt-4 flex flex-wrap gap-2">{profile.interests.map((tag: string) => <span key={tag} className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[11px] font-semibold capitalize text-primary">#{tag}</span>)}</div> : null}
-          <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="mt-5 grid grid-cols-2 gap-2">
             <ProfileMetric label="Curtidas" value={stats.data?.likesReceived ?? 0} icon={<Heart className="h-4 w-4" />} />
             <ProfileMetric label="Visualizações" value={stats.data?.viewsTotal ?? 0} icon={<Play className="h-4 w-4" />} />
-            <Link
-              to="/achievements/$username"
-              params={{ username: profile.username }}
-              className="group flex min-w-0 flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 px-2 py-3 text-center text-primary transition hover:bg-primary/10"
-            >
-              <Trophy className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
-              <span className="mt-1 truncate text-[11px] font-semibold">Conquistas</span>
-            </Link>
           </div>
         </section>
 
-        <Link to="/achievements/$username" params={{ username: profile.username }} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <AchievementsCard userId={profile.id} isMe={isMe} />
-        </Link>
+        <AchievementsCard userId={profile.id} isMe={isMe} />
 
         <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
 

@@ -25,10 +25,15 @@ export function useConnectionHealth(): ConnectionState {
     let attempt = 0;
     let timer: number | undefined;
 
+    // O SDK do Supabase já reconecta sozinho. Só consideramos o socket "morto"
+    // quando existem canais inscritos e nenhum deles está ativo — assim a faixa
+    // não fica presa em "Reconectando…" por causa de estados intermediários.
     const socketAlive = () => {
-      const rt = supabase.realtime as unknown as { isConnected?: () => boolean };
-      return typeof rt.isConnected === "function" ? rt.isConnected() : true;
+      const channels = supabase.getChannels();
+      if (channels.length === 0) return true;
+      return channels.some((c) => c.state === "joined" || c.state === "joining");
     };
+
 
     const resync = async () => {
       if (cancelled) return;

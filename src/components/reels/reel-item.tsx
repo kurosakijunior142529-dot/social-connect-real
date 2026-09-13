@@ -738,11 +738,13 @@ function ActionBtn({
   count,
   onClick,
   label,
+  active,
 }: {
   icon: React.ReactNode;
   count?: number;
   onClick: () => void;
   label: string;
+  active?: boolean;
 }) {
   return (
     <button
@@ -750,17 +752,36 @@ function ActionBtn({
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
       aria-label={label}
-      className="flex flex-col items-center gap-1 transition-transform duration-150 active:scale-[0.86]"
+      aria-pressed={!!active}
+      className="group flex w-[52px] flex-col items-center gap-1 outline-none"
     >
-      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 backdrop-blur-xl ring-1 ring-white/15 shadow-[0_10px_24px_-12px_rgba(0,0,0,0.95)]">
+      <span
+        className={cn(
+          "relative grid h-11 w-11 place-items-center rounded-[18px] transition-all duration-200",
+          "bg-gradient-to-b from-white/[0.14] to-white/[0.04] ring-1 ring-white/10",
+          "shadow-[0_12px_28px_-16px_rgba(0,0,0,1)] backdrop-blur-xl",
+          "group-active:scale-[0.88] group-active:ring-white/25",
+          active && "ring-primary/50 shadow-[0_0_22px_-6px_rgba(34,224,106,0.65)]",
+        )}
+      >
         {icon}
       </span>
       {typeof count === "number" ? (
-        <span className="text-[11px] font-semibold tabular drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{formatCount(count)}</span>
-      ) : null}
+        <span
+          className={cn(
+            "text-[11px] font-semibold tabular-nums tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] transition-colors",
+            active ? "text-primary" : "text-white/90",
+          )}
+        >
+          {formatCount(count)}
+        </span>
+      ) : (
+        <span className="text-[10px] font-medium text-white/55">{label}</span>
+      )}
     </button>
   );
 }
+
 
 function formatCount(n: number) {
   if (n < 1000) return String(n);

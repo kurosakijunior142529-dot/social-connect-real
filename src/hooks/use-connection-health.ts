@@ -25,17 +25,25 @@ export function useConnectionHealth(): ConnectionState {
     let attempt = 0;
     let timer: number | undefined;
 
+    // O SDK do Supabase já reconecta sozinho. Só consideramos o socket "morto"
+    // quando existem canais inscritos e nenhum deles está ativo — assim a faixa
+    // não fica presa em "Reconectando…" por causa de estados intermediários.
     const socketAlive = () => {
-      const rt = supabase.realtime as unknown as { isConnected?: () => boolean };
-      return typeof rt.isConnected === "function" ? rt.isConnected() : true;
+      const channels = supabase.getChannels();
+      if (channels.length === 0) return true;
+      return channels.some((c) => c.state === "joined" || c.state === "joining");
     };
 
+
+    let running = false;
+
     const resync = async () => {
-      if (cancelled) return;
+      if (cancelled || running) return;
       if (!isOnline()) {
         setState("offline");
         return;
       }
+      running = true;
 
       const needsSocket = !socketAlive();
       if (needsSocket) setState("reconnecting");
@@ -49,7 +57,7 @@ export function useConnectionHealth(): ConnectionState {
           supabase.realtime.connect();
           supabase
             .getChannels()
-            .filter((c) => c.state !== "joined")
+            .filter((c) => c.state === "closed" || c.state === "errored")
             .forEach((c) => c.subscribe());
         }
 
@@ -59,12 +67,15 @@ export function useConnectionHealth(): ConnectionState {
 
         if (cancelled) return;
         attempt = 0;
-        setState("online");
+        // Chegamos até aqui: a rede respondeu. Nunca deixamos a faixa presa.
+        setState(isOnline() ? "online" : "offline");
       } catch {
         if (cancelled) return;
-        setState("reconnecting");
         attempt += 1;
-        timer = window.setTimeout(resync, backoffDelay(attempt));
+        setState(isOnline() ? "reconnecting" : "offline");
+        timer = window.setTimeout(resync, Math.min(backoffDelay(attempt), 30_000));
+      } finally {
+        running = false;
       }
     };
 
@@ -77,9 +88,12 @@ export function useConnectionHealth(): ConnectionState {
 
     // Heartbeat leve: detecta socket morto mesmo sem trocar de aba.
     const heartbeat = window.setInterval(() => {
-      if (document.visibilityState !== "visible" || !isOnline()) return;
+      if (document.visibilityState !== "visible") return;
+      if (!isOnline()) return setState("offline");
       if (!socketAlive()) void resync();
+      else setState((s) => (s === "reconnecting" ? "online" : s));
     }, 15_000);
+
 
     return () => {
       cancelled = true;

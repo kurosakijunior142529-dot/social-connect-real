@@ -22,6 +22,8 @@ import { ShareSheet } from "@/components/share/share-sheet";
 import { RepostButton } from "@/components/repost-button";
 import { VideoWatermark } from "@/components/media/watermark";
 import { ReelSlide } from "@/components/reels/reel-slide";
+import { useReelFriends } from "@/hooks/use-reel-friends";
+
 import { repostHeadline, type ReelMedia, type RepostInfo } from "@/lib/reels/carousel";
 import { Repeat2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -296,10 +298,14 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     onSettled: () => qc.invalidateQueries({ queryKey: ["saved", currentUserId, post.id] }),
   });
 
+  const friendsQ = useReelFriends(post.id, currentUserId, visible);
+  const friends = friendsQ.data ?? [];
+
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return `${window.location.origin}/s/${post.id}`;
   }, [post.id]);
+
 
 
   const handleShare = () => {
@@ -579,18 +585,19 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       </button>
 
       {/* Actions column */}
-      <div className="absolute right-2.5 bottom-28 flex flex-col items-center gap-3.5 text-white z-20">
+      <div className="absolute right-2 bottom-28 z-20 flex flex-col items-center gap-2.5 rounded-[26px] bg-black/15 px-1 py-2.5 text-white backdrop-blur-[2px]">
         <ActionBtn
           onClick={() => { toggleLike.mutate(); try { navigator.vibrate?.(10); } catch { /* noop */ } }}
           count={post.likes_count}
+          active={post.liked_by_me}
           label={post.liked_by_me ? "Descurtir" : "Curtir"}
           icon={
             <Heart
               className={cn(
-                "h-[26px] w-[26px] transition-transform duration-200",
-                post.liked_by_me ? "fill-primary text-primary scale-110 drop-shadow-[0_0_8px_rgba(34,224,106,0.35)]" : "text-white",
+                "h-[25px] w-[25px] transition-all duration-200",
+                post.liked_by_me ? "fill-primary text-primary scale-110" : "text-white",
               )}
-              strokeWidth={1.6}
+              strokeWidth={1.7}
             />
           }
         />
@@ -598,27 +605,29 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           onClick={() => { onOpenComments(post.id); }}
           count={post.comments_count}
           label="Comentar"
-          icon={<MessageCircle className="h-[26px] w-[26px] text-white" strokeWidth={1.6} />}
+          icon={<MessageCircle className="h-[25px] w-[25px] text-white" strokeWidth={1.7} />}
         />
-        <div className="flex flex-col items-center text-white">
-          <RepostButton postId={post.id} userId={currentUserId} variant="reel" />
+        <div className="flex w-[52px] flex-col items-center">
+          <RepostButton postId={post.id} userId={currentUserId} variant="reel" className="reel-rail-action" />
         </div>
         <ActionBtn
           onClick={handleShare}
-          label="Compartilhar"
-          icon={<Share2 className="h-[26px] w-[26px] text-white" strokeWidth={1.6} />}
+          label="Enviar"
+          icon={<Share2 className="h-[25px] w-[25px] text-white" strokeWidth={1.7} />}
         />
         <ActionBtn
-          onClick={() => toggleSave.mutate()}
+          onClick={() => { toggleSave.mutate(); try { navigator.vibrate?.(8); } catch { /* noop */ } }}
+          active={saved}
           label={saved ? "Salvo" : "Salvar"}
           icon={
             <Bookmark
-              className={cn("h-[26px] w-[26px]", saved ? "fill-primary text-primary" : "text-white")}
-              strokeWidth={1.6}
+              className={cn("h-[25px] w-[25px] transition-all", saved ? "fill-primary text-primary scale-110" : "text-white")}
+              strokeWidth={1.7}
             />
           }
         />
       </div>
+
 
       {/* Author + caption */}
       <div className="absolute left-4 right-16 bottom-9 text-white space-y-2.5 z-10">
@@ -656,7 +665,32 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
             {post.caption}
           </p>
         ) : null}
+
+        {friends.length > 0 ? (
+          <div
+            className="flex w-fit items-center gap-2 rounded-full bg-black/35 py-1 pl-1 pr-3 backdrop-blur-md animate-fade-in"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+          >
+            <div className="flex -space-x-2">
+              {friends.slice(0, 3).map((f) => (
+                <UserAvatar
+                  key={f.id}
+                  avatarPath={f.avatar_url}
+                  displayName={f.display_name ?? f.username ?? "?"}
+                  className="h-6 w-6 ring-2 ring-black/60"
+                />
+              ))}
+            </div>
+            <span className="text-[11.5px] text-white/85">
+              {friends.length === 1
+                ? `${friends[0].display_name ?? `@${friends[0].username ?? ""}`} curtiu`
+                : `${friends[0].display_name ?? `@${friends[0].username ?? ""}`} e mais ${friends.length - 1} curtiram`}
+            </span>
+          </div>
+        ) : null}
       </div>
+
 
       {/* Ultra thin progress bar — expands on interaction */}
       <div
@@ -738,11 +772,13 @@ function ActionBtn({
   count,
   onClick,
   label,
+  active,
 }: {
   icon: React.ReactNode;
   count?: number;
   onClick: () => void;
   label: string;
+  active?: boolean;
 }) {
   return (
     <button
@@ -750,17 +786,36 @@ function ActionBtn({
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
       aria-label={label}
-      className="flex flex-col items-center gap-1 transition-transform duration-150 active:scale-[0.86]"
+      aria-pressed={!!active}
+      className="group flex w-[52px] flex-col items-center gap-1 outline-none"
     >
-      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 backdrop-blur-xl ring-1 ring-white/15 shadow-[0_10px_24px_-12px_rgba(0,0,0,0.95)]">
+      <span
+        className={cn(
+          "relative grid h-11 w-11 place-items-center rounded-[18px] transition-all duration-200",
+          "bg-gradient-to-b from-white/[0.14] to-white/[0.04] ring-1 ring-white/10",
+          "shadow-[0_12px_28px_-16px_rgba(0,0,0,1)] backdrop-blur-xl",
+          "group-active:scale-[0.88] group-active:ring-white/25",
+          active && "ring-primary/50 shadow-[0_0_22px_-6px_rgba(34,224,106,0.65)]",
+        )}
+      >
         {icon}
       </span>
       {typeof count === "number" ? (
-        <span className="text-[11px] font-semibold tabular drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{formatCount(count)}</span>
-      ) : null}
+        <span
+          className={cn(
+            "text-[11px] font-semibold tabular-nums tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] transition-colors",
+            active ? "text-primary" : "text-white/90",
+          )}
+        >
+          {formatCount(count)}
+        </span>
+      ) : (
+        <span className="text-[10px] font-medium text-white/55">{label}</span>
+      )}
     </button>
   );
 }
+
 
 function formatCount(n: number) {
   if (n < 1000) return String(n);

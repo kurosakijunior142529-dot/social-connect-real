@@ -78,23 +78,43 @@ export function RepostButton({ postId, userId, className, variant = "feed", show
         aria-label={active ? "Remover republicação" : "Republicar"}
         className={cn(
           "flex items-center gap-1.5 transition",
-          variant === "reel" ? "flex-col gap-0.5" : "",
+          variant === "reel" ? "group w-[52px] flex-col gap-1" : "",
           className,
         )}
       >
-        <Repeat2
-          className={cn(
-            variant === "reel" ? "h-7 w-7 drop-shadow" : "h-[22px] w-[22px]",
-            active ? "text-emerald-400" : "",
-            toggle.isPending && "opacity-60",
-          )}
-          strokeWidth={active ? 2.4 : 1.8}
-        />
+        {variant === "reel" ? (
+          <span
+            className={cn(
+              "grid h-11 w-11 place-items-center rounded-[18px] bg-gradient-to-b from-white/[0.14] to-white/[0.04]",
+              "ring-1 ring-white/10 shadow-[0_12px_28px_-16px_rgba(0,0,0,1)] backdrop-blur-xl transition-all duration-200",
+              "group-active:scale-[0.88]",
+              active && "ring-primary/50 shadow-[0_0_22px_-6px_rgba(34,224,106,0.65)]",
+            )}
+          >
+            <Repeat2
+              className={cn("h-[25px] w-[25px] transition-all", active ? "text-primary scale-110" : "text-white")}
+              strokeWidth={active ? 2.2 : 1.7}
+            />
+          </span>
+        ) : (
+          <Repeat2
+            className={cn("h-[22px] w-[22px]", active ? "text-emerald-400" : "", toggle.isPending && "opacity-60")}
+            strokeWidth={active ? 2.4 : 1.8}
+          />
+        )}
         {showCount ? (
-          <span className={cn("text-[13px] font-medium tabular", active && "text-emerald-400")}>
+          <span
+            className={cn(
+              variant === "reel"
+                ? "text-[11px] font-semibold tabular-nums text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+                : "text-[13px] font-medium tabular",
+              active && (variant === "reel" ? "text-primary" : "text-emerald-400"),
+            )}
+          >
             {state.data?.count ?? 0}
           </span>
         ) : null}
+
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -111,18 +131,29 @@ export function RepostButton({ postId, userId, className, variant = "feed", show
             className="rounded-2xl resize-none"
           />
           <div className="text-right text-xs text-muted-foreground">{comment.length}/280</div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="ghost" onClick={() => setOpen(false)} className="rounded-full">
               Cancelar
             </Button>
-            <Button
-              onClick={() => toggle.mutate(comment)}
-              disabled={toggle.isPending}
-              className="rounded-full bg-gradient-brand"
-            >
-              {toggle.isPending ? "Republicando…" : "Republicar"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => toggle.mutate(undefined)}
+                disabled={toggle.isPending}
+                className="rounded-full"
+              >
+                Republicar agora
+              </Button>
+              <Button
+                onClick={() => toggle.mutate(comment)}
+                disabled={toggle.isPending || !comment.trim()}
+                className="rounded-full bg-gradient-brand"
+              >
+                {toggle.isPending ? "Republicando…" : "Com comentário"}
+              </Button>
+            </div>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </>

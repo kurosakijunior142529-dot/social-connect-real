@@ -22,6 +22,8 @@ import { ShareSheet } from "@/components/share/share-sheet";
 import { RepostButton } from "@/components/repost-button";
 import { VideoWatermark } from "@/components/media/watermark";
 import { ReelSlide } from "@/components/reels/reel-slide";
+import { useReelFriends } from "@/hooks/use-reel-friends";
+
 import { repostHeadline, type ReelMedia, type RepostInfo } from "@/lib/reels/carousel";
 import { Repeat2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

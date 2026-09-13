@@ -119,7 +119,6 @@ export function VibeCollections({
           <button type="button" onClick={() => setEditing("new")} className="flex min-h-28 w-full items-center justify-center rounded-xl border border-dashed border-primary/25 bg-primary/5 px-5 text-center text-sm text-muted-foreground transition hover:bg-primary/10">
             Guarde suas melhores Vibes para sempre em uma coleção.
           </button>
-          </div>
         ) : null}
       </div>
 

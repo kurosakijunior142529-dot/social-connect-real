@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link, Outlet, useChildMatches } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { SignedMediaThumb } from "@/components/signed-image";
@@ -463,7 +463,7 @@ function StatInline({ label, value }: { label: string; value: number }) {
   return <span className="block"><strong className="block text-base font-bold leading-tight tabular text-foreground">{formatCount(value)}</strong><span className="mt-0.5 block text-[11px] leading-tight text-muted-foreground">{label}</span></span>;
 }
 
-function ProfileMetric({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function ProfileMetric({ label, value, icon }: { label: string; value: number; icon: ReactNode }) {
   return <span className="flex min-w-0 flex-col items-center justify-center rounded-xl border border-border/70 bg-[color:var(--surface)] px-2 py-3 text-center"><span className="text-muted-foreground">{icon}</span><strong className="mt-1 text-base font-bold leading-none tabular">{formatCount(value)}</strong><span className="mt-1 max-w-full truncate text-[10px] text-muted-foreground">{label}</span></span>;
 }
 

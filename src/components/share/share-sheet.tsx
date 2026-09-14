@@ -420,6 +420,9 @@ export function ShareSheet({
 
         {tab === "download" ? (
           <div className="mt-2 space-y-3">
+            {target.media && target.post?.authorUsername ? (
+              <EndScreenPreview username={target.post.authorUsername} />
+            ) : null}
             {target.media ? (
               <Button className="w-full rounded-full" disabled={downloading} onClick={download}>
                 {downloading ? (

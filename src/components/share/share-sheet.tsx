@@ -253,7 +253,7 @@ export function ShareSheet({
       const res = await fetch(signed);
       let blob = await res.blob();
       const name = target.media.filename ?? target.media.path.split("/").pop() ?? "video.mp4";
-      const username = target.post?.authorUsername ?? null;
+      const username = await resolveAuthorUsername();
       const isVideo =
         (target.media.mimeType ?? blob.type).startsWith("video/") ||
         /\.(mp4|webm|mov|m4v)$/i.test(name);
@@ -268,6 +268,9 @@ export function ShareSheet({
           if (await canBurnWatermark(srcUrl)) {
             const out = await exportVideo(srcUrl, {
               watermark: { username },
+              // ~3s de encerramento oficial com o @ do criador, depois do
+              // vídeo original (que não é cortado nem alterado).
+              endScreen: username ? { username } : null,
               onProgress: (p) => setProgress(Math.round(p * 100)),
             });
             blob = out.blob;
@@ -275,6 +278,7 @@ export function ShareSheet({
           }
         } catch (err) {
           console.warn("[share-sheet] watermark burn failed", err);
+          toast.error("Não consegui finalizar o encerramento; baixando o vídeo original.");
         } finally {
           URL.revokeObjectURL(srcUrl);
         }

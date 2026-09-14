@@ -266,11 +266,12 @@ export function ShareSheet({
         const srcUrl = URL.createObjectURL(blob);
         try {
           if (await canBurnWatermark(srcUrl)) {
+            const handle = username ?? "vibely";
             const out = await exportVideo(srcUrl, {
-              watermark: { username },
+              watermark: { username: handle },
               // ~3s de encerramento oficial com o @ do criador, depois do
               // vídeo original (que não é cortado nem alterado).
-              endScreen: username ? { username } : null,
+              endScreen: { username: handle },
               onProgress: (p) => setProgress(Math.round(p * 100)),
             });
             blob = out.blob;
@@ -282,6 +283,7 @@ export function ShareSheet({
         } finally {
           URL.revokeObjectURL(srcUrl);
         }
+
       } else if (blob.type.startsWith("image/")) {
         blob = await brandImage(blob, username);
         filename = name.replace(/\.[^.]+$/, "") + ".jpg";

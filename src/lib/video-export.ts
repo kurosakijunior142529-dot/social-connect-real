@@ -48,6 +48,8 @@ export type ExportOptions = {
   music?: MusicTrack | null;
   /** grava a marca d'água do Vibely no vídeo final (downloads/compartilhamento) */
   watermark?: { username?: string | null } | null;
+  /** end screen oficial animada anexada ao final do vídeo (não corta o original) */
+  endScreen?: { username: string } | null;
   onProgress?: (p: number) => void;
 };
 

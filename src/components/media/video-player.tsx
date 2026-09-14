@@ -250,7 +250,9 @@ export function VideoPlayer({
         // e quando o navegador consegue gerar MP4 (galerias não abrem .webm).
         if (await canBurnWatermark(src)) {
           const out = await exportVideo(src, {
-            watermark: { username: null },
+            watermark: { username: watermarkUsername ?? null },
+            // ~3s da end screen oficial com o @ do criador, gravados no MP4.
+            endScreen: watermarkUsername ? { username: watermarkUsername } : null,
             onProgress: (p) => setDlPct(Math.round(p * 100)),
           });
           blob = out.blob;

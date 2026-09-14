@@ -5,6 +5,14 @@
  * smaller and faster. Falls back gracefully when re-encoding isn't needed.
  */
 
+import {
+  END_SCREEN_SECONDS,
+  drawEndScreenFrame,
+  loadEndScreenArt,
+  type EndScreenArt,
+} from "./video-endscreen";
+
+
 export function pickVideoMime(): string {
   const cands = [
     "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
@@ -48,6 +56,8 @@ export type ExportOptions = {
   music?: MusicTrack | null;
   /** grava a marca d'água do Vibely no vídeo final (downloads/compartilhamento) */
   watermark?: { username?: string | null } | null;
+  /** end screen oficial animada anexada ao final do vídeo (não corta o original) */
+  endScreen?: { username: string } | null;
   onProgress?: (p: number) => void;
 };
 
@@ -60,6 +70,7 @@ export function needsReencode(opts: ExportOptions, duration: number): boolean {
   if (opts.dewatermark && opts.dewatermark.length > 0) return true;
   if (opts.music) return true;
   if (opts.watermark) return true;
+  if (opts.endScreen) return true;
   if (duration > 0 && (from > 0.05 || to < duration - 0.05)) return true;
   return false;
 }
@@ -257,8 +268,16 @@ export async function exportVideo(
     dewatermarkStrength = 1,
     music = null,
     watermark = null,
+    endScreen = null,
     onProgress,
   } = opts;
+
+  // A arte oficial é carregada ANTES de gravar, para não travar a gravação.
+  let endArt: EndScreenArt | null = null;
+  if (endScreen) {
+    endArt = await loadEndScreenArt();
+    if (!endArt) console.warn("[video-export] end screen ignorada: arte oficial indisponível");
+  }
 
   const src = document.createElement("video");
   src.src = srcUrl;
@@ -442,6 +461,29 @@ export async function exportVideo(
   src.pause();
   musicEl?.pause();
   stopDrawLoop();
+
+  // ---- end screen oficial gravada DEPOIS do vídeo original ----
+  // O original não é cortado nem alterado: os ~3s extras são acrescentados
+  // ao final, com o mesmo tamanho de quadro e a gravação ainda aberta.
+  if (endScreen && endArt) {
+    const art = endArt;
+    const started = performance.now();
+    await new Promise<void>((res) => {
+      const step = () => {
+        const t = (performance.now() - started) / 1000;
+        const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
+        onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
+        if (!alive) return res();
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    // último quadro preto para o fade-out fechar limpo
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, w, h);
+    await new Promise((r) => setTimeout(r, 120));
+  }
+
   rec.stop();
 
   const blob = await done;

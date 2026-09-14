@@ -9,6 +9,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { toast } from "sonner";
 import { Check, Copy, Download, Loader2, Send, Share2 } from "lucide-react";
 import { canBurnWatermark, drawVibelyWatermark, exportVideo } from "@/lib/video-export";
+import { EndScreenPreview } from "@/components/share/end-screen-preview";
 
 export type ShareTarget = {
   /** Public link to the content (post / reel / profile). */
@@ -214,6 +215,34 @@ export function ShareSheet({
     }
   }
 
+  /**
+   * @username real do autor da publicação. Nunca usa texto fixo: quando não
+   * veio no alvo compartilhado, busca no banco a partir do id do post.
+   */
+  async function resolveAuthorUsername(): Promise<string | null> {
+    const known = target.post?.authorUsername;
+    if (known) return known;
+    const postId = target.post?.id;
+    if (!postId) return null;
+    try {
+      const { data } = await (supabase as any)
+        .from("posts")
+        .select("user_id")
+        .eq("id", postId)
+        .maybeSingle();
+      if (!data?.user_id) return null;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", data.user_id)
+        .maybeSingle();
+      return prof?.username ?? null;
+    } catch (err) {
+      console.warn("[share-sheet] author lookup failed", err);
+      return null;
+    }
+  }
+
   async function download() {
     if (!target.media) return;
     setDownloading(true);
@@ -224,7 +253,7 @@ export function ShareSheet({
       const res = await fetch(signed);
       let blob = await res.blob();
       const name = target.media.filename ?? target.media.path.split("/").pop() ?? "video.mp4";
-      const username = target.post?.authorUsername ?? null;
+      const username = await resolveAuthorUsername();
       const isVideo =
         (target.media.mimeType ?? blob.type).startsWith("video/") ||
         /\.(mp4|webm|mov|m4v)$/i.test(name);
@@ -239,6 +268,9 @@ export function ShareSheet({
           if (await canBurnWatermark(srcUrl)) {
             const out = await exportVideo(srcUrl, {
               watermark: { username },
+              // ~3s de encerramento oficial com o @ do criador, depois do
+              // vídeo original (que não é cortado nem alterado).
+              endScreen: username ? { username } : null,
               onProgress: (p) => setProgress(Math.round(p * 100)),
             });
             blob = out.blob;
@@ -246,6 +278,7 @@ export function ShareSheet({
           }
         } catch (err) {
           console.warn("[share-sheet] watermark burn failed", err);
+          toast.error("Não consegui finalizar o encerramento; baixando o vídeo original.");
         } finally {
           URL.revokeObjectURL(srcUrl);
         }
@@ -387,6 +420,9 @@ export function ShareSheet({
 
         {tab === "download" ? (
           <div className="mt-2 space-y-3">
+            {target.media && target.post?.authorUsername ? (
+              <EndScreenPreview username={target.post.authorUsername} />
+            ) : null}
             {target.media ? (
               <Button className="w-full rounded-full" disabled={downloading} onClick={download}>
                 {downloading ? (

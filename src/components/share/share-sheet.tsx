@@ -9,6 +9,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { toast } from "sonner";
 import { Check, Copy, Download, Loader2, Send, Share2 } from "lucide-react";
 import { canBurnWatermark, drawVibelyWatermark, exportVideo } from "@/lib/video-export";
+import { EndScreenPreview } from "@/components/share/end-screen-preview";
 
 export type ShareTarget = {
   /** Public link to the content (post / reel / profile). */
@@ -211,6 +212,34 @@ export function ShareSheet({
       return blob;
     } finally {
       URL.revokeObjectURL(url);
+    }
+  }
+
+  /**
+   * @username real do autor da publicação. Nunca usa texto fixo: quando não
+   * veio no alvo compartilhado, busca no banco a partir do id do post.
+   */
+  async function resolveAuthorUsername(): Promise<string | null> {
+    const known = target.post?.authorUsername;
+    if (known) return known;
+    const postId = target.post?.id;
+    if (!postId) return null;
+    try {
+      const { data } = await (supabase as any)
+        .from("posts")
+        .select("user_id")
+        .eq("id", postId)
+        .maybeSingle();
+      if (!data?.user_id) return null;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", data.user_id)
+        .maybeSingle();
+      return prof?.username ?? null;
+    } catch (err) {
+      console.warn("[share-sheet] author lookup failed", err);
+      return null;
     }
   }
 

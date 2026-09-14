@@ -11,3 +11,4 @@
 - [x] Corrigir remoção de marca d'água em vídeos
 - [x] Corrigir privacidade do bucket de realidades (leitura restrita)
 - [x] Refinar profissionalmente o perfil e validar em celulares
+- [ ] Refinar profissionalmente a tela Novo post e validar os fluxos mobile

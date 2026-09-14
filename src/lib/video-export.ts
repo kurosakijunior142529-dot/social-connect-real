@@ -461,6 +461,29 @@ export async function exportVideo(
   src.pause();
   musicEl?.pause();
   stopDrawLoop();
+
+  // ---- end screen oficial gravada DEPOIS do vídeo original ----
+  // O original não é cortado nem alterado: os ~3s extras são acrescentados
+  // ao final, com o mesmo tamanho de quadro e a gravação ainda aberta.
+  if (endScreen && endArt) {
+    const art = endArt;
+    const started = performance.now();
+    await new Promise<void>((res) => {
+      const step = () => {
+        const t = (performance.now() - started) / 1000;
+        const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
+        onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
+        if (!alive) return res();
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+    // último quadro preto para o fade-out fechar limpo
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, w, h);
+    await new Promise((r) => setTimeout(r, 120));
+  }
+
   rec.stop();
 
   const blob = await done;

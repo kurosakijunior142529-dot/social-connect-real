@@ -5,6 +5,14 @@
  * smaller and faster. Falls back gracefully when re-encoding isn't needed.
  */
 
+import {
+  END_SCREEN_SECONDS,
+  drawEndScreenFrame,
+  loadEndScreenArt,
+  type EndScreenArt,
+} from "./video-endscreen";
+
+
 export function pickVideoMime(): string {
   const cands = [
     "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
@@ -62,6 +70,7 @@ export function needsReencode(opts: ExportOptions, duration: number): boolean {
   if (opts.dewatermark && opts.dewatermark.length > 0) return true;
   if (opts.music) return true;
   if (opts.watermark) return true;
+  if (opts.endScreen) return true;
   if (duration > 0 && (from > 0.05 || to < duration - 0.05)) return true;
   return false;
 }

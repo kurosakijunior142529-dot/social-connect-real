@@ -272,7 +272,10 @@ export function VideoPlayer({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = downloadName ?? `vibely-${Date.now()}.${ext}`;
+      a.download = downloadName
+        ? downloadName.replace(/\.[^.]+$/, "") + "." + ext
+        : `vibely-${Date.now()}.${ext}`;
+
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -268,8 +268,16 @@ export async function exportVideo(
     dewatermarkStrength = 1,
     music = null,
     watermark = null,
+    endScreen = null,
     onProgress,
   } = opts;
+
+  // A arte oficial é carregada ANTES de gravar, para não travar a gravação.
+  let endArt: EndScreenArt | null = null;
+  if (endScreen) {
+    endArt = await loadEndScreenArt();
+    if (!endArt) console.warn("[video-export] end screen ignorada: arte oficial indisponível");
+  }
 
   const src = document.createElement("video");
   src.src = srcUrl;

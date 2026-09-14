@@ -18,7 +18,7 @@ export const END_SCREEN_SECONDS = 3.2;
  * normalizadas (0..1) relativas à própria imagem. Ajustável sem tocar no
  * resto do sistema caso a arte seja atualizada.
  */
-export const SEARCH_FIELD_RECT = { x: 0.16, y: 0.565, w: 0.68, h: 0.075 };
+export const SEARCH_FIELD_RECT = { x: 0.151, y: 0.652, w: 0.7, h: 0.059 };
 
 export type EndScreenArt = HTMLImageElement;
 
@@ -112,22 +112,30 @@ export function drawEndScreenFrame(
   const typingDone = t >= typeStart + typeDur;
 
   if (typed) {
-    const fontSize = Math.max(10, fh * 0.46);
-    ctx.font = `600 ${fontSize}px "Space Grotesk", "DM Sans", system-ui, sans-serif`;
-    ctx.textAlign = "left";
+    let fontSize = Math.max(10, fh * 0.56);
+    ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    ctx.font = `700 ${fontSize}px "Space Grotesk", "DM Sans", system-ui, sans-serif`;
+    // nunca deixa o @ encostar na lupa nem no ícone da direita
+    const maxWidth = fw * 0.66;
+    const full = ctx.measureText(handle).width;
+    if (full > maxWidth) {
+      fontSize = fontSize * (maxWidth / full);
+      ctx.font = `700 ${fontSize}px "Space Grotesk", "DM Sans", system-ui, sans-serif`;
+    }
+    const cx = fx + fw / 2;
+    const cy = fy + fh / 2;
     ctx.fillStyle = "#ffffff";
-    ctx.shadowColor = "rgba(34, 224, 106, 0.55)";
-    ctx.shadowBlur = fontSize * 0.5;
-    const tx = fx + fh * 0.55;
-    ctx.fillText(typed, tx, fy + fh / 2);
+    ctx.shadowColor = "rgba(34, 224, 106, 0.6)";
+    ctx.shadowBlur = fontSize * 0.55;
+    ctx.fillText(typed, cx, cy);
     ctx.shadowBlur = 0;
 
     // cursor piscando enquanto digita
     if (!typingDone && Math.floor(t * 6) % 2 === 0) {
-      const cw = Math.max(1.5, fontSize * 0.07);
+      const cw = Math.max(1.5, fontSize * 0.08);
       ctx.fillStyle = "rgba(34, 224, 106, 0.9)";
-      ctx.fillRect(tx + ctx.measureText(typed).width + fontSize * 0.14, fy + fh * 0.26, cw, fh * 0.48);
+      ctx.fillRect(cx + ctx.measureText(typed).width / 2 + fontSize * 0.16, cy - fh * 0.24, cw, fh * 0.48);
     }
   }
 

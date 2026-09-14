@@ -244,31 +244,38 @@ export function VideoPlayer({
     try {
       let blob: Blob;
       let ext = "mp4";
+      // Baixa primeiro o arquivo original para um blob local: assim o
+      // processamento não esbarra em restrições de origem (canvas "tainted").
+      const res = await fetch(src);
+      const original = await res.blob();
+      const localUrl = URL.createObjectURL(original);
+      blob = original;
       try {
         const { exportVideo, canBurnWatermark } = await import("@/lib/video-export");
-        // Gravar a marca d'água acontece em tempo real: só vale para clipes curtos
-        // e quando o navegador consegue gerar MP4 (galerias não abrem .webm).
-        if (await canBurnWatermark(src)) {
-          const out = await exportVideo(src, {
-            watermark: { username: watermarkUsername ?? null },
-            // ~3s da end screen oficial com o @ do criador, gravados no MP4.
-            endScreen: watermarkUsername ? { username: watermarkUsername } : null,
+        if (await canBurnWatermark(localUrl)) {
+          const handle = watermarkUsername ?? "vibely";
+          const out = await exportVideo(localUrl, {
+            watermark: { username: handle },
+            // ~3s da end screen oficial com o @ do criador, gravados no arquivo.
+            endScreen: { username: handle },
             onProgress: (p) => setDlPct(Math.round(p * 100)),
           });
           blob = out.blob;
           ext = out.ext || "mp4";
-        } else {
-          const res = await fetch(src);
-          blob = await res.blob();
         }
-      } catch {
-        const res = await fetch(src);
-        blob = await res.blob();
+      } catch (err) {
+        console.warn("[video-player] processamento do download falhou", err);
+      } finally {
+        URL.revokeObjectURL(localUrl);
       }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = downloadName ?? `vibely-${Date.now()}.${ext}`;
+      a.download = downloadName
+        ? downloadName.replace(/\.[^.]+$/, "") + "." + ext
+        : `vibely-${Date.now()}.${ext}`;
+
       document.body.appendChild(a);
       a.click();
       a.remove();

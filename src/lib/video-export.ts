@@ -495,11 +495,13 @@ export async function exportVideo(
   const ext = blob.type.includes("mp4") ? "mp4" : "webm";
   return { blob, ext };
 }
+/**
+ * Limite de segurança: o processamento roda em tempo real no aparelho, então
+ * clipes muito longos ficariam inviáveis. Vídeos comuns do app cabem aqui.
+ */
+export const WATERMARK_BURN_MAX_SECONDS = 180;
 
-/** Acima disso, gravar a marca d'água levaria o mesmo tempo do vídeo. */
-export const WATERMARK_BURN_MAX_SECONDS = 45;
-
-/** Só grava marca d'água quando o navegador consegue gerar MP4. */
+/** O navegador consegue gerar MP4 (preferido) para o arquivo final? */
 export function canRecordMp4(): boolean {
   return pickVideoMime().includes("mp4");
 }
@@ -522,9 +524,21 @@ export async function probeDuration(srcUrl: string): Promise<number> {
   }
 }
 
-/** Vale a pena (e é rápido o bastante) gravar a marca d'água neste vídeo? */
+/**
+ * O download SEMPRE é processado (marca d'água + end screen) quando o aparelho
+ * tem gravação de mídia. Antes exigíamos suporte a MP4, e nos aparelhos sem
+ * esse suporte o arquivo original era entregue intacto — era esse o bug.
+ */
 export async function canBurnWatermark(srcUrl: string): Promise<boolean> {
-  if (!canRecordMp4()) return false;
+  try {
+    if (typeof MediaRecorder === "undefined") return false;
+    if (!pickVideoMime()) return false;
+    if (typeof HTMLCanvasElement === "undefined") return false;
+    if (typeof HTMLCanvasElement.prototype.captureStream !== "function") return false;
+  } catch {
+    return false;
+  }
   const d = await probeDuration(srcUrl);
   return d > 0 && d <= WATERMARK_BURN_MAX_SECONDS;
 }
+

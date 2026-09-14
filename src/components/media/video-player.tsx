@@ -279,7 +279,7 @@ export function VideoPlayer({
       setDownloading(false);
       setDlPct(0);
     }
-  }, [src, downloadName, downloading]);
+  }, [src, downloadName, downloading, watermarkUsername]);
 
 
   const togglePlay = useCallback(() => {

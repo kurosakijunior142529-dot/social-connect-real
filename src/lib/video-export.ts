@@ -97,6 +97,39 @@ function targetBitrate(w: number, h: number): number {
   return Math.min(4_500_000, Math.max(1_200_000, Math.round(w * h * 1.6)));
 }
 
+/** Taxa de quadros real e estável do arquivo exportado. */
+export const EXPORT_FPS = 30;
+
+/**
+ * Proporção/resolução finais: vertical → 9:16 (1080×1920), horizontal → 16:9
+ * (1920×1080), quadrado → 1:1. Nunca 4:3 e nunca um vídeo vertical dentro de
+ * um quadro horizontal.
+ */
+export function targetDimensions(
+  sw: number,
+  sh: number,
+  aspect: "original" | "vertical" = "original",
+): { w: number; h: number } {
+  const srcRatio = sw > 0 && sh > 0 ? sw / sh : 9 / 16;
+  const ratio = aspect === "vertical" ? 9 / 16 : srcRatio >= 1.05 ? 16 / 9 : srcRatio <= 0.95 ? 9 / 16 : 1;
+  const long = Math.min(1920, Math.max(720, Math.max(sw, sh)));
+  let w: number;
+  let h: number;
+  if (ratio < 1) {
+    h = long;
+    w = Math.round(h * ratio);
+  } else if (ratio > 1) {
+    w = long;
+    h = Math.round(w / ratio);
+  } else {
+    w = Math.min(1080, long);
+    h = w;
+  }
+  w -= w % 2;
+  h -= h % 2;
+  return { w, h };
+}
+
 /** Grabs a single frame (used as cover thumbnail) as a JPEG blob. */
 export async function captureFrame(srcUrl: string, at: number): Promise<Blob | null> {
   try {
@@ -296,18 +329,7 @@ export async function exportVideo(
   const sw = src.videoWidth || 720;
   const sh = src.videoHeight || 1280;
 
-  let w: number;
-  let h: number;
-  if (aspect === "vertical") {
-    w = Math.min(1080, sw);
-    h = Math.round((w * 16) / 9);
-  } else {
-    w = Math.min(1080, sw);
-    h = Math.round((sh / sw) * w) || 1280;
-  }
-  // even dimensions keep encoders happy
-  w -= w % 2;
-  h -= h % 2;
+  const { w, h } = targetDimensions(sw, sh, aspect);
 
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -318,7 +340,21 @@ export async function exportVideo(
   const scratch = document.createElement("canvas");
   const sctx = scratch.getContext("2d");
 
-  const canvasStream = canvas.captureStream(30);
+  // Gravação com cadência fixa de 30 fps. Quando o navegador expõe
+  // `requestFrame`, cada quadro entregue ao gravador é um quadro realmente
+  // pintado (sem duplicação artificial nem quadros perdidos).
+  const canvasStream = canvas.captureStream(EXPORT_FPS);
+  const videoTrack = canvasStream.getVideoTracks()[0] as any;
+  const manualFrames = typeof videoTrack?.requestFrame === "function";
+  const pushFrame = () => {
+    if (manualFrames) {
+      try {
+        videoTrack.requestFrame();
+      } catch {
+        /* noop */
+      }
+    }
+  };
 
   // ---- audio graph (original + music) ----
   let audioCtx: AudioContext | null = null;
@@ -383,8 +419,6 @@ export async function exportVideo(
   const rects = dewatermark.map((c) => cornerRect(c, w, h));
 
   let raf = 0;
-  let vfc = 0;
-  const hasVFC = typeof (src as any).requestVideoFrameCallback === "function";
 
   const paint = () => {
     ctx.save();
@@ -398,29 +432,27 @@ export async function exportVideo(
     onProgress?.(Math.min(1, (src.currentTime - from) / total));
   };
 
-  // Desenhar por frame *do vídeo* (não por frame da tela) mantém a cadência
-  // idêntica à origem; com rAF o canvas repetia/perdia quadros e o áudio,
-  // gravado em tempo real, saía dessincronizado.
+  // Cadência fixa: um quadro a cada 1/30s de tempo real. Como o áudio é
+  // gravado em tempo real, usar o relógio da parede mantém áudio e vídeo
+  // sincronizados e evita quadros congelados ou saltos.
+  const FRAME_MS = 1000 / EXPORT_FPS;
   const startDrawLoop = () => {
-    if (hasVFC) {
-      const step = () => {
+    let next = performance.now();
+    const step = () => {
+      const now = performance.now();
+      if (now >= next) {
+        // se o aparelho atrasar, não acumula dívida (evita aceleração súbita)
+        next = Math.max(now, next + FRAME_MS);
         paint();
-        vfc = (src as any).requestVideoFrameCallback(step);
-      };
-      vfc = (src as any).requestVideoFrameCallback(step);
-    } else {
-      const step = () => {
-        paint();
-        raf = requestAnimationFrame(step);
-      };
+        pushFrame();
+      }
       raf = requestAnimationFrame(step);
-    }
+    };
+    raf = requestAnimationFrame(step);
   };
   const stopDrawLoop = () => {
     if (raf) cancelAnimationFrame(raf);
-    if (vfc && typeof (src as any).cancelVideoFrameCallback === "function") {
-      (src as any).cancelVideoFrameCallback(vfc);
-    }
+    raf = 0;
   };
 
   const done = new Promise<Blob>((res) => {
@@ -464,16 +496,22 @@ export async function exportVideo(
 
   // ---- end screen oficial gravada DEPOIS do vídeo original ----
   // O original não é cortado nem alterado: os ~3s extras são acrescentados
-  // ao final, com o mesmo tamanho de quadro e a gravação ainda aberta.
+  // ao final, no MESMO quadro (mesma resolução, proporção e 30 fps).
   if (endScreen && endArt) {
     const art = endArt;
     const started = performance.now();
     await new Promise<void>((res) => {
+      let next = started;
       const step = () => {
-        const t = (performance.now() - started) / 1000;
-        const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
-        onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
-        if (!alive) return res();
+        const now = performance.now();
+        if (now >= next) {
+          next = Math.max(now, next + FRAME_MS);
+          const t = (now - started) / 1000;
+          const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
+          pushFrame();
+          onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
+          if (!alive) return res();
+        }
         requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
@@ -481,6 +519,7 @@ export async function exportVideo(
     // último quadro preto para o fade-out fechar limpo
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, w, h);
+    pushFrame();
     await new Promise((r) => setTimeout(r, 120));
   }
 

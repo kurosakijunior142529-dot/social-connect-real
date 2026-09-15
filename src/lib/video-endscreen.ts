@@ -74,8 +74,9 @@ export function drawEndScreenFrame(
   // zoom suave de 105% -> 100%
   const zoom = 1.05 - 0.05 * easeOut(Math.min(1, t / 0.6));
 
-  // "contain": preserva a proporção da arte em qualquer formato de vídeo
-  const scale = Math.min(w / art.naturalWidth, h / art.naturalHeight);
+  // "cover": a arte preenche 100% do quadro mantendo a proporção (corte
+  // proporcional centralizado), sem moldura interna nem barras pretas.
+  const scale = Math.max(w / art.naturalWidth, h / art.naturalHeight);
   const aw = art.naturalWidth * scale;
   const ah = art.naturalHeight * scale;
   const ax = (w - aw) / 2;

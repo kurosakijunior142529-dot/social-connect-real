@@ -101,9 +101,9 @@ function targetBitrate(w: number, h: number): number {
 export const EXPORT_FPS = 30;
 
 /**
- * Proporção/resolução finais: vertical → 9:16 (1080×1920), horizontal → 16:9
- * (1920×1080), quadrado → 1:1. Nunca 4:3 e nunca um vídeo vertical dentro de
- * um quadro horizontal.
+ * Preserva exatamente a proporção original. O modo vertical é a única exceção
+ * intencional e produz 9:16. A end screen cuida do próprio enquadramento e não
+ * altera nem herda a proporção da arte original.
  */
 export function targetDimensions(
   sw: number,
@@ -111,7 +111,7 @@ export function targetDimensions(
   aspect: "original" | "vertical" = "original",
 ): { w: number; h: number } {
   const srcRatio = sw > 0 && sh > 0 ? sw / sh : 9 / 16;
-  const ratio = aspect === "vertical" ? 9 / 16 : srcRatio >= 1.05 ? 16 / 9 : srcRatio <= 0.95 ? 9 / 16 : 1;
+  const ratio = aspect === "vertical" ? 9 / 16 : srcRatio;
   const long = Math.min(1920, Math.max(720, Math.max(sw, sh)));
   let w: number;
   let h: number;
@@ -340,21 +340,10 @@ export async function exportVideo(
   const scratch = document.createElement("canvas");
   const sctx = scratch.getContext("2d");
 
-  // Gravação com cadência fixa de 30 fps. Quando o navegador expõe
-  // `requestFrame`, cada quadro entregue ao gravador é um quadro realmente
-  // pintado (sem duplicação artificial nem quadros perdidos).
+  // O captureStream já entrega exatamente 30 fps. Não chame `requestFrame`
+  // junto com captureStream(30): isso produz quadros extras/duplicados em
+  // Chromium e era a principal causa do arquivo final engasgar.
   const canvasStream = canvas.captureStream(EXPORT_FPS);
-  const videoTrack = canvasStream.getVideoTracks()[0] as any;
-  const manualFrames = typeof videoTrack?.requestFrame === "function";
-  const pushFrame = () => {
-    if (manualFrames) {
-      try {
-        videoTrack.requestFrame();
-      } catch {
-        /* noop */
-      }
-    }
-  };
 
   // ---- audio graph (original + music) ----
   let audioCtx: AudioContext | null = null;
@@ -444,7 +433,6 @@ export async function exportVideo(
         // se o aparelho atrasar, não acumula dívida (evita aceleração súbita)
         next = Math.max(now, next + FRAME_MS);
         paint();
-        pushFrame();
       }
       raf = requestAnimationFrame(step);
     };
@@ -462,25 +450,20 @@ export async function exportVideo(
   // Primeiro quadro no canvas antes de gravar: evita um trecho preto inicial.
   paint();
 
+  // O gravador começa no primeiro quadro, antes do play. Antes ele começava
+  // somente depois de `currentTime > from`, cortando o início e dessincronizando
+  // áudio e vídeo.
+  startDrawLoop();
+  rec.start(200);
+
   try {
     await src.play();
     if (musicEl) await musicEl.play().catch(() => undefined);
   } catch (err) {
+    stopDrawLoop();
+    if (rec.state !== "inactive") rec.stop();
     throw new Error("Não foi possível processar o vídeo neste dispositivo");
   }
-
-  // Só começa a gravar quando o vídeo realmente está rolando, para que o
-  // relógio do áudio e o do vídeo partam do mesmo instante.
-  await new Promise<void>((res) => {
-    if (src.readyState >= 2 && !src.paused && src.currentTime > from) return res();
-    const on = () => { src.removeEventListener("timeupdate", on); res(); };
-    src.addEventListener("timeupdate", on);
-    setTimeout(res, 500);
-  });
-
-  startDrawLoop();
-  rec.start(200);
-
 
   await new Promise<void>((res) => {
     const check = () => {
@@ -508,7 +491,6 @@ export async function exportVideo(
           next = Math.max(now, next + FRAME_MS);
           const t = (now - started) / 1000;
           const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
-          pushFrame();
           onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
           if (!alive) return res();
         }
@@ -519,7 +501,6 @@ export async function exportVideo(
     // último quadro preto para o fade-out fechar limpo
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, w, h);
-    pushFrame();
     await new Promise((r) => setTimeout(r, 120));
   }
 

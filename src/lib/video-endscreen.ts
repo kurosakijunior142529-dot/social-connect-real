@@ -74,17 +74,31 @@ export function drawEndScreenFrame(
   // zoom suave de 105% -> 100%
   const zoom = 1.05 - 0.05 * easeOut(Math.min(1, t / 0.6));
 
-  // "cover": a arte preenche 100% do quadro mantendo a proporção (corte
-  // proporcional centralizado), sem moldura interna nem barras pretas.
-  const scale = Math.max(w / art.naturalWidth, h / art.naturalHeight);
-  const aw = art.naturalWidth * scale;
-  const ah = art.naturalHeight * scale;
+  // A end screen NÃO herda o enquadramento do vídeo. O fundo sempre cobre
+  // 100% do quadro e a arte oficial aparece inteira por cima, centralizada.
+  // Assim não há barras pretas nem corte do mascote, logo ou campo de busca,
+  // inclusive quando o vídeo original é horizontal ou quadrado.
+  const coverScale = Math.max(w / art.naturalWidth, h / art.naturalHeight);
+  const coverW = art.naturalWidth * coverScale;
+  const coverH = art.naturalHeight * coverScale;
+  const coverX = (w - coverW) / 2;
+  const coverY = (h - coverH) / 2;
+  const containScale = Math.min(w / art.naturalWidth, h / art.naturalHeight);
+  const aw = art.naturalWidth * containScale;
+  const ah = art.naturalHeight * containScale;
   const ax = (w - aw) / 2;
   const ay = (h - ah) / 2;
 
   ctx.translate(w / 2, h / 2);
   ctx.scale(zoom, zoom);
   ctx.translate(-w / 2, -h / 2);
+  // Fundo ampliado da própria arte, suavizado, ocupa a tela inteira.
+  ctx.save();
+  (ctx as any).filter = `blur(${Math.max(18, Math.round(Math.min(w, h) * 0.035))}px) brightness(0.58) saturate(1.08)`;
+  ctx.drawImage(art, coverX, coverY, coverW, coverH);
+  ctx.restore();
+
+  // Arte oficial inteira, sem recorte e sem deformação.
   ctx.drawImage(art, ax, ay, aw, ah);
 
   // brilho verde muito sutil (respiração), sem adicionar elementos novos

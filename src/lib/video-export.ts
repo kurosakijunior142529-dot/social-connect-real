@@ -97,6 +97,39 @@ function targetBitrate(w: number, h: number): number {
   return Math.min(4_500_000, Math.max(1_200_000, Math.round(w * h * 1.6)));
 }
 
+/** Taxa de quadros real e estável do arquivo exportado. */
+export const EXPORT_FPS = 30;
+
+/**
+ * Proporção/resolução finais: vertical → 9:16 (1080×1920), horizontal → 16:9
+ * (1920×1080), quadrado → 1:1. Nunca 4:3 e nunca um vídeo vertical dentro de
+ * um quadro horizontal.
+ */
+export function targetDimensions(
+  sw: number,
+  sh: number,
+  aspect: "original" | "vertical" = "original",
+): { w: number; h: number } {
+  const srcRatio = sw > 0 && sh > 0 ? sw / sh : 9 / 16;
+  const ratio = aspect === "vertical" ? 9 / 16 : srcRatio >= 1.05 ? 16 / 9 : srcRatio <= 0.95 ? 9 / 16 : 1;
+  const long = Math.min(1920, Math.max(720, Math.max(sw, sh)));
+  let w: number;
+  let h: number;
+  if (ratio < 1) {
+    h = long;
+    w = Math.round(h * ratio);
+  } else if (ratio > 1) {
+    w = long;
+    h = Math.round(w / ratio);
+  } else {
+    w = Math.min(1080, long);
+    h = w;
+  }
+  w -= w % 2;
+  h -= h % 2;
+  return { w, h };
+}
+
 /** Grabs a single frame (used as cover thumbnail) as a JPEG blob. */
 export async function captureFrame(srcUrl: string, at: number): Promise<Blob | null> {
   try {

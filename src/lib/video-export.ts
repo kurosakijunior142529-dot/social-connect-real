@@ -296,18 +296,7 @@ export async function exportVideo(
   const sw = src.videoWidth || 720;
   const sh = src.videoHeight || 1280;
 
-  let w: number;
-  let h: number;
-  if (aspect === "vertical") {
-    w = Math.min(1080, sw);
-    h = Math.round((w * 16) / 9);
-  } else {
-    w = Math.min(1080, sw);
-    h = Math.round((sh / sw) * w) || 1280;
-  }
-  // even dimensions keep encoders happy
-  w -= w % 2;
-  h -= h % 2;
+  const { w, h } = targetDimensions(sw, sh, aspect);
 
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -318,7 +307,22 @@ export async function exportVideo(
   const scratch = document.createElement("canvas");
   const sctx = scratch.getContext("2d");
 
-  const canvasStream = canvas.captureStream(30);
+  // Gravação com cadência fixa de 30 fps: quando o navegador expõe
+  // `requestFrame`, cada quadro entregue ao gravador é um quadro realmente
+  // pintado (sem duplicação artificial nem quadros perdidos).
+  const manualFrames =
+    typeof (canvas.captureStream(0).getVideoTracks()[0] as any)?.requestFrame === "function";
+  const canvasStream = manualFrames ? canvas.captureStream(0) : canvas.captureStream(EXPORT_FPS);
+  const videoTrack = canvasStream.getVideoTracks()[0] as any;
+  const pushFrame = () => {
+    if (manualFrames) {
+      try {
+        videoTrack?.requestFrame?.();
+      } catch {
+        /* noop */
+      }
+    }
+  };
 
   // ---- audio graph (original + music) ----
   let audioCtx: AudioContext | null = null;

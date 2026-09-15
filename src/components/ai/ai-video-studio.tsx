@@ -28,6 +28,7 @@ import {
 } from "@/lib/ai-video-models";
 import { startVideo, checkVideo, enhanceVideoPrompt, videoProviderStatus, publishGenerated } from "@/lib/ai-video.functions";
 import { AI_DAILY_LIMITS } from "@/lib/ai-credits";
+import { downloadBrandedVideo } from "@/lib/branded-download";
 
 type Props = {
   threadId: string;

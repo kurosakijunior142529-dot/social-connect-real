@@ -50,6 +50,7 @@ import { exportProject, supportedHeights, type ExportQuality } from "@/lib/studi
 import { fontMap } from "@/lib/studio/render";
 import { FONTS } from "@/lib/studio/catalog";
 import { saveProject } from "@/lib/studio/drafts";
+import { downloadBrandedVideo } from "@/lib/branded-download";
 import { studioAiStatus } from "@/lib/studio/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";

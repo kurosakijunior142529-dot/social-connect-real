@@ -28,6 +28,7 @@ import {
 } from "@/lib/ai-video-models";
 import { startVideo, checkVideo, enhanceVideoPrompt, videoProviderStatus, publishGenerated } from "@/lib/ai-video.functions";
 import { AI_DAILY_LIMITS } from "@/lib/ai-credits";
+import { downloadBrandedVideo } from "@/lib/branded-download";
 
 type Props = {
   threadId: string;
@@ -477,8 +478,23 @@ function DonePreview({ path, onReset }: { path: string; onReset: () => void }) {
           {done ? "Publicado" : "Publicar no Vibely"}
         </Button>
         {url.data ? (
-          <Button size="sm" variant="secondary" className="rounded-full" asChild>
-            <a href={url.data} download="vibely-ai.mp4"><Download className="mr-1.5 h-3.5 w-3.5" /> Baixar</a>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="rounded-full"
+            onClick={() => {
+              void (async () => {
+                const t = toast.loading("Finalizando seu vídeo…");
+                try {
+                  await downloadBrandedVideo(url.data!, "vibely-ai.mp4");
+                  toast.success("Download iniciado", { id: t });
+                } catch {
+                  toast.error("Não consegui baixar agora", { id: t });
+                }
+              })();
+            }}
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" /> Baixar
           </Button>
         ) : null}
         <Button size="sm" variant="ghost" className="rounded-full" onClick={onReset}>

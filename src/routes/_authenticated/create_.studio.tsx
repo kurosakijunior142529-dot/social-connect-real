@@ -50,6 +50,7 @@ import { exportProject, supportedHeights, type ExportQuality } from "@/lib/studi
 import { fontMap } from "@/lib/studio/render";
 import { FONTS } from "@/lib/studio/catalog";
 import { saveProject } from "@/lib/studio/drafts";
+import { downloadBrandedVideo } from "@/lib/branded-download";
 import { studioAiStatus } from "@/lib/studio/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
@@ -426,12 +427,15 @@ function StudioPage() {
                     size="sm"
                     variant="secondary"
                     onClick={() => {
-                      const url = URL.createObjectURL(result);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `${project.name || "vibely"}.mp4`;
-                      a.click();
-                      setTimeout(() => URL.revokeObjectURL(url), 4000);
+                      void (async () => {
+                        const t = toast.loading("Finalizando seu vídeo…");
+                        try {
+                          await downloadBrandedVideo(result, `${project.name || "vibely"}.mp4`);
+                          toast.success("Download iniciado", { id: t });
+                        } catch {
+                          toast.error("Não consegui baixar agora", { id: t });
+                        }
+                      })();
                     }}
                   >
                     <Download className="mr-1 h-3.5 w-3.5" /> Baixar

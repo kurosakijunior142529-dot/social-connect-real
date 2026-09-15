@@ -387,8 +387,6 @@ export async function exportVideo(
   const rects = dewatermark.map((c) => cornerRect(c, w, h));
 
   let raf = 0;
-  let vfc = 0;
-  const hasVFC = typeof (src as any).requestVideoFrameCallback === "function";
 
   const paint = () => {
     ctx.save();
@@ -402,29 +400,27 @@ export async function exportVideo(
     onProgress?.(Math.min(1, (src.currentTime - from) / total));
   };
 
-  // Desenhar por frame *do vídeo* (não por frame da tela) mantém a cadência
-  // idêntica à origem; com rAF o canvas repetia/perdia quadros e o áudio,
-  // gravado em tempo real, saía dessincronizado.
+  // Cadência fixa: um quadro a cada 1/30s de tempo real. Como o áudio é
+  // gravado em tempo real, usar o relógio da parede mantém áudio e vídeo
+  // sincronizados e evita quadros congelados ou saltos.
+  const FRAME_MS = 1000 / EXPORT_FPS;
   const startDrawLoop = () => {
-    if (hasVFC) {
-      const step = () => {
+    let next = performance.now();
+    const step = () => {
+      const now = performance.now();
+      if (now >= next) {
+        // se o aparelho atrasar, não acumula dívida (evita aceleração súbita)
+        next = Math.max(now, next + FRAME_MS);
         paint();
-        vfc = (src as any).requestVideoFrameCallback(step);
-      };
-      vfc = (src as any).requestVideoFrameCallback(step);
-    } else {
-      const step = () => {
-        paint();
-        raf = requestAnimationFrame(step);
-      };
+        pushFrame();
+      }
       raf = requestAnimationFrame(step);
-    }
+    };
+    raf = requestAnimationFrame(step);
   };
   const stopDrawLoop = () => {
     if (raf) cancelAnimationFrame(raf);
-    if (vfc && typeof (src as any).cancelVideoFrameCallback === "function") {
-      (src as any).cancelVideoFrameCallback(vfc);
-    }
+    raf = 0;
   };
 
   const done = new Promise<Blob>((res) => {
@@ -468,16 +464,22 @@ export async function exportVideo(
 
   // ---- end screen oficial gravada DEPOIS do vídeo original ----
   // O original não é cortado nem alterado: os ~3s extras são acrescentados
-  // ao final, com o mesmo tamanho de quadro e a gravação ainda aberta.
+  // ao final, no MESMO quadro (mesma resolução, proporção e 30 fps).
   if (endScreen && endArt) {
     const art = endArt;
     const started = performance.now();
     await new Promise<void>((res) => {
+      let next = started;
       const step = () => {
-        const t = (performance.now() - started) / 1000;
-        const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
-        onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
-        if (!alive) return res();
+        const now = performance.now();
+        if (now >= next) {
+          next = Math.max(now, next + FRAME_MS);
+          const t = (now - started) / 1000;
+          const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
+          pushFrame();
+          onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
+          if (!alive) return res();
+        }
         requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
@@ -485,6 +487,7 @@ export async function exportVideo(
     // último quadro preto para o fade-out fechar limpo
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, w, h);
+    pushFrame();
     await new Promise((r) => setTimeout(r, 120));
   }
 

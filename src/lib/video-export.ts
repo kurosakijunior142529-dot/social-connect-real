@@ -307,17 +307,16 @@ export async function exportVideo(
   const scratch = document.createElement("canvas");
   const sctx = scratch.getContext("2d");
 
-  // Gravação com cadência fixa de 30 fps: quando o navegador expõe
+  // Gravação com cadência fixa de 30 fps. Quando o navegador expõe
   // `requestFrame`, cada quadro entregue ao gravador é um quadro realmente
   // pintado (sem duplicação artificial nem quadros perdidos).
-  const manualFrames =
-    typeof (canvas.captureStream(0).getVideoTracks()[0] as any)?.requestFrame === "function";
-  const canvasStream = manualFrames ? canvas.captureStream(0) : canvas.captureStream(EXPORT_FPS);
+  const canvasStream = canvas.captureStream(EXPORT_FPS);
   const videoTrack = canvasStream.getVideoTracks()[0] as any;
+  const manualFrames = typeof videoTrack?.requestFrame === "function";
   const pushFrame = () => {
     if (manualFrames) {
       try {
-        videoTrack?.requestFrame?.();
+        videoTrack.requestFrame();
       } catch {
         /* noop */
       }

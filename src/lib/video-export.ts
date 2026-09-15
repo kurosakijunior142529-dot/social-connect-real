@@ -101,6 +101,24 @@ function targetBitrate(w: number, h: number): number {
 export const EXPORT_FPS = 30;
 
 /**
+ * Android precisa decodificar a origem e codificar o canvas simultaneamente.
+ * Limitar somente o processamento móvel a 720p evita sobrecarga térmica e
+ * perda de quadros; em computadores a resolução original continua preservada
+ * até 1080p/1920px no lado maior.
+ */
+function exportLongEdge(sw: number, sh: number): number {
+  const sourceLongEdge = Math.max(sw, sh);
+  const isMobile = typeof navigator !== "undefined"
+    && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const deviceMemory = typeof navigator !== "undefined"
+    ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+    : undefined;
+  const mobileLimit = deviceMemory !== undefined && deviceMemory <= 2 ? 960 : 1280;
+  const limit = isMobile ? mobileLimit : 1920;
+  return Math.min(limit, Math.max(2, sourceLongEdge));
+}
+
+/**
  * Preserva exatamente a proporção original. O modo vertical é a única exceção
  * intencional e produz 9:16. A end screen cuida do próprio enquadramento e não
  * altera nem herda a proporção da arte original.
@@ -112,7 +130,7 @@ export function targetDimensions(
 ): { w: number; h: number } {
   const srcRatio = sw > 0 && sh > 0 ? sw / sh : 9 / 16;
   const ratio = aspect === "vertical" ? 9 / 16 : srcRatio;
-  const long = Math.min(1920, Math.max(720, Math.max(sw, sh)));
+  const long = exportLongEdge(sw, sh);
   let w: number;
   let h: number;
   if (ratio < 1) {
@@ -334,7 +352,7 @@ export async function exportVideo(
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   if (!ctx) throw new Error("Canvas indisponível neste dispositivo");
 
   const scratch = document.createElement("canvas");
@@ -408,6 +426,7 @@ export async function exportVideo(
   const rects = dewatermark.map((c) => cornerRect(c, w, h));
 
   let raf = 0;
+  let videoFrameCallback = 0;
 
   const paint = () => {
     ctx.save();
@@ -421,24 +440,49 @@ export async function exportVideo(
     onProgress?.(Math.min(1, (src.currentTime - from) / total));
   };
 
-  // Cadência fixa: um quadro a cada 1/30s de tempo real. Como o áudio é
-  // gravado em tempo real, usar o relógio da parede mantém áudio e vídeo
-  // sincronizados e evita quadros congelados ou saltos.
+  // Desenha quando o decodificador realmente entrega um quadro novo. Antes o
+  // requestAnimationFrame redesenhava o mesmo quadro e competia com o encoder,
+  // causando travadas principalmente no Android. O captureStream mantém a
+  // trilha final em 30 fps e repete somente quando a fonte original exige.
   const FRAME_MS = 1000 / EXPORT_FPS;
   const startDrawLoop = () => {
-    let next = performance.now();
-    const step = () => {
+    const videoWithFrameCallback = src as HTMLVideoElement & {
+      requestVideoFrameCallback?: (callback: (now: number, metadata: { mediaTime: number }) => void) => number;
+      cancelVideoFrameCallback?: (handle: number) => void;
+    };
+    if (videoWithFrameCallback.requestVideoFrameCallback) {
+      let lastPaintedMediaTime = -Infinity;
+      const onVideoFrame = (_now: number, metadata: { mediaTime: number }) => {
+        if ((metadata.mediaTime - lastPaintedMediaTime) * 1000 >= FRAME_MS - 2) {
+          lastPaintedMediaTime = metadata.mediaTime;
+          paint();
+        }
+        videoFrameCallback = videoWithFrameCallback.requestVideoFrameCallback?.(onVideoFrame) ?? 0;
+      };
+      videoFrameCallback = videoWithFrameCallback.requestVideoFrameCallback(onVideoFrame);
+      return;
+    }
+
+    let next = performance.now() + FRAME_MS;
+    const fallbackStep = () => {
       const now = performance.now();
       if (now >= next) {
-        // se o aparelho atrasar, não acumula dívida (evita aceleração súbita)
-        next = Math.max(now, next + FRAME_MS);
+        next += FRAME_MS;
+        if (now - next > FRAME_MS) next = now + FRAME_MS;
         paint();
       }
-      raf = requestAnimationFrame(step);
+      raf = requestAnimationFrame(fallbackStep);
     };
-    raf = requestAnimationFrame(step);
+    raf = requestAnimationFrame(fallbackStep);
   };
   const stopDrawLoop = () => {
+    const videoWithFrameCallback = src as HTMLVideoElement & {
+      cancelVideoFrameCallback?: (handle: number) => void;
+    };
+    if (videoFrameCallback && videoWithFrameCallback.cancelVideoFrameCallback) {
+      videoWithFrameCallback.cancelVideoFrameCallback(videoFrameCallback);
+    }
+    videoFrameCallback = 0;
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
   };

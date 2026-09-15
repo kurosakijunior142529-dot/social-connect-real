@@ -85,11 +85,15 @@ export function ReelSlide({ media, active, near, muted, paused, onVideoRef }: Pr
         <video
           ref={videoRef}
           poster={poster ?? undefined}
-          className="absolute inset-0 h-full w-full object-contain [transform:translateZ(0)]"
+          className={`absolute inset-0 h-full w-full ${fitClass} [transform:translateZ(0)]`}
           loop
           playsInline
           muted={muted}
           preload="none"
+          onLoadedMetadata={(e) => {
+            const el = e.currentTarget;
+            if (el.videoWidth && el.videoHeight) setRatio(el.videoWidth / el.videoHeight);
+          }}
           onCanPlay={() => setReady(true)}
           onPlaying={() => setReady(true)}
           onWaiting={() => setReady(false)}
@@ -100,8 +104,12 @@ export function ReelSlide({ media, active, near, muted, paused, onVideoRef }: Pr
           alt=""
           loading={active ? "eager" : "lazy"}
           decoding="async"
-          onLoad={() => setReady(true)}
-          className="absolute inset-0 h-full w-full object-contain"
+          onLoad={(e) => {
+            const el = e.currentTarget;
+            if (el.naturalWidth && el.naturalHeight) setRatio(el.naturalWidth / el.naturalHeight);
+            setReady(true);
+          }}
+          className={`absolute inset-0 h-full w-full ${fitClass}`}
         />
       ) : null}
 

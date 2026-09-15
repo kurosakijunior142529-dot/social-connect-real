@@ -23,6 +23,11 @@ export function ReelSlide({ media, active, near, muted, paused, onVideoRef }: Pr
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [ready, setReady] = useState(false);
   const isVideo = media.media_type === "video";
+  // Conteúdo já vertical preenche a tela inteira (sem quadro pequeno);
+  // proporções diferentes continuam inteiras sobre o fundo desfocado.
+  const [ratio, setRatio] = useState<number | null>(null);
+  const fillsScreen = ratio !== null && ratio <= 0.62;
+  const fitClass = fillsScreen ? "object-cover" : "object-contain";
 
   useEffect(() => {
     if (!isVideo) return;

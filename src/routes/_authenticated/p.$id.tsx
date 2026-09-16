@@ -86,7 +86,7 @@ function PostDetailPage() {
         </header>
         <div className="bg-black">
           {p.media_type === "video" ? (
-            <SignedVideo bucket="posts" path={p.media_url} className="w-full max-h-[80vh] aspect-[4/5]" fit="contain" />
+            <SignedVideo bucket="posts" path={p.media_url} className="w-full max-h-[80vh] aspect-[4/5]" fit="contain" watermarkUsername={p.author?.username ?? null} />
           ) : (
             <SignedImage bucket="posts" path={p.media_url} alt={p.caption ?? ""} className="w-full h-auto max-h-[80vh] object-contain" />
           )}

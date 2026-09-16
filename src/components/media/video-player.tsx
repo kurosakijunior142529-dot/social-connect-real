@@ -253,7 +253,7 @@ export function VideoPlayer({
       try {
         const { exportVideo, canBurnWatermark } = await import("@/lib/video-export");
         if (await canBurnWatermark(localUrl)) {
-          const handle = watermarkUsername ?? "vibely";
+          const handle = watermarkUsername ?? null;
           const out = await exportVideo(localUrl, {
             watermark: { username: handle },
             // ~3s da end screen oficial com o @ do criador, gravados no arquivo.

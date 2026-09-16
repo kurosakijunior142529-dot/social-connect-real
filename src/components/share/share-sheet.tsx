@@ -227,14 +227,14 @@ export function ShareSheet({
     try {
       const { data } = await (supabase as any)
         .from("posts")
-        .select("user_id")
+        .select("author_id")
         .eq("id", postId)
         .maybeSingle();
-      if (!data?.user_id) return null;
+      if (!data?.author_id) return null;
       const { data: prof } = await supabase
         .from("profiles")
         .select("username")
-        .eq("id", data.user_id)
+        .eq("id", data.author_id)
         .maybeSingle();
       return prof?.username ?? null;
     } catch (err) {
@@ -266,7 +266,7 @@ export function ShareSheet({
         const srcUrl = URL.createObjectURL(blob);
         try {
           if (await canBurnWatermark(srcUrl)) {
-            const handle = username ?? "vibely";
+            const handle = username;
             const out = await exportVideo(srcUrl, {
               watermark: { username: handle },
               // ~3s de encerramento oficial com o @ do criador, depois do

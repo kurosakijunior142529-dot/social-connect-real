@@ -55,11 +55,12 @@ export function drawEndScreenFrame(
   art: EndScreenArt,
   w: number,
   h: number,
-  username: string,
+  username: string | null,
   t: number,
 ): boolean {
   const total = END_SCREEN_SECONDS;
-  const handle = username.startsWith("@") ? username : `@${username}`;
+  // Sem @ real do criador, a arte oficial aparece sem nome (nunca um @ fixo).
+  const handle = username ? (username.startsWith("@") ? username : `@${username}`) : "";
 
   ctx.save();
   ctx.globalAlpha = 1;
@@ -121,7 +122,7 @@ export function drawEndScreenFrame(
   const typeStart = 1.0;
   const typeDur = Math.max(0.5, Math.min(1.1, handle.length * 0.075));
   const typed =
-    t < typeStart
+    !handle || t < typeStart
       ? ""
       : handle.slice(0, Math.ceil(Math.min(1, (t - typeStart) / typeDur) * handle.length));
   const typingDone = t >= typeStart + typeDur;
@@ -156,7 +157,7 @@ export function drawEndScreenFrame(
 
   // confirmação/busca: anel verde curto ao redor do campo
   const confirmAt = typeStart + typeDur;
-  if (t >= confirmAt && t <= confirmAt + 0.5) {
+  if (handle && t >= confirmAt && t <= confirmAt + 0.5) {
     const p = (t - confirmAt) / 0.5;
     const grow = fh * 0.45 * easeOut(p);
     ctx.strokeStyle = `rgba(34, 224, 106, ${0.7 * (1 - p)})`;

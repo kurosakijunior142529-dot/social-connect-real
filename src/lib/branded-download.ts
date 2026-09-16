@@ -42,7 +42,7 @@ export async function downloadBrandedVideo(
   } else {
     blob = source;
   }
-  const handle = opts.username ?? (await currentUsername()) ?? "vibely";
+  const handle = opts.username ?? (await currentUsername());
   const base = filename.replace(/\.[^.]+$/, "");
   const srcUrl = URL.createObjectURL(blob);
   try {

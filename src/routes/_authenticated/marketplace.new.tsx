@@ -57,8 +57,19 @@ function NewListing() {
   }
 
   function removeAt(i: number) {
-    setFiles((p) => p.filter((_, j) => j !== i));
+    setFiles((p) => {
+      const gone = p[i];
+      if (gone) URL.revokeObjectURL(gone.url);
+      return p.filter((_, j) => j !== i);
+    });
   }
+
+  // Libera todas as fotos escolhidas da memória ao sair da tela.
+  const filesRef = useRef(files);
+  filesRef.current = files;
+  useEffect(() => () => {
+    filesRef.current.forEach((f) => URL.revokeObjectURL(f.url));
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

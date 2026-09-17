@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
@@ -30,7 +30,16 @@ function NewChatPage() {
   const [busy, setBusy] = useState(false);
 
   const isGroup = type === "group";
-  const preview = avatarFile ? URL.createObjectURL(avatarFile) : null;
+  // Uma única prévia por arquivo (antes era recriada a cada renderização) e
+  // liberada da memória ao trocar de foto ou sair da tela.
+  const preview = useMemo(
+    () => (avatarFile ? URL.createObjectURL(avatarFile) : null),
+    [avatarFile],
+  );
+  useEffect(() => {
+    if (!preview) return;
+    return () => URL.revokeObjectURL(preview);
+  }, [preview]);
 
   async function submit() {
     if (title.trim().length < 2) return toast.error("Título muito curto");

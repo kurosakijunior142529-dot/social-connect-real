@@ -136,13 +136,23 @@ export function ChatCustomizeSheet({
                 <div className="flex items-end gap-4 justify-center py-3">
                   <div
                     className="bg-[color:var(--surface-2)] text-foreground text-[13px] px-4 py-2"
-                    style={{ borderRadius: prefs.radius, borderBottomLeftRadius: 6 }}
+                    style={{
+                      borderTopLeftRadius: prefs.radius,
+                      borderTopRightRadius: prefs.radius,
+                      borderBottomRightRadius: prefs.radius,
+                      borderBottomLeftRadius: 6,
+                    }}
                   >
                     Oi 👋
                   </div>
                   <div
                     className="bg-primary text-primary-foreground text-[13px] px-4 py-2"
-                    style={{ borderRadius: prefs.radius, borderBottomRightRadius: 6 }}
+                    style={{
+                      borderTopLeftRadius: prefs.radius,
+                      borderTopRightRadius: prefs.radius,
+                      borderBottomRightRadius: 6,
+                      borderBottomLeftRadius: prefs.radius,
+                    }}
                   >
                     Tudo bem?
                   </div>

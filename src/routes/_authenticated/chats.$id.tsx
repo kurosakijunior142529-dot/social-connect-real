@@ -247,7 +247,12 @@ function ChatPage() {
                   <div className="text-[11px] text-muted-foreground px-3">{m.sender?.display_name}</div>
                 ) : null}
                 <div
-                  style={{ borderRadius: prefs.radius, ...(mine ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }) }}
+                  style={{
+                    borderTopLeftRadius: prefs.radius,
+                    borderTopRightRadius: prefs.radius,
+                    borderBottomRightRadius: mine ? 6 : prefs.radius,
+                    borderBottomLeftRadius: mine ? prefs.radius : 6,
+                  }}
                   className={cn("px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
                   mine ? bubbleTheme.mine : bubbleTheme.theirs)}>
                   {replied ? <ReplyQuote text={replied.content} /> : null}

@@ -10,22 +10,33 @@ export type FriendLike = {
 
 /**
  * Amigos (pessoas que você segue) que curtiram este Reel.
- * Consulta leve, só enquanto o Reel está visível.
+ * A lista de quem você segue é buscada uma única vez e reaproveitada por
+ * todos os Reels; só a checagem de curtidas é feita por vídeo visível.
  */
 export function useReelFriends(postId: string, userId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ["reel-friends", postId, userId],
+  const following = useQuery({
+    queryKey: ["following-ids", userId],
     enabled,
-    staleTime: 5 * 60_000,
-    queryFn: async (): Promise<FriendLike[]> => {
-      const { data: follows } = await supabase
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+    queryFn: async (): Promise<string[]> => {
+      const { data } = await supabase
         .from("follows")
         .select("following_id")
         .eq("follower_id", userId)
         .limit(500);
-      const ids = (follows ?? []).map((f: any) => f.following_id);
-      if (ids.length === 0) return [];
+      return (data ?? []).map((f: any) => f.following_id);
+    },
+  });
 
+  const ids = following.data ?? [];
+
+  return useQuery({
+    queryKey: ["reel-friends", postId, userId, ids.length],
+    enabled: enabled && ids.length > 0,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    queryFn: async (): Promise<FriendLike[]> => {
       const { data: likes } = await supabase
         .from("likes")
         .select("user_id")

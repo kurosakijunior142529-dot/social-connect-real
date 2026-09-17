@@ -11,4 +11,5 @@
 - [x] Corrigir remoção de marca d'água em vídeos
 - [x] Corrigir privacidade do bucket de realidades (leitura restrita)
 - [x] Refinar profissionalmente o perfil e validar em celulares
+- [x] Redesenhar visualmente o perfil em fluxo social premium e ocultar Conquistas somente nessa tela
 - [ ] Refinar profissionalmente a tela Novo post e validar os fluxos mobile

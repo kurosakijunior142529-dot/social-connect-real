@@ -284,7 +284,7 @@ function ProfileContent() {
   const activeVibes = vibes.data ?? [];
 
   return (
-    <div className="profile-enter -mx-4 -mt-4 overflow-hidden pb-6 md:mx-0 md:-mt-6">
+    <div className="profile-enter -mt-4 min-w-0 overflow-hidden pb-6 md:-mt-6">
       <section className="relative min-h-[330px] overflow-hidden border-b border-border/60 sm:min-h-[350px] md:min-h-[340px] md:rounded-2xl md:border">
         {coverUrl ? (
           <img src={coverUrl} alt={`Capa do perfil de ${profile.display_name}`} className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
@@ -454,7 +454,7 @@ function PostGrid({ posts, empty }: { posts: any[]; empty: string }) {
 }
 
 function ProfileSkeleton() {
-  return <div className="-mx-4 -mt-4 overflow-hidden pb-8 md:mx-0 md:-mt-6"><Skeleton className="h-[330px] w-full rounded-none md:h-[340px] md:rounded-2xl" /><div className="space-y-6 px-4 py-5 sm:px-6 md:px-8"><div className="space-y-3"><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/5" /><Skeleton className="h-10 w-full rounded-xl" /><Skeleton className="h-4 w-2/3" /></div><div className="flex gap-4 overflow-hidden"><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /></div><Skeleton className="h-12 rounded-none" /><div className="grid grid-cols-3 gap-1.5">{Array.from({ length: 9 }).map((_, index) => <Skeleton key={index} className="aspect-square rounded-md" />)}</div></div></div>;
+  return <div className="-mt-4 min-w-0 overflow-hidden pb-8 md:-mt-6"><Skeleton className="h-[330px] w-full rounded-none md:h-[340px] md:rounded-2xl" /><div className="space-y-6 px-4 py-5 sm:px-6 md:px-8"><div className="space-y-3"><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/5" /><Skeleton className="h-10 w-full rounded-xl" /><Skeleton className="h-4 w-2/3" /></div><div className="flex gap-4 overflow-hidden"><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /></div><Skeleton className="h-12 rounded-none" /><div className="grid grid-cols-3 gap-1.5">{Array.from({ length: 9 }).map((_, index) => <Skeleton key={index} className="aspect-square rounded-md" />)}</div></div></div>;
 }
 
 function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void }) {

@@ -239,6 +239,11 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   // saved state
   const savedQ = useQuery({
     queryKey: ["saved", currentUserId, post.id],
+    // Só consulta quando o vídeo aparece na tela e guarda o resultado,
+    // em vez de uma consulta por vídeo carregado.
+    enabled: visible,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("saved_posts")

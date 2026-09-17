@@ -1000,8 +1000,10 @@ const MessageRow = memo(
             <div className="max-w-[78%]">
               <div
                 style={{
-                  borderRadius: bigRadius,
-                  ...(mine ? { borderBottomRightRadius: tail } : { borderBottomLeftRadius: tail }),
+                  borderTopLeftRadius: bigRadius,
+                  borderTopRightRadius: bigRadius,
+                  borderBottomRightRadius: mine ? tail : bigRadius,
+                  borderBottomLeftRadius: mine ? bigRadius : tail,
                 }}
                 className={cn(
                   "px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",

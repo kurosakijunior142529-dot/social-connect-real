@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,11 @@ function NewStoryPage() {
   const moderate = useServerFn(moderateMedia);
   const moderateCaption = useServerFn(moderateText);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  // Libera a foto/vídeo da memória ao trocar de arquivo ou sair da tela.
+  useEffect(() => {
+    if (!preview) return;
+    return () => URL.revokeObjectURL(preview);
+  }, [preview]);
   const isVideo = file?.type.startsWith("video/");
 
   async function submit() {

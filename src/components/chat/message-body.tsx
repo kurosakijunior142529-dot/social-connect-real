@@ -212,15 +212,19 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
       setProgress(duration ? Math.min(1, current / duration) : 0);
     };
     const ended = () => { setPlaying(false); setProgress(0); setCurrentMs(0); };
+    const onPause = () => setPlaying(false);
+    const onPlay = () => setPlaying(true);
     audio.addEventListener("timeupdate", update);
     audio.addEventListener("loadedmetadata", update);
     audio.addEventListener("ended", ended);
-    audio.addEventListener("pause", () => setPlaying(false));
-    audio.addEventListener("play", () => setPlaying(true));
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
     return () => {
       audio.removeEventListener("timeupdate", update);
       audio.removeEventListener("loadedmetadata", update);
       audio.removeEventListener("ended", ended);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
     };
   }, [totalMs]);
 

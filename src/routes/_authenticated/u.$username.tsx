@@ -293,134 +293,144 @@ function ProfileContent() {
   // publicações do feed vs. vídeos curtos (reels) são separados por post_kind
   const posts = allPosts.filter((p) => p.post_kind !== "reel");
   const videoPosts = allPosts.filter((p) => p.post_kind === "reel" || p.media_type === "video");
+  const photoPosts = allPosts.filter((p) => p.media_type === "image");
 
   const activeVibes = vibes.data ?? [];
+  const liveItems = (stats.data?.lives ?? []) as any[];
+  const activeLive = liveItems.find((item) => item.status === "live");
+  const musicalPost = allPosts.find((item) => item.music_tracks);
+  const music = Array.isArray(musicalPost?.music_tracks) ? musicalPost.music_tracks[0] : musicalPost?.music_tracks;
+  const profileInterests = (profile.interests ?? []) as string[];
 
   return (
     <div className="profile-enter -mt-4 min-w-0 overflow-hidden pb-6 md:-mt-6">
-      <section className="relative min-h-[330px] overflow-hidden border-b border-border/60 sm:min-h-[350px] md:min-h-[340px] md:rounded-2xl md:border">
+      <section className="relative h-[310px] overflow-hidden border-b border-border/60 sm:h-[340px] md:h-[390px] md:rounded-2xl md:border">
         {coverUrl ? (
           <img src={coverUrl} alt={`Capa do perfil de ${profile.display_name}`} className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary to-background" />
+          <div className="profile-cover-fallback absolute inset-0" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 via-45% to-background/10" />
-        <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-background to-transparent" />
-        {isMe ? <CoverUploader userId={user.id} onDone={() => profileQuery.refetch()} /> : null}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/35 via-transparent to-background" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background via-background/65 to-transparent" />
+
+        <div className="absolute inset-x-0 top-0 z-20 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 pt-3 sm:px-5 sm:pt-5">
+          <Button type="button" variant="secondary" size="icon" className="glass h-9 w-9 shrink-0 rounded-full" onClick={() => window.history.back()} aria-label="Voltar">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <span />
+          <div className="flex shrink-0 items-center gap-2">
+            {isMe ? <CoverUploader userId={user.id} onDone={() => profileQuery.refetch()} /> : null}
+            <Button type="button" variant="secondary" size="icon" className="glass h-9 w-9 rounded-full" onClick={share} aria-label="Compartilhar perfil">
+              <Share2 className="h-4 w-4" />
+            </Button>
+            {!isMe ? <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} className="glass grid h-9 w-9 place-items-center rounded-full p-0 text-foreground" /> : null}
+          </div>
+        </div>
 
         <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-5 sm:px-6 md:px-8 md:pb-7">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-end gap-3 sm:gap-5">
-            <div className="relative shrink-0">
-              <div className="rounded-full bg-background p-1 ring-1 ring-primary/60 shadow-[0_12px_36px_-18px_color-mix(in_oklab,var(--primary)_42%,transparent)]">
-                <UserAvatar avatarPath={profile.avatar_url} displayName={profile.display_name} className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28" />
-              </div>
-              <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-[3px] border-background bg-primary" aria-label="Perfil ativo" />
+          <div className="relative w-fit">
+            <div className="rounded-full bg-background/95 p-1 ring-1 ring-primary/35 shadow-elegant">
+              <UserAvatar avatarPath={profile.avatar_url} displayName={profile.display_name} className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32" />
             </div>
-
-            <div className="min-w-0 pb-1">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <h1 className="min-w-0 truncate text-2xl font-display font-bold sm:text-3xl md:text-4xl">{profile.display_name}</h1>
-                {profile.is_verified || profile.badge_variant ? <span className="shrink-0"><VerifiedBadge size={17} variant={profile.badge_variant ?? "verified"} animated={false} /></span> : null}
-              </div>
-              <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                <span className="max-w-full truncate font-medium">@{profile.username}</span>
-                {profile.pronouns ? <span className="text-muted-foreground">· {profile.pronouns}</span> : null}
-              </div>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {isSupporter ? <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[9px] font-bold uppercase text-primary"><Heart className="h-2.5 w-2.5 fill-primary" /> Apoiador</span> : null}
-                {profile.is_creator ? <span className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[9px] font-bold uppercase text-primary">Criador</span> : null}
-              </div>
-            </div>
+            <span className="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full border-[3px] border-background bg-primary" aria-label="Perfil ativo" />
           </div>
         </div>
       </section>
 
-      <div className="space-y-6 px-4 py-5 sm:px-6 md:px-8 md:py-7">
-        <section className="space-y-4 border-b border-border/50 pb-6">
-          {profile.bio ? <p className="max-w-3xl whitespace-pre-wrap text-[15px] leading-6 text-foreground/90 md:text-base md:leading-7">{profile.bio}</p> : <p className="text-sm text-muted-foreground">Este perfil ainda não adicionou uma bio.</p>}
+      <div className="space-y-8 px-4 py-5 sm:px-6 md:px-8 md:py-7">
+        <section className="space-y-5 border-b border-border/50 pb-8">
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate text-3xl font-bold sm:text-4xl">{profile.display_name}</h1>
+              {profile.is_verified || profile.badge_variant ? <span className="shrink-0"><VerifiedBadge size={17} variant={profile.badge_variant ?? "verified"} animated={false} /></span> : null}
+            </div>
+            <p className="mt-1 truncate text-sm font-medium text-muted-foreground">@{profile.username}{profile.pronouns ? ` · ${profile.pronouns}` : ""}</p>
+            {profile.bio ? <p className="mt-3 max-w-3xl whitespace-pre-wrap text-[15px] leading-6 text-foreground/90 md:text-base md:leading-7">{profile.bio}</p> : <p className="mt-3 text-sm text-muted-foreground">Este perfil ainda não adicionou uma bio.</p>}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {isSupporter ? <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary"><Heart className="h-3 w-3 fill-primary" /> Apoiador</span> : null}
+              {profile.is_creator ? <span className="rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary">Criador</span> : null}
+            </div>
+          </div>
 
-          <div className="flex w-full min-w-0 gap-2 overflow-x-auto no-scrollbar">
+          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
             {isMe ? (
-              <Link to="/settings" className="min-w-0 flex-1 sm:max-w-52">
-                <Button className="h-10 w-full gap-2 rounded-xl"><Pencil className="h-4 w-4" /> Editar perfil</Button>
+              <Link to="/settings" className="min-w-0 sm:w-52">
+                <Button className="h-11 w-full gap-2 rounded-xl"><Pencil className="h-4 w-4" /> Editar perfil</Button>
               </Link>
             ) : (
               <>
-                <Button onClick={() => toggleFollow.mutate()} disabled={toggleFollow.isPending} className="h-10 min-w-[96px] flex-1 rounded-xl sm:max-w-44" variant={stats.data?.isFollowing ? "outline" : "default"}>
+                <Button onClick={() => toggleFollow.mutate()} disabled={toggleFollow.isPending} className="h-11 min-w-0 rounded-xl sm:w-44" variant={stats.data?.isFollowing ? "outline" : "default"}>
                   {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
                 </Button>
-                <Button onClick={openChat} variant="outline" className="h-10 shrink-0 gap-2 rounded-xl"><MessageCircle className="h-4 w-4" /> <span className="hidden min-[360px]:inline">Mensagem</span></Button>
-                {profile.is_creator ? <Button onClick={() => openCheckout({ priceId: "channel_sub_monthly", creatorId: profile.id })} variant={supporting ? "secondary" : "outline"} className="h-10 shrink-0 gap-2 rounded-xl"><Crown className="h-4 w-4" /> {supporting ? "Apoiador" : "Apoiar"}</Button> : null}
-                <UserActionsMenu targetUserId={profile.id} targetUsername={profile.username} />
+                <Button onClick={openChat} variant="outline" className="h-11 shrink-0 gap-2 rounded-xl"><MessageCircle className="h-4 w-4" /> <span className="hidden min-[370px]:inline">Mensagem</span></Button>
               </>
             )}
-            <Button onClick={share} variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" aria-label="Compartilhar perfil"><Share2 className="h-4 w-4" /></Button>
+            <Button onClick={share} variant="outline" className="h-11 shrink-0 gap-2 rounded-xl px-4" aria-label="Compartilhar perfil"><Share2 className="h-4 w-4" /><span className="hidden sm:inline">Compartilhar</span></Button>
+            {!isMe && profile.is_creator ? <Button onClick={() => openCheckout({ priceId: "channel_sub_monthly", creatorId: profile.id })} variant={supporting ? "secondary" : "outline"} className="col-span-2 h-11 shrink-0 gap-2 rounded-xl sm:col-span-1"><Crown className="h-4 w-4" /> {supporting ? "Apoiador" : "Apoiar"}</Button> : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "followers" }} className="transition-colors hover:text-foreground"><strong className="font-bold text-foreground tabular">{formatCount(stats.data?.followers ?? 0)}</strong> seguidores</Link>
-            <span aria-hidden>·</span>
-            <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "following" }} className="transition-colors hover:text-foreground"><strong className="font-bold text-foreground tabular">{formatCount(stats.data?.following ?? 0)}</strong> seguindo</Link>
-            <span aria-hidden>·</span>
-            <span><strong className="font-bold text-foreground tabular">{formatCount(activeVibes.length)}</strong> vibes</span>
+          <div className="grid grid-cols-3 divide-x divide-border/70 border-y border-border/60 py-4 text-center">
+            <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "followers" }} className="min-w-0 px-2"><strong className="block truncate text-lg font-bold tabular">{formatCount(stats.data?.followers ?? 0)}</strong><span className="text-[11px] text-muted-foreground">Seguidores</span></Link>
+            <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "following" }} className="min-w-0 px-2"><strong className="block truncate text-lg font-bold tabular">{formatCount(stats.data?.following ?? 0)}</strong><span className="text-[11px] text-muted-foreground">Seguindo</span></Link>
+            <span className="min-w-0 px-2"><strong className="block truncate text-lg font-bold tabular">{formatCount(stats.data?.likesReceived ?? 0)}</strong><span className="text-[11px] text-muted-foreground">Curtidas</span></span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             {profile.location ? <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {profile.location}</span> : null}
             {profile.website ? <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-primary hover:underline"><LinkIcon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{profile.website.replace(/^https?:\/\//, "")}</span></a> : null}
             {profile.featured_username ? <Link to="/u/$username" params={{ username: profile.featured_username }} className="font-medium text-muted-foreground transition-colors hover:text-primary">Conexão vibrante com @{profile.featured_username}</Link> : null}
           </div>
-          {(profile.interests?.length ?? 0) > 0 ? <div className="no-scrollbar flex gap-2 overflow-x-auto pb-0.5">{profile.interests.map((tag: string) => <span key={tag} className="shrink-0 rounded-full border border-border/70 bg-[color:var(--surface)] px-2.5 py-1 text-[11px] font-medium capitalize text-muted-foreground transition-colors hover:border-primary/25 hover:text-foreground">{tag}</span>)}</div> : null}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className="font-medium text-foreground/80">Estatísticas</span><span aria-hidden>·</span><span>{formatCount(stats.data?.likesReceived ?? 0)} curtidas</span><span aria-hidden>·</span><span>{formatCount(stats.data?.viewsTotal ?? 0)} visualizações</span></div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{formatCount(stats.data?.viewsTotal ?? 0)} visualizações</span><span aria-hidden>·</span><span>{formatCount(activeVibes.length)} Vibes ativas</span></div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4"><div><p className="text-xs font-semibold text-primary">Momento</p><h2 className="mt-1 text-xl font-bold">Vibe atual</h2></div>{activeLive ? <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />Ao vivo</span> : null}</div>
+          <div className="profile-current-vibe grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-2xl border border-border/60 p-3 sm:p-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface-2 text-primary">
+              {music?.cover_url ? <img src={music.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" /> : activeLive ? <Radio className="h-6 w-6" /> : <Music2 className="h-6 w-6" />}
+            </div>
+            <div className="min-w-0"><p className="text-[11px] font-semibold text-primary">{activeLive ? "Transmitindo agora" : music ? "Trilha da criação mais recente" : "Agora estou"}</p><p className="mt-1 truncate text-sm font-bold">{activeLive?.title ?? music?.title ?? "Nenhuma atividade compartilhada"}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{music?.artist ?? (activeLive ? `${formatCount(activeLive.viewer_count ?? 0)} assistindo` : "Compartilhe uma Vibe para mostrar seu momento")}</p></div>
+            <div className="flex h-8 shrink-0 items-end gap-0.5" aria-label={activeLive || music ? "Áudio ativo" : "Sem áudio ativo"}>{[10,18,13,24].map((height, index) => <span key={height} className={`vibe-eq w-1 rounded-full ${activeLive || music ? "bg-primary" : "bg-muted-foreground/30"}`} style={{ height, animationDelay: `${index * 120}ms` }} />)}</div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div><p className="text-xs font-semibold text-primary">Interesses</p><h2 className="mt-1 text-xl font-bold">Minha Vibe</h2></div>
+          {profileInterests.length ? <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">{profileInterests.map((tag) => <span key={tag} className="shrink-0 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs font-medium capitalize text-foreground transition hover:border-primary/30 hover:text-primary">#{tag.replace(/^#/, "")}</span>)}</div> : <p className="text-sm text-muted-foreground">Nenhum interesse compartilhado ainda.</p>}
         </section>
 
         <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
 
         <ProfileRealities profileId={profile.id} isMe={isMe} />
 
-
-
-      {/* 9. ABAS + GRADE */}
       {isBlockedPair ? (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">
           <Ban className="h-4 w-4 shrink-0" />
           <span>{iBlocked ? "Você bloqueou este usuário." : "Este perfil não está disponível."}</span>
         </div>
       ) : (
-          <Tabs defaultValue="posts" className="profile-tabs border-t border-border/50 pt-1">
-          <TabsList className={`sticky top-0 z-20 grid h-12 w-full ${isMe ? "grid-cols-5" : "grid-cols-3"} rounded-none border-0 border-b border-border/60 bg-background/90 p-0 backdrop-blur-xl`}>
-            <TabsTrigger value="posts" className="relative h-12 gap-1.5 rounded-none border-b-2 border-transparent text-muted-foreground transition-colors duration-200 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary" aria-label="Posts">
-              <Grid3x3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Posts</span>
-            </TabsTrigger>
-            <TabsTrigger value="videos" className="relative h-12 gap-1.5 rounded-none border-b-2 border-transparent text-muted-foreground transition-colors duration-200 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary" aria-label="Vídeos">
-              <Play className="h-4 w-4" />
-              <span className="hidden sm:inline">Vídeos</span>
-            </TabsTrigger>
-            <TabsTrigger value="reposts" className="relative h-12 gap-1.5 rounded-none border-b-2 border-transparent text-muted-foreground transition-colors duration-200 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary" aria-label="Republicado">
-              <Repeat2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Republicado</span>
-            </TabsTrigger>
-            {isMe ? (
-              <>
-                <TabsTrigger value="likes" className="relative h-12 gap-1.5 rounded-none border-b-2 border-transparent text-muted-foreground transition-colors duration-200 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary" aria-label="Curtidos">
-                  <Heart className="h-4 w-4" />
-                  <span className="hidden sm:inline">Curtidos</span>
-                </TabsTrigger>
-                <TabsTrigger value="saved" className="relative h-12 gap-1.5 rounded-none border-b-2 border-transparent text-muted-foreground transition-colors duration-200 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary" aria-label="Salvos">
-                  <Bookmark className="h-4 w-4" />
-                  <span className="hidden sm:inline">Salvos</span>
-                </TabsTrigger>
-              </>
-            ) : null}
+          <Tabs defaultValue="all" className="profile-tabs border-t border-border/50 pt-6">
+          <div className="mb-4"><p className="text-xs font-semibold text-primary">Criações</p><h2 className="mt-1 text-xl font-bold">Conteúdo</h2></div>
+          <TabsList className="no-scrollbar sticky top-0 z-20 flex h-11 w-full justify-start gap-1 overflow-x-auto rounded-none border-0 border-b border-border/60 bg-background/90 p-0 backdrop-blur-xl">
+            <TabsTrigger value="all" className="h-11 shrink-0 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary">Tudo</TabsTrigger>
+            <TabsTrigger value="videos" className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"><Play className="h-3.5 w-3.5" />Vídeos</TabsTrigger>
+            <TabsTrigger value="photos" className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"><ImageIcon className="h-3.5 w-3.5" />Fotos</TabsTrigger>
+            <TabsTrigger value="vibes" className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"><Activity className="h-3.5 w-3.5" />Vibes</TabsTrigger>
+            <TabsTrigger value="lives" className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"><Radio className="h-3.5 w-3.5" />Lives</TabsTrigger>
+            <TabsTrigger value="reposts" className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"><Repeat2 className="h-3.5 w-3.5" />Republicados</TabsTrigger>
+            {isMe ? <TabsTrigger value="likes" className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"><Heart className="h-3.5 w-3.5" />Curtidos</TabsTrigger> : null}
+            {isMe ? <TabsTrigger value="saved" className="h-11 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-3 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary"><Bookmark className="h-3.5 w-3.5" />Salvos</TabsTrigger> : null}
           </TabsList>
 
-          <TabsContent value="posts" className="mt-4">
+          <TabsContent value="all" className="mt-4">
             <PostGrid posts={posts} empty="Nenhum post ainda." />
           </TabsContent>
           <TabsContent value="videos" className="mt-4">
             <PostGrid posts={videoPosts} empty="Nenhum vídeo publicado." />
           </TabsContent>
+          <TabsContent value="photos" className="mt-4"><PostGrid posts={photoPosts} empty="Nenhuma foto publicada." /></TabsContent>
+          <TabsContent value="vibes" className="mt-4"><VibeGrid vibes={activeVibes} /></TabsContent>
+          <TabsContent value="lives" className="mt-4"><LiveGrid lives={liveItems} /></TabsContent>
           <TabsContent value="reposts" className="mt-4">
             <PostGrid posts={stats.data?.repostedPosts ?? []} empty="Nenhuma republicação ainda." />
           </TabsContent>

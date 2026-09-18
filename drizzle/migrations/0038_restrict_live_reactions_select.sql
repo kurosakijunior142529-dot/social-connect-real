@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Reactions visible" ON public.live_reactions;

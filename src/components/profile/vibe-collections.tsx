@@ -92,12 +92,12 @@ export function VibeCollections({
     <section className="min-w-0">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-xs font-bold uppercase text-primary">Permanentes</p>
-          <h2 className="text-xl font-bold">Coleções de Vibes</h2>
+          <p className="text-xs font-semibold text-primary">Permanentes</p>
+          <h2 className="mt-1 text-xl font-bold">Vibe Spaces</h2>
         </div>
         {isMe ? (
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setEditing("new")}>
-            <Plus className="h-4 w-4" /> Nova coleção
+          <Button variant="outline" size="sm" className="gap-2 rounded-full" onClick={() => setEditing("new")}>
+            <Plus className="h-4 w-4" /> Novo Space
           </Button>
         ) : null}
       </div>
@@ -117,7 +117,7 @@ export function VibeCollections({
         ))}
         {list.length === 0 ? (
           <button type="button" onClick={() => setEditing("new")} className="flex min-h-28 w-full items-center justify-center rounded-xl border border-dashed border-primary/25 bg-primary/5 px-5 text-center text-sm text-muted-foreground transition hover:bg-primary/10">
-            Guarde suas melhores Vibes para sempre em uma coleção.
+            Guarde suas melhores Vibes para sempre em um Vibe Space.
           </button>
         ) : null}
       </div>
@@ -158,7 +158,8 @@ function CollectionCover({
   onOpen: () => void;
   onEdit: () => void;
 }) {
-  const size = collection.is_pinned ? 100 : 84;
+  // Hexágonos maiores e editoriais: ~4 visíveis em telas de 360–412 px.
+  const size = collection.is_pinned ? 116 : 98;
   return (
     <div
       className="gem-enter relative shrink-0 snap-start text-center"
@@ -168,7 +169,7 @@ function CollectionCover({
         type="button"
         onClick={onOpen}
         className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={`Abrir coleção ${collection.title}`}
+        aria-label={`Abrir Vibe Space ${collection.title}`}
         style={{ width: size + 10 }}
       >
         <span
@@ -177,8 +178,8 @@ function CollectionCover({
             width: size,
             height: size,
             clipPath: GEM_CLIP,
-            background: `linear-gradient(135deg, ${collection.accent}, transparent 70%)`,
-             padding: selected ? 4 : 3,
+            background: `linear-gradient(140deg, ${collection.accent}, transparent 78%)`,
+            padding: selected ? 3 : 2,
             ["--gem-accent" as any]: collection.accent,
           }}
         >

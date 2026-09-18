@@ -24,6 +24,12 @@ import {
   Loader2,
   Pencil,
   Crown,
+  ArrowLeft,
+  Music2,
+  Radio,
+  ImageIcon,
+  Activity,
+  Volume2,
 } from "lucide-react";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
@@ -170,12 +176,18 @@ function ProfileContent() {
       const [posts, followers, following, mine] = await Promise.all([
         supabase
           .from("posts")
-          .select("id, media_url, media_type, view_count, post_kind")
+          .select("id, media_url, media_type, view_count, post_kind, created_at, music_track_id, music_tracks(title, artist, cover_url)")
           .eq("author_id", profile!.id)
           .order("created_at", { ascending: false }),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profile!.id),
         supabase.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", profile!.id),
         supabase.from("follows").select("*").match({ follower_id: user.id, following_id: profile!.id }).maybeSingle(),
+        supabase
+          .from("lives")
+          .select("id, title, thumbnail_url, status, viewer_count, created_at")
+          .eq("host_id", profile!.id)
+          .order("created_at", { ascending: false })
+          .limit(24),
       ]);
 
       // curtidas recebidas: contamos likes onde post pertence a este autor
@@ -234,6 +246,7 @@ function ProfileContent() {
         likedPosts,
         savedPosts,
         repostedPosts,
+        lives: mine[4]?.data ?? [],
       };
     },
   });

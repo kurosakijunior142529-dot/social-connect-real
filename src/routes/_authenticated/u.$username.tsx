@@ -173,7 +173,7 @@ function ProfileContent() {
     queryKey: ["profile-stats", profile?.id, user.id],
     enabled: !!profile?.id,
     queryFn: async () => {
-      const [posts, followers, following, mine] = await Promise.all([
+      const [posts, followers, following, mine, lives] = await Promise.all([
         supabase
           .from("posts")
           .select("id, media_url, media_type, view_count, post_kind, created_at, music_track_id, music_tracks(title, artist, cover_url)")
@@ -246,7 +246,7 @@ function ProfileContent() {
         likedPosts,
         savedPosts,
         repostedPosts,
-        lives: mine[4]?.data ?? [],
+        lives: lives.data ?? [],
       };
     },
   });

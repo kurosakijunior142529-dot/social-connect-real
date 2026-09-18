@@ -267,6 +267,13 @@
       "when": 1789183710059,
       "tag": "0037_reels_carousel_reposts_vir",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1789759080959,
+      "tag": "0038_restrict_live_reactions_select",
+      "breakpoints": true
     }
   ]
 }

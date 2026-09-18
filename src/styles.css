@@ -318,6 +318,31 @@
 }
 .profile-enter { animation: profile-enter-keyframes 280ms var(--ease-out-quart) both; }
 .profile-tabs [role="tabpanel"] { animation: profile-enter-keyframes 220ms var(--ease-out-quart) both; }
+
+/* Capa sem imagem: gradiente escuro editorial com assinatura verde discreta */
+.profile-cover-fallback {
+  background:
+    radial-gradient(120% 90% at 20% 0%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 60%),
+    linear-gradient(160deg, var(--surface-2), var(--background));
+}
+
+/* Cartão "Vibe atual" — profundidade leve, sem glow agressivo */
+.profile-current-vibe {
+  background: linear-gradient(140deg, color-mix(in srgb, var(--primary) 6%, var(--surface)), var(--surface));
+}
+
+@keyframes vibe-eq-keyframes {
+  0%, 100% { transform: scaleY(0.45); }
+  50% { transform: scaleY(1); }
+}
+.vibe-eq {
+  transform-origin: bottom;
+  animation: vibe-eq-keyframes 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vibe-eq { animation: none; }
+  .profile-enter, .profile-tabs [role="tabpanel"] { animation: none; }
+}
 .group:hover .gem-glow,
 .group:focus-visible .gem-glow {
   filter: drop-shadow(0 0 22px color-mix(in srgb, var(--gem-accent, #22E06A) 60%, transparent));

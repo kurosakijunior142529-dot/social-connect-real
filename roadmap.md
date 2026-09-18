@@ -13,3 +13,4 @@
 - [x] Refinar profissionalmente o perfil e validar em celulares
 - [x] Redesenhar visualmente o perfil em fluxo social premium e ocultar Conquistas somente nessa tela
 - [ ] Refinar profissionalmente a tela Novo post e validar os fluxos mobile
+- [ ] Redesenhar perfil como experiência editorial social premium com Vibe atual e Vibe Spaces

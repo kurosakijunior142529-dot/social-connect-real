@@ -476,6 +476,72 @@ function PostGrid({ posts, empty }: { posts: any[]; empty: string }) {
   );
 }
 
+function VibeGrid({ vibes }: { vibes: any[] }) {
+  if (!vibes.length)
+    return (
+      <div className="grid min-h-32 place-items-center px-5 text-center text-sm text-muted-foreground">
+        <span className="grid place-items-center gap-2">
+          <Activity className="h-6 w-6 text-muted-foreground/50" />
+          Nenhuma Vibe ativa agora.
+        </span>
+      </div>
+    );
+  return (
+    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:gap-3">
+      {vibes.map((v) => (
+        <div key={v.id} className="relative aspect-[9/16] overflow-hidden rounded-md bg-[color:var(--surface-2)] ring-1 ring-border/60 md:rounded-lg">
+          <SignedMediaThumb bucket="stories" path={v.media_url} mediaType={v.media_type} alt="" className="h-full w-full object-cover" />
+          {v.media_type === "video" ? (
+            <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-background/70 text-foreground">
+              <Play className="h-3 w-3" />
+            </span>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LiveGrid({ lives }: { lives: any[] }) {
+  if (!lives.length)
+    return (
+      <div className="grid min-h-32 place-items-center px-5 text-center text-sm text-muted-foreground">
+        <span className="grid place-items-center gap-2">
+          <Radio className="h-6 w-6 text-muted-foreground/50" />
+          Nenhuma live por aqui ainda.
+        </span>
+      </div>
+    );
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:gap-3">
+      {lives.map((l) => (
+        <Link
+          key={l.id}
+          to="/live/$id"
+          params={{ id: l.id }}
+          className="group relative aspect-video overflow-hidden rounded-lg bg-[color:var(--surface-2)] ring-1 ring-border/60 transition hover:ring-primary/20 active:scale-[0.98]"
+        >
+          {l.thumbnail_url ? (
+            <SignedMediaThumb bucket="posts" path={l.thumbnail_url} mediaType="image" alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="profile-cover-fallback h-full w-full" />
+          )}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-transparent p-2">
+            <p className="truncate text-[11px] font-semibold">{l.title ?? "Live"}</p>
+            <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Volume2 className="h-3 w-3" />
+              {formatCount(l.viewer_count ?? 0)} {l.status === "live" ? "assistindo" : "visualizações"}
+            </p>
+          </div>
+          {l.status === "live" ? (
+            <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">AO VIVO</span>
+          ) : null}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 function ProfileSkeleton() {
   return <div className="-mt-4 min-w-0 overflow-hidden pb-8 md:-mt-6"><Skeleton className="h-[330px] w-full rounded-none md:h-[340px] md:rounded-2xl" /><div className="space-y-6 px-4 py-5 sm:px-6 md:px-8"><div className="space-y-3"><Skeleton className="h-4 w-5/6" /><Skeleton className="h-4 w-3/5" /><Skeleton className="h-10 w-full rounded-xl" /><Skeleton className="h-4 w-2/3" /></div><div className="flex gap-4 overflow-hidden"><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /><Skeleton className="h-28 w-24 shrink-0 rounded-xl" /></div><Skeleton className="h-12 rounded-none" /><div className="grid grid-cols-3 gap-1.5">{Array.from({ length: 9 }).map((_, index) => <Skeleton key={index} className="aspect-square rounded-md" />)}</div></div></div>;
 }

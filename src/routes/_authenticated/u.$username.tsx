@@ -519,6 +519,7 @@ function LiveGrid({ lives }: { lives: any[] }) {
           key={l.id}
           to="/live/$id"
           params={{ id: l.id }}
+          search={{ host: undefined }}
           className="group relative aspect-video overflow-hidden rounded-lg bg-[color:var(--surface-2)] ring-1 ring-border/60 transition hover:ring-primary/20 active:scale-[0.98]"
         >
           {l.thumbnail_url ? (

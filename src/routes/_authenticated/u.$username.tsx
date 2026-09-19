@@ -19,6 +19,8 @@ import {
   Bookmark,
   Heart,
   Play,
+  Pause,
+  Trash2,
   Repeat2,
   Camera,
   Loader2,
@@ -483,9 +485,10 @@ function ProfileContent() {
             <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface-2 text-primary">
               {music?.cover_url ? <img src={music.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" /> : activeLive ? <Radio className="h-6 w-6" /> : <Music2 className="h-6 w-6" />}
             </div>
-            <div className="min-w-0"><p className="text-[11px] font-semibold text-primary">{activeLive ? "Transmitindo agora" : music ? "Trilha da criação mais recente" : "Agora estou"}</p><p className="mt-1 truncate text-sm font-bold">{activeLive?.title ?? music?.title ?? customVibe ?? (isMe ? "Conte o que você está vivendo" : "Nenhuma atividade compartilhada")}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{music?.artist ?? (activeLive ? `${formatCount(activeLive.viewer_count ?? 0)} assistindo` : isMe ? "Toque em editar para definir sua Vibe atual" : "Nenhuma Vibe definida")}</p></div>
+            <div className="min-w-0"><p className="text-[11px] font-semibold text-primary">{activeLive ? "Transmitindo agora" : music ? "Trilha da criação mais recente" : vibeAudioPath ? "Música do perfil" : "Agora estou"}</p><p className="mt-1 truncate text-sm font-bold">{activeLive?.title ?? music?.title ?? customVibe ?? (vibeAudioPath ? "Minha música" : isMe ? "Conte o que você está vivendo" : "Nenhuma atividade compartilhada")}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{music?.artist ?? (activeLive ? `${formatCount(activeLive.viewer_count ?? 0)} assistindo` : vibeAudioPath ? (audioPlaying ? "Tocando agora" : "Toque para ouvir") : isMe ? "Toque em editar para definir sua Vibe atual" : "Nenhuma Vibe definida")}</p></div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className="flex h-8 items-end gap-0.5" aria-label={activeLive || music ? "Áudio ativo" : "Sem áudio ativo"}>{[10,18,13,24].map((height, index) => <span key={height} className={`vibe-eq w-1 rounded-full ${activeLive || music ? "bg-primary" : "bg-muted-foreground/30"}`} style={{ height, animationDelay: `${index * 120}ms` }} />)}</div>
+              <div className="flex h-8 items-end gap-0.5" aria-label={activeLive || music || audioPlaying ? "Áudio ativo" : "Sem áudio ativo"}>{[10,18,13,24].map((height, index) => <span key={height} className={`vibe-eq w-1 rounded-full ${activeLive || music || audioPlaying ? "bg-primary" : "bg-muted-foreground/30"}`} style={{ height, animationDelay: `${index * 120}ms` }} />)}</div>
+              {vibeAudioPath ? <Button size="icon" className="h-9 w-9 rounded-full" aria-label={audioPlaying ? "Pausar música do perfil" : "Tocar música do perfil"} onClick={toggleVibeAudio}>{audioPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button> : null}
               {isMe ? <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" aria-label="Editar Vibe atual" onClick={() => { setVibeText(customVibe ?? ""); setVibeOpen(true); }}><Pencil className="h-4 w-4" /></Button> : null}
             </div>
           </div>

@@ -32,6 +32,9 @@ import {
   Volume2,
 } from "lucide-react";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { InterestsEditor } from "@/components/profile/interests-editor";
 
 
 import { VerifiedBadge } from "@/components/verified-badge";
@@ -74,6 +77,11 @@ function ProfileContent() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [vibeOpen, setVibeOpen] = useState(false);
+  const [vibeText, setVibeText] = useState("");
+  const [vibeSaving, setVibeSaving] = useState(false);
+  const [interestsOpen, setInterestsOpen] = useState(false);
+  
   
 
   const profileQuery = useQuery({
@@ -84,7 +92,7 @@ function ProfileContent() {
         // Somente colunas públicas: `*` falha por permissão desde o
         // endurecimento de segurança (colunas sensíveis não são legíveis).
         .select(
-          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, featured_username",
+          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, featured_username, favorite_track",
         )
         .eq("username", username)
         .maybeSingle();
@@ -301,6 +309,7 @@ function ProfileContent() {
   const musicalPost = allPosts.find((item) => item.music_tracks);
   const music = Array.isArray(musicalPost?.music_tracks) ? musicalPost.music_tracks[0] : musicalPost?.music_tracks;
   const profileInterests = (profile.interests ?? []) as string[];
+  const customVibe = ((profile as any).favorite_track ?? null) as string | null;
 
   return (
     <div className="profile-enter -mt-4 min-w-0 overflow-hidden pb-6 md:-mt-6">
@@ -380,24 +389,68 @@ function ProfileContent() {
             {profile.website ? <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-primary hover:underline"><LinkIcon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{profile.website.replace(/^https?:\/\//, "")}</span></a> : null}
             {profile.featured_username ? <Link to="/u/$username" params={{ username: profile.featured_username }} className="font-medium text-muted-foreground transition-colors hover:text-primary">Conexão vibrante com @{profile.featured_username}</Link> : null}
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground"><span>{formatCount(stats.data?.viewsTotal ?? 0)} visualizações</span><span aria-hidden>·</span><span>{formatCount(activeVibes.length)} Vibes ativas</span></div>
-        </section>
-
-        <section className="space-y-4">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4"><div><p className="text-xs font-semibold text-primary">Momento</p><h2 className="mt-1 text-xl font-bold">Vibe atual</h2></div>{activeLive ? <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />Ao vivo</span> : null}</div>
-          <div className="profile-current-vibe grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-2xl border border-border/60 p-3 sm:p-4">
-            <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface-2 text-primary">
-              {music?.cover_url ? <img src={music.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" /> : activeLive ? <Radio className="h-6 w-6" /> : <Music2 className="h-6 w-6" />}
-            </div>
-            <div className="min-w-0"><p className="text-[11px] font-semibold text-primary">{activeLive ? "Transmitindo agora" : music ? "Trilha da criação mais recente" : "Agora estou"}</p><p className="mt-1 truncate text-sm font-bold">{activeLive?.title ?? music?.title ?? "Nenhuma atividade compartilhada"}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{music?.artist ?? (activeLive ? `${formatCount(activeLive.viewer_count ?? 0)} assistindo` : "Compartilhe uma Vibe para mostrar seu momento")}</p></div>
-            <div className="flex h-8 shrink-0 items-end gap-0.5" aria-label={activeLive || music ? "Áudio ativo" : "Sem áudio ativo"}>{[10,18,13,24].map((height, index) => <span key={height} className={`vibe-eq w-1 rounded-full ${activeLive || music ? "bg-primary" : "bg-muted-foreground/30"}`} style={{ height, animationDelay: `${index * 120}ms` }} />)}</div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>{formatCount(stats.data?.viewsTotal ?? 0)} visualizações</span><span aria-hidden>·</span><span>{formatCount(activeVibes.length)} Vibes ativas</span>
+            {isMe ? <Link to="/stories/new" className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-primary/40 px-3 py-1 text-[11px] font-semibold text-primary transition active:scale-95">Nova Vibe</Link> : null}
           </div>
         </section>
 
         <section className="space-y-4">
-          <div><p className="text-xs font-semibold text-primary">Interesses</p><h2 className="mt-1 text-xl font-bold">Minha Vibe</h2></div>
-          {profileInterests.length ? <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">{profileInterests.map((tag) => <span key={tag} className="shrink-0 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs font-medium capitalize text-foreground transition hover:border-primary/30 hover:text-primary">#{tag.replace(/^#/, "")}</span>)}</div> : <p className="text-sm text-muted-foreground">Nenhum interesse compartilhado ainda.</p>}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+            <div><p className="text-xs font-semibold text-primary">Momento</p><h2 className="mt-1 text-xl font-bold">Vibe atual</h2></div>
+            {activeLive ? <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />Ao vivo</span> : null}
+          </div>
+          <div className="profile-current-vibe grid min-h-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-2xl border border-border/60 p-3 sm:p-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface-2 text-primary">
+              {music?.cover_url ? <img src={music.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" /> : activeLive ? <Radio className="h-6 w-6" /> : <Music2 className="h-6 w-6" />}
+            </div>
+            <div className="min-w-0"><p className="text-[11px] font-semibold text-primary">{activeLive ? "Transmitindo agora" : music ? "Trilha da criação mais recente" : "Agora estou"}</p><p className="mt-1 truncate text-sm font-bold">{activeLive?.title ?? music?.title ?? customVibe ?? (isMe ? "Conte o que você está vivendo" : "Nenhuma atividade compartilhada")}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{music?.artist ?? (activeLive ? `${formatCount(activeLive.viewer_count ?? 0)} assistindo` : isMe ? "Toque em editar para definir sua Vibe atual" : "Nenhuma Vibe definida")}</p></div>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="flex h-8 items-end gap-0.5" aria-label={activeLive || music ? "Áudio ativo" : "Sem áudio ativo"}>{[10,18,13,24].map((height, index) => <span key={height} className={`vibe-eq w-1 rounded-full ${activeLive || music ? "bg-primary" : "bg-muted-foreground/30"}`} style={{ height, animationDelay: `${index * 120}ms` }} />)}</div>
+              {isMe ? <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" aria-label="Editar Vibe atual" onClick={() => { setVibeText(customVibe ?? ""); setVibeOpen(true); }}><Pencil className="h-4 w-4" /></Button> : null}
+            </div>
+          </div>
         </section>
+
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-4">
+            <div><p className="text-xs font-semibold text-primary">Interesses</p><h2 className="mt-1 text-xl font-bold">Minha Vibe</h2></div>
+            {isMe ? <Button size="sm" variant="outline" className="h-9 rounded-full" onClick={() => setInterestsOpen(true)}>Editar</Button> : null}
+          </div>
+          {profileInterests.length ? <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">{profileInterests.map((tag) => <span key={tag} className="shrink-0 rounded-full border border-border/70 bg-surface px-3 py-2 text-xs font-medium capitalize text-foreground transition hover:border-primary/30 hover:text-primary">#{tag.replace(/^#/, "")}</span>)}</div> : <p className="text-sm text-muted-foreground">{isMe ? "Escolha seus interesses para mostrar sua Vibe." : "Nenhum interesse compartilhado ainda."}</p>}
+        </section>
+
+        <Dialog open={vibeOpen} onOpenChange={setVibeOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Vibe atual</DialogTitle></DialogHeader>
+            <Input value={vibeText} maxLength={80} placeholder="Ex.: Ouvindo Matuê no fim de tarde" onChange={(e) => setVibeText(e.target.value)} />
+            <p className="text-xs text-muted-foreground">Uma transmissão ao vivo ou a trilha da sua criação mais recente têm prioridade sobre este texto.</p>
+            <DialogFooter>
+              <Button
+                disabled={vibeSaving}
+                onClick={async () => {
+                  setVibeSaving(true);
+                  const value = vibeText.trim();
+                  const { error } = await supabase.from("profiles").update({ favorite_track: value || null } as any).eq("id", profile.id);
+                  setVibeSaving(false);
+                  if (error) return toast.error(error.message);
+                  toast.success("Vibe atual atualizada");
+                  setVibeOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ["profile"] });
+                }}
+              >
+                {vibeSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={interestsOpen} onOpenChange={setInterestsOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Minha Vibe</DialogTitle></DialogHeader>
+            <InterestsEditor userId={profile.id} initial={profileInterests} />
+          </DialogContent>
+        </Dialog>
 
         <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
 

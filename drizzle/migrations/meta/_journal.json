@@ -288,6 +288,13 @@
       "when": 1789817743775,
       "tag": "0040_grant_vibe_audio_path",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1789859543961,
+      "tag": "0041_create_ar_effects",
+      "breakpoints": true
     }
   ]
 }

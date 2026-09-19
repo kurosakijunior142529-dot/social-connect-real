@@ -507,6 +507,32 @@ function ProfileContent() {
             <DialogHeader><DialogTitle>Vibe atual</DialogTitle></DialogHeader>
             <Input value={vibeText} maxLength={80} placeholder="Ex.: Ouvindo Matuê no fim de tarde" onChange={(e) => setVibeText(e.target.value)} />
             <p className="text-xs text-muted-foreground">Uma transmissão ao vivo ou a trilha da sua criação mais recente têm prioridade sobre este texto.</p>
+            <div className="rounded-xl border border-border/60 p-3">
+              <p className="text-sm font-semibold">Música do perfil</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Envie um arquivo de até 15 MB (mp3, m4a, wav). Quem visitar seu perfil poderá tocar.</p>
+              <input
+                ref={audioFileRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) void uploadVibeAudio(file);
+                }}
+              />
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={audioUploading} onClick={() => audioFileRef.current?.click()}>
+                  {audioUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Music2 className="h-4 w-4" />}
+                  <span className="ml-2">{vibeAudioPath ? "Trocar música" : "Escolher música"}</span>
+                </Button>
+                {vibeAudioPath ? (
+                  <Button type="button" size="sm" variant="ghost" className="rounded-full text-muted-foreground" disabled={audioUploading} onClick={removeVibeAudio}>
+                    <Trash2 className="h-4 w-4" /><span className="ml-2">Remover</span>
+                  </Button>
+                ) : null}
+              </div>
+            </div>
             <DialogFooter>
               <Button
                 disabled={vibeSaving}

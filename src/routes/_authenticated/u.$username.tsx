@@ -77,6 +77,11 @@ function ProfileContent() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [vibeOpen, setVibeOpen] = useState(false);
+  const [vibeText, setVibeText] = useState("");
+  const [vibeSaving, setVibeSaving] = useState(false);
+  const [interestsOpen, setInterestsOpen] = useState(false);
+  
   
 
   const profileQuery = useQuery({

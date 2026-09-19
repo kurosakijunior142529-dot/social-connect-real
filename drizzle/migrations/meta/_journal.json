@@ -281,6 +281,13 @@
       "when": 1789817709472,
       "tag": "0039_profile_vibe_audio",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1789817743775,
+      "tag": "0040_grant_vibe_audio_path",
+      "breakpoints": true
     }
   ]
 }

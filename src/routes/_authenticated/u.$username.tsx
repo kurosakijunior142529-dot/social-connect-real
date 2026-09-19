@@ -322,6 +322,73 @@ function ProfileContent() {
   const music = Array.isArray(musicalPost?.music_tracks) ? musicalPost.music_tracks[0] : musicalPost?.music_tracks;
   const profileInterests = (profile.interests ?? []) as string[];
   const customVibe = ((profile as any).favorite_track ?? null) as string | null;
+  const vibeAudioPath = ((profile as any).vibe_audio_path ?? null) as string | null;
+
+  async function toggleVibeAudio() {
+    if (!vibeAudioPath) return;
+    const el = vibeAudioRef.current;
+    if (el && !el.paused) {
+      el.pause();
+      setAudioPlaying(false);
+      return;
+    }
+    try {
+      if (!el) {
+        const { data, error } = await supabase.storage.from("profile-audio").createSignedUrl(vibeAudioPath, 60 * 60);
+        if (error || !data?.signedUrl) throw error ?? new Error("Não foi possível tocar a música");
+        const audio = new Audio(data.signedUrl);
+        audio.addEventListener("ended", () => setAudioPlaying(false));
+        vibeAudioRef.current = audio;
+      }
+      await vibeAudioRef.current!.play();
+      setAudioPlaying(true);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Não foi possível tocar a música");
+    }
+  }
+
+  async function uploadVibeAudio(file: File) {
+    if (!file.type.startsWith("audio/")) return toast.error("Escolha um arquivo de música (mp3, m4a, wav...)");
+    if (file.size > 15 * 1024 * 1024) return toast.error("A música deve ter até 15 MB");
+    setAudioUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "mp3";
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("profile-audio").upload(path, file, {
+        cacheControl: "31536000, immutable",
+        upsert: false,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { error } = await supabase.from("profiles").update({ vibe_audio_path: path } as any).eq("id", user.id);
+      if (error) throw error;
+      if (vibeAudioPath) await supabase.storage.from("profile-audio").remove([vibeAudioPath]);
+      vibeAudioRef.current?.pause();
+      vibeAudioRef.current = null;
+      setAudioPlaying(false);
+      toast.success("Música do perfil atualizada");
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao enviar a música");
+    } finally {
+      setAudioUploading(false);
+    }
+  }
+
+  async function removeVibeAudio() {
+    if (!vibeAudioPath) return;
+    setAudioUploading(true);
+    const { error } = await supabase.from("profiles").update({ vibe_audio_path: null } as any).eq("id", user.id);
+    if (!error) await supabase.storage.from("profile-audio").remove([vibeAudioPath]);
+    vibeAudioRef.current?.pause();
+    vibeAudioRef.current = null;
+    setAudioPlaying(false);
+    setAudioUploading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Música removida");
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+  }
+
 
   return (
     <div className="profile-enter -mt-4 min-w-0 overflow-hidden pb-6 md:-mt-6">

@@ -352,6 +352,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ar_effects: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          lens_group_id: string | null
+          lens_id: string
+          name: string
+          sort_order: number
+          thumbnail_url: string | null
+          usage_count: number
+          version: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lens_group_id?: string | null
+          lens_id: string
+          name: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          usage_count?: number
+          version?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lens_group_id?: string | null
+          lens_id?: string
+          name?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          usage_count?: number
+          version?: number
+        }
+        Relationships: []
+      }
       bank_accounts: {
         Row: {
           bank_account: string | null
@@ -3966,6 +4008,7 @@ export type Database = {
         Args: { _new_status: string; _note?: string; _withdrawal_id: string }
         Returns: undefined
       }
+      bump_ar_effect_usage: { Args: { _effect_id: string }; Returns: undefined }
       can_interact: { Args: { _user: string }; Returns: boolean }
       can_message: { Args: { _user: string }; Returns: boolean }
       can_publish: { Args: { _user: string }; Returns: boolean }

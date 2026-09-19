@@ -19,6 +19,8 @@ import {
   Bookmark,
   Heart,
   Play,
+  Pause,
+  Trash2,
   Repeat2,
   Camera,
   Loader2,
@@ -81,6 +83,18 @@ function ProfileContent() {
   const [vibeText, setVibeText] = useState("");
   const [vibeSaving, setVibeSaving] = useState(false);
   const [interestsOpen, setInterestsOpen] = useState(false);
+  const [audioUploading, setAudioUploading] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const vibeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioFileRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      vibeAudioRef.current?.pause();
+      vibeAudioRef.current = null;
+    };
+  }, []);
+  
   
   
 
@@ -92,7 +106,7 @@ function ProfileContent() {
         // Somente colunas públicas: `*` falha por permissão desde o
         // endurecimento de segurança (colunas sensíveis não são legíveis).
         .select(
-          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, featured_username, favorite_track",
+          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, featured_username, favorite_track, vibe_audio_path",
         )
         .eq("username", username)
         .maybeSingle();
@@ -310,6 +324,73 @@ function ProfileContent() {
   const music = Array.isArray(musicalPost?.music_tracks) ? musicalPost.music_tracks[0] : musicalPost?.music_tracks;
   const profileInterests = (profile.interests ?? []) as string[];
   const customVibe = ((profile as any).favorite_track ?? null) as string | null;
+  const vibeAudioPath = ((profile as any).vibe_audio_path ?? null) as string | null;
+
+  async function toggleVibeAudio() {
+    if (!vibeAudioPath) return;
+    const el = vibeAudioRef.current;
+    if (el && !el.paused) {
+      el.pause();
+      setAudioPlaying(false);
+      return;
+    }
+    try {
+      if (!el) {
+        const { data, error } = await supabase.storage.from("profile-audio").createSignedUrl(vibeAudioPath, 60 * 60);
+        if (error || !data?.signedUrl) throw error ?? new Error("Não foi possível tocar a música");
+        const audio = new Audio(data.signedUrl);
+        audio.addEventListener("ended", () => setAudioPlaying(false));
+        vibeAudioRef.current = audio;
+      }
+      await vibeAudioRef.current!.play();
+      setAudioPlaying(true);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Não foi possível tocar a música");
+    }
+  }
+
+  async function uploadVibeAudio(file: File) {
+    if (!file.type.startsWith("audio/")) return toast.error("Escolha um arquivo de música (mp3, m4a, wav...)");
+    if (file.size > 15 * 1024 * 1024) return toast.error("A música deve ter até 15 MB");
+    setAudioUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "mp3";
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("profile-audio").upload(path, file, {
+        cacheControl: "31536000, immutable",
+        upsert: false,
+        contentType: file.type,
+      });
+      if (upErr) throw upErr;
+      const { error } = await supabase.from("profiles").update({ vibe_audio_path: path } as any).eq("id", user.id);
+      if (error) throw error;
+      if (vibeAudioPath) await supabase.storage.from("profile-audio").remove([vibeAudioPath]);
+      vibeAudioRef.current?.pause();
+      vibeAudioRef.current = null;
+      setAudioPlaying(false);
+      toast.success("Música do perfil atualizada");
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao enviar a música");
+    } finally {
+      setAudioUploading(false);
+    }
+  }
+
+  async function removeVibeAudio() {
+    if (!vibeAudioPath) return;
+    setAudioUploading(true);
+    const { error } = await supabase.from("profiles").update({ vibe_audio_path: null } as any).eq("id", user.id);
+    if (!error) await supabase.storage.from("profile-audio").remove([vibeAudioPath]);
+    vibeAudioRef.current?.pause();
+    vibeAudioRef.current = null;
+    setAudioPlaying(false);
+    setAudioUploading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Música removida");
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+  }
+
 
   return (
     <div className="profile-enter -mt-4 min-w-0 overflow-hidden pb-6 md:-mt-6">
@@ -404,9 +485,10 @@ function ProfileContent() {
             <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-surface-2 text-primary">
               {music?.cover_url ? <img src={music.cover_url} alt="" className="h-full w-full object-cover" loading="lazy" /> : activeLive ? <Radio className="h-6 w-6" /> : <Music2 className="h-6 w-6" />}
             </div>
-            <div className="min-w-0"><p className="text-[11px] font-semibold text-primary">{activeLive ? "Transmitindo agora" : music ? "Trilha da criação mais recente" : "Agora estou"}</p><p className="mt-1 truncate text-sm font-bold">{activeLive?.title ?? music?.title ?? customVibe ?? (isMe ? "Conte o que você está vivendo" : "Nenhuma atividade compartilhada")}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{music?.artist ?? (activeLive ? `${formatCount(activeLive.viewer_count ?? 0)} assistindo` : isMe ? "Toque em editar para definir sua Vibe atual" : "Nenhuma Vibe definida")}</p></div>
+            <div className="min-w-0"><p className="text-[11px] font-semibold text-primary">{activeLive ? "Transmitindo agora" : music ? "Trilha da criação mais recente" : vibeAudioPath ? "Música do perfil" : "Agora estou"}</p><p className="mt-1 truncate text-sm font-bold">{activeLive?.title ?? music?.title ?? customVibe ?? (vibeAudioPath ? "Minha música" : isMe ? "Conte o que você está vivendo" : "Nenhuma atividade compartilhada")}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{music?.artist ?? (activeLive ? `${formatCount(activeLive.viewer_count ?? 0)} assistindo` : vibeAudioPath ? (audioPlaying ? "Tocando agora" : "Toque para ouvir") : isMe ? "Toque em editar para definir sua Vibe atual" : "Nenhuma Vibe definida")}</p></div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className="flex h-8 items-end gap-0.5" aria-label={activeLive || music ? "Áudio ativo" : "Sem áudio ativo"}>{[10,18,13,24].map((height, index) => <span key={height} className={`vibe-eq w-1 rounded-full ${activeLive || music ? "bg-primary" : "bg-muted-foreground/30"}`} style={{ height, animationDelay: `${index * 120}ms` }} />)}</div>
+              <div className="flex h-8 items-end gap-0.5" aria-label={activeLive || music || audioPlaying ? "Áudio ativo" : "Sem áudio ativo"}>{[10,18,13,24].map((height, index) => <span key={height} className={`vibe-eq w-1 rounded-full ${activeLive || music || audioPlaying ? "bg-primary" : "bg-muted-foreground/30"}`} style={{ height, animationDelay: `${index * 120}ms` }} />)}</div>
+              {vibeAudioPath ? <Button size="icon" className="h-9 w-9 rounded-full" aria-label={audioPlaying ? "Pausar música do perfil" : "Tocar música do perfil"} onClick={toggleVibeAudio}>{audioPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button> : null}
               {isMe ? <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" aria-label="Editar Vibe atual" onClick={() => { setVibeText(customVibe ?? ""); setVibeOpen(true); }}><Pencil className="h-4 w-4" /></Button> : null}
             </div>
           </div>
@@ -425,6 +507,32 @@ function ProfileContent() {
             <DialogHeader><DialogTitle>Vibe atual</DialogTitle></DialogHeader>
             <Input value={vibeText} maxLength={80} placeholder="Ex.: Ouvindo Matuê no fim de tarde" onChange={(e) => setVibeText(e.target.value)} />
             <p className="text-xs text-muted-foreground">Uma transmissão ao vivo ou a trilha da sua criação mais recente têm prioridade sobre este texto.</p>
+            <div className="rounded-xl border border-border/60 p-3">
+              <p className="text-sm font-semibold">Música do perfil</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Envie um arquivo de até 15 MB (mp3, m4a, wav). Quem visitar seu perfil poderá tocar.</p>
+              <input
+                ref={audioFileRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) void uploadVibeAudio(file);
+                }}
+              />
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={audioUploading} onClick={() => audioFileRef.current?.click()}>
+                  {audioUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Music2 className="h-4 w-4" />}
+                  <span className="ml-2">{vibeAudioPath ? "Trocar música" : "Escolher música"}</span>
+                </Button>
+                {vibeAudioPath ? (
+                  <Button type="button" size="sm" variant="ghost" className="rounded-full text-muted-foreground" disabled={audioUploading} onClick={removeVibeAudio}>
+                    <Trash2 className="h-4 w-4" /><span className="ml-2">Remover</span>
+                  </Button>
+                ) : null}
+              </div>
+            </div>
             <DialogFooter>
               <Button
                 disabled={vibeSaving}

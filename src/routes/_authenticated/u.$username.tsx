@@ -81,6 +81,18 @@ function ProfileContent() {
   const [vibeText, setVibeText] = useState("");
   const [vibeSaving, setVibeSaving] = useState(false);
   const [interestsOpen, setInterestsOpen] = useState(false);
+  const [audioUploading, setAudioUploading] = useState(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const vibeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioFileRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      vibeAudioRef.current?.pause();
+      vibeAudioRef.current = null;
+    };
+  }, []);
+  
   
   
 

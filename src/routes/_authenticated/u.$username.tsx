@@ -32,6 +32,9 @@ import {
   Volume2,
 } from "lucide-react";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { InterestsEditor } from "@/components/profile/interests-editor";
 
 
 import { VerifiedBadge } from "@/components/verified-badge";

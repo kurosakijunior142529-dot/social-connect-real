@@ -92,7 +92,7 @@ function ProfileContent() {
         // Somente colunas públicas: `*` falha por permissão desde o
         // endurecimento de segurança (colunas sensíveis não são legíveis).
         .select(
-          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, featured_username, favorite_track",
+          "id, username, display_name, bio, avatar_url, cover_url, website, location, pronouns, show_online, read_receipts, is_verified, is_creator, badge_variant, created_at, updated_at, interests, featured_username, favorite_track, vibe_audio_path",
         )
         .eq("username", username)
         .maybeSingle();

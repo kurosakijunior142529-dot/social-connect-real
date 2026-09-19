@@ -2656,6 +2656,7 @@ export type Database = {
           updated_at: string
           username: string
           username_changed_at: string | null
+          vibe_audio_path: string | null
           website: string | null
         }
         Insert: {
@@ -2685,6 +2686,7 @@ export type Database = {
           updated_at?: string
           username: string
           username_changed_at?: string | null
+          vibe_audio_path?: string | null
           website?: string | null
         }
         Update: {
@@ -2714,6 +2716,7 @@ export type Database = {
           updated_at?: string
           username?: string
           username_changed_at?: string | null
+          vibe_audio_path?: string | null
           website?: string | null
         }
         Relationships: []
@@ -4162,6 +4165,7 @@ export type Database = {
           updated_at: string
           username: string
           username_changed_at: string | null
+          vibe_audio_path: string | null
           website: string | null
         }[]
         SetofOptions: {

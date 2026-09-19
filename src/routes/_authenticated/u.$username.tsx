@@ -309,6 +309,7 @@ function ProfileContent() {
   const musicalPost = allPosts.find((item) => item.music_tracks);
   const music = Array.isArray(musicalPost?.music_tracks) ? musicalPost.music_tracks[0] : musicalPost?.music_tracks;
   const profileInterests = (profile.interests ?? []) as string[];
+  const customVibe = ((profile as any).favorite_track ?? null) as string | null;
 
   return (
     <div className="profile-enter -mt-4 min-w-0 overflow-hidden pb-6 md:-mt-6">

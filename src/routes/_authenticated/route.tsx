@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
@@ -35,23 +35,56 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const router = useRouter();
   const [username, setUsername] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!user?.id) {
-      navigate({ to: "/auth", replace: true });
+    if (user?.id) {
+      supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then(({ data }) => setUsername(data?.username));
       return;
     }
-    supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setUsername(data?.username));
-  }, [user?.id, navigate]);
 
-  // Client-side auth gate: don't render private UI until we know the user.
-  if (!user?.id) return null;
+    // Sem usuário: em aparelhos lentos (WebView do Android) a sessão pode
+    // demorar a ficar disponível no armazenamento. Damos uma janela curta e
+    // reavaliamos a rota antes de mandar para o login — assim a abertura nunca
+    // fica numa tela vazia.
+    let done = false;
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!done && session?.user) {
+        done = true;
+        void router.invalidate();
+      }
+    });
+    const timer = window.setTimeout(() => {
+      void supabase.auth.getSession().then(({ data }) => {
+        if (done) return;
+        done = true;
+        if (data.session?.user) void router.invalidate();
+        else void navigate({ to: "/auth", replace: true });
+      });
+    }, 1200);
+
+    return () => {
+      done = true;
+      window.clearTimeout(timer);
+      sub.subscription.unsubscribe();
+    };
+  }, [user?.id, navigate, router]);
+
+  // Client-side auth gate: enquanto não sabemos quem é o usuário, mostramos a
+  // marca em vez de uma tela em branco.
+  if (!user?.id) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-background">
+        <img src="/logo-vibely.png" alt="Vibely" className="w-[52vw] max-w-[260px] opacity-90" />
+      </div>
+    );
+  }
 
   return (
     <CallProvider>

@@ -1,26 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, Check, Loader2, RefreshCw, Timer, X, Zap } from "lucide-react";
+import { Camera, Check, Loader2, RefreshCw, Sparkles, Timer, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Chip, Row } from "@/components/studio/ui";
+import { ArCanvas } from "@/components/ar/ar-canvas";
+import { ArEffectTray } from "@/components/ar/ar-effect-tray";
+import { useArEngine } from "@/hooks/use-ar-engine";
 import { ASPECTS, type AspectId } from "@/lib/studio/types";
 import { cn } from "@/lib/utils";
 
 type Take = { blob: Blob; url: string; duration: number };
-
-const MIMES = [
-  "video/mp4;codecs=avc1.4d002a,mp4a.40.2",
-  "video/mp4;codecs=avc1",
-  "video/mp4",
-  "video/webm;codecs=vp9,opus",
-  "video/webm;codecs=vp8,opus",
-  "video/webm",
-];
-
-function bestMime() {
-  if (typeof MediaRecorder === "undefined") return "";
-  return MIMES.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
-}
 
 export function StudioCamera({
   aspect,
@@ -31,10 +20,6 @@ export function StudioCamera({
   onClose: () => void;
   onCapture: (takes: { blob: Blob; duration: number }[]) => Promise<void> | void;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
   const startRef = useRef(0);
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
@@ -45,50 +30,17 @@ export function StudioCamera({
   const [elapsed, setElapsed] = useState(0);
   const [takes, setTakes] = useState<Take[]>([]);
   const [saving, setSaving] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [trayOpen, setTrayOpen] = useState(false);
 
+  const ar = useArEngine({ facing, fps });
+  const ready = ar.status === "ready" || ar.status === "loading-effect" || ar.status === "recording";
   const ratio = ASPECTS.find((a) => a.id === aspect)?.ratio ?? 9 / 16;
 
-  const stop = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-  }, []);
-
   useEffect(() => {
-    let cancelled = false;
-    setReady(false);
-    void (async () => {
-      stop();
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: facing,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            frameRate: { ideal: fps, max: fps },
-          },
-          audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 48000, channelCount: 1 },
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
-        }
-        setReady(true);
-      } catch {
-        toast.error("Não foi possível acessar a câmera");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [facing, fps, stop]);
-
-  useEffect(() => () => stop(), [stop]);
+    if (ar.errorKind === "permission-denied") toast.error("Permissão de câmera negada. Libere o acesso nas configurações do navegador.");
+    else if (ar.errorKind === "camera-unavailable") toast.error("Não foi possível acessar a câmera");
+    else if (ar.errorKind === "effect-incompatible") toast.error("Este efeito não funciona no seu aparelho");
+  }, [ar.errorKind]);
 
   useEffect(() => {
     if (!recording) return;
@@ -96,37 +48,39 @@ export function StudioCamera({
     return () => window.clearInterval(id);
   }, [recording]);
 
-  const beginRecording = useCallback(() => {
-    const stream = streamRef.current;
-    if (!stream) return;
-    const mimeType = bestMime();
-    const rec = new MediaRecorder(stream, {
-      ...(mimeType ? { mimeType } : {}),
-      videoBitsPerSecond: 12_000_000,
-      audioBitsPerSecond: 192_000,
-    });
-    chunksRef.current = [];
-    rec.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
-    rec.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: mimeType || "video/webm" });
-      const duration = (performance.now() - startRef.current) / 1000;
-      setTakes((t) => [...t, { blob, url: URL.createObjectURL(blob), duration }]);
+  const beginRecording = useCallback(async () => {
+    const engine = ar.engine;
+    if (!engine) return;
+    try {
+      await engine.startRecording();
+      startRef.current = performance.now();
+      setRecording(true);
+    } catch {
+      toast.error("Não foi possível iniciar a gravação");
+    }
+  }, [ar.engine]);
+
+  const finishRecording = useCallback(async () => {
+    const engine = ar.engine;
+    if (!engine) return;
+    try {
+      const rec = await engine.stopRecording();
+      setTakes((t) => [...t, { blob: rec.blob, url: URL.createObjectURL(rec.blob), duration: rec.duration }]);
+    } catch {
+      /* nada gravado */
+    } finally {
       setRecording(false);
       setElapsed(0);
-    };
-    recorderRef.current = rec;
-    startRef.current = performance.now();
-    rec.start(250);
-    setRecording(true);
-  }, []);
+    }
+  }, [ar.engine]);
 
   const toggle = () => {
     if (recording) {
-      recorderRef.current?.stop();
+      void finishRecording();
       return;
     }
     if (!countdown) {
-      beginRecording();
+      void beginRecording();
       return;
     }
     let left = countdown;
@@ -136,7 +90,7 @@ export function StudioCamera({
       setTick(left);
       if (left <= 0) {
         window.clearInterval(id);
-        beginRecording();
+        void beginRecording();
       }
     }, 1000);
   };
@@ -147,7 +101,6 @@ export function StudioCamera({
     try {
       await onCapture(takes.map((t) => ({ blob: t.blob, duration: t.duration })));
       takes.forEach((t) => URL.revokeObjectURL(t.url));
-      stop();
       onClose();
     } finally {
       setSaving(false);
@@ -157,13 +110,22 @@ export function StudioCamera({
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black">
       <div className="flex items-center gap-2 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
-        <Button size="icon" variant="ghost" className="text-white" onClick={() => { stop(); onClose(); }}>
+        <Button size="icon" variant="ghost" className="text-white" onClick={onClose}>
           <X className="h-5 w-5" />
         </Button>
         <span className="text-sm font-semibold text-white/90">Câmera</span>
         <div className="ml-auto flex items-center gap-1">
           <Button size="icon" variant="ghost" className="text-white" onClick={() => setFps((f) => (f === 30 ? 60 : 30))}>
             <span className="text-[11px] font-bold">{fps}</span>
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={cn("text-white", trayOpen && "text-primary")}
+            onClick={() => setTrayOpen((v) => !v)}
+            aria-label="Efeitos"
+          >
+            <Sparkles className="h-5 w-5" />
           </Button>
           <Button size="icon" variant="ghost" className="text-white" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}>
             <RefreshCw className="h-5 w-5" />
@@ -176,15 +138,15 @@ export function StudioCamera({
           className="relative w-full overflow-hidden rounded-3xl bg-neutral-900 shadow-2xl"
           style={{ aspectRatio: `${ratio}`, maxHeight: "100%", width: "auto", height: "100%" }}
         >
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className={cn("h-full w-full object-cover", facing === "user" && "-scale-x-100")}
-          />
+          <ArCanvas engine={ar.engine} engineVersion={ar.engineVersion} className="h-full w-full [&>canvas]:h-full [&>canvas]:w-full [&>canvas]:object-cover" />
           {!ready && (
             <div className="absolute inset-0 grid place-items-center">
               <Loader2 className="h-6 w-6 animate-spin text-white/70" />
+            </div>
+          )}
+          {ar.status === "loading-effect" && (
+            <div className="absolute inset-x-0 top-3 flex justify-center">
+              <span className="rounded-full bg-black/60 px-3 py-1 text-[11px] text-white/80 backdrop-blur">Carregando efeito…</span>
             </div>
           )}
           {tick > 0 && !recording && (
@@ -200,6 +162,22 @@ export function StudioCamera({
       </div>
 
       <div className="space-y-3 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
+        {trayOpen && (
+          <div className="space-y-2">
+            {!ar.lensesAvailable && (
+              <p className="px-1 text-[11px] text-white/60">
+                Os efeitos AR ainda não foram configurados nesta conta — a câmera segue funcionando no modo Normal.
+              </p>
+            )}
+            <ArEffectTray
+              effects={ar.effects}
+              active={ar.effect}
+              onSelect={(e) => void ar.selectEffect(e)}
+              disabled={!ready || recording}
+            />
+          </div>
+        )}
+
         <Row className="justify-center">
           {([0, 3, 10] as const).map((c) => (
             <Chip key={c} active={countdown === c} onClick={() => setCountdown(c)}>

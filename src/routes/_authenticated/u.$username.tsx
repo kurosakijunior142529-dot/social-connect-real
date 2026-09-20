@@ -733,7 +733,7 @@ function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void 
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
-        className="glass absolute right-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-full text-foreground shadow-sm hover:bg-surface-2 disabled:opacity-60 sm:right-4 sm:top-4"
+        className="glass grid h-9 w-9 place-items-center rounded-full text-foreground shadow-sm hover:bg-surface-2 disabled:opacity-60"
         aria-label="Trocar capa"
       >
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}

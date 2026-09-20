@@ -126,6 +126,7 @@ export function AppShell({
     pathname === "/games" ||
     pathname === "/saved";
   const isProfile = pathname.startsWith("/u/");
+  const isReels = pathname === "/reels";
 
   const Badge = () =>
     unreadCount > 0 ? (
@@ -289,8 +290,8 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className={cn("pb-24 md:pl-64 md:pb-8", isProfile && "pb-28")}>
-        <div className={cn("mx-auto md:px-5 md:pt-6", pathname.startsWith("/u/") ? "max-w-6xl" : "max-w-2xl")}>{content}</div>
+      <main className={cn("pb-24 md:pl-64 md:pb-8", isProfile && "pb-28", isReels && "pb-0 md:pb-0")}>
+        <div className={cn("mx-auto md:px-5 md:pt-6", pathname.startsWith("/u/") ? "max-w-6xl" : "max-w-2xl", isReels && "md:pt-6")}>{content}</div>
       </main>
 
       {/* Atalho flutuante para a IA — apenas na aba de Conversas */}

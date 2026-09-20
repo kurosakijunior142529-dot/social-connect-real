@@ -170,9 +170,9 @@ function ReelsPage() {
   );
 
   return (
-    <div className="relative -mx-0 md:-mx-4 md:-mt-6">
+    <div className="relative h-dvh min-h-dvh w-full md:-mx-4 md:-mt-6 md:w-[calc(100%+2rem)]">
       {/* Header overlay */}
-      <header className="absolute top-0 inset-x-0 z-20 flex items-center gap-3 px-4 h-14 bg-gradient-to-b from-black/70 to-transparent text-white">
+      <header className="absolute top-0 inset-x-0 z-20 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-3 bg-gradient-to-b from-black/70 to-transparent px-4 pt-[env(safe-area-inset-top)] text-white">
         <Link
           to="/"
           className="md:hidden grid h-9 w-9 place-items-center rounded-full bg-black/30 backdrop-blur"
@@ -197,8 +197,7 @@ function ReelsPage() {
 
       <div
         onScroll={onScroll}
-        className="snap-y snap-mandatory overflow-y-scroll bg-black no-scrollbar rounded-none md:rounded-2xl md:overflow-hidden"
-        style={{ height: "calc(100dvh - 96px)" }}
+        className="h-dvh min-h-dvh w-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black no-scrollbar rounded-none md:rounded-2xl"
       >
         {tab === "live" ? (
           lives.map((l) => <LiveReelCard key={l.id} l={l} />)
@@ -260,7 +259,7 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 
 function LiveReelCard({ l }: { l: LiveFeedRow }) {
   return (
-    <section className="relative h-full w-full snap-start snap-always overflow-hidden bg-black">
+    <section className="relative h-dvh min-h-dvh w-full shrink-0 snap-start snap-always overflow-hidden bg-black">
       {l.thumbnail_url ? (
         <img src={l.thumbnail_url} alt={l.title} loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-80" />
       ) : (
@@ -268,7 +267,7 @@ function LiveReelCard({ l }: { l: LiveFeedRow }) {
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/30" />
 
-      <div className="absolute top-16 left-4 flex items-center gap-2">
+      <div className="absolute left-4 top-[calc(4rem+env(safe-area-inset-top))] flex items-center gap-2">
         <span className="inline-flex items-center gap-1 rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Ao vivo
         </span>
@@ -278,7 +277,7 @@ function LiveReelCard({ l }: { l: LiveFeedRow }) {
         <span className="rounded-md bg-black/60 px-2 py-0.5 text-[11px] text-white/75">{timeOnAir(l.started_at)}</span>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 p-5 pb-24 space-y-4">
+      <div className="absolute inset-x-0 bottom-0 space-y-4 p-5 pb-[calc(6rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             <span className="absolute -inset-1 rounded-full bg-red-500/50 blur-[6px] animate-pulse" />
@@ -304,7 +303,7 @@ function LiveReelCard({ l }: { l: LiveFeedRow }) {
         </Link>
       </div>
 
-      <Radio className="absolute right-5 top-16 h-5 w-5 text-white/40" />
+      <Radio className="absolute right-5 top-[calc(4rem+env(safe-area-inset-top))] h-5 w-5 text-white/40" />
     </section>
   );
 }

@@ -417,7 +417,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   return (
     <div
       ref={rootRef}
-      className="snap-start relative h-full w-full bg-black overflow-hidden select-none touch-pan-y [contain:layout_paint] [content-visibility:auto]"
+      className="snap-start snap-always relative h-dvh min-h-dvh w-full shrink-0 bg-black overflow-hidden select-none touch-pan-y [contain:layout_paint] [content-visibility:auto]"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -456,9 +456,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           poster={posterUrl ?? undefined}
           // `src` é anexado/desanexado pelo efeito — o elemento nunca desmonta,
           // então o decoder e o buffer sobrevivem à rolagem.
-          // object-contain: o vídeo inteiro aparece (estilo Instagram Reels) —
-          // nada é cortado; as sobras ficam pretas sobre o fundo.
-          className="absolute inset-0 h-full w-full object-contain [transform:translateZ(0)]"
+          className="absolute inset-0 block h-full w-full object-cover [transform:translateZ(0)]"
           loop
           playsInline
           muted={muted}
@@ -528,7 +526,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           onClick={(e) => { e.stopPropagation(); setRepostsOpen(true); }}
           onPointerDown={(e) => e.stopPropagation()}
           onPointerUp={(e) => e.stopPropagation()}
-          className="absolute top-14 left-3 z-20 flex max-w-[70%] items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-left text-[12px] text-white backdrop-blur"
+            className="absolute left-3 top-[calc(3.5rem+env(safe-area-inset-top))] z-20 flex max-w-[70%] items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-left text-[12px] text-white backdrop-blur"
         >
           <Repeat2 className="h-4 w-4 shrink-0 text-primary" />
           <span className="truncate">
@@ -584,13 +582,13 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
         onPointerDown={(e) => e.stopPropagation()}
         onPointerUp={(e) => e.stopPropagation()}
         aria-label={muted ? "Ativar som" : "Silenciar"}
-        className="absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-black/35 backdrop-blur-md text-white/90 z-20 active:scale-90 transition"
+        className="absolute right-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-20 grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white/90 backdrop-blur-md transition active:scale-90"
       >
         {muted ? <VolumeX className="h-[18px] w-[18px]" strokeWidth={1.8} /> : <Volume2 className="h-[18px] w-[18px]" strokeWidth={1.8} />}
       </button>
 
       {/* Actions column */}
-      <div className="absolute right-2 bottom-28 z-20 flex flex-col items-center gap-2.5 rounded-[26px] bg-black/15 px-1 py-2.5 text-white backdrop-blur-[2px]">
+      <div className="absolute right-2 bottom-[calc(7rem+env(safe-area-inset-bottom))] z-20 flex flex-col items-center gap-2.5 rounded-[26px] bg-black/15 px-1 py-2.5 text-white backdrop-blur-[2px]">
         <ActionBtn
           onClick={() => { toggleLike.mutate(); try { navigator.vibrate?.(10); } catch { /* noop */ } }}
           count={post.likes_count}
@@ -635,7 +633,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
 
 
       {/* Author + caption */}
-      <div className="absolute left-4 right-16 bottom-9 text-white space-y-2.5 z-10">
+      <div className="absolute left-4 right-16 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-10 space-y-2.5 text-white">
         <div
           className="flex items-center gap-2"
           onPointerDown={(e) => e.stopPropagation()}

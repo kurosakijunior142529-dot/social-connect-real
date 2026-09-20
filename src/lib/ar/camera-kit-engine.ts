@@ -92,7 +92,7 @@ export class CameraKitEngine implements EffectEngine {
     }
 
     this.source = mod.createMediaStreamSource(this.stream, {
-      cameraType: options.facing === "user" ? "front" : "back",
+      cameraType: options.facing,
       transform: options.facing === "user" ? mod.Transform2D.MirrorX : undefined,
       disableSourceAudio: true,
     });

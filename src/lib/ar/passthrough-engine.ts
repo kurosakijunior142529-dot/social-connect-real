@@ -136,7 +136,7 @@ export class PassthroughEngine implements EffectEngine {
   }
 
   async startRecording() {
-    const stream = this.getOutputStream(30);
+    const stream = this.getOutputStream(this.captureFps);
     if (!stream) throw new ArEngineError("camera-unavailable", "Câmera não está ativa");
     this.recorder.start(stream);
   }

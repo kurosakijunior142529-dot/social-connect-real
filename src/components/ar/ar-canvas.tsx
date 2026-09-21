@@ -21,6 +21,8 @@ export function ArCanvas({
     canvas.style.height = "100%";
     canvas.style.objectFit = "cover";
     canvas.style.display = "block";
+    // Espelho só na exibição: o arquivo gravado mantém a imagem real.
+    canvas.style.transform = engine?.isPreviewMirrored?.() ? "scaleX(-1)" : "";
     host.replaceChildren(canvas);
     return () => {
       if (canvas.parentElement === host) host.removeChild(canvas);

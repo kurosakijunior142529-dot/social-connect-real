@@ -31,11 +31,30 @@ async function normalizeCatastrophicSsrResponse(
   const body = await response.clone().text();
   if (!isH3SwallowedErrorBody(body)) return response;
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
+  const captured = consumeLastCapturedError();
+  const route = describeRequest(request);
+  if (captured !== undefined) {
+    console.error(`[ssr-500] ${route} ->`, captured);
+  } else {
+    console.error(new Error(`[ssr-500] ${route} -> h3 swallowed SSR error: ${body}`));
+  }
   return new Response(renderErrorPage(), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
   });
+}
+
+// Route + referer make the swallowed 500s traceable back to a page/server call.
+function describeRequest(request: Request): string {
+  let path = request.url;
+  try {
+    const url = new URL(request.url);
+    path = `${url.pathname}${url.search}`;
+  } catch {
+    /* keep raw url */
+  }
+  const referer = request.headers.get("referer");
+  return `${request.method} ${path}${referer ? ` (from ${referer})` : ""}`;
 }
 
 // The browser closing a connection mid-render (navigation, reload, tab close)

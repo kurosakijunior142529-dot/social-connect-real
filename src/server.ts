@@ -88,10 +88,10 @@ export default {
       if (response.status >= 500 && isClientAbort(request)) {
         return new Response(null, { status: 499 });
       }
-      return await normalizeCatastrophicSsrResponse(response);
+      return await normalizeCatastrophicSsrResponse(response, request);
     } catch (error) {
       if (isClientAbort(request, error)) return new Response(null, { status: 499 });
-      console.error(error);
+      console.error(`[ssr-500] ${describeRequest(request)} ->`, error);
       return new Response(renderErrorPage(), {
         status: 500,
         headers: { "content-type": "text/html; charset=utf-8" },

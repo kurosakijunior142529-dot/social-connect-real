@@ -23,6 +23,7 @@ export class PassthroughEngine implements EffectEngine {
   private recorder = new RenderedRecorder();
   private outputStream: MediaStream | null = null;
   private mirrored = false;
+  private captureFps: 30 | 60 = 30;
 
   async initialize() {
     if (typeof window === "undefined") {
@@ -56,7 +57,10 @@ export class PassthroughEngine implements EffectEngine {
       throw new ArEngineError("camera-unavailable", "Não foi possível acessar a câmera");
     }
 
+    // Espelhamento é só de exibição (CSS) — o arquivo gravado precisa sair
+    // com a imagem real, senão textos aparecem invertidos no vídeo publicado.
     this.mirrored = options.facing === "user";
+    this.captureFps = options.fps;
     const video = document.createElement("video");
     video.playsInline = true;
     video.muted = true;

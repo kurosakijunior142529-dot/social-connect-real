@@ -167,7 +167,11 @@ export class CameraKitEngine implements EffectEngine {
     return (this.session?.output?.live as HTMLCanvasElement | undefined) ?? null;
   }
 
-  getOutputStream(fps = 30) {
+  isPreviewMirrored() {
+    return this.mirrored;
+  }
+
+  getOutputStream(fps = this.captureFps) {
     const canvas = this.getOutputCanvas();
     if (!canvas) return null;
     if (!this.outputStream) {
@@ -185,7 +189,7 @@ export class CameraKitEngine implements EffectEngine {
   }
 
   async startRecording() {
-    const stream = this.getOutputStream(30);
+    const stream = this.getOutputStream(this.captureFps);
     if (!stream) throw new ArEngineError("camera-unavailable", "Câmera não está ativa");
     this.recorder.start(stream);
   }

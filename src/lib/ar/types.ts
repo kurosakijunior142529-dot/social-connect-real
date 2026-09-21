@@ -120,6 +120,8 @@ export interface EffectEngine {
   stopRecording(): Promise<ArRecording>;
   /** Canvas com o resultado já renderizado (preview, gravação e live). */
   getOutputCanvas(): HTMLCanvasElement | null;
+  /** true quando o preview deve ser espelhado só na exibição (câmera frontal). */
+  isPreviewMirrored(): boolean;
   /** Fluxo renderizado — usado para gravação e para publicar na live. */
   getOutputStream(fps?: number): MediaStream | null;
   dispose(): void;

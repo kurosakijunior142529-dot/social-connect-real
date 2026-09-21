@@ -83,13 +83,7 @@ export class PassthroughEngine implements EffectEngine {
         canvas.width = vw;
         canvas.height = vh;
       }
-      ctx.save();
-      if (this.mirrored) {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-      }
       ctx.drawImage(this.video, 0, 0, canvas.width, canvas.height);
-      ctx.restore();
     };
     draw();
   }
@@ -122,7 +116,11 @@ export class PassthroughEngine implements EffectEngine {
     return this.canvas;
   }
 
-  getOutputStream(fps = 30) {
+  isPreviewMirrored() {
+    return this.mirrored;
+  }
+
+  getOutputStream(fps = this.captureFps) {
     if (!this.canvas) return null;
     if (!this.outputStream) {
       const out = this.canvas.captureStream(fps);

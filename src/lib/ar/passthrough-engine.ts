@@ -23,6 +23,7 @@ export class PassthroughEngine implements EffectEngine {
   private recorder = new RenderedRecorder();
   private outputStream: MediaStream | null = null;
   private mirrored = false;
+  private captureFps: 30 | 60 = 30;
 
   async initialize() {
     if (typeof window === "undefined") {
@@ -56,7 +57,10 @@ export class PassthroughEngine implements EffectEngine {
       throw new ArEngineError("camera-unavailable", "Não foi possível acessar a câmera");
     }
 
+    // Espelhamento é só de exibição (CSS) — o arquivo gravado precisa sair
+    // com a imagem real, senão textos aparecem invertidos no vídeo publicado.
     this.mirrored = options.facing === "user";
+    this.captureFps = options.fps;
     const video = document.createElement("video");
     video.playsInline = true;
     video.muted = true;
@@ -79,13 +83,7 @@ export class PassthroughEngine implements EffectEngine {
         canvas.width = vw;
         canvas.height = vh;
       }
-      ctx.save();
-      if (this.mirrored) {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-      }
       ctx.drawImage(this.video, 0, 0, canvas.width, canvas.height);
-      ctx.restore();
     };
     draw();
   }
@@ -118,7 +116,11 @@ export class PassthroughEngine implements EffectEngine {
     return this.canvas;
   }
 
-  getOutputStream(fps = 30) {
+  isPreviewMirrored() {
+    return this.mirrored;
+  }
+
+  getOutputStream(fps = this.captureFps) {
     if (!this.canvas) return null;
     if (!this.outputStream) {
       const out = this.canvas.captureStream(fps);
@@ -134,7 +136,7 @@ export class PassthroughEngine implements EffectEngine {
   }
 
   async startRecording() {
-    const stream = this.getOutputStream(30);
+    const stream = this.getOutputStream(this.captureFps);
     if (!stream) throw new ArEngineError("camera-unavailable", "Câmera não está ativa");
     this.recorder.start(stream);
   }

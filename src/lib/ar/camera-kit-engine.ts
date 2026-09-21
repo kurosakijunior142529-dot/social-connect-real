@@ -33,6 +33,8 @@ export class CameraKitEngine implements EffectEngine {
   private currentLensId: string | null = null;
   private recorder = new RenderedRecorder();
   private outputStream: MediaStream | null = null;
+  private captureFps: 30 | 60 = 30;
+  private mirrored = false;
 
   constructor(apiToken: string, lensGroups: string[]) {
     this.apiToken = apiToken;
@@ -91,9 +93,12 @@ export class CameraKitEngine implements EffectEngine {
       });
     }
 
+    // Sem MirrorX: o espelho é apenas visual (CSS no preview), para que o
+    // vídeo gravado não saia invertido.
+    this.captureFps = options.fps;
+    this.mirrored = options.facing === "user";
     this.source = mod.createMediaStreamSource(this.stream, {
       cameraType: options.facing,
-      transform: options.facing === "user" ? mod.Transform2D.MirrorX : undefined,
       disableSourceAudio: true,
     });
     await this.session.setSource(this.source);
@@ -162,7 +167,11 @@ export class CameraKitEngine implements EffectEngine {
     return (this.session?.output?.live as HTMLCanvasElement | undefined) ?? null;
   }
 
-  getOutputStream(fps = 30) {
+  isPreviewMirrored() {
+    return this.mirrored;
+  }
+
+  getOutputStream(fps = this.captureFps) {
     const canvas = this.getOutputCanvas();
     if (!canvas) return null;
     if (!this.outputStream) {
@@ -180,7 +189,7 @@ export class CameraKitEngine implements EffectEngine {
   }
 
   async startRecording() {
-    const stream = this.getOutputStream(30);
+    const stream = this.getOutputStream(this.captureFps);
     if (!stream) throw new ArEngineError("camera-unavailable", "Câmera não está ativa");
     this.recorder.start(stream);
   }

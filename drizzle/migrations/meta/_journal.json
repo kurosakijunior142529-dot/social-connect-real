@@ -302,6 +302,13 @@
       "when": 1789904151707,
       "tag": "0042_secure_profile_audio_and_dm_privacy",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790043478144,
+      "tag": "0043_protect_profile_moderation_fields",
+      "breakpoints": true
     }
   ]
 }

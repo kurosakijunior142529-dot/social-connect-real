@@ -33,6 +33,12 @@ async function normalizeCatastrophicSsrResponse(
 
   const captured = consumeLastCapturedError();
   const route = describeRequest(request);
+  // h3 turns a disconnected browser request into its generic HTTPError body.
+  // The request signal is not reliably marked aborted by that point, so inspect
+  // the original Error captured from h3's own console log as well.
+  if (isClientAbort(request, captured)) {
+    return new Response(null, { status: 499 });
+  }
   if (captured !== undefined) {
     console.error(`[ssr-500] ${route} ->`, captured);
   } else {

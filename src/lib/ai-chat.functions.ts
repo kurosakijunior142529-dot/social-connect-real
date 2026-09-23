@@ -371,7 +371,7 @@ export const generateImage = createServerFn({ method: "POST" })
     // Provedor oficial (Google) — a chave nunca sai do servidor.
     const providers = await import("@/lib/ai-providers.server");
     providers.googleKey();
-    const model = providers.GOOGLE_IMAGE_MODEL;
+    const model = providers.googleImageModel();
 
     // Limite diário simples (controle de custo).
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

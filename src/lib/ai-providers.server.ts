@@ -12,8 +12,9 @@
 
 const GOOGLE_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-export const ARK_BASE =
-  process.env["BYTEPLUS_ARK_BASE_URL"] || "https://ark.ap-southeast.bytepluses.com/api/v3";
+export function arkBase() {
+  return process.env["BYTEPLUS_ARK_BASE_URL"] || "https://ark.ap-southeast.bytepluses.com/api/v3";
+}
 
 export function googleKey() {
   const key = process.env["GOOGLE_AI_API_KEY"];
@@ -57,8 +58,13 @@ export function friendlyProviderError(status: number, body: string) {
   return "Não foi possível gerar agora.";
 }
 
-export const GOOGLE_VIDEO_MODEL = process.env["GOOGLE_VEO_MODEL"] || "veo-3.1-generate-preview";
-export const GOOGLE_IMAGE_MODEL = process.env["GOOGLE_IMAGE_MODEL"] || "gemini-2.5-flash-image";
+export function googleVideoModel() {
+  return process.env["GOOGLE_VEO_MODEL"] || "veo-3.1-generate-preview";
+}
+
+export function googleImageModel() {
+  return process.env["GOOGLE_IMAGE_MODEL"] || "gemini-2.5-flash-image";
+}
 
 type VeoStart = {
   prompt: string;
@@ -86,7 +92,7 @@ export async function veoStart(opts: VeoStart): Promise<{ ok: true; jobId: strin
   if (opts.negativePrompt) parameters["negativePrompt"] = opts.negativePrompt;
 
   const send = async () =>
-    fetch(`${GOOGLE_BASE}/models/${GOOGLE_VIDEO_MODEL}:predictLongRunning`, {
+    fetch(`${GOOGLE_BASE}/models/${googleVideoModel()}:predictLongRunning`, {
       method: "POST",
       headers: { "x-goog-api-key": googleKey(), "Content-Type": "application/json" },
       body: JSON.stringify({ instances: [instance], parameters }),
@@ -150,7 +156,7 @@ export async function veoPoll(jobId: string): Promise<VeoPoll> {
 export async function googleImage(
   prompt: string,
 ): Promise<{ ok: true; bytes: Uint8Array; mimeType: string } | { ok: false; status: number; body: string }> {
-  const res = await fetch(`${GOOGLE_BASE}/models/${GOOGLE_IMAGE_MODEL}:generateContent`, {
+  const res = await fetch(`${GOOGLE_BASE}/models/${googleImageModel()}:generateContent`, {
     method: "POST",
     headers: { "x-goog-api-key": googleKey(), "Content-Type": "application/json" },
     body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] }),

@@ -27,10 +27,6 @@ export const getRouter = () => {
   const router = createRouter({
     routeTree,
     context: { queryClient },
-    // O Vibely é um app autenticado e orientado ao cliente. Evitar SSR por
-    // padrão impede que uma API secundária ou um stream interrompido derrube
-    // a abertura inteira; rotas públicas podem habilitar SSR explicitamente.
-    defaultSsr: false,
     scrollRestoration: true,
     defaultPreload: "intent",
     defaultPreloadDelay: 60,

@@ -30,10 +30,12 @@ import {
   Mic, MicOff, Video, VideoOff, MonitorUp, MonitorOff,
   Heart, Send, MessageCircle, Users, DoorOpen, Gift, Share2, Radio, Signal,
   RefreshCcw, X, Pin, Trash2, ShieldBan, ShieldPlus, MoreVertical, Crown,
-  BarChart3, Flag, UserPlus, Check,
+  BarChart3, Flag, UserPlus, Check, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useLiveAr } from "@/hooks/use-live-ar";
+import { ArEffectTray } from "@/components/ar/ar-effect-tray";
 import { formatElapsed, formatViewers } from "@/lib/live-utils";
 import { GiftAnimation, type GiftEvent } from "@/components/gifts/gift-animation";
 import { getGiftMeta, RARITY_STYLE } from "@/lib/gifts/catalog";
@@ -86,6 +88,7 @@ function LiveRoom() {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [screenOn, setScreenOn] = useState(false);
+  const [arTray, setArTray] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [videoQuality, setVideoQuality] = useState<QualityKey>("1080p60");
   const [quality, setQuality] = useState<ConnectionQuality>(ConnectionQuality.Unknown);
@@ -482,6 +485,18 @@ function LiveRoom() {
   };
 
   /** Compartilha tela do PC, do celular (quando suportado) ou de um jogo. */
+  const liveAr = useLiveAr(room, facingMode, videoRef.current);
+  const toggleAr = async () => {
+    if (liveAr.active) {
+      setArTray((v) => !v);
+      return;
+    }
+    const ok = await liveAr.start();
+    if (ok) {
+      setArTray(true);
+      if (!liveAr.lenses) toast.message("Efeitos AR ainda não configurados — transmitindo no modo Normal.");
+    } else toast.error("Seu aparelho não aguentou os efeitos. Voltamos para a câmera normal.");
+  };
   const toggleScreen = async () => {
     if (!room) return;
     if (screenOn) {
@@ -923,6 +938,19 @@ function LiveRoom() {
                 <Gift className="h-5 w-5" />
               </button>
               {isHost && (
+                <button onClick={toggleAr} aria-label="Efeitos AR" className={cn("h-11 w-11 rounded-full backdrop-blur-md text-white grid place-items-center", liveAr.active ? "bg-primary/30 ring-1 ring-primary" : "bg-white/12")}>
+                  <Sparkles className="h-5 w-5" />
+                </button>
+              )}
+              {isHost && arTray && liveAr.active && (
+                <div className="fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-40 px-2">
+                  <div className="rounded-2xl bg-black/60 p-2 backdrop-blur-md">
+                    <ArEffectTray effects={liveAr.effects} active={liveAr.effect} onSelect={(e) => void liveAr.select(e)} />
+                    <button onClick={() => { setArTray(false); void liveAr.stop(); }} className="mt-2 w-full rounded-xl bg-white/10 py-2 text-xs font-semibold text-white">Desligar efeitos</button>
+                  </div>
+                </div>
+              )}
+              {isHost && (
                 <button onClick={() => setMobileSheet("panel")} aria-label="Painel do criador" className="h-11 w-11 rounded-full bg-white/12 backdrop-blur-md text-white grid place-items-center">
                   <BarChart3 className="h-5 w-5" />
                 </button>
@@ -936,6 +964,7 @@ function LiveRoom() {
                   <IconBtn onClick={toggleMic} active={micOn} Icon={micOn ? Mic : MicOff} label={micOn ? "Mudo" : "Ativar"} />
                   <IconBtn onClick={toggleCam} active={camOn} Icon={camOn ? Video : VideoOff} label={camOn ? "Câmera" : "Ligar câmera"} />
                   <IconBtn onClick={flipCam} Icon={RefreshCcw} label="Flip" />
+                  <IconBtn onClick={toggleAr} active={liveAr.active} Icon={Sparkles} label={liveAr.busy ? "Carregando…" : "Efeitos AR"} />
                   <IconBtn onClick={toggleScreen} active={screenOn} Icon={screenOn ? MonitorOff : MonitorUp} label={screenOn ? "Parar tela" : "Compartilhar tela"} />
                   <IconBtn onClick={() => setTab("gifts")} Icon={Gift} label="Presentes recebidos" />
                   <IconBtn onClick={share} Icon={Share2} label="Compartilhar" />

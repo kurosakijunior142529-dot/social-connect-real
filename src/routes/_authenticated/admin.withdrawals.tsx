@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin/withdrawals")({
     ],
   }),
   beforeLoad: async () => {
+    if (typeof document === "undefined") return;
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
     const { data: role } = await supabase

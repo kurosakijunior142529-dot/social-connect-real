@@ -100,7 +100,7 @@ export const startVideo = createServerFn({ method: "POST" })
         status: "pending",
         prompt: data.prompt,
         provider: caps.id === "seedance-2.5" ? "byteplus-modelark" : "google-veo",
-        model: caps.id === "seedance-2.5" ? caps.backendModel : providers.GOOGLE_VIDEO_MODEL,
+        model: caps.id === "seedance-2.5" ? caps.backendModel : providers.googleVideoModel(),
         duration_seconds: seconds,
         resolution,
         aspect_ratio: aspectRatio,
@@ -137,7 +137,7 @@ export const startVideo = createServerFn({ method: "POST" })
       if (data.imageDataUrl) {
         content.push({ type: "image_url", image_url: { url: data.imageDataUrl }, role: "first_frame" });
       }
-      const res = await fetch(`${providers.ARK_BASE}/contents/generations/tasks`, {
+      const res = await fetch(`${providers.arkBase()}/contents/generations/tasks`, {
         method: "POST",
         headers: { Authorization: `Bearer ${providerKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: process.env["BYTEPLUS_SEEDANCE_MODEL"] || caps.backendModel, content }),
@@ -220,7 +220,7 @@ export const checkVideo = createServerFn({ method: "POST" })
     const providers = await import("@/lib/ai-providers.server");
 
     if (isArk) {
-      const res = await fetch(`${providers.ARK_BASE}/contents/generations/tasks/${gen.job_id}`, {
+      const res = await fetch(`${providers.arkBase()}/contents/generations/tasks/${gen.job_id}`, {
         headers: { Authorization: `Bearer ${providers.arkKey()}` },
       });
       if (!res.ok) {

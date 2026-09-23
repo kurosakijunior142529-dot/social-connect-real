@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect } from "react";
 import { createThread } from "@/lib/ai-chat.functions";
+import vibelyMascot from "@/assets/vibely-mascot.png";
 
 export const Route = createFileRoute("/_authenticated/ai/")({
   ssr: false,
@@ -18,7 +19,10 @@ function AIIndex() {
   }, []);
   return (
     <div className="grid place-items-center min-h-[60vh] text-muted-foreground text-sm">
-      Iniciando nova conversa…
+      <div className="flex flex-col items-center gap-3">
+        <img src={vibelyMascot} alt="Vibely AI" className="h-20 w-20 animate-pulse object-contain" />
+        <span>Iniciando nova conversa…</span>
+      </div>
     </div>
   );
 }

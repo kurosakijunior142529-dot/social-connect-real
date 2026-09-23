@@ -25,6 +25,22 @@ export default defineConfig({
       },
     },
     plugins: [
+      {
+        // A câmera de efeitos (Snap Camera Kit) só funciona no navegador e acessa
+        // "location" ao carregar; no servidor ela derrubava todas as páginas.
+        name: "vibely-camera-kit-server-stub",
+        enforce: "pre" as const,
+        resolveId(id: string, _importer: string | undefined, opts: { ssr?: boolean }) {
+          if (opts?.ssr && id === "@snap/camera-kit") return "\0vibely-camera-kit-stub";
+          return null;
+        },
+        load(id: string) {
+          if (id === "\0vibely-camera-kit-stub") {
+            return "export const bootstrapCameraKit = () => { throw new Error('Camera Kit indisponível no servidor'); }; export const createMediaStreamSource = bootstrapCameraKit; export const Transform2D = {}; export default {};";
+          }
+          return null;
+        },
+      },
       VitePWA({
         registerType: "autoUpdate",
         injectRegister: null,

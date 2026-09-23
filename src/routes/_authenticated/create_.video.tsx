@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { VIDEO_FILTERS, filterById } from "@/lib/video-filters";
+import { StudioCamera } from "@/components/studio/studio-camera";
 
 export const Route = createFileRoute("/_authenticated/create_/video")({
   ssr: false,
@@ -64,6 +65,7 @@ function VideoStudio() {
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [arOpen, setArOpen] = useState(false);
   const busy = stage === "publishing" || exporting;
 
   const filter = filterById(filterId);
@@ -284,6 +286,36 @@ function VideoStudio() {
         <div className="w-10" />
       </div>
 
+      {arOpen ? (
+        <div className="fixed inset-0 z-50 bg-background">
+          <StudioCamera
+            aspect="9:16"
+            onClose={() => setArOpen(false)}
+            onCapture={(takes) => {
+              const first = takes[0];
+              setArOpen(false);
+              if (!first) return;
+              stopCamera();
+              if (blobUrl) URL.revokeObjectURL(blobUrl);
+              setBlob(first.blob);
+              setBlobUrl(URL.createObjectURL(first.blob));
+              setStage("review");
+            }}
+          />
+        </div>
+      ) : null}
+      {stage === "camera" && !arOpen ? (
+        <button
+          type="button"
+          onClick={() => {
+            stopCamera();
+            setArOpen(true);
+          }}
+          className="fixed right-4 top-[calc(4rem+env(safe-area-inset-top))] z-30 inline-flex items-center gap-1.5 rounded-full bg-background/60 px-3 py-2 text-xs font-semibold text-foreground backdrop-blur-md ring-1 ring-primary/40"
+        >
+          <Sparkles className="h-4 w-4 text-primary" /> Efeitos AR
+        </button>
+      ) : null}
       {stage === "camera" ? (
         <CameraStage
           previewRef={previewRef}

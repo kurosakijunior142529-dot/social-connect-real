@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { generateText } from "ai";
+// Carregado sob demanda: importar "ai" no topo quebra o servidor publicado (node:fs).
+const generateText: typeof import("ai").generateText = (async (opts: Parameters<typeof import("ai").generateText>[0]) =>
+  (await import("ai")).generateText(opts)) as typeof import("ai").generateText;
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 

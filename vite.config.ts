@@ -17,6 +17,13 @@ export default defineConfig({
 
   },
   vite: {
+    resolve: {
+      alias: {
+        // A versão Node desse pacote lê arquivos do disco (node:fs) ao carregar e
+        // derrubava o servidor publicado em toda abertura. A versão web não usa disco.
+        "@vercel/oidc": new URL("./node_modules/@vercel/oidc/dist/index-browser.js", import.meta.url).pathname,
+      },
+    },
     plugins: [
       VitePWA({
         registerType: "autoUpdate",

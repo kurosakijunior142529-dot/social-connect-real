@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { addMemory, clearMemories, deleteMemory, listMemories } from "@/lib/ai-memory.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import vibelyMascot from "@/assets/vibely-mascot.png";
 
 export const Route = createFileRoute("/_authenticated/ai/memory")({
   ssr: false,
@@ -60,6 +61,7 @@ function AiMemoryPage() {
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 text-sm font-semibold">
+            <img src={vibelyMascot} alt="" className="h-7 w-7 object-contain" />
             <Brain className="h-4 w-4 text-primary" /> Memória da IA
           </div>
           <p className="text-[11px] text-muted-foreground">O que a Vibely AI lembra de você</p>

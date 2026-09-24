@@ -492,7 +492,7 @@ function CreatePage() {
             </section>
           ) : null}
 
-          <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 rounded-2xl border border-border/70 bg-card p-2 shadow-lg md:bottom-4">
+          <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 rounded-2xl border border-border/70 bg-card p-2 shadow-lg md:bottom-4">
             <Button
               type="submit"
               disabled={busy || !canPublish}

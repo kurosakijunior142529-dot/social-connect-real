@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { AudioReactionsSheet } from "@/components/reels/audio-reactions-sheet";
 import { isSoundOn, setSoundOn, subscribeSound } from "@/lib/media/sound-pref";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +20,7 @@ import { fetchPostMedia, fetchRepostContext } from "@/lib/reels/carousel";
 export const Route = createFileRoute("/_authenticated/reels")({
   validateSearch: (search: Record<string, unknown>) => ({
     post: typeof search.post === "string" ? search.post : undefined,
+    together: typeof search.together === "string" ? search.together.slice(0, 16) : undefined,
   }),
   component: ReelsPage,
 });
@@ -29,7 +32,7 @@ type RankedPost = FeedPost & { vir_reason?: string | null; vir_source?: string |
 
 function ReelsPage() {
   const { user } = Route.useRouteContext();
-  const { post: startPostId } = Route.useSearch();
+  const { post: startPostId, together } = Route.useSearch();
   const blocks = useBlocks();
   const hidden = blocks.data?.hidden;
   const [muted, setMuted] = useState(() => !isSoundOn());
@@ -40,6 +43,36 @@ function ReelsPage() {
     return () => { unsub(); };
   }, []);
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
+  const [openAudioFor, setOpenAudioFor] = useState<string | null>(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [code, setCode] = useState<string | null>(together ?? null);
+  const [peers, setPeers] = useState(0);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const currentRef = useRef<string | null>(null);
+  const remoteRef = useRef(false);
+  useEffect(() => {
+    if (!code) return;
+    const ch = supabase.channel(`reels-together-${code}`, { config: { presence: { key: user.id }, broadcast: { self: false } } });
+    ch.on("broadcast", { event: "goto" }, ({ payload }) => {
+      const id = (payload as { postId?: string })?.postId;
+      if (!id || id === currentRef.current) return;
+      const el = scrollerRef.current?.querySelector(`[data-reel-id="${CSS.escape(id)}"]`);
+      if (el) { remoteRef.current = true; currentRef.current = id; el.scrollIntoView({ behavior: "smooth" }); }
+    });
+    ch.on("presence", { event: "sync" }, () => setPeers(Math.max(0, Object.keys(ch.presenceState()).length - 1)));
+    ch.subscribe((st) => { if (st === "SUBSCRIBED") void ch.track({ at: Date.now() }); });
+    channelRef.current = ch;
+    return () => { channelRef.current = null; void supabase.removeChannel(ch); };
+  }, [code, user.id]);
+  const startTogether = async () => {
+    const c = code ?? Math.random().toString(36).slice(2, 10);
+    setCode(c);
+    const url = `${window.location.origin}/reels?together=${c}${currentRef.current ? `&post=${currentRef.current}` : ""}`;
+    try {
+      if (navigator.share) await navigator.share({ title: "Assistir Reels juntos no Vibely", url });
+      else { await navigator.clipboard.writeText(url); toast.success("Link copiado — mande para um amigo"); }
+    } catch { /* cancelado */ }
+  };
 
   const livesQ = useQuery({
     queryKey: ["reels-lives"],
@@ -163,10 +196,19 @@ function ReelsPage() {
   const onScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const el = e.currentTarget;
+      if (tab === "fyp" && el.clientHeight > 0) {
+        const idx = Math.round(el.scrollTop / el.clientHeight);
+        const id = posts[idx]?.id;
+        if (id && id !== currentRef.current && Math.abs(el.scrollTop - idx * el.clientHeight) < 4) {
+          currentRef.current = id;
+          if (remoteRef.current) remoteRef.current = false;
+          else void channelRef.current?.send({ type: "broadcast", event: "goto", payload: { postId: id } });
+        }
+      }
       if (el.scrollHeight - el.scrollTop - el.clientHeight > el.clientHeight * 2) return;
       if (feed.hasNextPage && !feed.isFetchingNextPage) void feed.fetchNextPage();
     },
-    [feed],
+    [feed, posts, tab],
   );
 
   return (
@@ -192,10 +234,19 @@ function ReelsPage() {
             </TabBtn>
           ) : null}
         </div>
-        <span className="w-9 md:hidden" />
+        <button
+          onClick={() => void startTogether()}
+          aria-label="Assistir junto"
+          className={cn("flex h-9 items-center gap-1 rounded-full px-2.5 text-xs font-semibold backdrop-blur",
+            code ? "bg-primary text-primary-foreground" : "bg-black/30 text-white")}
+        >
+          <Users className="h-4 w-4" />
+          {code ? (peers > 0 ? `+${peers}` : "Juntos") : null}
+        </button>
       </header>
 
       <div
+        ref={scrollerRef}
         onScroll={onScroll}
         className="h-dvh min-h-dvh w-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black no-scrollbar rounded-none md:rounded-2xl"
       >
@@ -219,6 +270,7 @@ function ReelsPage() {
               muted={muted}
               onToggleMute={() => setSoundOn(muted)}
               onOpenComments={(id) => setOpenCommentsFor(id)}
+              onOpenAudio={(id) => setOpenAudioFor(id)}
               reason={p.vir_reason ?? null}
               onNotInterested={onNotInterested}
               medias={extras.data?.medias.get(p.id)}
@@ -228,6 +280,7 @@ function ReelsPage() {
         )}
       </div>
 
+      <AudioReactionsSheet postId={openAudioFor} currentUserId={user.id} onClose={() => setOpenAudioFor(null)} />
       <CommentsSheet
         postId={openCommentsFor}
         currentUserId={user.id}

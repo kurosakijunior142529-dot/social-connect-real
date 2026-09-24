@@ -2887,6 +2887,41 @@ export type Database = {
           },
         ]
       }
+      reel_audio_reactions: {
+        Row: {
+          audio_path: string
+          created_at: string
+          duration_ms: number
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          audio_path: string
+          created_at?: string
+          duration_ms: number
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          audio_path?: string
+          created_at?: string
+          duration_ms?: number
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reel_audio_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           category: string | null

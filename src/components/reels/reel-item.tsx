@@ -4,7 +4,7 @@ import { logVir, useVirWatch } from "@/lib/vir";
 import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX, MoreHorizontal, EyeOff, Flag } from "lucide-react";
+import { Heart, MessageCircle, Share2, Bookmark, Play, Volume2, VolumeX, MoreHorizontal, EyeOff, Flag, Mic } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +35,7 @@ type Props = {
   muted: boolean;
   onToggleMute: () => void;
   onOpenComments: (postId: string) => void;
+  onOpenAudio?: (postId: string) => void;
   /** URL of the next reel to preload. */
   nextSrc?: string;
   /** Explicação curta do VIR (ex.: "Porque você segue este criador"). */
@@ -49,7 +50,7 @@ type Props = {
 
 type Burst = { id: number; x: number; y: number };
 
-export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, nextSrc, reason, onNotInterested, medias, reposts }: Props) {
+export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComments, onOpenAudio, nextSrc, reason, onNotInterested, medias, reposts }: Props) {
   const qc = useQueryClient();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -417,6 +418,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   return (
     <div
       ref={rootRef}
+      data-reel-id={post.id}
       className="snap-start snap-always relative h-dvh min-h-dvh w-full shrink-0 bg-black overflow-hidden select-none touch-pan-y [contain:layout_paint] [content-visibility:auto]"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -610,6 +612,13 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           label="Comentar"
           icon={<MessageCircle className="h-[25px] w-[25px] text-white" strokeWidth={1.7} />}
         />
+        {onOpenAudio ? (
+          <ActionBtn
+            onClick={() => onOpenAudio(post.id)}
+            label="Voz"
+            icon={<Mic className="h-[25px] w-[25px] text-white" strokeWidth={1.7} />}
+          />
+        ) : null}
         <div className="flex w-[52px] flex-col items-center">
           <RepostButton postId={post.id} userId={currentUserId} variant="reel" className="reel-rail-action" />
         </div>

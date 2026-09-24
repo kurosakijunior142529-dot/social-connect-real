@@ -492,12 +492,12 @@ function CreatePage() {
             </section>
           ) : null}
 
-          <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 rounded-2xl border border-border/70 bg-background/88 p-2 shadow-lg backdrop-blur-xl md:bottom-4">
+          <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 rounded-2xl border border-border/70 bg-card p-2 shadow-lg md:bottom-4">
             <Button
               type="submit"
               disabled={busy || !canPublish}
               className={cn(
-                "h-11 w-full rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.99]",
+                "h-11 w-full rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.99] disabled:opacity-100",
                 canPublish && !busy ? "bg-primary text-primary-foreground shadow-[0_10px_28px_-14px_var(--primary)] hover:bg-primary/90" : "bg-surface-2 text-muted-foreground shadow-none",
                 publishState === "error" && canPublish && "ring-1 ring-destructive/40",
               )}

@@ -14,3 +14,5 @@
 - [x] Redesenhar visualmente o perfil em fluxo social premium e ocultar Conquistas somente nessa tela
 - [ ] Refinar profissionalmente a tela Novo post e validar os fluxos mobile
 - [x] Redesenhar perfil como experiência editorial social premium com Vibe atual e Vibe Spaces
+- [ ] Adicionar Co-Viewing funcional aos Reels sem alterar o Streaming Amigo existente
+- [ ] Adicionar reações rápidas em áudio com gravação, reprodução e exclusão segura

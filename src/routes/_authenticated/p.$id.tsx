@@ -112,7 +112,7 @@ function PostDetailPage() {
         <h2 className="font-semibold text-sm px-1">Comentários</h2>
         <PostComments postId={id} currentUserId={user.id} postAuthorId={p.author_id} />
       </section>
-      <AudioReactionsSheet postId={voiceOpen ? id : null} currentUserId={user.id} onClose={() => setVoiceOpen(false)} />
+      <AudioReactionsSheet postId={voiceOpen ? id : null} currentUserId={user.id} onClose={() => setVoiceOpen(false)} postAuthorId={p.author_id} />
     </div>
   );
 }

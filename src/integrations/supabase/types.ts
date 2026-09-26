@@ -3183,6 +3183,7 @@ export type Database = {
           id: string
           media_type: string
           media_url: string
+          sticker: Json | null
           user_id: string
         }
         Insert: {
@@ -3192,6 +3193,7 @@ export type Database = {
           id?: string
           media_type?: string
           media_url: string
+          sticker?: Json | null
           user_id: string
         }
         Update: {
@@ -3201,6 +3203,7 @@ export type Database = {
           id?: string
           media_type?: string
           media_url?: string
+          sticker?: Json | null
           user_id?: string
         }
         Relationships: []
@@ -3230,6 +3233,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "story_reactions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_sticker_responses: {
+        Row: {
+          answer: string | null
+          created_at: string
+          id: string
+          option_index: number | null
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          option_index?: number | null
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          option_index?: number | null
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_sticker_responses_story_id_fkey"
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "stories"
@@ -4515,6 +4553,13 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       spend_ai_credits: { Args: { _amount: number }; Returns: number }
       stop_sharing_location: { Args: never; Returns: undefined }
+      story_poll_counts: {
+        Args: { _story_id: string }
+        Returns: {
+          option_index: number
+          votes: number
+        }[]
+      }
       submit_game_score: {
         Args: { _game: string; _score: number }
         Returns: number

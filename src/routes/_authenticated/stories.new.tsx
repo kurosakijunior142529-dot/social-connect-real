@@ -28,6 +28,10 @@ function NewStoryPage() {
   const [file, setFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
+  const [stickerType, setStickerType] = useState<"none" | "poll" | "question">("none");
+  const [pollQ, setPollQ] = useState("");
+  const [pollOpts, setPollOpts] = useState(["Sim", "Não"]);
+  const [prompt, setPrompt] = useState("Manda uma Vibe");
   const [imgEdit, setImgEdit] = useState<ImageEditState>({ ...defaultImageEdit, aspect: "0.5625" });
   const moderate = useServerFn(moderateMedia);
   const moderateCaption = useServerFn(moderateText);
@@ -61,12 +65,27 @@ function NewStoryPage() {
         const textVerdict = await moderateCaption({ data: { text: caption.trim(), surface: "public", contentType: "story_caption" } });
         if (!textVerdict.allow) throw new Error(textVerdict.reason || "Legenda bloqueada pelas regras da comunidade");
       }
+      let sticker: any = null;
+      if (stickerType === "poll") {
+        const opts = pollOpts.map((o) => o.trim()).filter(Boolean);
+        if (!pollQ.trim() || opts.length < 2) throw new Error("Preencha a pergunta e duas opções da enquete");
+        sticker = { type: "poll", question: pollQ.trim().slice(0, 80), options: opts.map((o) => o.slice(0, 30)) };
+      } else if (stickerType === "question") {
+        if (!prompt.trim()) throw new Error("Escreva a pergunta da caixinha");
+        sticker = { type: "question", prompt: prompt.trim().slice(0, 80) };
+      }
+      if (sticker) {
+        const txt = sticker.type === "poll" ? [sticker.question, ...sticker.options].join(" | ") : sticker.prompt;
+        const v = await moderateCaption({ data: { text: txt, surface: "public", contentType: "story_caption" } });
+        if (!v.allow) throw new Error(v.reason || "Figurinha bloqueada pelas regras da comunidade");
+      }
       const path = await uploadMedia("stories", user.id, upload);
       const { error } = await (supabase as any).from("stories").insert({
         user_id: user.id,
         media_url: path,
         media_type: isVideo ? "video" : "image",
         caption: caption.trim() || null,
+        sticker,
       });
       if (error) throw error;
        toast.success("Vibe publicada!");
@@ -143,6 +162,27 @@ function NewStoryPage() {
           className="resize-none rounded-xl border-white/10 bg-transparent focus-visible:ring-primary/40"
         />
         <div className="text-right text-xs text-muted-foreground">{caption.length}/200</div>
+      </div>
+
+      <div className="social-card space-y-3 rounded-2xl p-3">
+        <p className="text-xs font-semibold uppercase text-muted-foreground">Figurinha interativa</p>
+        <div className="grid grid-cols-3 gap-2">
+          {([["none", "Nenhuma"], ["poll", "Enquete"], ["question", "Perguntas"]] as const).map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setStickerType(k)}
+              className={`rounded-full px-3 py-2 text-sm font-medium ${stickerType === k ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{l}</button>
+          ))}
+        </div>
+        {stickerType === "poll" ? (
+          <div className="space-y-2">
+            <input value={pollQ} onChange={(e) => setPollQ(e.target.value)} maxLength={80} placeholder="Pergunta da enquete" className="w-full rounded-xl bg-muted px-3 py-2 text-sm outline-none" />
+            {pollOpts.map((o, i) => (
+              <input key={i} value={o} maxLength={30} onChange={(e) => setPollOpts(pollOpts.map((x, j) => (j === i ? e.target.value : x)))} placeholder={`Opção ${i + 1}`} className="w-full rounded-xl bg-muted px-3 py-2 text-sm outline-none" />
+            ))}
+            {pollOpts.length < 4 ? <button type="button" onClick={() => setPollOpts([...pollOpts, ""])} className="text-sm text-primary">+ opção</button> : null}
+          </div>
+        ) : stickerType === "question" ? (
+          <input value={prompt} onChange={(e) => setPrompt(e.target.value)} maxLength={80} placeholder="Ex.: Manda uma Vibe" className="w-full rounded-xl bg-muted px-3 py-2 text-sm outline-none" />
+        ) : null}
       </div>
 
       <Button

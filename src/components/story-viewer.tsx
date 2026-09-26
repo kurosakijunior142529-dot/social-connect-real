@@ -76,11 +76,12 @@ export function StoryViewer({
     if (!story) return;
     // record view
     (supabase as any).from("story_views").insert({ story_id: story.id, viewer_id: viewerId }).then(() => {});
-    setMediaMs(IMAGE_DURATION);
+    const dur = parseSticker(story.sticker) ? 15000 : IMAGE_DURATION;
+    setMediaMs(dur);
     if (timerRef.current) window.clearTimeout(timerRef.current);
     // fotos avançam em 5s; vídeos avançam pelo tempo real (onLoadedMetadata/onEnded)
     if (story.media_type !== "video") {
-      timerRef.current = window.setTimeout(next, IMAGE_DURATION);
+      timerRef.current = window.setTimeout(next, dur);
     }
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
   }, [story, viewerId, next]);

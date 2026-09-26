@@ -1,3 +1,6 @@
+import { useQuery as __uq } from "@tanstack/react-query";
+import { Music2 } from "lucide-react";
+import { getTrack } from "@/lib/music/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VerifiedName } from "@/components/verified-badge";
 import { Link } from "@tanstack/react-router";
@@ -149,6 +152,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
 
       {post.media_type === "text" ? (
         <div className="space-y-3">
+          {(post as any).music_track_id ? <PostMusicTag trackId={(post as any).music_track_id} /> : null}
           {post.caption ? (
             <Link
               to="/p/$id"
@@ -415,4 +419,14 @@ export function usePostsQuery(opts: {
       }));
     },
   });
+}
+
+function PostMusicTag({ trackId }: { trackId: string }) {
+  const { data } = __uq({ queryKey: ["track", trackId], queryFn: () => getTrack(trackId), staleTime: 3600_000 });
+  if (!data) return null;
+  return (
+    <p className="mb-1 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+      <Music2 className="h-3.5 w-3.5 shrink-0 text-primary" /> <span className="truncate">{data.title} · {data.artist}</span>
+    </p>
+  );
 }

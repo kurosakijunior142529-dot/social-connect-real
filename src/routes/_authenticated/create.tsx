@@ -39,6 +39,7 @@ import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
 import { cn } from "@/lib/utils";
 
 type Mode = "media" | "text" | "poll";
+const MAX_MEDIA = 10;
 type PublishState = "idle" | "publishing" | "success" | "error";
 
 const modes = [
@@ -78,6 +79,8 @@ function CreatePage() {
   const [thinkingCaptions, setThinkingCaptions] = useState(false);
   const [mode, setMode] = useState<Mode>("media");
   const [poll, setPoll] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
+  const [extras, setExtras] = useState<{ file: File; url: string }[]>([]);
+  const extraInputRef = useRef<HTMLInputElement>(null);
   const runSuggest = useServerFn(suggestCaptions);
   const moderate = useServerFn(moderateMedia);
   const moderateCaption = useServerFn(moderateText);
@@ -132,8 +135,31 @@ function CreatePage() {
     setPreview(nextPreview);
   }
 
+  function addExtras(list: FileList | null) {
+    if (!list) return;
+    const room = MAX_MEDIA - 1 - extras.length;
+    const accepted: { file: File; url: string }[] = [];
+    for (const f of Array.from(list).slice(0, Math.max(0, room))) {
+      if (f.size > 25 * 1024 * 1024) { toast.error(`${f.name}: maior que 25 MB`); continue; }
+      if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) continue;
+      accepted.push({ file: f, url: URL.createObjectURL(f) });
+    }
+    if (list.length > room) toast.message(`Máximo de ${MAX_MEDIA} mídias por post`);
+    setExtras((prev) => [...prev, ...accepted]);
+    if (extraInputRef.current) extraInputRef.current.value = "";
+  }
+
+  function removeExtra(i: number) {
+    setExtras((prev) => {
+      URL.revokeObjectURL(prev[i].url);
+      return prev.filter((_, idx) => idx !== i);
+    });
+  }
+
   function removeMedia() {
     if (preview) URL.revokeObjectURL(preview);
+    extras.forEach((e) => URL.revokeObjectURL(e.url));
+    setExtras([]);
     setFile(null);
     setPreview(null);
     setTrim(defaultTrim);
@@ -258,15 +284,40 @@ function CreatePage() {
         if (!textVerdict.allow) throw new Error(textVerdict.reason || "Legenda bloqueada pelas regras da comunidade");
       }
 
+      // Mídias extras do carrossel: checar e moderar antes de publicar
+      const extraChecked: { file: File; type: "image" | "video" }[] = [];
+      for (const ex of extras) {
+        const c = await checkFile(ex.file);
+        if (!c.ok) throw new Error(c.error);
+        const [du, sh] = await Promise.all([previewDataUrl(ex.file), sha256Hex(ex.file)]);
+        const v = await moderate({
+          data: { dataUrl: du, sha256: sh, mime: c.mime, size: ex.file.size, surface: "public", contentType: "post" },
+        });
+        if (!v.allow) throw new Error(v.reason || "Uma das mídias foi bloqueada pelas regras da comunidade");
+        extraChecked.push({ file: ex.file, type: ex.file.type.startsWith("video/") ? "video" : "image" });
+      }
+
       const path = await uploadMedia("posts", user.id, toUpload);
-      const { error } = await supabase.from("posts").insert({
-        author_id: user.id,
-        media_url: path,
-        media_type: isVideo ? "video" : "image",
-        post_kind: "post",
-        caption: caption.trim(),
-      });
+      const { data: created, error } = await supabase
+        .from("posts")
+        .insert({
+          author_id: user.id,
+          media_url: path,
+          media_type: isVideo ? "video" : "image",
+          post_kind: "post",
+          caption: caption.trim(),
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      for (let i = 0; i < extraChecked.length; i++) {
+        const ex = extraChecked[i];
+        const exPath = await uploadMedia("posts", user.id, ex.file);
+        const { error: mErr } = await (supabase as any)
+          .from("post_media")
+          .insert({ post_id: created.id, position: i + 1, media_type: ex.type, media_url: exPath });
+        if (mErr) throw mErr;
+      }
       setPublishState("success");
       toast.success("Post publicado!");
       navigate({ to: "/" });
@@ -360,7 +411,7 @@ function CreatePage() {
                 </div>
                 {file ? (
                   <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-                    <Check className="h-3.5 w-3.5" /> 1 de 1
+                    <Check className="h-3.5 w-3.5" /> {1 + extras.length} de {MAX_MEDIA}
                   </span>
                 ) : null}
               </div>
@@ -412,6 +463,49 @@ function CreatePage() {
                     >
                       <Trash2 className="h-4 w-4" /> Remover
                     </Button>
+                  </div>
+                  <div className="mt-3">
+                    <p className="mb-2 text-[11px] font-semibold text-muted-foreground">
+                      Carrossel · deslize no feed ({1 + extras.length}/{MAX_MEDIA})
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+                      {extras.map((ex, i) => (
+                        <div key={ex.url} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-background ring-1 ring-border">
+                          {ex.file.type.startsWith("video/") ? (
+                            <video src={ex.url} muted playsInline className="h-full w-full object-cover" />
+                          ) : (
+                            <img src={ex.url} alt="" className="h-full w-full object-cover" />
+                          )}
+                          <span className="absolute left-1 top-1 rounded bg-background/80 px-1 text-[9px] font-bold">{i + 2}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeExtra(i)}
+                            aria-label="Remover mídia"
+                            className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-background/85 text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {1 + extras.length < MAX_MEDIA ? (
+                        <button
+                          type="button"
+                          onClick={() => extraInputRef.current?.click()}
+                          className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-dashed border-primary/40 text-primary transition active:scale-95"
+                          aria-label="Adicionar mais mídias"
+                        >
+                          <ImagePlus className="h-5 w-5" />
+                        </button>
+                      ) : null}
+                    </div>
+                    <input
+                      ref={extraInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={(e) => addExtras(e.target.files)}
+                    />
                   </div>
                   <input
                     ref={fileInputRef}

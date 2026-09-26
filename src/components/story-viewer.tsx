@@ -7,6 +7,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { StorySticker, parseSticker } from "@/components/stories/story-sticker";
 
 type StoryRow = {
   id: string;
@@ -16,6 +17,7 @@ type StoryRow = {
   caption: string | null;
   created_at: string;
   expires_at: string;
+  sticker?: unknown;
 };
 
 type Grouped = {
@@ -74,11 +76,12 @@ export function StoryViewer({
     if (!story) return;
     // record view
     (supabase as any).from("story_views").insert({ story_id: story.id, viewer_id: viewerId }).then(() => {});
-    setMediaMs(IMAGE_DURATION);
+    const dur = parseSticker(story.sticker) ? 15000 : IMAGE_DURATION;
+    setMediaMs(dur);
     if (timerRef.current) window.clearTimeout(timerRef.current);
     // fotos avançam em 5s; vídeos avançam pelo tempo real (onLoadedMetadata/onEnded)
     if (story.media_type !== "video") {
-      timerRef.current = window.setTimeout(next, IMAGE_DURATION);
+      timerRef.current = window.setTimeout(next, dur);
     }
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
   }, [story, viewerId, next]);
@@ -224,6 +227,15 @@ export function StoryViewer({
         {/* Touch zones */}
         <button aria-label="Anterior" onClick={prev} className="absolute inset-y-0 left-0 w-1/3" />
         <button aria-label="Próximo" onClick={next} className="absolute inset-y-0 right-0 w-1/3" />
+
+        {(() => {
+          const st = parseSticker(story.sticker);
+          return st ? (
+            <div className="absolute inset-x-0 top-1/2 z-30 flex -translate-y-1/2 justify-center">
+              <StorySticker key={story.id} storyId={story.id} sticker={st} viewerId={viewerId} isOwn={isOwn} />
+            </div>
+          ) : null;
+        })()}
       </div>
     </div>
   );

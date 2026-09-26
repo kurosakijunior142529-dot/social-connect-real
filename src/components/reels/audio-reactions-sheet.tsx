@@ -14,7 +14,7 @@ type Row = {
   author?: { username: string; display_name: string | null; avatar_url: string | null } | null;
 };
 
-export function AudioReactionsSheet({ postId, currentUserId, onClose }: { postId: string | null; currentUserId: string; onClose: () => void }) {
+export function AudioReactionsSheet({ postId, currentUserId, onClose, postAuthorId }: { postId: string | null; currentUserId: string; onClose: () => void; postAuthorId?: string }) {
   const qc = useQueryClient();
   const key = ["reel-audio", postId];
   const list = useQuery({
@@ -132,7 +132,7 @@ export function AudioReactionsSheet({ postId, currentUserId, onClose }: { postId
                 <button onClick={() => play(r)} aria-label={playing === r.id ? "Pausar" : "Ouvir"} className="grid h-9 w-9 place-items-center rounded-full bg-secondary">
                   {playing === r.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </button>
-                {r.user_id === currentUserId ? (
+                {r.user_id === currentUserId || postAuthorId === currentUserId ? (
                   <button onClick={() => remove(r)} aria-label="Apagar" className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </button>

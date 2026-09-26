@@ -17,6 +17,8 @@ import {
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { MusicPicker } from "@/components/music/music-picker";
+import type { MusicSelection } from "@/lib/music/api";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { Button } from "@/components/ui/button";
@@ -70,6 +72,7 @@ function CreatePage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
+  const [music, setMusic] = useState<MusicSelection | null>(null);
   const [busy, setBusy] = useState(false);
   const [publishState, setPublishState] = useState<PublishState>("idle");
   const [trim, setTrim] = useState<TrimState>(defaultTrim);
@@ -306,6 +309,7 @@ function CreatePage() {
           media_type: isVideo ? "video" : "image",
           post_kind: "post",
           caption: caption.trim(),
+          ...(music ? { music_track_id: music.track.id, music_start_ms: music.startMs, music_end_ms: music.endMs, music_volume: music.volume } : {}),
         })
         .select("id")
         .single();
@@ -402,6 +406,12 @@ function CreatePage() {
         ) : null}
 
         <form onSubmit={submit} className="space-y-4">
+          {mode === "media" && file ? (
+            <section className="rounded-2xl border border-border/70 bg-surface p-3 shadow-sm">
+              <h2 className="mb-2 font-display text-sm font-semibold">Música</h2>
+              <MusicPicker value={music} onChange={setMusic} videoMode={!!isVideo} />
+            </section>
+          ) : null}
           {mode === "media" ? (
             <section aria-labelledby="media-label" className="overflow-hidden rounded-2xl border border-border/70 bg-surface shadow-sm">
               <div className="flex items-center justify-between border-b border-border/60 px-3 py-2.5">

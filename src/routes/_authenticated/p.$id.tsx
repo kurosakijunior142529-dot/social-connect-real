@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AudioReactionsSheet } from "@/components/reels/audio-reactions-sheet";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { VerifiedName } from "@/components/verified-badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +8,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { SignedImage, SignedVideo } from "@/components/signed-image";
 import { PostComments } from "@/components/comments/post-comments";
 import { logPostView } from "@/lib/search";
-import { Heart, ArrowLeft } from "lucide-react";
+import { Heart, ArrowLeft, Mic } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ function PostDetailPage() {
   const { id } = Route.useParams();
   const { user } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   useEffect(() => {
     void logPostView(id);
@@ -96,6 +98,9 @@ function PostDetailPage() {
             <Heart className={cn("h-6 w-6", p.liked_by_me && "fill-primary text-primary")} />
             <span className="font-medium">{p.likes_count}</span>
           </button>
+          <button onClick={() => setVoiceOpen(true)} className="ml-4 inline-flex items-center gap-1.5 text-sm font-medium" aria-label="Reações em voz">
+            <Mic className="h-5 w-5" /> Voz
+          </button>
           {p.caption ? <p className="text-sm">{p.caption}</p> : null}
           <div className="text-xs text-muted-foreground">
             {formatDistanceToNowStrict(new Date(p.created_at), { locale: ptBR, addSuffix: true })}
@@ -107,6 +112,7 @@ function PostDetailPage() {
         <h2 className="font-semibold text-sm px-1">Comentários</h2>
         <PostComments postId={id} currentUserId={user.id} postAuthorId={p.author_id} />
       </section>
+      <AudioReactionsSheet postId={voiceOpen ? id : null} currentUserId={user.id} onClose={() => setVoiceOpen(false)} postAuthorId={p.author_id} />
     </div>
   );
 }

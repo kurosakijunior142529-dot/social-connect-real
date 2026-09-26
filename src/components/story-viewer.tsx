@@ -7,6 +7,7 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { StorySticker, parseSticker } from "@/components/stories/story-sticker";
 
 type StoryRow = {
   id: string;
@@ -16,6 +17,7 @@ type StoryRow = {
   caption: string | null;
   created_at: string;
   expires_at: string;
+  sticker?: unknown;
 };
 
 type Grouped = {
@@ -224,6 +226,15 @@ export function StoryViewer({
         {/* Touch zones */}
         <button aria-label="Anterior" onClick={prev} className="absolute inset-y-0 left-0 w-1/3" />
         <button aria-label="Próximo" onClick={next} className="absolute inset-y-0 right-0 w-1/3" />
+
+        {(() => {
+          const st = parseSticker(story.sticker);
+          return st ? (
+            <div className="absolute inset-x-0 top-1/2 z-30 flex -translate-y-1/2 justify-center">
+              <StorySticker key={story.id} storyId={story.id} sticker={st} viewerId={viewerId} isOwn={isOwn} />
+            </div>
+          ) : null;
+        })()}
       </div>
     </div>
   );

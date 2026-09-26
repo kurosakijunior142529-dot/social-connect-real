@@ -411,7 +411,7 @@ function CreatePage() {
                 </div>
                 {file ? (
                   <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-                    <Check className="h-3.5 w-3.5" /> 1 de 1
+                    <Check className="h-3.5 w-3.5" /> {1 + extras.length} de {MAX_MEDIA}
                   </span>
                 ) : null}
               </div>
@@ -463,6 +463,49 @@ function CreatePage() {
                     >
                       <Trash2 className="h-4 w-4" /> Remover
                     </Button>
+                  </div>
+                  <div className="mt-3">
+                    <p className="mb-2 text-[11px] font-semibold text-muted-foreground">
+                      Carrossel · deslize no feed ({1 + extras.length}/{MAX_MEDIA})
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+                      {extras.map((ex, i) => (
+                        <div key={ex.url} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-background ring-1 ring-border">
+                          {ex.file.type.startsWith("video/") ? (
+                            <video src={ex.url} muted playsInline className="h-full w-full object-cover" />
+                          ) : (
+                            <img src={ex.url} alt="" className="h-full w-full object-cover" />
+                          )}
+                          <span className="absolute left-1 top-1 rounded bg-background/80 px-1 text-[9px] font-bold">{i + 2}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeExtra(i)}
+                            aria-label="Remover mídia"
+                            className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-background/85 text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {1 + extras.length < MAX_MEDIA ? (
+                        <button
+                          type="button"
+                          onClick={() => extraInputRef.current?.click()}
+                          className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-dashed border-primary/40 text-primary transition active:scale-95"
+                          aria-label="Adicionar mais mídias"
+                        >
+                          <ImagePlus className="h-5 w-5" />
+                        </button>
+                      ) : null}
+                    </div>
+                    <input
+                      ref={extraInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={(e) => addExtras(e.target.files)}
+                    />
                   </div>
                   <input
                     ref={fileInputRef}

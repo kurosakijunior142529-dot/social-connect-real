@@ -39,6 +39,7 @@ import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
 import { cn } from "@/lib/utils";
 
 type Mode = "media" | "text" | "poll";
+const MAX_MEDIA = 10;
 type PublishState = "idle" | "publishing" | "success" | "error";
 
 const modes = [
@@ -78,6 +79,8 @@ function CreatePage() {
   const [thinkingCaptions, setThinkingCaptions] = useState(false);
   const [mode, setMode] = useState<Mode>("media");
   const [poll, setPoll] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
+  const [extras, setExtras] = useState<{ file: File; url: string }[]>([]);
+  const extraInputRef = useRef<HTMLInputElement>(null);
   const runSuggest = useServerFn(suggestCaptions);
   const moderate = useServerFn(moderateMedia);
   const moderateCaption = useServerFn(moderateText);
@@ -132,8 +135,31 @@ function CreatePage() {
     setPreview(nextPreview);
   }
 
+  function addExtras(list: FileList | null) {
+    if (!list) return;
+    const room = MAX_MEDIA - 1 - extras.length;
+    const accepted: { file: File; url: string }[] = [];
+    for (const f of Array.from(list).slice(0, Math.max(0, room))) {
+      if (f.size > 25 * 1024 * 1024) { toast.error(`${f.name}: maior que 25 MB`); continue; }
+      if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) continue;
+      accepted.push({ file: f, url: URL.createObjectURL(f) });
+    }
+    if (list.length > room) toast.message(`Máximo de ${MAX_MEDIA} mídias por post`);
+    setExtras((prev) => [...prev, ...accepted]);
+    if (extraInputRef.current) extraInputRef.current.value = "";
+  }
+
+  function removeExtra(i: number) {
+    setExtras((prev) => {
+      URL.revokeObjectURL(prev[i].url);
+      return prev.filter((_, idx) => idx !== i);
+    });
+  }
+
   function removeMedia() {
     if (preview) URL.revokeObjectURL(preview);
+    extras.forEach((e) => URL.revokeObjectURL(e.url));
+    setExtras([]);
     setFile(null);
     setPreview(null);
     setTrim(defaultTrim);
@@ -258,15 +284,40 @@ function CreatePage() {
         if (!textVerdict.allow) throw new Error(textVerdict.reason || "Legenda bloqueada pelas regras da comunidade");
       }
 
+      // Mídias extras do carrossel: checar e moderar antes de publicar
+      const extraChecked: { file: File; type: "image" | "video" }[] = [];
+      for (const ex of extras) {
+        const c = await checkFile(ex.file);
+        if (!c.ok) throw new Error(c.error);
+        const [du, sh] = await Promise.all([previewDataUrl(ex.file), sha256Hex(ex.file)]);
+        const v = await moderate({
+          data: { dataUrl: du, sha256: sh, mime: c.mime, size: ex.file.size, surface: "public", contentType: "post" },
+        });
+        if (!v.allow) throw new Error(v.reason || "Uma das mídias foi bloqueada pelas regras da comunidade");
+        extraChecked.push({ file: ex.file, type: ex.file.type.startsWith("video/") ? "video" : "image" });
+      }
+
       const path = await uploadMedia("posts", user.id, toUpload);
-      const { error } = await supabase.from("posts").insert({
-        author_id: user.id,
-        media_url: path,
-        media_type: isVideo ? "video" : "image",
-        post_kind: "post",
-        caption: caption.trim(),
-      });
+      const { data: created, error } = await supabase
+        .from("posts")
+        .insert({
+          author_id: user.id,
+          media_url: path,
+          media_type: isVideo ? "video" : "image",
+          post_kind: "post",
+          caption: caption.trim(),
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      for (let i = 0; i < extraChecked.length; i++) {
+        const ex = extraChecked[i];
+        const exPath = await uploadMedia("posts", user.id, ex.file);
+        const { error: mErr } = await (supabase as any)
+          .from("post_media")
+          .insert({ post_id: created.id, position: i + 1, media_type: ex.type, media_url: exPath });
+        if (mErr) throw mErr;
+      }
       setPublishState("success");
       toast.success("Post publicado!");
       navigate({ to: "/" });

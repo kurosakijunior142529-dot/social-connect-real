@@ -152,7 +152,6 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
 
       {post.media_type === "text" ? (
         <div className="space-y-3">
-          {(post as any).music_track_id ? <PostMusicTag trackId={(post as any).music_track_id} /> : null}
           {post.caption ? (
             <Link
               to="/p/$id"
@@ -272,6 +271,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
             <RichCaption text={captionTranslation ?? post.caption} />
           </p>
         ) : null}
+        {(post as any).music_track_id ? <PostMusicTag trackId={(post as any).music_track_id} /> : null}
         {post.caption ? (
           <button
             type="button"

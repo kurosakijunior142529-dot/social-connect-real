@@ -316,6 +316,13 @@
       "when": 1790246885290,
       "tag": "0044_reel_audio_reactions",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790382600507,
+      "tag": "0045_story_stickers",
+      "breakpoints": true
     }
   ]
 }

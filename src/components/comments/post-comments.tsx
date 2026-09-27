@@ -5,13 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, X, Smile, SmilePlus, Heart } from "lucide-react";
+import { Send, X, Smile, SmilePlus, Heart, Mic } from "lucide-react";
 import { EmojiText, AppEmojiPicker } from "@/components/chat/app-emoji";
 import { useTranslatable } from "@/components/i18n/translate-text";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { logVir } from "@/lib/vir";
 import { StickerPicker, type StickerItem } from "@/components/chat/sticker-picker";
+import { AudioReactionsSheet } from "@/components/reels/audio-reactions-sheet";
+import { formatDistanceToNowStrict } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type CommentRow = {
   id: string;
@@ -74,6 +77,7 @@ export function PostComments({
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   const likes = useQuery({
     queryKey: ["comment-likes", postId],
@@ -190,96 +194,105 @@ export function PostComments({
     const canEdit = c.author_id === currentUserId;
     const canDelete = canEdit || (!!postAuthorId && postAuthorId === currentUserId);
     const like = likes.data?.[c.id];
+    const isAuthor = !!postAuthorId && c.author_id === postAuthorId;
     return (
-      <div key={c.id} className={cn("flex items-start gap-3", isReply && "ml-10")}>
+      <div key={c.id} className={cn("group flex items-start gap-3", isReply && "ml-11")}>
         <UserAvatar
           avatarPath={c.author?.avatar_url}
           displayName={c.author?.display_name ?? "?"}
           verified={!!c.author?.is_verified}
           badgeVariant={(c.author?.badge_variant as any) ?? null}
-          className="h-8 w-8"
+          className={isReply ? "h-7 w-7" : "h-9 w-9"}
         />
-        <div className="flex-1 min-w-0">
-          <div className={cn("rounded-2xl px-3 py-2", surfaceClassName)}>
-            <div className="text-xs font-semibold">
-              <VerifiedName
-                name={c.author?.display_name ?? `@${c.author?.username ?? ""}`}
-                verified={c.author?.is_verified}
-                badgeVariant={c.author?.badge_variant}
-                size={13}
-              />
-            </div>
-            {editing?.id === c.id ? (
-              <form onSubmit={saveEdit} className="mt-1 flex items-center gap-2">
-                <Input
-                  value={editing.text}
-                  onChange={(e) => setEditing({ id: c.id, text: e.target.value })}
-                  maxLength={500}
-                  autoFocus
-                  className="h-8 rounded-full"
-                />
-                <Button type="submit" size="sm" className="h-8 rounded-full">
-                  Salvar
-                </Button>
-                <button type="button" onClick={() => setEditing(null)} aria-label="Cancelar">
-                  <X className="h-4 w-4" />
-                </button>
-              </form>
-            ) : c.sticker_url ? (
-              <img
-                src={c.sticker_url}
-                alt="figurinha"
-                loading="lazy"
-                className="h-24 w-24 object-contain"
-              />
-            ) : (
-              <CommentBody content={c.content} edited={!!c.edited_at} />
-            )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <VerifiedName
+              name={c.author?.display_name ?? `@${c.author?.username ?? ""}`}
+              verified={c.author?.is_verified}
+              badgeVariant={c.author?.badge_variant}
+              size={12}
+            />
+            {isAuthor ? (
+              <span className="rounded-full bg-primary/15 px-1.5 py-px text-[10px] font-semibold text-primary">
+                Criador
+              </span>
+            ) : null}
           </div>
-          {editing?.id === c.id ? null : (
-            <div className="mt-1 flex items-center gap-3 px-2 text-[11px] text-muted-foreground">
-              <button
-                type="button"
-                onClick={() => void toggleLike(c.id)}
-                className={cn("flex items-center gap-1", like?.mine && "text-primary")}
-                aria-label="Curtir comentário"
-              >
-                <Heart className={cn("h-3.5 w-3.5", like?.mine && "fill-current")} />
-                {like?.count ? like.count : null}
+          {editing?.id === c.id ? (
+            <form onSubmit={saveEdit} className="mt-1 flex items-center gap-2">
+              <Input
+                value={editing.text}
+                onChange={(e) => setEditing({ id: c.id, text: e.target.value })}
+                maxLength={500}
+                autoFocus
+                className="h-8 rounded-full"
+              />
+              <Button type="submit" size="sm" className="h-8 rounded-full">
+                Salvar
+              </Button>
+              <button type="button" onClick={() => setEditing(null)} aria-label="Cancelar">
+                <X className="h-4 w-4" />
               </button>
+            </form>
+          ) : c.sticker_url ? (
+            <img src={c.sticker_url} alt="figurinha" loading="lazy" className="mt-1 h-24 w-24 object-contain" />
+          ) : (
+            <CommentBody content={c.content} edited={!!c.edited_at} />
+          )}
+          {editing?.id === c.id ? null : (
+            <div className="mt-1.5 flex items-center gap-4 text-[11px] font-medium text-muted-foreground">
+              <span>{formatDistanceToNowStrict(new Date(c.created_at), { locale: ptBR })}</span>
               <button
                 type="button"
-                onClick={() =>
-                  setReplyTo({ id: c.parent_id ?? c.id, name: c.author?.username ?? "" })
-                }
+                className="hover:text-foreground"
+                onClick={() => setReplyTo({ id: c.parent_id ?? c.id, name: c.author?.username ?? "" })}
               >
                 Responder
               </button>
               {canEdit ? (
-                <button type="button" onClick={() => setEditing({ id: c.id, text: c.content })}>
+                <button type="button" className="hover:text-foreground" onClick={() => setEditing({ id: c.id, text: c.content })}>
                   Editar
                 </button>
               ) : null}
               {canDelete ? (
-                <button type="button" onClick={() => remove(c.id)}>
+                <button type="button" className="hover:text-destructive" onClick={() => remove(c.id)}>
                   Excluir
                 </button>
               ) : null}
             </div>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => void toggleLike(c.id)}
+          className={cn(
+            "flex w-8 shrink-0 flex-col items-center gap-0.5 pt-4 text-[11px] text-muted-foreground transition-transform active:scale-90",
+            like?.mine && "text-primary",
+          )}
+          aria-label="Curtir comentário"
+        >
+          <Heart className={cn("h-4 w-4", like?.mine && "fill-current")} />
+          {like?.count ? like.count : null}
+        </button>
       </div>
     );
   }
 
+  const total = (comments.data ?? []).reduce((n, c) => n + 1 + c.replies.length, 0);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto">
+      {total > 0 ? (
+        <div className="pb-3 text-center text-xs font-semibold text-muted-foreground">
+          {total} {total === 1 ? "comentário" : "comentários"}
+        </div>
+      ) : null}
+      <div className="flex-1 space-y-5 overflow-y-auto pr-1">
         {comments.data?.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Seja o primeiro a comentar.</p>
         ) : null}
         {comments.data?.map((c) => (
-          <div key={c.id} className="space-y-2">
+          <div key={c.id} className="space-y-4">
             {renderComment(c)}
             {c.replies.map((r) => renderComment(r, true))}
           </div>
@@ -295,40 +308,56 @@ export function PostComments({
         </div>
       ) : null}
 
-      <form onSubmit={submit} className="flex items-center gap-2 pt-2">
-        <StickerPicker
-          userId={currentUserId}
-          onPick={(s) => void sendSticker(s)}
-          trigger={
-            <button
-              type="button"
-              aria-label="Figurinhas"
-              className="shrink-0 rounded-full p-2 text-muted-foreground hover:bg-muted"
-            >
-              <Smile className="h-4 w-4" />
+      <form
+        onSubmit={submit}
+        className="mt-2 flex items-center gap-1 border-t border-border/50 pt-3 pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className={cn("flex min-w-0 flex-1 items-center gap-0.5 rounded-full pl-1 pr-1", surfaceClassName)}>
+          <StickerPicker
+            userId={currentUserId}
+            onPick={(s) => void sendSticker(s)}
+            trigger={
+              <button type="button" aria-label="Figurinhas" className="shrink-0 rounded-full p-2 text-muted-foreground hover:text-foreground">
+                <Smile className="h-4 w-4" />
+              </button>
+            }
+          />
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={replyTo ? "Escreva sua resposta…" : "Adicione um comentário…"}
+            maxLength={500}
+            className="h-10 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+          />
+          <AppEmojiPicker onPick={(code) => setDraft((d) => (d ? `${d} ${code}` : code))}>
+            <button type="button" aria-label="Emojis do app" className="shrink-0 rounded-full p-2 text-muted-foreground hover:text-foreground">
+              <SmilePlus className="h-4 w-4" />
             </button>
-          }
-        />
-        <AppEmojiPicker onPick={(code) => setDraft((d) => (d ? `${d} ${code}` : code))}>
-          <button
+          </AppEmojiPicker>
+        </div>
+        {draft.trim() ? (
+          <Button type="submit" size="icon" className="shrink-0 rounded-full">
+            <Send className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
             type="button"
-            aria-label="Emojis do app"
-            className="shrink-0 rounded-full p-2 text-muted-foreground hover:bg-muted"
+            size="icon"
+            variant="secondary"
+            className="shrink-0 rounded-full"
+            aria-label="Reação em voz"
+            onClick={() => setVoiceOpen(true)}
           >
-            <SmilePlus className="h-4 w-4" />
-          </button>
-        </AppEmojiPicker>
-        <Input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={replyTo ? "Escreva sua resposta…" : "Adicione um comentário…"}
-          maxLength={500}
-          className={cn("rounded-full border-transparent", surfaceClassName)}
-        />
-        <Button type="submit" size="icon" className="shrink-0 rounded-full" disabled={!draft.trim()}>
-          <Send className="h-4 w-4" />
-        </Button>
+            <Mic className="h-4 w-4" />
+          </Button>
+        )}
       </form>
+      <AudioReactionsSheet
+        postId={voiceOpen ? postId : null}
+        currentUserId={currentUserId}
+        onClose={() => setVoiceOpen(false)}
+        postAuthorId={postAuthorId ?? undefined}
+      />
     </div>
   );
 }

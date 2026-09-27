@@ -80,7 +80,7 @@ export function ReelSlide({ media, active, near, muted, paused, onVideoRef }: Pr
         <video
           ref={videoRef}
           poster={poster ?? undefined}
-          className="absolute inset-0 block h-full w-full object-cover [transform:translateZ(0)]"
+          className="absolute inset-0 block h-full w-full object-contain [transform:translateZ(0)]"
           loop
           playsInline
           muted={muted}

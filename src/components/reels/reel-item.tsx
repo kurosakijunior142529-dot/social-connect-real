@@ -590,7 +590,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       </button>
 
       {/* Actions column */}
-      <div className="absolute right-2 bottom-[calc(7rem+env(safe-area-inset-bottom))] z-20 flex flex-col items-center gap-2.5 rounded-[26px] bg-black/15 px-1 py-2.5 text-white backdrop-blur-[2px]">
+      <div className="absolute right-1.5 bottom-[calc(7rem+env(safe-area-inset-bottom))] z-20 flex flex-col items-center gap-3 text-white">
         <ActionBtn
           onClick={() => { toggleLike.mutate(); try { navigator.vibrate?.(10); } catch { /* noop */ } }}
           count={post.likes_count}
@@ -799,15 +799,12 @@ function ActionBtn({
       onPointerUp={(e) => e.stopPropagation()}
       aria-label={label}
       aria-pressed={!!active}
-      className="group flex w-[52px] flex-col items-center gap-1 outline-none"
+      className="group flex w-[48px] flex-col items-center gap-0.5 outline-none"
     >
       <span
         className={cn(
-          "relative grid h-11 w-11 place-items-center rounded-[18px] transition-all duration-200",
-          "bg-gradient-to-b from-white/[0.14] to-white/[0.04] ring-1 ring-white/10",
-          "shadow-[0_12px_28px_-16px_rgba(0,0,0,1)] backdrop-blur-xl",
-          "group-active:scale-[0.88] group-active:ring-white/25",
-          active && "ring-primary/50 shadow-[0_0_22px_-6px_rgba(34,224,106,0.65)]",
+          "relative grid h-9 w-9 place-items-center transition-transform duration-200",
+          "drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)] group-active:scale-[0.85]",
         )}
       >
         {icon}
@@ -815,15 +812,13 @@ function ActionBtn({
       {typeof count === "number" ? (
         <span
           className={cn(
-            "text-[11px] font-semibold tabular-nums tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] transition-colors",
+            "text-[11px] font-semibold tabular-nums tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] transition-colors",
             active ? "text-primary" : "text-white/90",
           )}
         >
           {formatCount(count)}
         </span>
-      ) : (
-        <span className="text-[10px] font-medium text-white/55">{label}</span>
-      )}
+      ) : null}
     </button>
   );
 }

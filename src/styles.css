@@ -100,6 +100,10 @@
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
+  /* Profundidade: luz de borda + sombra suave */
+  --edge-light: rgba(255, 255, 255, 0.05);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 18px 48px -28px rgba(0,0,0,0.85);
+
   /* Neon Lime chat */
   --chat-mine: #A3E635;
   --chat-mine-foreground: #0D1A05;
@@ -141,8 +145,14 @@
   --sidebar-ring: #16B957;
   --chat-mine: #84CC16;
   --chat-mine-foreground: #162404;
-  --chat-mine-glow: rgba(132, 204, 22, 0.30);
+  --chat-mine-glow: rgba(132, 204, 22, 0.18);
+  --edge-light: rgba(255, 255, 255, 0.9);
+  --shadow-card: 0 1px 2px rgba(16, 24, 20, 0.05), 0 12px 32px -18px rgba(16, 24, 20, 0.18);
 }
+.light .bubble-glass { border-color: rgba(13,20,16,0.08); box-shadow: 0 6px 18px -12px rgba(16,24,20,0.2); }
+.light .bubble-glass-mine { background: linear-gradient(135deg, rgba(22,185,87,0.22), rgba(34,184,242,0.12)); color: #0B2415; }
+.light .bubble-glass-theirs { background: rgba(255,255,255,0.85); color: #121416; }
+.light .text-post { box-shadow: var(--shadow-card); }
 
 @layer base {
   * { border-color: var(--hairline); }
@@ -198,17 +208,18 @@
   background-color: color-mix(in oklab, var(--surface) 78%, transparent);
   backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid var(--hairline);
+  box-shadow: inset 0 1px 0 var(--edge-light);
 }
 @utility glass-heavy {
   background-color: color-mix(in oklab, var(--surface) 92%, transparent);
   backdrop-filter: blur(28px) saturate(180%);
   border: 1px solid var(--hairline);
-  box-shadow: 0 18px 50px -28px color-mix(in oklab, var(--primary) 12%, transparent);
+  box-shadow: inset 0 1px 0 var(--edge-light), var(--shadow-card);
 }
 @utility social-card {
   background: linear-gradient(145deg, color-mix(in oklab, var(--surface-2) 42%, var(--surface)), var(--surface));
   border: 1px solid var(--hairline);
-  box-shadow: 0 18px 55px -38px color-mix(in oklab, var(--primary) 10%, transparent);
+  box-shadow: inset 0 1px 0 var(--edge-light), var(--shadow-card);
 }
 @utility text-gradient-brand {
   color: var(--foreground);
@@ -218,7 +229,7 @@
   color: var(--primary-foreground);
 }
 @utility shadow-elegant {
-  box-shadow: 0 1px 0 var(--hairline) inset, 0 20px 60px -30px rgba(0,0,0,0.8);
+  box-shadow: 0 1px 0 var(--edge-light) inset, var(--shadow-card);
 }
 @utility no-scrollbar {
   scrollbar-width: none;

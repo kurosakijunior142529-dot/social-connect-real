@@ -193,7 +193,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
              <SignedVideo
                bucket="posts"
                path={post.media_url ?? ""}
-               className="w-full max-h-[80vh] aspect-[4/5]"
+               className="w-full max-h-[80vh] aspect-[4/5] mx-auto"
                fit="contain"
                expandHref={`/reels?post=${post.id}`}
                watermarkUsername={author?.username}

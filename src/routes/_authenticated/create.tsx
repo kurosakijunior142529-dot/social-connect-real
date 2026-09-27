@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BarChart3,
   Check,
+  Eye,
   FileText,
   ImagePlus,
   Images,

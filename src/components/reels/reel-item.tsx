@@ -458,7 +458,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           poster={posterUrl ?? undefined}
           // `src` é anexado/desanexado pelo efeito — o elemento nunca desmonta,
           // então o decoder e o buffer sobrevivem à rolagem.
-          className="absolute inset-0 block h-full w-full object-cover [transform:translateZ(0)]"
+          className="absolute inset-0 block h-full w-full object-contain [transform:translateZ(0)]"
           loop
           playsInline
           muted={muted}

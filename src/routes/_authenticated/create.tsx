@@ -180,6 +180,7 @@ function CreatePage() {
     setMode(next);
     setPublishState("idle");
     setCaptionIdeas([]);
+    setStep("compose");
   }
 
   async function submitTextOrPoll() {

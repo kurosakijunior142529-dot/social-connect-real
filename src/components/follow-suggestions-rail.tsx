@@ -77,7 +77,7 @@ export function FollowSuggestionsRail({ currentUserId }: { currentUserId: string
         </button>
       </header>
 
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {q.isLoading
           ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-[228px] w-[156px] shrink-0 rounded-[26px]" />)
           : list.map((p) => {

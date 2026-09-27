@@ -127,6 +127,8 @@ function FeedPage() {
         <StoriesRail currentUserId={user.id} currentProfile={meProfile.data} />
       </div>
 
+      <FollowSuggestionsRail currentUserId={user.id} />
+
       <WhatsNewCard />
 
       <WatchRoomsRail />
@@ -135,7 +137,6 @@ function FeedPage() {
 
       <DailyPromptCard />
 
-      <FollowSuggestionsRail currentUserId={user.id} />
 
 
       {query.isLoading ? (

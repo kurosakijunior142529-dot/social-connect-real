@@ -368,6 +368,7 @@ export function VideoPlayer({
   };
 
   const progress = duration > 0 ? (current / duration) * 100 : 0;
+  const [ratio, setRatio] = useState<number | null>(null);
 
   return (
     <div
@@ -376,6 +377,7 @@ export function VideoPlayer({
         "ring-1 ring-white/10 shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8),inset_0_0_60px_rgba(0,0,0,0.55)]",
         className,
       )}
+      style={fit === "contain" && ratio ? { aspectRatio: String(Math.min(Math.max(ratio, 0.5625), 1.91)) } : undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -397,6 +399,8 @@ export function VideoPlayer({
         className={cn("h-full w-full", fit === "contain" ? "object-contain" : "object-cover")}
         onLoadedMetadata={(e) => {
           setDuration(e.currentTarget.duration || 0);
+          const { videoWidth: vw, videoHeight: vh } = e.currentTarget;
+          if (vw && vh) setRatio(vw / vh);
           setLoading(false);
         }}
         onTimeUpdate={(e) => {

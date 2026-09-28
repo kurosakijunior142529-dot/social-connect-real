@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { AtSign, Bell, Bookmark, Camera, CheckCircle2, ImagePlus, Languages, LogOut, Mail, BellOff, Moon, Shield, Sparkles, Store, Sun, Tv, UserRound } from "lucide-react";
+import { AtSign, Bell, Bookmark, Camera, CheckCircle2, ChevronLeft, HelpCircle, ImagePlus, Languages, Lock, LogOut, Mail, BellOff, Moon, Shield, ShieldCheck, ShieldOff, Sparkles, Store, Sun, Tv, UserRound, Wallet } from "lucide-react";
 import { signOutAndClearSession } from "@/lib/auth-session";
 import { AvatarEditor } from "@/components/user/avatar-editor";
 import { InterestsEditor } from "@/components/profile/interests-editor";
@@ -20,6 +20,13 @@ import { useSmartRepliesEnabled, TRANSLATE_LANGUAGES } from "@/lib/chat-settings
 import { useI18n, LOCALES, type LocaleCode } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/settings")({
+  head: () => ({
+    meta: [
+      { title: "Configurações · Vibely" },
+      { name: "description", content: "Edite seu perfil, e-mail, notificações, aparência, idioma e privacidade no Vibely." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: SettingsPage,
 });
 
@@ -168,10 +175,41 @@ function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-lg pb-8">
-      <header className="space-y-1">
-        <div className="text-[11px] uppercase tracking-[0.25em] text-primary">sua conta</div>
-        <h1 className="text-3xl font-display font-black">Configurações</h1>
+      <header className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => (window.history.length > 1 ? window.history.back() : navigate({ to: "/account" }))}
+          className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] transition"
+          aria-label="Voltar"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.25em] text-primary">sua conta</div>
+          <h1 className="text-2xl font-display font-black leading-tight">Configurações</h1>
+        </div>
       </header>
+
+      <nav aria-label="Seções" className="sticky top-0 z-10 -mx-1 flex gap-2 overflow-x-auto bg-background/80 px-1 py-2 backdrop-blur-xl [scrollbar-width:none]">
+        {[
+          ["perfil", "Perfil"],
+          ["conta", "E-mail"],
+          ["notificacoes", "Notificações"],
+          ["aparencia", "Aparência"],
+          ["idioma", "Idioma"],
+          ["privacidade", "Privacidade"],
+          ["sessao", "Sessão"],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="shrink-0 rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3.5 py-1.5 text-xs font-medium text-foreground/80 hover:text-foreground transition"
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
 
       {/* Hero de identidade */}
       <section className="overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] shadow-elegant">
@@ -222,7 +260,7 @@ function SettingsPage() {
         </div>
       </section>
 
-      <form onSubmit={save} className="space-y-4 rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4">
+      <form id="perfil" onSubmit={save} className="scroll-mt-24 space-y-4 rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4">
         <div className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-[color:var(--surface-2)] text-primary">
             <UserRound className="h-4 w-4" />
@@ -307,12 +345,15 @@ function SettingsPage() {
         </Button>
       </form>
 
-      <EmailSection currentEmail={user.email ?? ""} />
+      <div id="conta" className="scroll-mt-24">
+        <EmailSection currentEmail={user.email ?? ""} />
+      </div>
 
+      <div id="notificacoes" className="scroll-mt-24">
+        <PushSettings userId={user.id} />
+      </div>
 
-      <PushSettings userId={user.id} />
-
-      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+      <section id="aparencia" className="scroll-mt-24 space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>
           <h2 className="text-base font-semibold">Aparência</h2>
           <p className="text-[13px] text-muted-foreground">Escolha como o Vibely aparece neste dispositivo.</p>
@@ -342,7 +383,7 @@ function SettingsPage() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+      <section id="idioma" className="scroll-mt-24 space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>
           <h2 className="text-base font-semibold">Meu idioma</h2>
           <p className="text-[13px] text-muted-foreground">
@@ -373,7 +414,22 @@ function SettingsPage() {
         </div>
       </section>
 
-      <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+      <section id="privacidade" className="scroll-mt-24 space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
+        <div>
+          <h2 className="text-base font-semibold">Privacidade e segurança</h2>
+          <p className="text-[13px] text-muted-foreground">Controle quem vê você, sua senha e bloqueios.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <SettingsShortcut to="/account/privacy" icon={<Lock className="h-4 w-4" />} label="Privacidade" />
+          <SettingsShortcut to="/account/security" icon={<ShieldCheck className="h-4 w-4" />} label="Senha e sessões" />
+          <SettingsShortcut to="/account/blocked" icon={<ShieldOff className="h-4 w-4" />} label="Bloqueados" />
+          <SettingsShortcut to="/account/support" icon={<HelpCircle className="h-4 w-4" />} label="Ajuda" />
+          <SettingsShortcut to="/wallet" icon={<Wallet className="h-4 w-4" />} label="Carteira" />
+          <SettingsShortcut to="/account" icon={<UserRound className="h-4 w-4" />} label="Central da conta" />
+        </div>
+      </section>
+
+      <section id="sessao" className="scroll-mt-24 space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div className="flex items-start gap-3">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[color:var(--surface-2)] text-primary">
             <Shield className="h-5 w-5" />
@@ -485,7 +541,17 @@ function SettingsShortcut({
   icon,
   label,
 }: {
-  to: "/notifications" | "/saved" | "/watch" | "/marketplace";
+  to:
+    | "/notifications"
+    | "/saved"
+    | "/watch"
+    | "/marketplace"
+    | "/account/privacy"
+    | "/account/security"
+    | "/account/blocked"
+    | "/account/support"
+    | "/wallet"
+    | "/account";
   icon: ReactNode;
   label: string;
 }) {

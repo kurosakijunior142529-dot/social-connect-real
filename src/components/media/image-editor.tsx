@@ -15,6 +15,7 @@ import {
   Sparkles,
   SlidersHorizontal,
   Hand,
+  Maximize,
 } from "lucide-react";
 
 export type CropRect = { x: number; y: number; w: number; h: number }; // % da imagem (0..100)

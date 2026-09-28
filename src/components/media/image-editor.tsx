@@ -211,10 +211,20 @@ export function ImageEditor({
   const onWheel = useCallback(
     (e: React.WheelEvent) => {
       e.preventDefault?.();
-      onChange({ ...value, zoom: clamp(value.zoom - e.deltaY * 0.002, 1, 4) });
+      setZoom(value.zoom - e.deltaY * 0.002);
     },
-    [onChange, value],
+    [setZoom, value.zoom],
   );
+
+  // Ao trocar de proporção, reencaixa a foto para não sobrar fundo preto.
+  useEffect(() => {
+    if (freeMode || !natural) return;
+    const { mx, my } = offsetLimits(value.zoom);
+    const nx = clamp(value.offsetX, -mx, mx);
+    const ny = clamp(value.offsetY, -my, my);
+    if (nx !== value.offsetX || ny !== value.offsetY) onChange({ ...value, offsetX: nx, offsetY: ny });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.aspect, value.rotation, natural, freeMode]);
 
   return (
     <div className="space-y-3">

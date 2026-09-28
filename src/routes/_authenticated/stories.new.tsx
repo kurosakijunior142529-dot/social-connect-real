@@ -145,7 +145,7 @@ function NewStoryPage() {
               <video src={preview} className="h-full w-full object-contain" muted autoPlay loop playsInline />
             </div>
           ) : (
-            <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={STORY_ASPECTS} />
+            <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={STORY_ASPECTS} collapsible frameMaxHeight="52dvh" />
           )}
           <button
             type="button"

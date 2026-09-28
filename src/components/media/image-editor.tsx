@@ -350,9 +350,24 @@ export function ImageEditor({
         )}
       </div>
 
+      {collapsible && (
+        <button
+          type="button"
+          onClick={() => setToolsOpen((o) => !o)}
+          className={cn(
+            "mx-auto flex h-9 items-center gap-2 rounded-full border px-4 text-xs font-semibold transition",
+            toolsOpen ? "border-primary/50 bg-primary/10 text-primary" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
+          )}
+        >
+          <SlidersHorizontal className="h-4 w-4" /> {toolsOpen ? "Fechar edição" : "Editar foto"}
+        </button>
+      )}
 
+      {toolsOpen && (
+      <>
       {/* Abas */}
       <div className="flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+
         {TABS.map((t) => (
           <button
             key={t.id}

@@ -262,8 +262,15 @@ export function ImageEditor({
       {/* Pré-visualização */}
       <div
         ref={frameRef}
-        className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-black touch-none select-none"
-        style={{ aspectRatio: String(aspect) }}
+        className={cn(
+          "relative mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-black select-none",
+          freeMode ? "touch-none" : "[touch-action:pan-y]",
+        )}
+        style={{
+          aspectRatio: String(aspect),
+          maxWidth: frameMaxHeight ? `calc(${frameMaxHeight} * ${aspect})` : undefined,
+        }}
+
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}

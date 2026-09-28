@@ -26,6 +26,7 @@ function NewStoryPage() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
   const [stickerType, setStickerType] = useState<"none" | "poll" | "question">("none");

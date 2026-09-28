@@ -303,7 +303,7 @@ export function ImageEditor({
           />
         ) : null}
         {/* guias de recorte */}
-        {!freeMode && (
+        {!freeMode && toolsOpen && (
           <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">
             {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="border border-white/20" />
@@ -311,7 +311,7 @@ export function ImageEditor({
           </div>
         )}
         {/* dica de gestos */}
-        {hint && (
+        {hint && toolsOpen && (
           <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white backdrop-blur">
               <Hand className="h-3.5 w-3.5" />{" "}
@@ -320,7 +320,8 @@ export function ImageEditor({
           </div>
         )}
         {/* zoom rápido */}
-        {!freeMode && (
+        {!freeMode && toolsOpen && (
+
         <div className="absolute right-2 top-2 flex flex-col gap-1.5">
           <button
             type="button"

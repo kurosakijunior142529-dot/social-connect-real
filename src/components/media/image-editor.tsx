@@ -118,6 +118,21 @@ export function ImageEditor({
     return () => window.clearTimeout(t);
   }, [hint]);
 
+  /** Limite de deslocamento (em unidades -1..1) para a foto nunca deixar tarja preta. */
+  const offsetLimits = useCallback(
+    (zoom: number) => {
+      const rect = frameRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0 || rect.height === 0) return { mx: 0, my: 0 };
+      const frameRatio = rect.width / rect.height;
+      const dw = imgRatio > frameRatio ? rect.height * imgRatio : rect.width;
+      const dh = imgRatio > frameRatio ? rect.height : rect.width / imgRatio;
+      const mx = Math.max(0, (dw * zoom - rect.width) / 2) / (rect.width / 2);
+      const my = Math.max(0, (dh * zoom - rect.height) / 2) / (rect.height / 2);
+      return { mx: Math.min(mx, 1), my: Math.min(my, 1) };
+    },
+    [imgRatio],
+  );
+
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (value.aspect === "free") return; // no corte livre, os gestos pertencem à moldura
@@ -145,7 +160,14 @@ export function ImageEditor({
         const [a, b] = [...pointers.current.values()];
         const dist = Math.hypot(a.x - b.x, a.y - b.y);
         if (pinch.current.dist > 0 && dist > 0) {
-          onChange({ ...value, zoom: clamp(pinch.current.zoom * (dist / pinch.current.dist), 1, 4) });
+          const zoom = clamp(pinch.current.zoom * (dist / pinch.current.dist), 1, 4);
+          const { mx, my } = offsetLimits(zoom);
+          onChange({
+            ...value,
+            zoom,
+            offsetX: clamp(value.offsetX, -mx, mx),
+            offsetY: clamp(value.offsetY, -my, my),
+          });
         }
         return;
       }
@@ -153,16 +175,31 @@ export function ImageEditor({
       const d = drag.current;
       const rect = frameRef.current?.getBoundingClientRect();
       if (!d || !rect) return;
-      // Sensibilidade suave: meio frame de arraste cobre todo o espaço livre
-      const nx = d.ox + ((e.clientX - d.x) / rect.width) * 1.6;
-      const ny = d.oy + ((e.clientY - d.y) / rect.height) * 1.6;
+      // Arraste 1:1 com o dedo: o deslocamento acompanha exatamente o movimento
+      const nx = d.ox + (e.clientX - d.x) / (rect.width / 2);
+      const ny = d.oy + (e.clientY - d.y) / (rect.height / 2);
+      const { mx, my } = offsetLimits(value.zoom);
       onChange({
         ...value,
-        offsetX: clamp(nx, -1, 1),
-        offsetY: clamp(ny, -1, 1),
+        offsetX: clamp(nx, -mx, mx),
+        offsetY: clamp(ny, -my, my),
       });
     },
-    [onChange, value],
+    [onChange, value, offsetLimits],
+  );
+
+  const setZoom = useCallback(
+    (z: number) => {
+      const zoom = clamp(z, 1, 4);
+      const { mx, my } = offsetLimits(zoom);
+      onChange({
+        ...value,
+        zoom,
+        offsetX: clamp(value.offsetX, -mx, mx),
+        offsetY: clamp(value.offsetY, -my, my),
+      });
+    },
+    [onChange, value, offsetLimits],
   );
 
   const endPointer = useCallback((e: React.PointerEvent) => {

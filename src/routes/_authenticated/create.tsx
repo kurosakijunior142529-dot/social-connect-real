@@ -512,7 +512,7 @@ function CreatePage() {
                   <div className="animate-fade-in space-y-3">
                     <div className="relative overflow-hidden rounded-[26px] bg-background ring-1 ring-border/60">
                       {!isVideo ? (
-                        <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={FEED_ASPECTS} />
+                        <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={FEED_ASPECTS} collapsible frameMaxHeight="52dvh" />
                       ) : (
                         <video src={preview} controls playsInline className="mx-auto max-h-[58dvh] w-full object-contain" />
                       )}

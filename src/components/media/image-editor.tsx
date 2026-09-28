@@ -85,20 +85,28 @@ export function ImageEditor({
   value,
   onChange,
   aspects,
+  collapsible = false,
+  frameMaxHeight,
 }: {
   src: string;
   value: ImageEditState;
   onChange: (v: ImageEditState) => void;
   /** IDs de proporção permitidos (padrão: todos). */
   aspects?: readonly string[];
+  /** Mostra as ferramentas só quando o usuário tocar em "Editar". */
+  collapsible?: boolean;
+  /** Altura máxima da moldura (ex.: "58dvh"). */
+  frameMaxHeight?: string;
 }) {
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [tab, setTab] = useState<Tab>("crop");
   const [hint, setHint] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(!collapsible);
   const frameRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number; active: boolean } | null>(null);
   const pinch = useRef<{ dist: number; zoom: number } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+
 
   const rotated = value.rotation === 90 || value.rotation === 270;
   const imgRatio = natural ? (rotated ? natural.h / natural.w : natural.w / natural.h) : 1;
@@ -137,16 +145,17 @@ export function ImageEditor({
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (value.aspect === "free") return; // no corte livre, os gestos pertencem à moldura
-      (e.target as Element).setPointerCapture?.(e.pointerId);
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      setHint(false);
       if (pointers.current.size === 2) {
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+        setHint(false);
         const [a, b] = [...pointers.current.values()];
         pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: value.zoom };
         drag.current = null;
         return;
       }
-      drag.current = { x: e.clientX, y: e.clientY, ox: value.offsetX, oy: value.offsetY };
+      // Só vira arraste depois de um movimento claro: toques leves e rolagem não mexem a foto
+      drag.current = { x: e.clientX, y: e.clientY, ox: value.offsetX, oy: value.offsetY, active: false };
     },
     [value.offsetX, value.offsetY, value.zoom, value.aspect],
   );
@@ -176,10 +185,30 @@ export function ImageEditor({
       const d = drag.current;
       const rect = frameRef.current?.getBoundingClientRect();
       if (!d || !rect) return;
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      const { mx, my } = offsetLimits(value.zoom);
+      if (!d.active) {
+        if (Math.hypot(dx, dy) < 10) return; // toque/rolagem: a foto fica parada
+        // Gesto majoritariamente vertical sem espaço para mover: deixa a página rolar
+        if (Math.abs(dy) > Math.abs(dx) * 1.4 && my <= 0.001) {
+          drag.current = null;
+          return;
+        }
+        if (mx <= 0.001 && my <= 0.001) {
+          drag.current = null;
+          return;
+        }
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+        setHint(false);
+        d.active = true;
+        d.x = e.clientX;
+        d.y = e.clientY;
+        return;
+      }
       // Arraste 1:1 com o dedo: o deslocamento acompanha exatamente o movimento
       const nx = d.ox + (e.clientX - d.x) / (rect.width / 2);
       const ny = d.oy + (e.clientY - d.y) / (rect.height / 2);
-      const { mx, my } = offsetLimits(value.zoom);
       onChange({
         ...value,
         offsetX: clamp(nx, -mx, mx),
@@ -188,6 +217,7 @@ export function ImageEditor({
     },
     [onChange, value, offsetLimits],
   );
+
 
   const setZoom = useCallback(
     (z: number) => {
@@ -232,8 +262,15 @@ export function ImageEditor({
       {/* Pré-visualização */}
       <div
         ref={frameRef}
-        className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-black touch-none select-none"
-        style={{ aspectRatio: String(aspect) }}
+        className={cn(
+          "relative mx-auto w-full max-w-md overflow-hidden rounded-3xl bg-black select-none",
+          freeMode ? "touch-none" : "[touch-action:pan-y]",
+        )}
+        style={{
+          aspectRatio: String(aspect),
+          maxWidth: frameMaxHeight ? `calc(${frameMaxHeight} * ${aspect})` : undefined,
+        }}
+
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
@@ -266,7 +303,7 @@ export function ImageEditor({
           />
         ) : null}
         {/* guias de recorte */}
-        {!freeMode && (
+        {!freeMode && toolsOpen && (
           <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">
             {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="border border-white/20" />
@@ -274,7 +311,7 @@ export function ImageEditor({
           </div>
         )}
         {/* dica de gestos */}
-        {hint && (
+        {hint && toolsOpen && (
           <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white backdrop-blur">
               <Hand className="h-3.5 w-3.5" />{" "}
@@ -283,7 +320,8 @@ export function ImageEditor({
           </div>
         )}
         {/* zoom rápido */}
-        {!freeMode && (
+        {!freeMode && toolsOpen && (
+
         <div className="absolute right-2 top-2 flex flex-col gap-1.5">
           <button
             type="button"
@@ -313,9 +351,24 @@ export function ImageEditor({
         )}
       </div>
 
+      {collapsible && (
+        <button
+          type="button"
+          onClick={() => setToolsOpen((o) => !o)}
+          className={cn(
+            "mx-auto flex h-9 items-center gap-2 rounded-full border px-4 text-xs font-semibold transition",
+            toolsOpen ? "border-primary/50 bg-primary/10 text-primary" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
+          )}
+        >
+          <SlidersHorizontal className="h-4 w-4" /> {toolsOpen ? "Fechar edição" : "Editar foto"}
+        </button>
+      )}
 
+      {toolsOpen && (
+      <>
       {/* Abas */}
       <div className="flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -461,7 +514,10 @@ export function ImageEditor({
           />
         </div>
       )}
+      </>
+      )}
     </div>
+
   );
 }
 

@@ -85,20 +85,28 @@ export function ImageEditor({
   value,
   onChange,
   aspects,
+  collapsible = false,
+  frameMaxHeight,
 }: {
   src: string;
   value: ImageEditState;
   onChange: (v: ImageEditState) => void;
   /** IDs de proporção permitidos (padrão: todos). */
   aspects?: readonly string[];
+  /** Mostra as ferramentas só quando o usuário tocar em "Editar". */
+  collapsible?: boolean;
+  /** Altura máxima da moldura (ex.: "58dvh"). */
+  frameMaxHeight?: string;
 }) {
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [tab, setTab] = useState<Tab>("crop");
   const [hint, setHint] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(!collapsible);
   const frameRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number; active: boolean } | null>(null);
   const pinch = useRef<{ dist: number; zoom: number } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+
 
   const rotated = value.rotation === 90 || value.rotation === 270;
   const imgRatio = natural ? (rotated ? natural.h / natural.w : natural.w / natural.h) : 1;

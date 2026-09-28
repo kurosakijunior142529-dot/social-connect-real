@@ -287,22 +287,31 @@ export function ImageEditor({
           <button
             type="button"
             aria-label="Aumentar zoom"
-            onClick={() => onChange({ ...value, zoom: clamp(value.zoom + 0.25, 1, 4) })}
-            className="grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+            onClick={() => setZoom(value.zoom + 0.25)}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
           >
             <ZoomIn className="h-4 w-4" />
           </button>
           <button
             type="button"
             aria-label="Diminuir zoom"
-            onClick={() => onChange({ ...value, zoom: clamp(value.zoom - 0.25, 1, 4) })}
-            className="grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+            onClick={() => setZoom(value.zoom - 0.25)}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
           >
             <ZoomOut className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Centralizar a foto"
+            onClick={() => onChange({ ...value, zoom: 1, offsetX: 0, offsetY: 0 })}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+          >
+            <Maximize className="h-4 w-4" />
           </button>
         </div>
         )}
       </div>
+
 
       {/* Abas */}
       <div className="flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">

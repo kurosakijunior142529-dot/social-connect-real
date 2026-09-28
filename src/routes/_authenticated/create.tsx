@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { clearDraft, loadDraftFiles, readDraftMeta, saveDraft, type PostDraftMeta } from "@/lib/post-draft";
 import {
   ArrowLeft,
   ArrowRight,
@@ -106,6 +107,58 @@ function CreatePage() {
     },
     [],
   );
+
+  // ---------- rascunho automático ----------
+  const [pendingDraft, setPendingDraft] = useState<PostDraftMeta | null>(null);
+  const draftReady = useRef(false);
+  const lastFiles = useRef<string>("");
+
+  useEffect(() => {
+    const meta = readDraftMeta(user.id);
+    if (meta && (meta.hasMain || meta.extras || meta.caption.trim() || meta.mode === "poll")) setPendingDraft(meta);
+    else draftReady.current = true;
+  }, [user.id]);
+
+  async function restoreDraft() {
+    const meta = pendingDraft;
+    if (!meta) return;
+    setPendingDraft(null);
+    const { main, extras: ex } = await loadDraftFiles(user.id, meta);
+    setMode(meta.mode as Mode);
+    setCaption(meta.caption ?? "");
+    setMusic((meta.music as MusicSelection | null) ?? null);
+    if (meta.poll) setPoll(meta.poll as PollDraft);
+    if (main) pick(main);
+    if (ex.length) setExtras(ex.map((f) => ({ file: f, url: URL.createObjectURL(f) })));
+    if (meta.step === "details" && (meta.mode !== "media" || main)) setStep("details");
+    draftReady.current = true;
+    toast.success("Rascunho restaurado");
+  }
+
+  async function discardDraft() {
+    setPendingDraft(null);
+    await clearDraft(user.id);
+    draftReady.current = true;
+  }
+
+  useEffect(() => {
+    if (!draftReady.current || publishState === "success") return;
+    const t = setTimeout(() => {
+      const sig = [file ? `${file.name}:${file.size}` : "", ...extras.map((e) => `${e.file.name}:${e.file.size}`)].join("|");
+      const changed = sig !== lastFiles.current;
+      lastFiles.current = sig;
+      const empty = !file && !extras.length && !caption.trim() && !music && mode !== "poll";
+      if (empty) return void clearDraft(user.id);
+      void saveDraft(
+        user.id,
+        { caption, music, mode, poll, step },
+        file,
+        extras.map((e) => e.file),
+        changed,
+      );
+    }, 600);
+    return () => clearTimeout(t);
+  }, [file, extras, caption, music, mode, poll, step, publishState, user.id]);
 
   async function suggestCaptionIdeas() {
     if (thinkingCaptions) return;
@@ -219,6 +272,8 @@ function CreatePage() {
       } as any);
       if (error) throw error;
       setPublishState("success");
+      draftReady.current = false;
+      await clearDraft(user.id);
       toast.success(mode === "poll" ? "Enquete publicada!" : "Publicado!");
       navigate({ to: "/" });
     } catch (err: any) {
@@ -328,6 +383,8 @@ function CreatePage() {
         if (mErr) throw mErr;
       }
       setPublishState("success");
+      draftReady.current = false;
+      await clearDraft(user.id);
       toast.success("Post publicado!");
       navigate({ to: "/" });
     } catch (err: any) {
@@ -381,6 +438,25 @@ function CreatePage() {
       </header>
 
       <main className="space-y-4 px-3 pt-4 sm:px-4 md:px-5">
+        {pendingDraft ? (
+          <div className="flex flex-col gap-3 rounded-2xl border border-primary/30 bg-surface/90 p-4 backdrop-blur sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold">Você tem um rascunho salvo</div>
+              <div className="text-xs text-muted-foreground">
+                {pendingDraft.hasMain ? `${1 + pendingDraft.extras} mídia(s)` : "Sem mídia"}
+                {pendingDraft.caption ? ` · "${pendingDraft.caption.slice(0, 40)}${pendingDraft.caption.length > 40 ? "…" : ""}"` : ""}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" className="rounded-full" onClick={() => void discardDraft()}>
+                Começar do zero
+              </Button>
+              <Button type="button" className="rounded-full" onClick={() => void restoreDraft()}>
+                Continuar
+              </Button>
+            </div>
+          </div>
+        ) : null}
         {step === "compose" ? (
           <>
             <section aria-labelledby="content-type-label">

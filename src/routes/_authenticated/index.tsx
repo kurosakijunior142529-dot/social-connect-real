@@ -98,6 +98,14 @@ function FeedPage() {
     return () => io.disconnect();
   }, [canLoadMore, query.isFetching, loadedCount]);
 
+  const [showExtras, setShowExtras] = useState(false);
+  useEffect(() => {
+    if (showExtras) return;
+    const delay = query.isLoading ? 2500 : 400;
+    const t = setTimeout(() => setShowExtras(true), delay);
+    return () => clearTimeout(t);
+  }, [query.isLoading, showExtras]);
+
   return (
     <div>
       {/* Sticky slim header */}
@@ -129,13 +137,15 @@ function FeedPage() {
 
       <FollowSuggestionsRail currentUserId={user.id} />
 
-      <WhatsNewCard />
-
-      <WatchRoomsRail />
-
-      <VibeCheckCard />
-
-      <DailyPromptCard />
+      {/* Blocos secundários só entram depois dos posts, para o feed abrir rápido. */}
+      {showExtras ? (
+        <>
+          <WhatsNewCard />
+          <WatchRoomsRail />
+          <VibeCheckCard />
+          <DailyPromptCard />
+        </>
+      ) : null}
 
 
 

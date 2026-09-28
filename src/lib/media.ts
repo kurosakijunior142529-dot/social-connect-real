@@ -2,11 +2,42 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type MediaBucket = "avatars" | "posts" | "stories" | "chats" | "covers" | "realities";
 
+/**
+ * Reduz fotos grandes antes de enviar (máx. 1920px, JPEG 82%).
+ * Uma foto de 8 MB costuma cair para ~400 KB, sem perda visível.
+ * GIFs, vídeos e arquivos pequenos passam intactos.
+ */
+export async function compressImage(file: File, maxSide = 1920): Promise<File> {
+  if (typeof document === "undefined") return file;
+  if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type)) return file;
+  if (file.size < 400 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], name, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 export async function uploadMedia(
   bucket: MediaBucket,
   userId: string,
-  file: File,
+  original: File,
 ): Promise<string> {
+  const file = await compressImage(original);
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
   const path = `${userId}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, {

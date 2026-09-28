@@ -15,6 +15,7 @@ import {
   Sparkles,
   SlidersHorizontal,
   Hand,
+  Maximize,
 } from "lucide-react";
 
 export type CropRect = { x: number; y: number; w: number; h: number }; // % da imagem (0..100)
@@ -75,8 +76,8 @@ function clamp(n: number, min: number, max: number) {
 }
 
 /** Conjuntos de proporções por contexto. */
-export const FEED_ASPECTS = ["0.8", "original", "free"] as const; // padrão Instagram 4:5
-export const STORY_ASPECTS = ["0.5625", "original", "free"] as const;
+export const FEED_ASPECTS = ["original", "0.8", "1", "0.5625", "free"] as const;
+export const STORY_ASPECTS = ["0.5625", "original", "1", "0.8", "free"] as const;
 
 /** Editor de fotos: recorte com arraste/pinça, giro, espelho, filtros e ajustes. */
 export function ImageEditor({
@@ -118,6 +119,21 @@ export function ImageEditor({
     return () => window.clearTimeout(t);
   }, [hint]);
 
+  /** Limite de deslocamento (em unidades -1..1) para a foto nunca deixar tarja preta. */
+  const offsetLimits = useCallback(
+    (zoom: number) => {
+      const rect = frameRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0 || rect.height === 0) return { mx: 0, my: 0 };
+      const frameRatio = rect.width / rect.height;
+      const dw = imgRatio > frameRatio ? rect.height * imgRatio : rect.width;
+      const dh = imgRatio > frameRatio ? rect.height : rect.width / imgRatio;
+      const mx = Math.max(0, (dw * zoom - rect.width) / 2) / (rect.width / 2);
+      const my = Math.max(0, (dh * zoom - rect.height) / 2) / (rect.height / 2);
+      return { mx: Math.min(mx, 1), my: Math.min(my, 1) };
+    },
+    [imgRatio],
+  );
+
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (value.aspect === "free") return; // no corte livre, os gestos pertencem à moldura
@@ -145,7 +161,14 @@ export function ImageEditor({
         const [a, b] = [...pointers.current.values()];
         const dist = Math.hypot(a.x - b.x, a.y - b.y);
         if (pinch.current.dist > 0 && dist > 0) {
-          onChange({ ...value, zoom: clamp(pinch.current.zoom * (dist / pinch.current.dist), 1, 4) });
+          const zoom = clamp(pinch.current.zoom * (dist / pinch.current.dist), 1, 4);
+          const { mx, my } = offsetLimits(zoom);
+          onChange({
+            ...value,
+            zoom,
+            offsetX: clamp(value.offsetX, -mx, mx),
+            offsetY: clamp(value.offsetY, -my, my),
+          });
         }
         return;
       }
@@ -153,16 +176,31 @@ export function ImageEditor({
       const d = drag.current;
       const rect = frameRef.current?.getBoundingClientRect();
       if (!d || !rect) return;
-      // Sensibilidade suave: meio frame de arraste cobre todo o espaço livre
-      const nx = d.ox + ((e.clientX - d.x) / rect.width) * 1.6;
-      const ny = d.oy + ((e.clientY - d.y) / rect.height) * 1.6;
+      // Arraste 1:1 com o dedo: o deslocamento acompanha exatamente o movimento
+      const nx = d.ox + (e.clientX - d.x) / (rect.width / 2);
+      const ny = d.oy + (e.clientY - d.y) / (rect.height / 2);
+      const { mx, my } = offsetLimits(value.zoom);
       onChange({
         ...value,
-        offsetX: clamp(nx, -1, 1),
-        offsetY: clamp(ny, -1, 1),
+        offsetX: clamp(nx, -mx, mx),
+        offsetY: clamp(ny, -my, my),
       });
     },
-    [onChange, value],
+    [onChange, value, offsetLimits],
+  );
+
+  const setZoom = useCallback(
+    (z: number) => {
+      const zoom = clamp(z, 1, 4);
+      const { mx, my } = offsetLimits(zoom);
+      onChange({
+        ...value,
+        zoom,
+        offsetX: clamp(value.offsetX, -mx, mx),
+        offsetY: clamp(value.offsetY, -my, my),
+      });
+    },
+    [onChange, value, offsetLimits],
   );
 
   const endPointer = useCallback((e: React.PointerEvent) => {
@@ -174,10 +212,20 @@ export function ImageEditor({
   const onWheel = useCallback(
     (e: React.WheelEvent) => {
       e.preventDefault?.();
-      onChange({ ...value, zoom: clamp(value.zoom - e.deltaY * 0.002, 1, 4) });
+      setZoom(value.zoom - e.deltaY * 0.002);
     },
-    [onChange, value],
+    [setZoom, value.zoom],
   );
+
+  // Ao trocar de proporção, reencaixa a foto para não sobrar fundo preto.
+  useEffect(() => {
+    if (freeMode || !natural) return;
+    const { mx, my } = offsetLimits(value.zoom);
+    const nx = clamp(value.offsetX, -mx, mx);
+    const ny = clamp(value.offsetY, -my, my);
+    if (nx !== value.offsetX || ny !== value.offsetY) onChange({ ...value, offsetX: nx, offsetY: ny });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.aspect, value.rotation, natural, freeMode]);
 
   return (
     <div className="space-y-3">
@@ -240,22 +288,31 @@ export function ImageEditor({
           <button
             type="button"
             aria-label="Aumentar zoom"
-            onClick={() => onChange({ ...value, zoom: clamp(value.zoom + 0.25, 1, 4) })}
-            className="grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+            onClick={() => setZoom(value.zoom + 0.25)}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
           >
             <ZoomIn className="h-4 w-4" />
           </button>
           <button
             type="button"
             aria-label="Diminuir zoom"
-            onClick={() => onChange({ ...value, zoom: clamp(value.zoom - 0.25, 1, 4) })}
-            className="grid h-8 w-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+            onClick={() => setZoom(value.zoom - 0.25)}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
           >
             <ZoomOut className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Centralizar a foto"
+            onClick={() => onChange({ ...value, zoom: 1, offsetX: 0, offsetY: 0 })}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+          >
+            <Maximize className="h-4 w-4" />
           </button>
         </div>
         )}
       </div>
+
 
       {/* Abas */}
       <div className="flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">

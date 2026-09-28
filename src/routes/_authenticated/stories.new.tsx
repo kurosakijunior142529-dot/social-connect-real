@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { Button } from "@/components/ui/button";
@@ -109,20 +109,20 @@ function NewStoryPage() {
         </div>
       </header>
 
-      <label className="group relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-[28px] border border-white/10 bg-[color:var(--surface-2)] shadow-[0_24px_70px_-30px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
-        {preview ? (
-          <>
-            {isVideo ? (
-              <video src={preview} className="h-full w-full object-cover" muted autoPlay loop playsInline />
-            ) : (
-              <img src={preview} alt="" className="h-full w-full object-cover" />
-            )}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
-            <span className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white backdrop-blur">
-              Toque para trocar
-            </span>
-          </>
-        ) : (
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+      />
+
+      {!preview ? (
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="group relative block aspect-[9/16] w-full cursor-pointer overflow-hidden rounded-[28px] border border-white/10 bg-[color:var(--surface-2)] shadow-[0_24px_70px_-30px_color-mix(in_oklab,var(--primary)_55%,transparent)]"
+        >
           <div className="absolute inset-0 grid place-items-center gap-3 text-center">
             <div
               aria-hidden
@@ -136,21 +136,26 @@ function NewStoryPage() {
               <div className="text-xs text-muted-foreground">Sua Vibe fica no ar por 24 horas</div>
             </div>
           </div>
-        )}
-        <input
-          type="file"
-          accept="image/*,video/*"
-          className="hidden"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-      </label>
-
-      {preview && !isVideo ? (
-        <div className="social-card space-y-3 rounded-2xl p-3">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Editar foto</p>
-          <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={STORY_ASPECTS} />
+        </button>
+      ) : (
+        <div className="space-y-3">
+          {isVideo ? (
+            <div className="relative aspect-[9/16] overflow-hidden rounded-[28px] border border-white/10 bg-black">
+              <video src={preview} className="h-full w-full object-contain" muted autoPlay loop playsInline />
+            </div>
+          ) : (
+            <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={STORY_ASPECTS} />
+          )}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="mx-auto flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-semibold transition hover:bg-white/10"
+          >
+            <ImagePlus className="h-4 w-4" /> Trocar foto
+          </button>
         </div>
-      ) : null}
+      )}
+
 
       <div className="social-card space-y-2 rounded-2xl p-3">
         <Textarea

@@ -150,7 +150,7 @@ function NewStoryPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="absolute left-1/2 top-2 z-10 flex h-8 -translate-x-[calc(50%+4.2rem)] items-center gap-1.5 rounded-full bg-black/60 px-3 text-[11px] font-semibold text-white backdrop-blur transition hover:bg-black/80"
+            className="absolute left-1/2 top-3 z-10 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3.5 text-[11px] font-semibold text-white backdrop-blur transition hover:bg-black/80"
           >
             <ImagePlus className="h-3.5 w-3.5" /> Trocar
           </button>

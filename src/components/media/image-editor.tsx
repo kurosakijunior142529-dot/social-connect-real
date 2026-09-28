@@ -498,7 +498,10 @@ export function ImageEditor({
           />
         </div>
       )}
+      </>
+      )}
     </div>
+
   );
 }
 

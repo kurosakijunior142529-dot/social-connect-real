@@ -75,8 +75,8 @@ function clamp(n: number, min: number, max: number) {
 }
 
 /** Conjuntos de proporções por contexto. */
-export const FEED_ASPECTS = ["0.8", "original", "free"] as const; // padrão Instagram 4:5
-export const STORY_ASPECTS = ["0.5625", "original", "free"] as const;
+export const FEED_ASPECTS = ["original", "0.8", "1", "0.5625", "free"] as const;
+export const STORY_ASPECTS = ["0.5625", "original", "1", "0.8", "free"] as const;
 
 /** Editor de fotos: recorte com arraste/pinça, giro, espelho, filtros e ajustes. */
 export function ImageEditor({

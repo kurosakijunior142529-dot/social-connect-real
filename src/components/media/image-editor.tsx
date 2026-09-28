@@ -145,16 +145,17 @@ export function ImageEditor({
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (value.aspect === "free") return; // no corte livre, os gestos pertencem à moldura
-      (e.target as Element).setPointerCapture?.(e.pointerId);
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      setHint(false);
       if (pointers.current.size === 2) {
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+        setHint(false);
         const [a, b] = [...pointers.current.values()];
         pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: value.zoom };
         drag.current = null;
         return;
       }
-      drag.current = { x: e.clientX, y: e.clientY, ox: value.offsetX, oy: value.offsetY };
+      // Só vira arraste depois de um movimento claro: toques leves e rolagem não mexem a foto
+      drag.current = { x: e.clientX, y: e.clientY, ox: value.offsetX, oy: value.offsetY, active: false };
     },
     [value.offsetX, value.offsetY, value.zoom, value.aspect],
   );
@@ -184,10 +185,30 @@ export function ImageEditor({
       const d = drag.current;
       const rect = frameRef.current?.getBoundingClientRect();
       if (!d || !rect) return;
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      const { mx, my } = offsetLimits(value.zoom);
+      if (!d.active) {
+        if (Math.hypot(dx, dy) < 10) return; // toque/rolagem: a foto fica parada
+        // Gesto majoritariamente vertical sem espaço para mover: deixa a página rolar
+        if (Math.abs(dy) > Math.abs(dx) * 1.4 && my <= 0.001) {
+          drag.current = null;
+          return;
+        }
+        if (mx <= 0.001 && my <= 0.001) {
+          drag.current = null;
+          return;
+        }
+        (e.target as Element).setPointerCapture?.(e.pointerId);
+        setHint(false);
+        d.active = true;
+        d.x = e.clientX;
+        d.y = e.clientY;
+        return;
+      }
       // Arraste 1:1 com o dedo: o deslocamento acompanha exatamente o movimento
       const nx = d.ox + (e.clientX - d.x) / (rect.width / 2);
       const ny = d.oy + (e.clientY - d.y) / (rect.height / 2);
-      const { mx, my } = offsetLimits(value.zoom);
       onChange({
         ...value,
         offsetX: clamp(nx, -mx, mx),
@@ -196,6 +217,7 @@ export function ImageEditor({
     },
     [onChange, value, offsetLimits],
   );
+
 
   const setZoom = useCallback(
     (z: number) => {

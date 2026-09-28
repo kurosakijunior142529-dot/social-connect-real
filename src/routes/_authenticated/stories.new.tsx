@@ -139,9 +139,9 @@ function NewStoryPage() {
           </div>
         </button>
       ) : (
-        <div className="space-y-3">
+        <div className="relative space-y-3">
           {isVideo ? (
-            <div className="relative aspect-[9/16] overflow-hidden rounded-[28px] border border-white/10 bg-black">
+            <div className="relative mx-auto aspect-[9/16] max-h-[52dvh] overflow-hidden rounded-[28px] border border-white/10 bg-black">
               <video src={preview} className="h-full w-full object-contain" muted autoPlay loop playsInline />
             </div>
           ) : (
@@ -150,11 +150,12 @@ function NewStoryPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="mx-auto flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-xs font-semibold transition hover:bg-white/10"
+            className="absolute left-1/2 top-2 z-10 flex h-8 -translate-x-[calc(50%+4.2rem)] items-center gap-1.5 rounded-full bg-black/60 px-3 text-[11px] font-semibold text-white backdrop-blur transition hover:bg-black/80"
           >
-            <ImagePlus className="h-4 w-4" /> Trocar foto
+            <ImagePlus className="h-3.5 w-3.5" /> Trocar
           </button>
         </div>
+
       )}
 
 

@@ -559,54 +559,98 @@ function CreatePage() {
                 ) : (
                   <div className="animate-fade-in space-y-3">
                     <div className="relative overflow-hidden rounded-[26px] bg-background ring-1 ring-border/60">
-                      {!isVideo ? (
-                        <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={FEED_ASPECTS} collapsible frameMaxHeight="52dvh" />
-                      ) : (
-                        <video src={preview} controls playsInline className="mx-auto max-h-[58dvh] w-full object-contain" />
-                      )}
+                      {!activeIsVideo && activeMedia ? (
+                        <ImageEditor
+                          key={activeMedia.url}
+                          src={activeMedia.url}
+                          value={activeMedia.edit}
+                          onChange={(v) => updateEditAt(activeIdx, v)}
+                          aspects={FEED_ASPECTS}
+                          collapsible
+                          frameMaxHeight="52dvh"
+                        />
+                      ) : activeMedia ? (
+                        <SimpleVideo src={activeMedia.url} />
+                      ) : null}
                       <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-background/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-foreground backdrop-blur">
-                        {1 + extras.length}/{MAX_MEDIA}
+                        {activeIdx + 1}/{mediaList.length}
                       </span>
                     </div>
 
                     <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-background ring-2 ring-primary/60">
-                        {isVideo ? (
-                          <video src={preview} muted playsInline className="h-full w-full object-cover" />
-                        ) : (
-                          <img src={preview} alt="" className="h-full w-full object-cover" />
-                        )}
-                        <span className="absolute left-1 top-1 rounded bg-background/80 px-1 text-[9px] font-bold text-primary">1</span>
-                      </div>
-                      {extras.map((ex, i) => (
-                        <div key={ex.url} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-background ring-1 ring-border">
-                          {ex.file.type.startsWith("video/") ? (
-                            <video src={ex.url} muted playsInline className="h-full w-full object-cover" />
-                          ) : (
-                            <img src={ex.url} alt="" className="h-full w-full object-cover" />
+                      {mediaList.map((m, i) => (
+                        <div
+                          key={m.url}
+                          className={cn(
+                            "relative h-[70px] w-[70px] shrink-0 overflow-hidden rounded-xl bg-background ring-1 ring-border",
+                            i === activeIdx && "ring-2 ring-primary",
                           )}
-                          <span className="absolute left-1 top-1 rounded bg-background/80 px-1 text-[9px] font-bold">{i + 2}</span>
+                        >
                           <button
                             type="button"
-                            onClick={() => removeExtra(i)}
-                            aria-label="Remover mídia"
-                            className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-background/85 text-destructive"
+                            onClick={() => setActiveIdx(i)}
+                            aria-label={`Editar mídia ${i + 1}`}
+                            className="absolute inset-0"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            {m.file.type.startsWith("video/") ? (
+                              <video src={m.url} muted playsInline className="h-full w-full object-cover" />
+                            ) : (
+                              <img src={m.url} alt="" className="h-full w-full object-cover" />
+                            )}
                           </button>
+                          <span className={cn("pointer-events-none absolute left-1 top-1 rounded bg-background/85 px-1 text-[9px] font-bold", i === activeIdx && "text-primary")}>
+                            {i + 1}
+                          </span>
+                          {i > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => removeExtra(i - 1)}
+                              aria-label="Remover mídia"
+                              className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-background/85 text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          ) : null}
+                          {mediaList.length > 1 ? (
+                            <div className="absolute inset-x-0 bottom-0 flex justify-between bg-background/75">
+                              <button
+                                type="button"
+                                disabled={i === 0}
+                                onClick={() => moveMedia(i, -1)}
+                                aria-label="Mover para a esquerda"
+                                className="grid h-5 w-1/2 place-items-center text-foreground disabled:opacity-30"
+                              >
+                                <ChevronLeft className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={i === mediaList.length - 1}
+                                onClick={() => moveMedia(i, 1)}
+                                aria-label="Mover para a direita"
+                                className="grid h-5 w-1/2 place-items-center text-foreground disabled:opacity-30"
+                              >
+                                <ChevronRight className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       ))}
-                      {1 + extras.length < MAX_MEDIA ? (
+                      {mediaList.length < MAX_MEDIA ? (
                         <button
                           type="button"
                           onClick={() => extraInputRef.current?.click()}
-                          className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-dashed border-primary/40 text-primary transition active:scale-95"
+                          className="grid h-[70px] w-[70px] shrink-0 place-items-center rounded-xl border border-dashed border-primary/40 text-primary transition active:scale-95"
                           aria-label="Adicionar mais mídias"
                         >
                           <ImagePlus className="h-5 w-5" />
                         </button>
                       ) : null}
                     </div>
+                    {mediaList.length > 1 ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        Toque em uma miniatura para enquadrar cada foto. Use as setas para trocar a ordem.
+                      </p>
+                    ) : null}
 
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="h-9 rounded-full border-border bg-surface-2/60 text-xs hover:bg-surface-2">
@@ -616,6 +660,7 @@ function CreatePage() {
                         <Trash2 className="h-4 w-4" /> Remover
                       </Button>
                     </div>
+
 
                     {isVideo ? (
                       <section className="rounded-[22px] border border-border/60 bg-surface/80 p-3 shadow-sm backdrop-blur">

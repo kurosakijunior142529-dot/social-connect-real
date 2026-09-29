@@ -7,6 +7,8 @@ import {
   ArrowRight,
   BarChart3,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   FileText,
   ImagePlus,

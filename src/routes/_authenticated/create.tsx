@@ -47,6 +47,11 @@ type Mode = "media" | "text" | "poll";
 const MAX_MEDIA = 10;
 type PublishState = "idle" | "publishing" | "success" | "error";
 
+/** Enquadramento inicial: 4:5 para fotos, original para vídeos. */
+function initialEdit(f: File): ImageEditState {
+  return { ...defaultImageEdit, aspect: f.type.startsWith("video/") ? "original" : "0.8" };
+}
+
 const modes = [
   { id: "media", label: "Foto/Vídeo", shortLabel: "Mídia", icon: Images },
   { id: "text", label: "Texto", shortLabel: "Texto", icon: FileText },

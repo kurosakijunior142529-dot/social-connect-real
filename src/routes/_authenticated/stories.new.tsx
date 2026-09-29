@@ -535,7 +535,7 @@ function NewStoryPage() {
               className="h-11 w-full rounded-full border border-white/15 bg-black/40 px-4 text-sm text-white outline-none backdrop-blur-md placeholder:text-white/55 focus:border-primary/60" />
             <div className="flex items-center gap-2">
               <button disabled={busy} onClick={submit} className="flex h-12 flex-1 items-center gap-2 rounded-full border border-white/15 bg-black/45 pl-1.5 pr-4 backdrop-blur-md disabled:opacity-60">
-                <UserAvatar url={avatar} name={user.email ?? "Você"} size={36} />
+                <UserAvatar avatarPath={avatar} displayName={user.email ?? "Você"} className="h-9 w-9" />
                 <span className="text-left leading-tight">
                   <span className="block text-sm font-bold">Sua Vibe</span>
                   <span className="block text-[10px] text-white/60">Fica no ar por 24h</span>

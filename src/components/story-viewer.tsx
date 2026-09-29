@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Trash2 } from "lucide-react";
+import { X, Trash2, Star, Music2, Volume2, VolumeX } from "lucide-react";
+import { getTrack, trackAudioUrl, type MusicTrack } from "@/lib/music/api";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { UserAvatar } from "@/components/user-avatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +19,9 @@ type StoryRow = {
   created_at: string;
   expires_at: string;
   sticker?: unknown;
+  audience?: string;
+  music_track_id?: string | null;
+  music_start_ms?: number;
 };
 
 type Grouped = {
@@ -51,6 +55,34 @@ export function StoryViewer({
   const isOwn = story?.user_id === viewerId;
 
   const { data: url } = useSignedUrl("stories", story?.media_url);
+  const [track, setTrack] = useState<MusicTrack | null>(null);
+  const [muted, setMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // trilha sonora da Vibe
+  useEffect(() => {
+    audioRef.current?.pause();
+    audioRef.current = null;
+    setTrack(null);
+    const id = story?.music_track_id;
+    if (!id) return;
+    let cancelled = false;
+    void (async () => {
+      const t = await getTrack(id);
+      if (cancelled || !t) return;
+      setTrack(t);
+      const src = await trackAudioUrl(t);
+      if (cancelled || !src) return;
+      const a = new Audio(src);
+      a.currentTime = (story?.music_start_ms ?? 0) / 1000;
+      a.muted = muted;
+      audioRef.current = a;
+      void a.play().catch(() => {});
+    })();
+    return () => { cancelled = true; audioRef.current?.pause(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.id]);
+  useEffect(() => { if (audioRef.current) audioRef.current.muted = muted; }, [muted]);
 
   const next = useMemo(
     () => () => {
@@ -135,8 +167,20 @@ export function StoryViewer({
             <div className="flex items-center gap-1.5 text-[11px] text-white/70">
               <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
               {formatDistanceToNowStrict(new Date(story.created_at), { locale: ptBR, addSuffix: true })}
+              {story.audience === "vip" ? (
+                <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-primary/20 px-1.5 py-0.5 font-semibold text-primary"><Star className="h-2.5 w-2.5 fill-current" />VIP</span>
+              ) : null}
             </div>
+            {track ? (
+              <div className="mt-0.5 flex items-center gap-1 text-[11px] text-white/80"><Music2 className="h-3 w-3" /><span className="truncate">{track.title} · {track.artist}</span></div>
+            ) : null}
           </div>
+          {track ? (
+            <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Ligar som" : "Tirar som"}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20 active:scale-95">
+              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+          ) : null}
           {isOwn ? (
             <button
               onClick={deleteStory}
@@ -156,7 +200,7 @@ export function StoryViewer({
         </div>
 
         {/* Media */}
-        <div className="absolute inset-0 grid place-items-center">
+        <div key={`${group.userId}-${story.id}`} className="absolute inset-0 grid place-items-center animate-in fade-in zoom-in-[0.97] duration-300 ease-out">
           {url ? (
             story.media_type === "video" ? (
               <video
@@ -211,7 +255,10 @@ export function StoryViewer({
                       story_id: story.id, user_id: viewerId, emoji: e,
                     });
                     if (error && !String(error.message).includes("duplicate")) toast.error(error.message);
-                    else toast.success(`Reagiu com ${e}`);
+                    else {
+                      try { navigator.vibrate?.(12); } catch { /* noop */ }
+                      toast.success(`Reagiu com ${e}`);
+                    }
                   }}
                   className="grid h-10 w-10 place-items-center rounded-full text-xl transition hover:-translate-y-1 hover:bg-white/12 active:scale-90"
                   aria-label={`Reagir ${e}`}

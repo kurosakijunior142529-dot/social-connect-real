@@ -739,20 +739,19 @@ export async function exportEditedImage(src: string, v: ImageEditState, maxSide 
   ctx.fillRect(0, 0, outW, outH);
   ctx.filter = cssFilter(v);
 
-  // "object-cover" + zoom
-  const cover = Math.max(outW / iw, outH / ih) * v.zoom;
-  const drawW = iw * cover;
-  const drawH = ih * cover;
-  const dx = (outW - drawW) / 2 + (v.offsetX * outW) / 2;
-  const dy = (outH - drawH) / 2 + (v.offsetY * outH) / 2;
+  // Espelha exatamente a pré-visualização: a foto ocupa a moldura em "cover"
+  // (usando o tamanho natural, sem girar), depois recebe zoom, giro e deslocamento.
+  const nw = img.naturalWidth;
+  const nh = img.naturalHeight;
+  const cover = Math.max(outW / nw, outH / nh) * v.zoom;
+  const drawW = nw * cover;
+  const drawH = nh * cover;
 
   ctx.save();
-  ctx.translate(dx + drawW / 2, dy + drawH / 2);
+  ctx.translate(outW / 2 + (v.offsetX * outW) / 2, outH / 2 + (v.offsetY * outH) / 2);
   ctx.rotate((v.rotation * Math.PI) / 180);
   ctx.scale(v.flip ? -1 : 1, 1);
-  const rw = rotated ? drawH : drawW;
-  const rh = rotated ? drawW : drawH;
-  ctx.drawImage(img, -rw / 2, -rh / 2, rw, rh);
+  ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
   ctx.restore();
 
   const blob: Blob = await new Promise((res, rej) =>

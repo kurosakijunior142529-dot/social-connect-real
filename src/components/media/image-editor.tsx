@@ -287,9 +287,12 @@ export function ImageEditor({
               h: e.currentTarget.naturalHeight,
             })
           }
-          className="absolute left-1/2 top-1/2 h-full w-full object-cover will-change-transform"
+          className="absolute left-1/2 top-1/2 object-cover will-change-transform"
           style={{
             filter: cssFilter(value),
+            // No corte livre com giro de 90°, a foto é medida trocada para caber inteira na moldura.
+            width: freeMode && rotated ? `${100 / (imgRatio || 1)}%` : "100%",
+            height: freeMode && rotated ? `${100 * (imgRatio || 1)}%` : "100%",
             transform: freeMode
               ? `translate(-50%, -50%) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`
               : `translate(calc(-50% + ${value.offsetX * 50}%), calc(-50% + ${value.offsetY * 50}%)) scale(${value.zoom}) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`,
@@ -739,20 +742,19 @@ export async function exportEditedImage(src: string, v: ImageEditState, maxSide 
   ctx.fillRect(0, 0, outW, outH);
   ctx.filter = cssFilter(v);
 
-  // "object-cover" + zoom
-  const cover = Math.max(outW / iw, outH / ih) * v.zoom;
-  const drawW = iw * cover;
-  const drawH = ih * cover;
-  const dx = (outW - drawW) / 2 + (v.offsetX * outW) / 2;
-  const dy = (outH - drawH) / 2 + (v.offsetY * outH) / 2;
+  // Espelha exatamente a pré-visualização: a foto ocupa a moldura em "cover"
+  // (usando o tamanho natural, sem girar), depois recebe zoom, giro e deslocamento.
+  const nw = img.naturalWidth;
+  const nh = img.naturalHeight;
+  const cover = Math.max(outW / nw, outH / nh) * v.zoom;
+  const drawW = nw * cover;
+  const drawH = nh * cover;
 
   ctx.save();
-  ctx.translate(dx + drawW / 2, dy + drawH / 2);
+  ctx.translate(outW / 2 + (v.offsetX * outW) / 2, outH / 2 + (v.offsetY * outH) / 2);
   ctx.rotate((v.rotation * Math.PI) / 180);
   ctx.scale(v.flip ? -1 : 1, 1);
-  const rw = rotated ? drawH : drawW;
-  const rh = rotated ? drawW : drawH;
-  ctx.drawImage(img, -rw / 2, -rh / 2, rw, rh);
+  ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
   ctx.restore();
 
   const blob: Blob = await new Promise((res, rej) =>

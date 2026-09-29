@@ -47,6 +47,11 @@ type Mode = "media" | "text" | "poll";
 const MAX_MEDIA = 10;
 type PublishState = "idle" | "publishing" | "success" | "error";
 
+/** Enquadramento inicial: 4:5 para fotos, original para vídeos. */
+function initialEdit(f: File): ImageEditState {
+  return { ...defaultImageEdit, aspect: f.type.startsWith("video/") ? "original" : "0.8" };
+}
+
 const modes = [
   { id: "media", label: "Foto/Vídeo", shortLabel: "Mídia", icon: Images },
   { id: "text", label: "Texto", shortLabel: "Texto", icon: FileText },
@@ -85,7 +90,8 @@ function CreatePage() {
   const [thinkingCaptions, setThinkingCaptions] = useState(false);
   const [mode, setMode] = useState<Mode>("media");
   const [poll, setPoll] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
-  const [extras, setExtras] = useState<{ file: File; url: string }[]>([]);
+  const [extras, setExtras] = useState<{ file: File; url: string; edit: ImageEditState }[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
   const [step, setStep] = useState<"compose" | "details">("compose");
   const [showPreview, setShowPreview] = useState(false);
   const extraInputRef = useRef<HTMLInputElement>(null);
@@ -129,7 +135,7 @@ function CreatePage() {
     setMusic((meta.music as MusicSelection | null) ?? null);
     if (meta.poll) setPoll(meta.poll as PollDraft);
     if (main) pick(main);
-    if (ex.length) setExtras(ex.map((f) => ({ file: f, url: URL.createObjectURL(f) })));
+    if (ex.length) setExtras(ex.map((f) => ({ file: f, url: URL.createObjectURL(f), edit: initialEdit(f) })));
     if (meta.step === "details" && (meta.mode !== "media" || main)) setStep("details");
     draftReady.current = true;
     toast.success("Rascunho restaurado");
@@ -189,8 +195,9 @@ function CreatePage() {
     const nextPreview = URL.createObjectURL(f);
     setFile(f);
     setTrim(defaultTrim);
-    setImgEdit({ ...defaultImageEdit, aspect: isVid ? "original" : "0.8" });
+    setImgEdit(initialEdit(f));
     setProgress(0);
+    setActiveIdx(0);
     setPublishState("idle");
     setPreview(nextPreview);
   }
@@ -198,11 +205,11 @@ function CreatePage() {
   function addExtras(list: FileList | null) {
     if (!list) return;
     const room = MAX_MEDIA - 1 - extras.length;
-    const accepted: { file: File; url: string }[] = [];
+    const accepted: { file: File; url: string; edit: ImageEditState }[] = [];
     for (const f of Array.from(list).slice(0, Math.max(0, room))) {
       if (f.size > 25 * 1024 * 1024) { toast.error(`${f.name}: maior que 25 MB`); continue; }
       if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) continue;
-      accepted.push({ file: f, url: URL.createObjectURL(f) });
+      accepted.push({ file: f, url: URL.createObjectURL(f), edit: initialEdit(f) });
     }
     if (list.length > room) toast.message(`Máximo de ${MAX_MEDIA} mídias por post`);
     setExtras((prev) => [...prev, ...accepted]);
@@ -214,6 +221,37 @@ function CreatePage() {
       URL.revokeObjectURL(prev[i].url);
       return prev.filter((_, idx) => idx !== i);
     });
+    setActiveIdx((a) => (a > i ? a - 1 : a === i + 1 ? 0 : a));
+  }
+
+  /** Lista unificada: posição 0 é a capa do post. */
+  const mediaList =
+    file && preview ? [{ file, url: preview, edit: imgEdit }, ...extras] : [];
+
+  function setMediaAt(i: number, next: { file: File; url: string; edit: ImageEditState }) {
+    if (i === 0) {
+      setFile(next.file);
+      setPreview(next.url);
+      setImgEdit(next.edit);
+      setTrim(defaultTrim);
+    } else {
+      setExtras((prev) => prev.map((e, j) => (j === i - 1 ? next : e)));
+    }
+  }
+
+  function updateEditAt(i: number, edit: ImageEditState) {
+    if (i === 0) setImgEdit(edit);
+    else setExtras((prev) => prev.map((e, j) => (j === i - 1 ? { ...e, edit } : e)));
+  }
+
+  function moveMedia(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (i < 0 || j < 0 || i >= mediaList.length || j >= mediaList.length) return;
+    const a = mediaList[i];
+    const b = mediaList[j];
+    setMediaAt(i, b);
+    setMediaAt(j, a);
+    setActiveIdx(j);
   }
 
   function removeMedia() {
@@ -225,6 +263,7 @@ function CreatePage() {
     setTrim(defaultTrim);
     setImgEdit(defaultImageEdit);
     setProgress(0);
+    setActiveIdx(0);
     setPublishState("idle");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
@@ -347,17 +386,26 @@ function CreatePage() {
         if (!textVerdict.allow) throw new Error(textVerdict.reason || "Legenda bloqueada pelas regras da comunidade");
       }
 
-      // Mídias extras do carrossel: checar e moderar antes de publicar
+      // Mídias extras do carrossel: aplicar o enquadramento de cada uma, checar e moderar
       const extraChecked: { file: File; type: "image" | "video" }[] = [];
       for (const ex of extras) {
-        const c = await checkFile(ex.file);
+        const isExVideo = ex.file.type.startsWith("video/");
+        let exFile = ex.file;
+        if (!isExVideo && !imageEditIsNeutral(ex.edit)) {
+          try {
+            exFile = await exportEditedImage(ex.url, ex.edit);
+          } catch (err) {
+            console.warn("[create] extra image export failed", err);
+          }
+        }
+        const c = await checkFile(exFile);
         if (!c.ok) throw new Error(c.error);
-        const [du, sh] = await Promise.all([previewDataUrl(ex.file), sha256Hex(ex.file)]);
+        const [du, sh] = await Promise.all([previewDataUrl(exFile), sha256Hex(exFile)]);
         const v = await moderate({
-          data: { dataUrl: du, sha256: sh, mime: c.mime, size: ex.file.size, surface: "public", contentType: "post" },
+          data: { dataUrl: du, sha256: sh, mime: c.mime, size: exFile.size, surface: "public", contentType: "post" },
         });
         if (!v.allow) throw new Error(v.reason || "Uma das mídias foi bloqueada pelas regras da comunidade");
-        extraChecked.push({ file: ex.file, type: ex.file.type.startsWith("video/") ? "video" : "image" });
+        extraChecked.push({ file: exFile, type: isExVideo ? "video" : "image" });
       }
 
       const path = await uploadMedia("posts", user.id, toUpload);
@@ -511,54 +559,98 @@ function CreatePage() {
                 ) : (
                   <div className="animate-fade-in space-y-3">
                     <div className="relative overflow-hidden rounded-[26px] bg-background ring-1 ring-border/60">
-                      {!isVideo ? (
-                        <ImageEditor src={preview} value={imgEdit} onChange={setImgEdit} aspects={FEED_ASPECTS} collapsible frameMaxHeight="52dvh" />
-                      ) : (
-                        <video src={preview} controls playsInline className="mx-auto max-h-[58dvh] w-full object-contain" />
-                      )}
+                      {!activeIsVideo && activeMedia ? (
+                        <ImageEditor
+                          key={activeMedia.url}
+                          src={activeMedia.url}
+                          value={activeMedia.edit}
+                          onChange={(v) => updateEditAt(activeIdx, v)}
+                          aspects={FEED_ASPECTS}
+                          collapsible
+                          frameMaxHeight="52dvh"
+                        />
+                      ) : activeMedia ? (
+                        <SimpleVideo src={activeMedia.url} />
+                      ) : null}
                       <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-background/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-foreground backdrop-blur">
-                        {1 + extras.length}/{MAX_MEDIA}
+                        {activeIdx + 1}/{mediaList.length}
                       </span>
                     </div>
 
                     <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-background ring-2 ring-primary/60">
-                        {isVideo ? (
-                          <video src={preview} muted playsInline className="h-full w-full object-cover" />
-                        ) : (
-                          <img src={preview} alt="" className="h-full w-full object-cover" />
-                        )}
-                        <span className="absolute left-1 top-1 rounded bg-background/80 px-1 text-[9px] font-bold text-primary">1</span>
-                      </div>
-                      {extras.map((ex, i) => (
-                        <div key={ex.url} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-background ring-1 ring-border">
-                          {ex.file.type.startsWith("video/") ? (
-                            <video src={ex.url} muted playsInline className="h-full w-full object-cover" />
-                          ) : (
-                            <img src={ex.url} alt="" className="h-full w-full object-cover" />
+                      {mediaList.map((m, i) => (
+                        <div
+                          key={m.url}
+                          className={cn(
+                            "relative h-[70px] w-[70px] shrink-0 overflow-hidden rounded-xl bg-background ring-1 ring-border",
+                            i === activeIdx && "ring-2 ring-primary",
                           )}
-                          <span className="absolute left-1 top-1 rounded bg-background/80 px-1 text-[9px] font-bold">{i + 2}</span>
+                        >
                           <button
                             type="button"
-                            onClick={() => removeExtra(i)}
-                            aria-label="Remover mídia"
-                            className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-background/85 text-destructive"
+                            onClick={() => setActiveIdx(i)}
+                            aria-label={`Editar mídia ${i + 1}`}
+                            className="absolute inset-0"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            {m.file.type.startsWith("video/") ? (
+                              <video src={m.url} muted playsInline className="h-full w-full object-cover" />
+                            ) : (
+                              <img src={m.url} alt="" className="h-full w-full object-cover" />
+                            )}
                           </button>
+                          <span className={cn("pointer-events-none absolute left-1 top-1 rounded bg-background/85 px-1 text-[9px] font-bold", i === activeIdx && "text-primary")}>
+                            {i + 1}
+                          </span>
+                          {i > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => removeExtra(i - 1)}
+                              aria-label="Remover mídia"
+                              className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full bg-background/85 text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          ) : null}
+                          {mediaList.length > 1 ? (
+                            <div className="absolute inset-x-0 bottom-0 flex justify-between bg-background/75">
+                              <button
+                                type="button"
+                                disabled={i === 0}
+                                onClick={() => moveMedia(i, -1)}
+                                aria-label="Mover para a esquerda"
+                                className="grid h-5 w-1/2 place-items-center text-foreground disabled:opacity-30"
+                              >
+                                <ChevronLeft className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={i === mediaList.length - 1}
+                                onClick={() => moveMedia(i, 1)}
+                                aria-label="Mover para a direita"
+                                className="grid h-5 w-1/2 place-items-center text-foreground disabled:opacity-30"
+                              >
+                                <ChevronRight className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       ))}
-                      {1 + extras.length < MAX_MEDIA ? (
+                      {mediaList.length < MAX_MEDIA ? (
                         <button
                           type="button"
                           onClick={() => extraInputRef.current?.click()}
-                          className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-dashed border-primary/40 text-primary transition active:scale-95"
+                          className="grid h-[70px] w-[70px] shrink-0 place-items-center rounded-xl border border-dashed border-primary/40 text-primary transition active:scale-95"
                           aria-label="Adicionar mais mídias"
                         >
                           <ImagePlus className="h-5 w-5" />
                         </button>
                       ) : null}
                     </div>
+                    {mediaList.length > 1 ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        Toque em uma miniatura para enquadrar cada foto. Use as setas para trocar a ordem.
+                      </p>
+                    ) : null}
 
                     <div className="flex flex-wrap gap-2">
                       <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="h-9 rounded-full border-border bg-surface-2/60 text-xs hover:bg-surface-2">
@@ -568,6 +660,7 @@ function CreatePage() {
                         <Trash2 className="h-4 w-4" /> Remover
                       </Button>
                     </div>
+
 
                     {isVideo ? (
                       <section className="rounded-[22px] border border-border/60 bg-surface/80 p-3 shadow-sm backdrop-blur">

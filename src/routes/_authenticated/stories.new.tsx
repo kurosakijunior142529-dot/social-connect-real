@@ -3,7 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Download, ImagePlus, Loader2, RefreshCw, Send, Sparkles, Sticker, Type, X, Zap, ZapOff } from "lucide-react";
+import { ArrowLeft, Check, Download, ImagePlus, Loader2, Music2, RefreshCw, Send, Settings2, Sparkles, Star, Sticker, Type, X, Zap, ZapOff } from "lucide-react";
+import { MusicPicker } from "@/components/music/music-picker";
+import { trackAudioUrl, type MusicSelection } from "@/lib/music/api";
+import { VIBE_MOODS } from "@/components/stories/story-sticker";
+import { CloseFriendsSheet } from "@/components/stories/close-friends-sheet";
 import { useServerFn } from "@tanstack/react-start";
 import { moderateMedia, moderateText } from "@/lib/moderation.functions";
 import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
@@ -101,6 +105,10 @@ async function renderPhoto(url: string, filter: string, text: TextLayer | null):
   return new File([blob], `vibe-${Date.now()}.jpg`, { type: "image/jpeg" });
 }
 
+function buzz(ms: number | number[]) {
+  try { navigator.vibrate?.(ms); } catch { /* sem vibração */ }
+}
+
 function NewStoryPage() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
@@ -123,13 +131,17 @@ function NewStoryPage() {
   const [media, setMedia] = useState<Media | null>(null);
 
   const [filterId, setFilterId] = useState("none");
-  const [panel, setPanel] = useState<null | "filters" | "sticker" | "text">(null);
+  const [panel, setPanel] = useState<null | "filters" | "sticker" | "text" | "music">(null);
   const [text, setText] = useState<TextLayer | null>(null);
   const [draftText, setDraftText] = useState("");
   const [textStyle, setTextStyle] = useState<TextLayer["style"]>("clean");
   const [focus, setFocus] = useState(false);
   const [caption, setCaption] = useState("");
-  const [stickerType, setStickerType] = useState<"none" | "poll" | "question">("none");
+  const [stickerType, setStickerType] = useState<"none" | "poll" | "question" | "mood">("none");
+  const [moodIdx, setMoodIdx] = useState(0);
+  const [music, setMusic] = useState<MusicSelection | null>(null);
+  const [vipOpen, setVipOpen] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [pollQ, setPollQ] = useState("");
   const [pollOpts, setPollOpts] = useState(["Sim", "Não"]);
   const [prompt, setPrompt] = useState("Manda uma Vibe");
@@ -179,6 +191,23 @@ function NewStoryPage() {
   useEffect(() => () => stopCamera(), [stopCamera]);
   useEffect(() => () => { if (media) URL.revokeObjectURL(media.url); }, [media]);
 
+  useEffect(() => {
+    audioRef.current?.pause();
+    audioRef.current = null;
+    if (!music || !media) return;
+    let cancelled = false;
+    void trackAudioUrl(music.track).then((src) => {
+      if (cancelled || !src) return;
+      const a = new Audio(src);
+      a.volume = music.volume ?? 0.8;
+      a.loop = true;
+      a.currentTime = music.startMs / 1000;
+      audioRef.current = a;
+      void a.play().catch(() => {});
+    });
+    return () => { cancelled = true; audioRef.current?.pause(); };
+  }, [music, media]);
+
   const toggleTorch = async () => {
     const track = streamRef.current?.getVideoTracks()[0] as any;
     try {
@@ -199,6 +228,7 @@ function NewStoryPage() {
     drawCover(ctx, v, v.videoWidth, v.videoHeight, facing === "user");
     const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.92));
     if (!blob) return;
+    buzz(15);
     const file = new File([blob], `vibe-${Date.now()}.jpg`, { type: "image/jpeg" });
     setMedia({ file, url: URL.createObjectURL(file), video: false });
   };
@@ -221,6 +251,7 @@ function NewStoryPage() {
       rec.start(250);
       recRef.current = rec;
       startAt.current = performance.now();
+      buzz(25);
       setRecording(true);
     } catch {
       toast.error("Não foi possível gravar neste aparelho");
@@ -228,7 +259,7 @@ function NewStoryPage() {
   };
 
   const stopRec = useCallback(() => {
-    if (recRef.current?.state === "recording") recRef.current.stop();
+    if (recRef.current?.state === "recording") { recRef.current.stop(); buzz([10, 40, 10]); }
     recRef.current = null;
     setRecording(false);
     setProgress(0);
@@ -272,6 +303,7 @@ function NewStoryPage() {
     setPanel(null);
     setStickerType("none");
     setCaption("");
+    setMusic(null);
   };
 
   const buildFile = async () => {
@@ -294,7 +326,7 @@ function NewStoryPage() {
     }
   };
 
-  async function submit() {
+  async function submit(audience: "all" | "vip" = "all") {
     if (!media) return;
     setBusy(true);
     try {
@@ -313,8 +345,10 @@ function NewStoryPage() {
       } else if (stickerType === "question") {
         if (!prompt.trim()) throw new Error("Escreva a pergunta da caixinha");
         sticker = { type: "question", prompt: prompt.trim().slice(0, 80) };
+      } else if (stickerType === "mood") {
+        sticker = { type: "mood", ...VIBE_MOODS[moodIdx] };
       }
-      const all = [txts, sticker ? (sticker.type === "poll" ? [sticker.question, ...sticker.options].join(" | ") : sticker.prompt) : ""].filter(Boolean).join(" | ");
+      const all = [txts, sticker && sticker.type !== "mood" ? (sticker.type === "poll" ? [sticker.question, ...sticker.options].join(" | ") : sticker.prompt) : ""].filter(Boolean).join(" | ");
       if (all) {
         const v = await moderateCaption({ data: { text: all, surface: "public", contentType: "story_caption" } });
         if (!v.allow) throw new Error(v.reason || "Texto bloqueado pelas regras da comunidade");
@@ -326,9 +360,13 @@ function NewStoryPage() {
         media_type: media.video ? "video" : "image",
         caption: caption.trim() || null,
         sticker,
+        audience,
+        music_track_id: music?.track.id ?? null,
+        music_start_ms: music ? Math.round(music.startMs) : 0,
       });
       if (error) throw error;
-      toast.success("Vibe publicada!");
+      buzz([15, 60, 30]);
+      toast.success(audience === "vip" ? "Vibe publicada para a Sintonia VIP!" : "Vibe publicada!");
       navigate({ to: "/" });
     } catch (err: any) {
       toast.error(err.message ?? "Falha ao publicar");
@@ -388,8 +426,13 @@ function NewStoryPage() {
         )}
         {stickerType !== "none" && media && !focus && (
           <div className="pointer-events-none absolute left-1/2 top-[62%] w-64 -translate-x-1/2 rounded-2xl border border-white/15 bg-black/55 p-3 text-center backdrop-blur-md">
-            <p className="text-sm font-bold">{stickerType === "poll" ? pollQ || "Sua pergunta" : prompt}</p>
-            {stickerType === "poll" ? (
+            {stickerType === "mood" ? (
+              <>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Vibe do dia</p>
+                <p className="mt-1 text-2xl font-bold">{VIBE_MOODS[moodIdx].emoji} {VIBE_MOODS[moodIdx].label}</p>
+              </>
+            ) : <p className="text-sm font-bold">{stickerType === "poll" ? pollQ || "Sua pergunta" : prompt}</p>}
+            {stickerType === "mood" ? null : stickerType === "poll" ? (
               <div className="mt-2 grid gap-1.5">
                 {pollOpts.filter(Boolean).map((o, i) => <div key={i} className="rounded-full bg-white/10 py-1.5 text-xs font-semibold">{o}</div>)}
               </div>
@@ -417,6 +460,12 @@ function NewStoryPage() {
         <div className="mx-auto rounded-full border border-white/15 bg-black/40 px-3.5 py-1.5 text-xs font-bold tracking-wide backdrop-blur-md">
           {recording ? (
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 animate-pulse rounded-full bg-destructive" />{(progress * MAX_SECONDS).toFixed(1)}s</span>
+          ) : media && music ? (
+            <button onClick={() => setPanel("music")} className="flex max-w-[52vw] items-center gap-2">
+              <span className="flex h-3 items-end gap-[2px]">{[0, 1, 2].map((i) => <span key={i} className="w-[3px] animate-pulse rounded-full bg-primary" style={{ height: `${6 + i * 3}px`, animationDelay: `${i * 150}ms` }} />)}</span>
+              <span className="truncate">{music.track.title} · {music.track.artist}</span>
+              <X className="h-3.5 w-3.5 shrink-0 text-white/70" onClick={(e) => { e.stopPropagation(); setMusic(null); }} />
+            </button>
           ) : media ? "Editar Vibe" : "Nova Vibe"}
         </div>
         {!media ? (
@@ -431,6 +480,7 @@ function NewStoryPage() {
             { k: "text", icon: Type, label: "Texto", show: !media.video },
             { k: "sticker", icon: Sticker, label: "Figurinha", show: true },
             { k: "filters", icon: Sparkles, label: "Filtros", show: true },
+            { k: "music", icon: Music2, label: "Música", show: true },
           ].filter((b) => b.show).map((b) => (
             <button key={b.k} aria-label={b.label} className={cn(glass, panel === b.k && "border-primary text-primary")}
               onClick={() => {
@@ -461,8 +511,8 @@ function NewStoryPage() {
       )}
       {media && panel === "sticker" && (
         <div className="relative z-10 mx-3 mb-3 space-y-2 rounded-3xl border border-white/15 bg-black/60 p-3 backdrop-blur-xl">
-          <div className="grid grid-cols-3 gap-2">
-            {([["none", "Nenhuma"], ["poll", "Enquete"], ["question", "Perguntas"]] as const).map(([k, l]) => (
+          <div className="grid grid-cols-4 gap-1.5">
+            {([["none", "Nenhuma"], ["poll", "Enquete"], ["question", "Perguntas"], ["mood", "Vibe do dia"]] as const).map(([k, l]) => (
               <button key={k} onClick={() => setStickerType(k)} className={cn("rounded-full py-2 text-xs font-bold", stickerType === k ? "bg-primary text-primary-foreground" : "bg-white/10")}>{l}</button>
             ))}
           </div>
@@ -475,9 +525,24 @@ function NewStoryPage() {
               {pollOpts.length < 4 && <button onClick={() => setPollOpts([...pollOpts, ""])} className="text-xs font-semibold text-primary">+ opção</button>}
             </div>
           )}
+          {stickerType === "mood" && (
+            <div className="flex justify-between gap-1">
+              {VIBE_MOODS.map((m, i) => (
+                <button key={m.label} onClick={() => setMoodIdx(i)} className={cn("flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-2", moodIdx === i ? "bg-primary/20 ring-1 ring-primary" : "bg-white/10")}>
+                  <span className="text-xl">{m.emoji}</span><span className="text-[10px] font-semibold">{m.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {stickerType === "question" && (
             <input value={prompt} onChange={(e) => setPrompt(e.target.value)} maxLength={80} className="w-full rounded-xl bg-white/10 px-3 py-2 text-sm outline-none" />
           )}
+          <button onClick={() => setPanel(null)} className="w-full rounded-full bg-white/10 py-2 text-xs font-bold">Pronto</button>
+        </div>
+      )}
+      {media && panel === "music" && (
+        <div className="relative z-10 mx-3 mb-3 space-y-2 rounded-3xl border border-white/15 bg-black/60 p-3 backdrop-blur-xl">
+          <MusicPicker value={music} onChange={setMusic} videoMode={media.video} />
           <button onClick={() => setPanel(null)} className="w-full rounded-full bg-white/10 py-2 text-xs font-bold">Pronto</button>
         </div>
       )}
@@ -534,20 +599,28 @@ function NewStoryPage() {
             <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={200} placeholder="Adicione uma legenda…"
               className="h-11 w-full rounded-full border border-white/15 bg-black/40 px-4 text-sm text-white outline-none backdrop-blur-md placeholder:text-white/55 focus:border-primary/60" />
             <div className="flex items-center gap-2">
-              <button disabled={busy} onClick={submit} className="flex h-12 flex-1 items-center gap-2 rounded-full border border-white/15 bg-black/45 pl-1.5 pr-4 backdrop-blur-md disabled:opacity-60">
+              <button disabled={busy} onClick={() => submit("all")} className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-full border border-white/15 bg-black/45 pl-1.5 pr-4 backdrop-blur-md disabled:opacity-60">
                 <UserAvatar avatarPath={avatar} displayName={user.email ?? "Você"} className="h-9 w-9" />
                 <span className="text-left leading-tight">
                   <span className="block text-sm font-bold">Sua Vibe</span>
-                  <span className="block text-[10px] text-white/60">Fica no ar por 24h</span>
+                  <span className="block text-[10px] text-white/60">24h para todos</span>
                 </span>
               </button>
-              <button disabled={busy} onClick={submit} aria-label="Publicar" className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_24px_-4px_var(--primary)] transition active:scale-90 disabled:opacity-60">
+              <div className="flex h-12 items-center rounded-full border border-primary/40 bg-black/45 backdrop-blur-md">
+                <button disabled={busy} onClick={() => submit("vip")} className="flex h-full items-center gap-1.5 pl-3 pr-2 disabled:opacity-60">
+                  <Star className="h-4 w-4 fill-primary text-primary" />
+                  <span className="text-left leading-tight"><span className="block text-xs font-bold">Sintonia VIP</span><span className="block text-[10px] text-white/60">Só amigos próximos</span></span>
+                </button>
+                <button onClick={() => setVipOpen(true)} aria-label="Editar Sintonia VIP" className="grid h-full w-8 place-items-center border-l border-white/10 text-white/70"><Settings2 className="h-4 w-4" /></button>
+              </div>
+              <button disabled={busy} onClick={() => submit("all")} aria-label="Publicar" className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_24px_-4px_var(--primary)] transition active:scale-90 disabled:opacity-60">
                 {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </button>
             </div>
           </div>
         )}
       </div>
+      <CloseFriendsSheet open={vipOpen} onOpenChange={setVipOpen} userId={user.id} />
     </div>
   );
 }

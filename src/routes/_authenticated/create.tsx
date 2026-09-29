@@ -386,17 +386,26 @@ function CreatePage() {
         if (!textVerdict.allow) throw new Error(textVerdict.reason || "Legenda bloqueada pelas regras da comunidade");
       }
 
-      // Mídias extras do carrossel: checar e moderar antes de publicar
+      // Mídias extras do carrossel: aplicar o enquadramento de cada uma, checar e moderar
       const extraChecked: { file: File; type: "image" | "video" }[] = [];
       for (const ex of extras) {
-        const c = await checkFile(ex.file);
+        const isExVideo = ex.file.type.startsWith("video/");
+        let exFile = ex.file;
+        if (!isExVideo && !imageEditIsNeutral(ex.edit)) {
+          try {
+            exFile = await exportEditedImage(ex.url, ex.edit);
+          } catch (err) {
+            console.warn("[create] extra image export failed", err);
+          }
+        }
+        const c = await checkFile(exFile);
         if (!c.ok) throw new Error(c.error);
-        const [du, sh] = await Promise.all([previewDataUrl(ex.file), sha256Hex(ex.file)]);
+        const [du, sh] = await Promise.all([previewDataUrl(exFile), sha256Hex(exFile)]);
         const v = await moderate({
-          data: { dataUrl: du, sha256: sh, mime: c.mime, size: ex.file.size, surface: "public", contentType: "post" },
+          data: { dataUrl: du, sha256: sh, mime: c.mime, size: exFile.size, surface: "public", contentType: "post" },
         });
         if (!v.allow) throw new Error(v.reason || "Uma das mídias foi bloqueada pelas regras da comunidade");
-        extraChecked.push({ file: ex.file, type: ex.file.type.startsWith("video/") ? "video" : "image" });
+        extraChecked.push({ file: exFile, type: isExVideo ? "video" : "image" });
       }
 
       const path = await uploadMedia("posts", user.id, toUpload);

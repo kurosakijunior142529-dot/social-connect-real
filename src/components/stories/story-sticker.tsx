@@ -50,7 +50,7 @@ export function StorySticker({ storyId, sticker, viewerId, isOwn }: { storyId: s
   });
   const answers = useQuery({
     queryKey: ["story-answers", storyId],
-    enabled: isOwn && sticker.type === "question",
+    enabled: isOwn && sticker.type !== "poll",
     queryFn: async () => {
       const { data } = await supabase.from("story_sticker_responses").select("id, answer, user_id").eq("story_id", storyId).not("answer", "is", null).order("created_at", { ascending: false }).limit(30);
       return data ?? [];
@@ -88,6 +88,35 @@ export function StorySticker({ storyId, sticker, viewerId, isOwn }: { storyId: s
           );
         })}
         {isOwn ? <p className="text-center text-xs text-muted-foreground">{total} voto(s)</p> : null}
+      </div>
+    );
+  }
+
+  if (sticker.type === "mood") {
+    return (
+      <div onClick={stop} className="w-[82%] max-w-xs space-y-3 rounded-3xl bg-card/90 p-4 text-card-foreground shadow-xl backdrop-blur-md">
+        <div className="text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Vibe do dia</p>
+          <p className="mt-1 text-2xl font-bold"><span className="mr-1">{sticker.emoji}</span>{sticker.label}</p>
+        </div>
+        {isOwn ? (
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {(answers.data ?? []).length === 0 ? <p className="text-xs text-muted-foreground">Ninguém respondeu ainda.</p> :
+              answers.data!.map((a) => <span key={a.id} className="rounded-full bg-muted px-2.5 py-1 text-lg">{a.answer}</span>)}
+          </div>
+        ) : mine.data ? (
+          <p className="text-center text-xs text-muted-foreground">Você respondeu com {mine.data.answer}</p>
+        ) : (
+          <div className="space-y-1.5">
+            <p className="text-center text-xs text-muted-foreground">E a sua vibe hoje?</p>
+            <div className="flex justify-center gap-1">
+              {VIBE_MOODS.map((m) => (
+                <button key={m.emoji} disabled={sending} onClick={() => respond({ answer: m.emoji })} aria-label={m.label}
+                  className="grid h-10 w-10 place-items-center rounded-full bg-muted text-xl transition active:scale-90">{m.emoji}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

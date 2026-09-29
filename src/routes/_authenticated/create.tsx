@@ -85,7 +85,8 @@ function CreatePage() {
   const [thinkingCaptions, setThinkingCaptions] = useState(false);
   const [mode, setMode] = useState<Mode>("media");
   const [poll, setPoll] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
-  const [extras, setExtras] = useState<{ file: File; url: string }[]>([]);
+  const [extras, setExtras] = useState<{ file: File; url: string; edit: ImageEditState }[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
   const [step, setStep] = useState<"compose" | "details">("compose");
   const [showPreview, setShowPreview] = useState(false);
   const extraInputRef = useRef<HTMLInputElement>(null);

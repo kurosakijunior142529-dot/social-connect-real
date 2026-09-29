@@ -287,9 +287,12 @@ export function ImageEditor({
               h: e.currentTarget.naturalHeight,
             })
           }
-          className="absolute left-1/2 top-1/2 h-full w-full object-cover will-change-transform"
+          className="absolute left-1/2 top-1/2 object-cover will-change-transform"
           style={{
             filter: cssFilter(value),
+            // No corte livre com giro de 90°, a foto é medida trocada para caber inteira na moldura.
+            width: freeMode && rotated ? `${100 / (imgRatio || 1)}%` : "100%",
+            height: freeMode && rotated ? `${100 * (imgRatio || 1)}%` : "100%",
             transform: freeMode
               ? `translate(-50%, -50%) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`
               : `translate(calc(-50% + ${value.offsetX * 50}%), calc(-50% + ${value.offsetY * 50}%)) scale(${value.zoom}) rotate(${value.rotation}deg) scaleX(${value.flip ? -1 : 1})`,

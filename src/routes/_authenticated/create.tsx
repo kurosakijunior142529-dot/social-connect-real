@@ -263,6 +263,7 @@ function CreatePage() {
     setTrim(defaultTrim);
     setImgEdit(defaultImageEdit);
     setProgress(0);
+    setActiveIdx(0);
     setPublishState("idle");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }

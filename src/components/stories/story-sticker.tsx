@@ -6,7 +6,16 @@ import { cn } from "@/lib/utils";
 
 export type StickerData =
   | { type: "poll"; question: string; options: string[] }
-  | { type: "question"; prompt: string };
+  | { type: "question"; prompt: string }
+  | { type: "mood"; emoji: string; label: string };
+
+export const VIBE_MOODS = [
+  { emoji: "🔥", label: "Foguete" },
+  { emoji: "😄", label: "Feliz" },
+  { emoji: "🌙", label: "Tranquilo" },
+  { emoji: "🥱", label: "Cansado" },
+  { emoji: "🌀", label: "Caótico" },
+];
 
 export function parseSticker(raw: unknown): StickerData | null {
   const s = raw as any;
@@ -14,6 +23,8 @@ export function parseSticker(raw: unknown): StickerData | null {
   if (s.type === "poll" && typeof s.question === "string" && Array.isArray(s.options) && s.options.length >= 2)
     return { type: "poll", question: s.question, options: s.options.slice(0, 4).map(String) };
   if (s.type === "question" && typeof s.prompt === "string") return { type: "question", prompt: s.prompt };
+  if (s.type === "mood" && typeof s.emoji === "string" && typeof s.label === "string")
+    return { type: "mood", emoji: s.emoji.slice(0, 8), label: s.label.slice(0, 20) };
   return null;
 }
 

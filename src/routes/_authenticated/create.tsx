@@ -130,7 +130,7 @@ function CreatePage() {
     setMusic((meta.music as MusicSelection | null) ?? null);
     if (meta.poll) setPoll(meta.poll as PollDraft);
     if (main) pick(main);
-    if (ex.length) setExtras(ex.map((f) => ({ file: f, url: URL.createObjectURL(f) })));
+    if (ex.length) setExtras(ex.map((f) => ({ file: f, url: URL.createObjectURL(f), edit: initialEdit(f) })));
     if (meta.step === "details" && (meta.mode !== "media" || main)) setStep("details");
     draftReady.current = true;
     toast.success("Rascunho restaurado");

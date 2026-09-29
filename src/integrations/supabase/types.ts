@@ -831,6 +831,24 @@ export type Database = {
         }
         Relationships: []
       }
+      close_friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       coin_purchases: {
         Row: {
           amount_paid: number
@@ -3177,36 +3195,53 @@ export type Database = {
       }
       stories: {
         Row: {
+          audience: string
           caption: string | null
           created_at: string
           expires_at: string
           id: string
           media_type: string
           media_url: string
+          music_start_ms: number
+          music_track_id: string | null
           sticker: Json | null
           user_id: string
         }
         Insert: {
+          audience?: string
           caption?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           media_type?: string
           media_url: string
+          music_start_ms?: number
+          music_track_id?: string | null
           sticker?: Json | null
           user_id: string
         }
         Update: {
+          audience?: string
           caption?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           media_type?: string
           media_url?: string
+          music_start_ms?: number
+          music_track_id?: string | null
           sticker?: Json | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stories_music_track_id_fkey"
+            columns: ["music_track_id"]
+            isOneToOne: false
+            referencedRelation: "music_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_reactions: {
         Row: {
@@ -4166,6 +4201,10 @@ export type Database = {
       is_blocked_pair: { Args: { _a: string; _b: string }; Returns: boolean }
       is_chat_member: {
         Args: { _chat: string; _user: string }
+        Returns: boolean
+      }
+      is_close_friend: {
+        Args: { _owner: string; _viewer: string }
         Returns: boolean
       }
       is_supporter: { Args: { _user: string }; Returns: boolean }

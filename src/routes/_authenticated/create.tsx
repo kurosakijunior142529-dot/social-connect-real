@@ -190,8 +190,9 @@ function CreatePage() {
     const nextPreview = URL.createObjectURL(f);
     setFile(f);
     setTrim(defaultTrim);
-    setImgEdit({ ...defaultImageEdit, aspect: isVid ? "original" : "0.8" });
+    setImgEdit(initialEdit(f));
     setProgress(0);
+    setActiveIdx(0);
     setPublishState("idle");
     setPreview(nextPreview);
   }
@@ -199,11 +200,11 @@ function CreatePage() {
   function addExtras(list: FileList | null) {
     if (!list) return;
     const room = MAX_MEDIA - 1 - extras.length;
-    const accepted: { file: File; url: string }[] = [];
+    const accepted: { file: File; url: string; edit: ImageEditState }[] = [];
     for (const f of Array.from(list).slice(0, Math.max(0, room))) {
       if (f.size > 25 * 1024 * 1024) { toast.error(`${f.name}: maior que 25 MB`); continue; }
       if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) continue;
-      accepted.push({ file: f, url: URL.createObjectURL(f) });
+      accepted.push({ file: f, url: URL.createObjectURL(f), edit: initialEdit(f) });
     }
     if (list.length > room) toast.message(`Máximo de ${MAX_MEDIA} mídias por post`);
     setExtras((prev) => [...prev, ...accepted]);
@@ -215,6 +216,37 @@ function CreatePage() {
       URL.revokeObjectURL(prev[i].url);
       return prev.filter((_, idx) => idx !== i);
     });
+    setActiveIdx((a) => (a > i ? a - 1 : a === i + 1 ? 0 : a));
+  }
+
+  /** Lista unificada: posição 0 é a capa do post. */
+  const mediaList =
+    file && preview ? [{ file, url: preview, edit: imgEdit }, ...extras] : [];
+
+  function setMediaAt(i: number, next: { file: File; url: string; edit: ImageEditState }) {
+    if (i === 0) {
+      setFile(next.file);
+      setPreview(next.url);
+      setImgEdit(next.edit);
+      setTrim(defaultTrim);
+    } else {
+      setExtras((prev) => prev.map((e, j) => (j === i - 1 ? next : e)));
+    }
+  }
+
+  function updateEditAt(i: number, edit: ImageEditState) {
+    if (i === 0) setImgEdit(edit);
+    else setExtras((prev) => prev.map((e, j) => (j === i - 1 ? { ...e, edit } : e)));
+  }
+
+  function moveMedia(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (i < 0 || j < 0 || i >= mediaList.length || j >= mediaList.length) return;
+    const a = mediaList[i];
+    const b = mediaList[j];
+    setMediaAt(i, b);
+    setMediaAt(j, a);
+    setActiveIdx(j);
   }
 
   function removeMedia() {

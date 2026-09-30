@@ -47,18 +47,19 @@ function pickMime() {
   return "";
 }
 
-function drawCover(ctx: CanvasRenderingContext2D, src: CanvasImageSource, sw: number, sh: number, mirror = false) {
-  const s = Math.max(W / sw, H / sh);
+function drawCover(ctx: CanvasRenderingContext2D, src: CanvasImageSource, sw: number, sh: number, mirror = false, outW = W, outH = H) {
+  const s = Math.max(outW / sw, outH / sh);
   const dw = sw * s;
   const dh = sh * s;
   ctx.save();
   if (mirror) {
-    ctx.translate(W, 0);
+    ctx.translate(outW, 0);
     ctx.scale(-1, 1);
   }
-  ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  ctx.drawImage(src, (outW - dw) / 2, (outH - dh) / 2, dw, dh);
   ctx.restore();
 }
+
 
 function drawText(ctx: CanvasRenderingContext2D, t: TextLayer) {
   if (!t.text.trim()) return;

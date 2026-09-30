@@ -471,23 +471,28 @@ function NewStoryPage() {
     }
   }
 
-  const dragText = (e: React.PointerEvent, id: string) => {
+  const dragLayer = (e: React.PointerEvent, apply: (x: number, y: number) => void) => {
     e.stopPropagation();
     const el = e.currentTarget.parentElement;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const move = (ev: PointerEvent) => {
-      const x = Math.min(0.86, Math.max(0.14, (ev.clientX - rect.left) / rect.width));
-      const y = Math.min(0.88, Math.max(0.12, (ev.clientY - rect.top) / rect.height));
-      setTexts((prev) => prev.map((t) => t.id === id ? { ...t, x, y } : t));
+      const x = Math.min(0.88, Math.max(0.12, (ev.clientX - rect.left) / rect.width));
+      const y = Math.min(0.9, Math.max(0.1, (ev.clientY - rect.top) / rect.height));
+      apply(x, y);
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      buzz(6);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
+
+  const dragText = (e: React.PointerEvent, id: string) =>
+    dragLayer(e, (x, y) => setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, x, y } : t))));
+
 
   const pointFromEvent = (e: React.PointerEvent<SVGSVGElement>) => {
     const r = e.currentTarget.getBoundingClientRect();

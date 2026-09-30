@@ -170,7 +170,7 @@ export class CameraKitEngine implements EffectEngine {
     try {
       const res = await this.kit.lensRepository.loadLensGroups(this.lensGroups);
       const lenses: any[] = res?.lenses ?? [];
-      console.info("[AR] grupo", lenses.length, res?.errors?.length ?? 0);
+      console.info("[AR] grupo", lenses.length, String(res?.errors?.[0]?.message ?? res?.errors?.[0] ?? ""), String(res?.errors?.[0]?.cause?.message ?? ""));
       return lenses.map((l, i) => {
         this.lensCache.set(l.id, l);
         return {

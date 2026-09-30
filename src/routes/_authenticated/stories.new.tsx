@@ -722,7 +722,9 @@ function NewStoryPage() {
       {/* Rodapé */}
       <div className={cn("relative z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-opacity", focus && "pointer-events-none opacity-0")}>
         {!media ? (
+          <>
           <div className="flex items-center justify-between">
+
             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className={cn(glass, "h-12 w-12")} aria-label="Galeria"><ImagePlus className="h-5 w-5" /></Button>
             <div className="flex flex-col items-center gap-2">
               <Button type="button" variant="ghost" size="sm" aria-pressed={timerEnabled} onClick={() => setTimerEnabled((v) => !v)} className={cn("h-8 rounded-full border border-border/30 bg-background/50 text-xs text-foreground", timerEnabled && "border-primary text-primary")}><Timer className="h-4 w-4" /> {timerEnabled ? "Timer 3s" : "Sem timer"}</Button>

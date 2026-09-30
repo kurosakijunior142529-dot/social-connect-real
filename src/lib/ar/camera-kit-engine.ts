@@ -163,6 +163,31 @@ export class CameraKitEngine implements EffectEngine {
     await this.loadEffect(effect);
   }
 
+  /** Lista as Lentes publicadas nos grupos configurados (ex.: grupo de demonstração). */
+  async listGroupEffects(): Promise<ArEffect[]> {
+    if (!this.kit) return [];
+    try {
+      const res = await this.kit.lensRepository.loadLensGroups(this.lensGroups);
+      const lenses: any[] = res?.lenses ?? [];
+      return lenses.map((l, i) => {
+        this.lensCache.set(l.id, l);
+        return {
+          id: `snap-${l.id}`,
+          name: l.name || `Efeito ${i + 1}`,
+          thumbnailUrl: l.iconUrl ?? l.preview?.imageUrl ?? null,
+          category: "populares",
+          lensId: l.id,
+          lensGroupId: l.groupId ?? this.lensGroups[0] ?? null,
+          version: 1,
+          sortOrder: i,
+          usageCount: 0,
+        } satisfies ArEffect;
+      });
+    } catch {
+      return [];
+    }
+  }
+
   getOutputCanvas(): HTMLCanvasElement | null {
     return (this.session?.output?.live as HTMLCanvasElement | undefined) ?? null;
   }

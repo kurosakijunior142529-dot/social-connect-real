@@ -214,11 +214,26 @@ function NewStoryPage() {
     }
     let cancelled = false;
     (async () => {
+      // Pede o sensor já na proporção da tela: evita o recorte agressivo que
+      // dava sensação de zoom gigante e perda de nitidez.
+      const screenRatio = typeof window !== "undefined" && window.innerWidth > 0 ? window.innerHeight / window.innerWidth : 16 / 9;
+      const ideal: MediaTrackConstraints = {
+        facingMode: { ideal: facing },
+        aspectRatio: { ideal: 1 / screenRatio },
+        width: { ideal: 1440 },
+        height: { ideal: Math.round(1440 * screenRatio) },
+        frameRate: { ideal: 30 },
+        resizeMode: "none",
+      } as MediaTrackConstraints;
+      const open = async () => {
+        try {
+          return await navigator.mediaDevices.getUserMedia({ video: ideal, audio: true });
+        } catch {
+          return await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: true });
+        }
+      };
       try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1080 }, height: { ideal: 1920 } },
-          audio: true,
-        });
+        const s = await open();
         if (cancelled) return s.getTracks().forEach((t) => t.stop());
         stopCamera();
         streamRef.current = s;
@@ -231,6 +246,7 @@ function NewStoryPage() {
         if (!cancelled) setCamState("denied");
       }
     })();
+
     return () => {
       cancelled = true;
     };

@@ -324,12 +324,24 @@ function NewStoryPage() {
 
   const onShutterDown = () => {
     if (camState !== "ready") return;
+    if (timerEnabled) {
+      setCountdown(3);
+      const tick = (n: number) => {
+        countdownRef.current = window.setTimeout(() => {
+          if (n === 1) { setCountdown(0); countdownRef.current = null; startRec(); }
+          else { setCountdown(n - 1); tick(n - 1); }
+        }, 1000);
+      };
+      tick(3);
+      return;
+    }
     holdTimer.current = window.setTimeout(() => {
       holdTimer.current = null;
       startRec();
     }, 280);
   };
   const onShutterUp = () => {
+    if (timerEnabled) { if (recording) stopRec(); return; }
     if (holdTimer.current) {
       window.clearTimeout(holdTimer.current);
       holdTimer.current = null;
@@ -345,7 +357,9 @@ function NewStoryPage() {
 
   const discard = () => {
     setMedia(null);
-    setText(null);
+    setTexts([]);
+    setStrokes([]);
+    setFit(false);
     setFilterId("none");
     setPanel(null);
     setStickerType("none");
@@ -355,8 +369,17 @@ function NewStoryPage() {
 
   const buildFile = async () => {
     if (!media) throw new Error("Sem mídia");
-    if (media.video || (filterId === "none" && !text)) return media.file;
-    return renderPhoto(media.url, filterCss, text);
+    if (media.video) {
+      if (filterId === "none" && !texts.length && !strokes.length && !fit) return media.file;
+      const duration = await probeDuration(media.url);
+      if (!duration || duration > 60) throw new Error("Este vídeo não pode ser editado aqui. Escolha um vídeo de até 60 segundos.");
+      const out = await exportVideo(media.url, {
+        aspect: "vertical", filterCss, fitInside: fit,
+        drawOverlay: (ctx) => drawOverlays(ctx, texts, strokes),
+      });
+      return new File([out.blob], `vibe-${Date.now()}.${out.ext}`, { type: out.blob.type });
+    }
+    return renderPhoto(media.url, filterCss, texts, strokes, fit);
   };
 
   const save = async () => {
@@ -383,7 +406,7 @@ function NewStoryPage() {
       const [dataUrl, sha256] = await Promise.all([previewDataUrl(upload), sha256Hex(upload)]);
       const verdict = await moderate({ data: { dataUrl, sha256, mime: check.mime, size: upload.size, surface: "public", contentType: "story" } });
       if (!verdict.allow) throw new Error(verdict.reason || "Conteúdo bloqueado pelas regras da comunidade");
-      const txts = [caption.trim(), text?.text.trim() ?? ""].filter(Boolean).join(" | ");
+      const txts = [caption.trim(), ...texts.map((t) => t.text.trim())].filter(Boolean).join(" | ");
       let sticker: any = null;
       if (stickerType === "poll") {
         const opts = pollOpts.map((o) => o.trim()).filter(Boolean);
@@ -422,15 +445,15 @@ function NewStoryPage() {
     }
   }
 
-  // arrastar texto na vertical
-  const dragText = (e: React.PointerEvent) => {
-    if (!text) return;
+  const dragText = (e: React.PointerEvent, id: string) => {
     e.stopPropagation();
-    const el = e.currentTarget.parentElement!;
+    const el = e.currentTarget.parentElement;
+    if (!el) return;
     const rect = el.getBoundingClientRect();
     const move = (ev: PointerEvent) => {
+      const x = Math.min(0.86, Math.max(0.14, (ev.clientX - rect.left) / rect.width));
       const y = Math.min(0.88, Math.max(0.12, (ev.clientY - rect.top) / rect.height));
-      setText((t) => (t ? { ...t, y } : t));
+      setTexts((prev) => prev.map((t) => t.id === id ? { ...t, x, y } : t));
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
@@ -438,6 +461,11 @@ function NewStoryPage() {
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+  };
+
+  const pointFromEvent = (e: React.PointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
   };
 
   const glass = "grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md transition active:scale-90";

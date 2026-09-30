@@ -169,6 +169,7 @@ export class CameraKitEngine implements EffectEngine {
     try {
       const res = await this.kit.lensRepository.loadLensGroups(this.lensGroups);
       const lenses: any[] = res?.lenses ?? [];
+      console.info("[AR] grupo", lenses.length, res?.errors?.length ?? 0);
       return lenses.map((l, i) => {
         this.lensCache.set(l.id, l);
         return {
@@ -183,7 +184,8 @@ export class CameraKitEngine implements EffectEngine {
           usageCount: 0,
         } satisfies ArEffect;
       });
-    } catch {
+    } catch (err) {
+      console.warn("[AR] falha ao listar lentes", err);
       return [];
     }
   }

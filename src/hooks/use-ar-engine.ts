@@ -68,6 +68,7 @@ export function useArEngine({ facing, fps, enabled = true }: Options) {
         } catch (err) {
           engine?.dispose();
           engine = null;
+          console.warn("[AR] start falhou", err);
           const kind = err instanceof ArEngineError ? err.kind : "unknown";
           if (kind === "permission-denied") {
             setStatus("error");

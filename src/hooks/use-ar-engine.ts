@@ -58,7 +58,6 @@ export function useArEngine({ facing, fps, enabled = true }: Options) {
           if (!alive) return engine.dispose();
           setLensesAvailable(true);
           const groupEffects = await (engine as CameraKitEngine).listGroupEffects();
-          console.info("[AR] lentes do grupo:", groupEffects.length);
           if (alive && groupEffects.length) {
             setEffects((prev) => {
               const known = new Set(prev.map((e) => e.lensId));
@@ -68,7 +67,6 @@ export function useArEngine({ facing, fps, enabled = true }: Options) {
         } catch (err) {
           engine?.dispose();
           engine = null;
-          console.warn("[AR] start falhou", err);
           const kind = err instanceof ArEngineError ? err.kind : "unknown";
           if (kind === "permission-denied") {
             setStatus("error");

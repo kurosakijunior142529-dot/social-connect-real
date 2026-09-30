@@ -165,12 +165,11 @@ export class CameraKitEngine implements EffectEngine {
 
   /** Lista as Lentes publicadas nos grupos configurados (ex.: grupo de demonstração). */
   async listGroupEffects(): Promise<ArEffect[]> {
-    console.info("[AR] listar", Boolean(this.kit), this.lensGroups);
     if (!this.kit) return [];
     try {
       const res = await this.kit.lensRepository.loadLensGroups(this.lensGroups);
       const lenses: any[] = res?.lenses ?? [];
-      console.info("[AR] grupo", lenses.length, String(res?.errors?.[0]?.message ?? res?.errors?.[0] ?? ""), String(res?.errors?.[0]?.cause?.message ?? ""));
+      if (!lenses.length) console.warn("[AR] grupo sem lentes", String(res?.errors?.[0]?.message ?? res?.errors?.[0] ?? ""), String(res?.errors?.[0]?.cause?.message ?? ""));
       return lenses.map((l, i) => {
         this.lensCache.set(l.id, l);
         return {

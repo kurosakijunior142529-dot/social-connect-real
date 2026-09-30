@@ -442,6 +442,8 @@ function NewStoryPage() {
       } else if (stickerType === "mood") {
         sticker = { type: "mood", ...VIBE_MOODS[moodIdx] };
       }
+      if (sticker) sticker = { ...sticker, x: Number(stickerPos.x.toFixed(3)), y: Number(stickerPos.y.toFixed(3)) };
+
       const all = [txts, sticker && sticker.type !== "mood" ? (sticker.type === "poll" ? [sticker.question, ...sticker.options].join(" | ") : sticker.prompt) : ""].filter(Boolean).join(" | ");
       if (all) {
         const v = await moderateCaption({ data: { text: all, surface: "public", contentType: "story_caption" } });

@@ -16,6 +16,9 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { exportVideo, probeDuration } from "@/lib/video-export";
 import { Button } from "@/components/ui/button";
+import { ArCanvas } from "@/components/ar/ar-canvas";
+import { ArEffectTray } from "@/components/ar/ar-effect-tray";
+import { useArEngine } from "@/hooks/use-ar-engine";
 import { CreateModeRail } from "@/components/create/create-mode-rail";
 
 
@@ -195,6 +198,9 @@ function NewStoryPage() {
   const [pollOpts, setPollOpts] = useState(["Sim", "Não"]);
   const [prompt, setPrompt] = useState("Manda uma Vibe");
   const [busy, setBusy] = useState(false);
+  const [arMode, setArMode] = useState(false);
+  const ar = useArEngine({ facing, fps: 30, enabled: arMode && !media });
+  const arReady = arMode && ar.status !== "error" && ar.status !== "initializing" && ar.status !== "idle";
   const [avatar, setAvatar] = useState<string | null>(null);
 
   const filterCss = VIDEO_FILTERS.find((f) => f.id === filterId)?.css ?? "none";
@@ -212,7 +218,7 @@ function NewStoryPage() {
   }, []);
 
   useEffect(() => {
-    if (media) {
+    if (media || arMode) {
       stopCamera();
       return;
     }
@@ -254,7 +260,7 @@ function NewStoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [facing, media, stopCamera]);
+  }, [facing, media, arMode, stopCamera]);
 
   useEffect(() => () => stopCamera(), [stopCamera]);
   useEffect(() => () => { if (media) URL.revokeObjectURL(media.url); }, [media]);
@@ -287,6 +293,16 @@ function NewStoryPage() {
   };
 
   const takePhoto = async () => {
+    if (arMode) {
+      if (!ar.engine) return;
+      try {
+        const blob = await ar.engine.capturePhoto();
+        buzz(15);
+        const file = new File([blob], `vibe-${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+        setMedia({ file, url: URL.createObjectURL(file), video: false });
+      } catch { toast.error("Não foi possível tirar a foto"); }
+      return;
+    }
     const v = videoRef.current;
     if (!v || !v.videoWidth) return;
     // Usa a resolução real do sensor (sem ampliar) para a foto sair nítida.
@@ -307,6 +323,15 @@ function NewStoryPage() {
 
 
   const startRec = () => {
+    if (arMode) {
+      if (!ar.engine) return;
+      void ar.engine.startRecording().then(() => {
+        startAt.current = performance.now();
+        buzz(25);
+        setRecording(true);
+      }, () => toast.error("Não foi possível gravar neste aparelho"));
+      return;
+    }
     const s = streamRef.current;
     if (!s) return;
     const mime = pickMime();
@@ -332,11 +357,24 @@ function NewStoryPage() {
   };
 
   const stopRec = useCallback(() => {
+    if (arMode && ar.engine) {
+      const eng = ar.engine;
+      setRecording(false);
+      setProgress(0);
+      buzz([10, 40, 10]);
+      void eng.stopRecording().then((rec) => {
+        if (rec.blob.size < 1000) return;
+        const type = rec.mimeType || "video/webm";
+        const file = new File([rec.blob], `vibe-${Date.now()}.${type.includes("mp4") ? "mp4" : "webm"}`, { type: type.split(";")[0] });
+        setMedia({ file, url: URL.createObjectURL(file), video: true });
+      }).catch(() => {});
+      return;
+    }
     if (recRef.current?.state === "recording") { recRef.current.stop(); buzz([10, 40, 10]); }
     recRef.current = null;
     setRecording(false);
     setProgress(0);
-  }, []);
+  }, [arMode, ar.engine]);
 
   useEffect(() => {
     if (!recording) return;
@@ -349,7 +387,7 @@ function NewStoryPage() {
   }, [recording, stopRec]);
 
   const onShutterDown = () => {
-    if (camState !== "ready") return;
+    if (arMode ? !arReady : camState !== "ready") return;
     if (timerEnabled) {
       setCountdown(3);
       const tick = (n: number) => {
@@ -512,7 +550,14 @@ function NewStoryPage() {
       {/* Palco */}
       <div className="absolute inset-0" onClick={() => media && !panel && setFocus((f) => !f)}>
         {!media ? (
-          <video ref={videoRef} muted playsInline autoPlay className={cn("h-full w-full object-cover", facing === "user" && "-scale-x-100")} />
+          arMode ? (
+            <>
+              <ArCanvas engine={ar.engine} engineVersion={ar.engineVersion} className="h-full w-full" />
+              {ar.status === "initializing" && <div className="absolute inset-0 grid place-items-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+            </>
+          ) : (
+            <video ref={videoRef} muted playsInline autoPlay className={cn("h-full w-full object-cover", facing === "user" && "-scale-x-100")} />
+          )
         ) : (
           <>
             {fit && <div className="absolute inset-0 scale-125 bg-cover bg-center blur-3xl brightness-50" style={{ backgroundImage: `url(${media.url})` }} />}
@@ -725,6 +770,12 @@ function NewStoryPage() {
       <div className={cn("relative z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-opacity", focus && "pointer-events-none opacity-0")}>
         {!media ? (
           <>
+          {arMode && (
+            <div className="mb-3">
+              {!ar.lensesAvailable && ar.status === "ready" && <p className="mb-2 text-center text-xs text-foreground/70">Efeitos indisponíveis agora — usando câmera normal.</p>}
+              <ArEffectTray effects={ar.effects} active={ar.effect} onSelect={(e) => void ar.selectEffect(e)} disabled={recording || ar.status === "loading-effect"} />
+            </div>
+          )}
           <div className="flex items-center justify-between">
 
             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className={cn(glass, "h-12 w-12")} aria-label="Galeria"><ImagePlus className="h-5 w-5" /></Button>
@@ -736,7 +787,7 @@ function NewStoryPage() {
                 onPointerUp={onShutterUp}
                 onPointerLeave={() => !timerEnabled && recording && stopRec()}
                 onContextMenu={(e) => e.preventDefault()}
-                disabled={camState !== "ready" || countdown > 0}
+                disabled={(arMode ? !arReady : camState !== "ready") || countdown > 0}
                 className="relative grid h-[88px] w-[88px] touch-none select-none place-items-center disabled:opacity-40"
               >
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 88 88">
@@ -747,7 +798,10 @@ function NewStoryPage() {
               </button>
               <span className="text-[11px] font-semibold text-foreground/70">{timerEnabled ? `Toque: vídeo em 3s · até ${MAX_SECONDS}s` : `Toque: foto · Segure: vídeo até ${MAX_SECONDS}s`}</span>
             </div>
+            <div className="flex flex-col gap-2">
+            <Button type="button" variant="ghost" size="icon" aria-pressed={arMode} disabled={recording} onClick={() => { buzz(8); setArMode((v) => !v); }} className={cn(glass, "h-12 w-12", arMode && "border-primary text-primary")} aria-label="Efeitos"><Sparkles className="h-5 w-5" /></Button>
             <Button type="button" variant="ghost" size="icon" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className={cn(glass, "h-12 w-12")} aria-label="Trocar câmera"><RefreshCw className="h-5 w-5" /></Button>
+            </div>
           </div>
           <CreateModeRail active="vibes" className="pt-3" onBeforeLeave={stopCamera} />
           </>

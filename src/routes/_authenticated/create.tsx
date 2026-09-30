@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { suggestCaptions } from "@/lib/ai.functions";
 import { VideoTrimmer, defaultTrim, type TrimState } from "@/components/media/video-trimmer";
+import { SimpleVideo } from "@/components/media/simple-video";
 import {
   ImageEditor,
   FEED_ASPECTS,
@@ -229,6 +230,8 @@ function CreatePage() {
   /** Lista unificada: posição 0 é a capa do post. */
   const mediaList =
     file && preview ? [{ file, url: preview, edit: imgEdit }, ...extras] : [];
+  const activeMedia = mediaList[activeIdx] ?? mediaList[0];
+  const activeIsVideo = !!activeMedia?.file.type.startsWith("video/");
 
   function setMediaAt(i: number, next: { file: File; url: string; edit: ImageEditState }) {
     if (i === 0) {
@@ -397,7 +400,7 @@ function CreatePage() {
           try {
             exFile = await exportEditedImage(ex.url, ex.edit);
           } catch (err) {
-            console.warn("[create] extra image export failed", err);
+            throw new Error("Não foi possível aplicar o enquadramento de uma foto. Tente novamente.");
           }
         }
         const c = await checkFile(exFile);
@@ -664,7 +667,7 @@ function CreatePage() {
                     </div>
 
 
-                    {isVideo ? (
+                    {activeIdx === 0 && isVideo ? (
                       <section className="rounded-[22px] border border-border/60 bg-surface/80 p-3 shadow-sm backdrop-blur">
                         <VideoTrimmer src={preview} value={trim} onChange={setTrim} />
                       </section>

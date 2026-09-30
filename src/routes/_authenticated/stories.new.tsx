@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Download, ImagePlus, Loader2, Music2, RefreshCw, Send, Settings2, Sparkles, Star, Sticker, Type, X, Zap, ZapOff } from "lucide-react";
+import { ArrowLeft, Check, Download, ImagePlus, Loader2, Music2, RefreshCw, Send, Settings2, Sparkles, Star, Sticker, Type, X, Zap, ZapOff, PenLine, Scan, Timer, Trash2 } from "lucide-react";
 import { MusicPicker } from "@/components/music/music-picker";
 import { trackAudioUrl, type MusicSelection } from "@/lib/music/api";
 import { VIBE_MOODS } from "@/components/stories/story-sticker";
@@ -14,6 +14,8 @@ import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
 import { VIDEO_FILTERS } from "@/lib/video-filters";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
+import { exportVideo, probeDuration } from "@/lib/video-export";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/stories/new")({
   head: () => ({
@@ -34,7 +36,9 @@ const W = 1080;
 const H = 1920;
 
 type Media = { file: File; url: string; video: boolean };
-type TextLayer = { text: string; y: number; style: "clean" | "neon" | "box" };
+type TextLayer = { id: string; text: string; x: number; y: number; style: "clean" | "neon" | "box"; color: string };
+type Stroke = { points: { x: number; y: number }[]; color: string; width: number };
+const INKS = ["#ffffff", "#22E06A", "#FFDA65", "#FF6B87", "#69D4FF"];
 
 function pickMime() {
   for (const m of ["video/mp4;codecs=avc1", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]) {
@@ -72,35 +76,67 @@ function drawText(ctx: CanvasRenderingContext2D, t: TextLayer) {
       ctx.beginPath();
       ctx.roundRect(W / 2 - w / 2, ly - 50, w, 100, 28);
       ctx.fill();
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = t.color;
     } else if (t.style === "neon") {
-      ctx.shadowColor = "#22E06A";
+      ctx.shadowColor = t.color;
       ctx.shadowBlur = 28;
-      ctx.fillStyle = "#22E06A";
+      ctx.fillStyle = t.color;
     } else {
       ctx.shadowColor = "rgba(0,0,0,0.6)";
       ctx.shadowBlur = 16;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = t.color;
     }
-    ctx.fillText(line, W / 2, ly);
+    ctx.fillText(line, t.x * W, ly, W * 0.86);
   });
   ctx.restore();
 }
 
-async function renderPhoto(url: string, filter: string, text: TextLayer | null): Promise<File> {
+function drawStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[]) {
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const stroke of strokes) {
+    if (!stroke.points.length) continue;
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.width;
+    ctx.shadowColor = stroke.color;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(stroke.points[0].x * W, stroke.points[0].y * H);
+    for (const p of stroke.points.slice(1)) ctx.lineTo(p.x * W, p.y * H);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawOverlays(ctx: CanvasRenderingContext2D, texts: TextLayer[], strokes: Stroke[]) {
+  drawStrokes(ctx, strokes);
+  texts.forEach((t) => drawText(ctx, t));
+}
+
+async function renderPhoto(url: string, filter: string, texts: TextLayer[], strokes: Stroke[], fit: boolean): Promise<File> {
   const img = new Image();
   img.src = url;
   await img.decode();
   const c = document.createElement("canvas");
   c.width = W;
   c.height = H;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, W, H);
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("Edição indisponível neste aparelho");
+  if (fit) {
+    ctx.save();
+    ctx.filter = "blur(50px) brightness(0.55)";
+    drawCover(ctx, img, img.naturalWidth, img.naturalHeight);
+    ctx.restore();
+  }
   ctx.filter = filter === "none" ? "none" : filter;
-  drawCover(ctx, img, img.naturalWidth, img.naturalHeight);
+  if (fit) {
+    const scale = Math.min(W / img.naturalWidth, H / img.naturalHeight);
+    const iw = img.naturalWidth * scale, ih = img.naturalHeight * scale;
+    ctx.drawImage(img, (W - iw) / 2, (H - ih) / 2, iw, ih);
+  } else drawCover(ctx, img, img.naturalWidth, img.naturalHeight);
   ctx.filter = "none";
-  if (text) drawText(ctx, text);
+  drawOverlays(ctx, texts, strokes);
   const blob = await new Promise<Blob>((r, j) => c.toBlob((b) => (b ? r(b) : j(new Error("Falha ao gerar imagem"))), "image/jpeg", 0.9));
   return new File([blob], `vibe-${Date.now()}.jpg`, { type: "image/jpeg" });
 }
@@ -131,10 +167,18 @@ function NewStoryPage() {
   const [media, setMedia] = useState<Media | null>(null);
 
   const [filterId, setFilterId] = useState("none");
-  const [panel, setPanel] = useState<null | "filters" | "sticker" | "text" | "music">(null);
-  const [text, setText] = useState<TextLayer | null>(null);
+  const [panel, setPanel] = useState<null | "filters" | "sticker" | "text" | "music" | "draw">(null);
+  const [texts, setTexts] = useState<TextLayer[]>([]);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [draftText, setDraftText] = useState("");
   const [textStyle, setTextStyle] = useState<TextLayer["style"]>("clean");
+  const [ink, setInk] = useState(INKS[1]);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [activeStroke, setActiveStroke] = useState<Stroke | null>(null);
+  const [fit, setFit] = useState(false);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef<number | null>(null);
   const [focus, setFocus] = useState(false);
   const [caption, setCaption] = useState("");
   const [stickerType, setStickerType] = useState<"none" | "poll" | "question" | "mood">("none");
@@ -149,6 +193,9 @@ function NewStoryPage() {
   const [avatar, setAvatar] = useState<string | null>(null);
 
   const filterCss = VIDEO_FILTERS.find((f) => f.id === filterId)?.css ?? "none";
+  const editedText = texts.find((t) => t.id === editingTextId);
+
+  useEffect(() => () => { if (countdownRef.current) window.clearTimeout(countdownRef.current); }, []);
 
   useEffect(() => {
     void (supabase as any).from("profiles").select("avatar_url").eq("id", user.id).maybeSingle().then(({ data }: any) => setAvatar(data?.avatar_url ?? null));
@@ -277,12 +324,24 @@ function NewStoryPage() {
 
   const onShutterDown = () => {
     if (camState !== "ready") return;
+    if (timerEnabled) {
+      setCountdown(3);
+      const tick = (n: number) => {
+        countdownRef.current = window.setTimeout(() => {
+          if (n === 1) { setCountdown(0); countdownRef.current = null; startRec(); }
+          else { setCountdown(n - 1); tick(n - 1); }
+        }, 1000);
+      };
+      tick(3);
+      return;
+    }
     holdTimer.current = window.setTimeout(() => {
       holdTimer.current = null;
       startRec();
     }, 280);
   };
   const onShutterUp = () => {
+    if (timerEnabled) { if (recording) stopRec(); return; }
     if (holdTimer.current) {
       window.clearTimeout(holdTimer.current);
       holdTimer.current = null;
@@ -298,7 +357,9 @@ function NewStoryPage() {
 
   const discard = () => {
     setMedia(null);
-    setText(null);
+    setTexts([]);
+    setStrokes([]);
+    setFit(false);
     setFilterId("none");
     setPanel(null);
     setStickerType("none");
@@ -308,8 +369,17 @@ function NewStoryPage() {
 
   const buildFile = async () => {
     if (!media) throw new Error("Sem mídia");
-    if (media.video || (filterId === "none" && !text)) return media.file;
-    return renderPhoto(media.url, filterCss, text);
+    if (media.video) {
+      if (filterId === "none" && !texts.length && !strokes.length && !fit) return media.file;
+      const duration = await probeDuration(media.url);
+      if (!duration || duration > 60) throw new Error("Este vídeo não pode ser editado aqui. Escolha um vídeo de até 60 segundos.");
+      const out = await exportVideo(media.url, {
+        aspect: "vertical", filterCss, fitInside: fit,
+        drawOverlay: (ctx) => drawOverlays(ctx, texts, strokes),
+      });
+      return new File([out.blob], `vibe-${Date.now()}.${out.ext}`, { type: out.blob.type });
+    }
+    return renderPhoto(media.url, filterCss, texts, strokes, fit);
   };
 
   const save = async () => {
@@ -336,7 +406,7 @@ function NewStoryPage() {
       const [dataUrl, sha256] = await Promise.all([previewDataUrl(upload), sha256Hex(upload)]);
       const verdict = await moderate({ data: { dataUrl, sha256, mime: check.mime, size: upload.size, surface: "public", contentType: "story" } });
       if (!verdict.allow) throw new Error(verdict.reason || "Conteúdo bloqueado pelas regras da comunidade");
-      const txts = [caption.trim(), text?.text.trim() ?? ""].filter(Boolean).join(" | ");
+      const txts = [caption.trim(), ...texts.map((t) => t.text.trim())].filter(Boolean).join(" | ");
       let sticker: any = null;
       if (stickerType === "poll") {
         const opts = pollOpts.map((o) => o.trim()).filter(Boolean);
@@ -375,15 +445,15 @@ function NewStoryPage() {
     }
   }
 
-  // arrastar texto na vertical
-  const dragText = (e: React.PointerEvent) => {
-    if (!text) return;
+  const dragText = (e: React.PointerEvent, id: string) => {
     e.stopPropagation();
-    const el = e.currentTarget.parentElement!;
+    const el = e.currentTarget.parentElement;
+    if (!el) return;
     const rect = el.getBoundingClientRect();
     const move = (ev: PointerEvent) => {
+      const x = Math.min(0.86, Math.max(0.14, (ev.clientX - rect.left) / rect.width));
       const y = Math.min(0.88, Math.max(0.12, (ev.clientY - rect.top) / rect.height));
-      setText((t) => (t ? { ...t, y } : t));
+      setTexts((prev) => prev.map((t) => t.id === id ? { ...t, x, y } : t));
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
@@ -391,6 +461,11 @@ function NewStoryPage() {
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+  };
+
+  const pointFromEvent = (e: React.PointerEvent<SVGSVGElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
   };
 
   const glass = "grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md transition active:scale-90";
@@ -405,25 +480,37 @@ function NewStoryPage() {
       <div className="absolute inset-0" onClick={() => media && !panel && setFocus((f) => !f)}>
         {!media ? (
           <video ref={videoRef} muted playsInline autoPlay className={cn("h-full w-full object-cover", facing === "user" && "-scale-x-100")} />
-        ) : media.video ? (
-          <video src={media.url} autoPlay loop playsInline className="h-full w-full object-cover" style={{ filter: filterCss }} />
         ) : (
-          <img src={media.url} alt="Sua Vibe" className="h-full w-full object-cover" style={{ filter: filterCss }} />
+          <>
+            {fit && <div className="absolute inset-0 scale-125 bg-cover bg-center blur-3xl brightness-50" style={{ backgroundImage: `url(${media.url})` }} />}
+            {media.video ? (
+              <video src={media.url} autoPlay loop playsInline className={cn("relative h-full w-full", fit ? "object-contain" : "object-cover")} style={{ filter: filterCss }} />
+            ) : (
+              <img src={media.url} alt="Sua Vibe" className={cn("relative h-full w-full", fit ? "object-contain" : "object-cover")} style={{ filter: filterCss }} />
+            )}
+          </>
         )}
-        {text && media && (
+        {media && strokes.length > 0 && (
+          <svg viewBox="0 0 1080 1920" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+            {strokes.map((s, i) => <polyline key={i} points={s.points.map((p) => `${p.x * W},${p.y * H}`).join(" ")} fill="none" stroke={s.color} strokeWidth={s.width} strokeLinecap="round" strokeLinejoin="round" />)}
+          </svg>
+        )}
+        {texts.map((text) => media && (
           <div
-            onPointerDown={dragText}
+            key={text.id}
+            onPointerDown={(e) => dragText(e, text.id)}
+            onDoubleClick={(e) => { e.stopPropagation(); setEditingTextId(text.id); setDraftText(text.text); setTextStyle(text.style); setInk(text.color); setPanel("text"); }}
             className={cn(
               "absolute left-1/2 max-w-[86%] -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none whitespace-pre-wrap text-center font-display text-3xl font-bold",
               text.style === "neon" && "text-primary [text-shadow:0_0_18px_var(--primary)]",
               text.style === "box" && "rounded-2xl bg-black/75 px-4 py-2",
               text.style === "clean" && "[text-shadow:0_2px_12px_rgba(0,0,0,.6)]",
             )}
-            style={{ top: `${text.y * 100}%` }}
+            style={{ top: `${text.y * 100}%`, left: `${text.x * 100}%`, color: text.color }}
           >
             {text.text}
           </div>
-        )}
+        ))}
         {stickerType !== "none" && media && !focus && (
           <div className="pointer-events-none absolute left-1/2 top-[62%] w-64 -translate-x-1/2 rounded-2xl border border-white/15 bg-black/55 p-3 text-center backdrop-blur-md">
             {stickerType === "mood" ? (
@@ -443,11 +530,21 @@ function NewStoryPage() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/75 to-transparent" />
       </div>
 
+      {media && panel === "draw" && (
+        <svg viewBox="0 0 1080 1920" preserveAspectRatio="none" className="absolute inset-0 z-20 h-full w-full touch-none" aria-label="Desenhar sobre a Vibe"
+          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setActiveStroke({ points: [pointFromEvent(e)], color: ink, width: 12 }); }}
+          onPointerMove={(e) => { if (e.buttons) setActiveStroke((s) => s ? { ...s, points: [...s.points, pointFromEvent(e)] } : null); }}
+          onPointerUp={(e) => { if (activeStroke) setStrokes((prev) => [...prev, { ...activeStroke, points: [...activeStroke.points, pointFromEvent(e)] }]); setActiveStroke(null); }}>
+          {activeStroke && <polyline points={activeStroke.points.map((p) => `${p.x * W},${p.y * H}`).join(" ")} fill="none" stroke={activeStroke.color} strokeWidth={activeStroke.width} strokeLinecap="round" strokeLinejoin="round" />}
+        </svg>
+      )}
+      {countdown > 0 && <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-background/30 font-display text-8xl font-bold text-primary">{countdown}</div>}
+
       {camState === "denied" && !media && (
         <div className="absolute inset-0 grid place-items-center p-8 text-center">
           <div className="space-y-3">
             <p className="text-sm text-white/80">Sem acesso à câmera. Libere nas configurações do navegador ou escolha da galeria.</p>
-            <button onClick={() => fileInputRef.current?.click()} className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Abrir galeria</button>
+          <Button onClick={() => fileInputRef.current?.click()}>Abrir galeria</Button>
           </div>
         </div>
       )}
@@ -477,19 +574,21 @@ function NewStoryPage() {
       {media && !focus && (
         <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3">
           {[
-            { k: "text", icon: Type, label: "Texto", show: !media.video },
+            { k: "text", icon: Type, label: "Texto", show: true },
+            { k: "draw", icon: PenLine, label: "Desenhar", show: true },
             { k: "sticker", icon: Sticker, label: "Figurinha", show: true },
             { k: "filters", icon: Sparkles, label: "Filtros", show: true },
             { k: "music", icon: Music2, label: "Música", show: true },
           ].filter((b) => b.show).map((b) => (
             <button key={b.k} aria-label={b.label} className={cn(glass, panel === b.k && "border-primary text-primary")}
               onClick={() => {
-                if (b.k === "text") { setDraftText(text?.text ?? ""); setTextStyle(text?.style ?? "clean"); }
+                if (b.k === "text") { setEditingTextId(null); setDraftText(""); setTextStyle("clean"); setInk(INKS[1]); }
                 setPanel(panel === b.k ? null : (b.k as any));
               }}>
               <b.icon className="h-5 w-5" />
             </button>
           ))}
+          <Button type="button" variant="ghost" size="icon" title={fit ? "Preencher tela" : "Mostrar imagem inteira"} aria-label={fit ? "Preencher tela" : "Mostrar imagem inteira"} onClick={() => setFit((v) => !v)} className={glass}><Scan className="h-5 w-5" /></Button>
           <button aria-label="Salvar" className={glass} onClick={save}><Download className="h-5 w-5" /></button>
         </div>
       )}
@@ -507,6 +606,15 @@ function NewStoryPage() {
               <span className={cn("text-[10px] font-semibold", filterId === f.id && "text-primary")}>{f.label}</span>
             </button>
           ))}
+        </div>
+      )}
+      {media && panel === "draw" && (
+        <div className="relative z-30 mb-3 flex items-center justify-between gap-2 rounded-lg bg-background/80 px-3 py-2 backdrop-blur-xl">
+          <div className="flex gap-2">
+            {INKS.map((color) => <Button key={color} type="button" variant="ghost" size="icon" aria-label={`Cor ${color}`} aria-pressed={ink === color} onClick={() => setInk(color)} className={cn("h-8 w-8 rounded-full p-1", ink === color && "ring-2 ring-primary")}><span className="h-full w-full rounded-full" style={{ backgroundColor: color }} /></Button>)}
+          </div>
+          <Button type="button" variant="ghost" size="icon" aria-label="Desfazer traço" disabled={!strokes.length} onClick={() => setStrokes((prev) => prev.slice(0, -1))}><Trash2 className="h-4 w-4" /></Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setPanel(null)}>Pronto</Button>
         </div>
       )}
       {media && panel === "sticker" && (
@@ -558,13 +666,18 @@ function NewStoryPage() {
               ))}
             </div>
             <button className={cn(glass, "border-primary text-primary")} aria-label="Confirmar texto" onClick={() => {
-              setText(draftText.trim() ? { text: draftText.slice(0, 120), y: text?.y ?? 0.4, style: textStyle } : null);
+              const value = draftText.trim().slice(0, 120);
+              if (editingTextId) setTexts((prev) => prev.flatMap((t) => t.id !== editingTextId ? [t] : value ? [{ ...t, text: value, style: textStyle, color: ink }] : []));
+              else if (value) setTexts((prev) => [...prev, { id: crypto.randomUUID(), text: value, x: 0.5, y: 0.35 + (prev.length % 3) * 0.12, style: textStyle, color: ink }]);
               setPanel(null);
             }}><Check className="h-5 w-5" /></button>
           </div>
+          <div className="flex justify-center gap-2 pt-4">
+            {INKS.map((color) => <Button key={color} type="button" variant="ghost" size="icon" aria-label={`Cor ${color}`} aria-pressed={ink === color} onClick={() => setInk(color)} className={cn("h-9 w-9 rounded-full p-1", ink === color && "ring-2 ring-primary")}><span className="h-full w-full rounded-full" style={{ backgroundColor: color }} /></Button>)}
+          </div>
           <div className="grid flex-1 place-items-center px-6">
             <textarea autoFocus value={draftText} onChange={(e) => setDraftText(e.target.value)} maxLength={120} rows={3} placeholder="Digite algo…"
-              className={cn("w-full resize-none bg-transparent text-center font-display text-3xl font-bold outline-none placeholder:text-white/40", textStyle === "neon" && "text-primary")} />
+              className="w-full resize-none bg-transparent text-center font-display text-3xl font-bold outline-none placeholder:text-muted-foreground" style={{ color: ink }} />
           </div>
         </div>
       )}
@@ -573,15 +686,16 @@ function NewStoryPage() {
       <div className={cn("relative z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-opacity", focus && "pointer-events-none opacity-0")}>
         {!media ? (
           <div className="flex items-center justify-between">
-            <button onClick={() => fileInputRef.current?.click()} className={cn(glass, "h-12 w-12 rounded-2xl")} aria-label="Galeria"><ImagePlus className="h-5 w-5" /></button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className={cn(glass, "h-12 w-12")} aria-label="Galeria"><ImagePlus className="h-5 w-5" /></Button>
             <div className="flex flex-col items-center gap-2">
+              <Button type="button" variant="ghost" size="sm" aria-pressed={timerEnabled} onClick={() => setTimerEnabled((v) => !v)} className={cn("h-8 rounded-full border border-border/30 bg-background/50 text-xs text-foreground", timerEnabled && "border-primary text-primary")}><Timer className="h-4 w-4" /> {timerEnabled ? "Timer 3s" : "Sem timer"}</Button>
               <button
-                aria-label="Toque para foto, segure para vídeo"
+                aria-label={timerEnabled ? "Gravar vídeo após 3 segundos; toque para parar" : "Toque para foto, segure para vídeo"}
                 onPointerDown={onShutterDown}
                 onPointerUp={onShutterUp}
-                onPointerLeave={() => recording && stopRec()}
+                onPointerLeave={() => !timerEnabled && recording && stopRec()}
                 onContextMenu={(e) => e.preventDefault()}
-                disabled={camState !== "ready"}
+                disabled={camState !== "ready" || countdown > 0}
                 className="relative grid h-[88px] w-[88px] touch-none select-none place-items-center disabled:opacity-40"
               >
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 88 88">
@@ -590,9 +704,9 @@ function NewStoryPage() {
                 </svg>
                 <span className={cn("rounded-full bg-white transition-all", recording ? "h-9 w-9 rounded-xl bg-destructive" : "h-[66px] w-[66px]")} />
               </button>
-              <span className="text-[11px] font-semibold text-white/70">Toque: foto · Segure: vídeo até {MAX_SECONDS}s</span>
+              <span className="text-[11px] font-semibold text-foreground/70">{timerEnabled ? `Toque: vídeo em 3s · até ${MAX_SECONDS}s` : `Toque: foto · Segure: vídeo até ${MAX_SECONDS}s`}</span>
             </div>
-            <button onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className={cn(glass, "h-12 w-12")} aria-label="Trocar câmera"><RefreshCw className="h-5 w-5" /></button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className={cn(glass, "h-12 w-12")} aria-label="Trocar câmera"><RefreshCw className="h-5 w-5" /></Button>
           </div>
         ) : panel !== "text" && (
           <div className="space-y-3">

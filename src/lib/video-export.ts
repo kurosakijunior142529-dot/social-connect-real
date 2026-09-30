@@ -44,6 +44,10 @@ export type MusicTrack = {
 export type ExportOptions = {
   /** css filter string, e.g. "saturate(1.2)" */
   filterCss?: string;
+  /** Desenha elementos por cima de cada quadro, em coordenadas relativas ao canvas. */
+  drawOverlay?: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  /** Preenche o quadro sem cortar o vídeo, sobre um fundo suavemente desfocado. */
+  fitInside?: boolean;
   from?: number;
   to?: number;
   muted?: boolean;
@@ -429,10 +433,20 @@ export async function exportVideo(
   let videoFrameCallback = 0;
 
   const paint = () => {
+    if (opts.fitInside) {
+      ctx.save();
+      ctx.filter = "blur(36px) brightness(0.55)";
+      ctx.drawImage(src, dx - 48, dy - 48, dw + 96, dh + 96);
+      ctx.restore();
+    }
     ctx.save();
     (ctx as any).filter = filterCss || "none";
-    ctx.drawImage(src, dx, dy, dw, dh);
+    if (opts.fitInside) {
+      const inside = Math.min(w / sw, h / sh);
+      ctx.drawImage(src, (w - sw * inside) / 2, (h - sh * inside) / 2, sw * inside, sh * inside);
+    } else ctx.drawImage(src, dx, dy, dw, dh);
     ctx.restore();
+    opts.drawOverlay?.(ctx, w, h);
     if (sctx) {
       for (const r of rects) cleanRegion(ctx, scratch, sctx, r, w, h, dewatermarkStrength);
     }

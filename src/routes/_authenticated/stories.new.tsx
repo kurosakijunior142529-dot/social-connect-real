@@ -705,7 +705,7 @@ function NewStoryPage() {
             <button className={cn(glass, "border-primary text-primary")} aria-label="Confirmar texto" onClick={() => {
               const value = draftText.trim().slice(0, 120);
               if (editingTextId) setTexts((prev) => prev.flatMap((t) => t.id !== editingTextId ? [t] : value ? [{ ...t, text: value, style: textStyle, color: ink }] : []));
-              else if (value) setTexts((prev) => [...prev, { id: crypto.randomUUID(), text: value, x: 0.5, y: 0.35 + (prev.length % 3) * 0.12, style: textStyle, color: ink }]);
+              else if (value) setTexts((prev) => [...prev, { id: crypto.randomUUID(), text: value, x: 0.5, y: 0.2 + (prev.length % 3) * 0.08, style: textStyle, color: ink }]);
               setPanel(null);
             }}><Check className="h-5 w-5" /></button>
           </div>

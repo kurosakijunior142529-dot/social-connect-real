@@ -45,6 +45,8 @@ import { PollComposer, emptyPollDraft } from "@/components/polls/poll-composer";
 import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
 import { cn } from "@/lib/utils";
 import mascot from "@/assets/vibely-ai-mascot.png.asset.json";
+import { CreateModeRail } from "@/components/create/create-mode-rail";
+
 
 type Mode = "media" | "text" | "poll";
 const MAX_MEDIA = 10;
@@ -512,7 +514,9 @@ function CreatePage() {
         ) : null}
         {step === "compose" ? (
           <>
+            <CreateModeRail active="feed" />
             <section aria-labelledby="content-type-label">
+
               <h2 id="content-type-label" className="sr-only">Tipo de conteúdo</h2>
               <div className="grid grid-cols-3 gap-1 rounded-2xl border border-border/60 bg-surface/80 p-1 shadow-sm backdrop-blur">
                 {modes.map(({ id, label, shortLabel, icon: Icon }) => (

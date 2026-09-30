@@ -16,6 +16,8 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { exportVideo, probeDuration } from "@/lib/video-export";
 import { Button } from "@/components/ui/button";
+import { CreateModeRail } from "@/components/create/create-mode-rail";
+
 
 export const Route = createFileRoute("/_authenticated/stories/new")({
   head: () => ({
@@ -47,18 +49,19 @@ function pickMime() {
   return "";
 }
 
-function drawCover(ctx: CanvasRenderingContext2D, src: CanvasImageSource, sw: number, sh: number, mirror = false) {
-  const s = Math.max(W / sw, H / sh);
+function drawCover(ctx: CanvasRenderingContext2D, src: CanvasImageSource, sw: number, sh: number, mirror = false, outW = W, outH = H) {
+  const s = Math.max(outW / sw, outH / sh);
   const dw = sw * s;
   const dh = sh * s;
   ctx.save();
   if (mirror) {
-    ctx.translate(W, 0);
+    ctx.translate(outW, 0);
     ctx.scale(-1, 1);
   }
-  ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  ctx.drawImage(src, (outW - dw) / 2, (outH - dh) / 2, dw, dh);
   ctx.restore();
 }
+
 
 function drawText(ctx: CanvasRenderingContext2D, t: TextLayer) {
   if (!t.text.trim()) return;
@@ -182,6 +185,8 @@ function NewStoryPage() {
   const [focus, setFocus] = useState(false);
   const [caption, setCaption] = useState("");
   const [stickerType, setStickerType] = useState<"none" | "poll" | "question" | "mood">("none");
+  const [stickerPos, setStickerPos] = useState({ x: 0.5, y: 0.78 });
+
   const [moodIdx, setMoodIdx] = useState(0);
   const [music, setMusic] = useState<MusicSelection | null>(null);
   const [vipOpen, setVipOpen] = useState(false);
@@ -213,11 +218,26 @@ function NewStoryPage() {
     }
     let cancelled = false;
     (async () => {
+      // Pede o sensor já na proporção da tela: evita o recorte agressivo que
+      // dava sensação de zoom gigante e perda de nitidez.
+      const screenRatio = typeof window !== "undefined" && window.innerWidth > 0 ? window.innerHeight / window.innerWidth : 16 / 9;
+      const ideal: MediaTrackConstraints = {
+        facingMode: { ideal: facing },
+        aspectRatio: { ideal: 1 / screenRatio },
+        width: { ideal: 1440 },
+        height: { ideal: Math.round(1440 * screenRatio) },
+        frameRate: { ideal: 30 },
+        resizeMode: "none",
+      } as MediaTrackConstraints;
+      const open = async () => {
+        try {
+          return await navigator.mediaDevices.getUserMedia({ video: ideal, audio: true });
+        } catch {
+          return await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: true });
+        }
+      };
       try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1080 }, height: { ideal: 1920 } },
-          audio: true,
-        });
+        const s = await open();
         if (cancelled) return s.getTracks().forEach((t) => t.stop());
         stopCamera();
         streamRef.current = s;
@@ -230,6 +250,7 @@ function NewStoryPage() {
         if (!cancelled) setCamState("denied");
       }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -268,17 +289,22 @@ function NewStoryPage() {
   const takePhoto = async () => {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return;
+    // Usa a resolução real do sensor (sem ampliar) para a foto sair nítida.
+    const outW = Math.min(W, Math.min(v.videoWidth, v.videoHeight));
+    const outH = Math.round((outW * H) / W);
     const c = document.createElement("canvas");
-    c.width = W;
-    c.height = H;
+    c.width = outW;
+    c.height = outH;
     const ctx = c.getContext("2d")!;
-    drawCover(ctx, v, v.videoWidth, v.videoHeight, facing === "user");
-    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.92));
+    ctx.imageSmoothingQuality = "high";
+    drawCover(ctx, v, v.videoWidth, v.videoHeight, facing === "user", outW, outH);
+    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.95));
     if (!blob) return;
     buzz(15);
     const file = new File([blob], `vibe-${Date.now()}.jpg`, { type: "image/jpeg" });
     setMedia({ file, url: URL.createObjectURL(file), video: false });
   };
+
 
   const startRec = () => {
     const s = streamRef.current;
@@ -418,6 +444,8 @@ function NewStoryPage() {
       } else if (stickerType === "mood") {
         sticker = { type: "mood", ...VIBE_MOODS[moodIdx] };
       }
+      if (sticker) sticker = { ...sticker, x: Number(stickerPos.x.toFixed(3)), y: Number(stickerPos.y.toFixed(3)) };
+
       const all = [txts, sticker && sticker.type !== "mood" ? (sticker.type === "poll" ? [sticker.question, ...sticker.options].join(" | ") : sticker.prompt) : ""].filter(Boolean).join(" | ");
       if (all) {
         const v = await moderateCaption({ data: { text: all, surface: "public", contentType: "story_caption" } });
@@ -445,23 +473,28 @@ function NewStoryPage() {
     }
   }
 
-  const dragText = (e: React.PointerEvent, id: string) => {
+  const dragLayer = (e: React.PointerEvent, apply: (x: number, y: number) => void) => {
     e.stopPropagation();
     const el = e.currentTarget.parentElement;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const move = (ev: PointerEvent) => {
-      const x = Math.min(0.86, Math.max(0.14, (ev.clientX - rect.left) / rect.width));
-      const y = Math.min(0.88, Math.max(0.12, (ev.clientY - rect.top) / rect.height));
-      setTexts((prev) => prev.map((t) => t.id === id ? { ...t, x, y } : t));
+      const x = Math.min(0.88, Math.max(0.12, (ev.clientX - rect.left) / rect.width));
+      const y = Math.min(0.9, Math.max(0.1, (ev.clientY - rect.top) / rect.height));
+      apply(x, y);
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      buzz(6);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
+
+  const dragText = (e: React.PointerEvent, id: string) =>
+    dragLayer(e, (x, y) => setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, x, y } : t))));
+
 
   const pointFromEvent = (e: React.PointerEvent<SVGSVGElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -512,7 +545,13 @@ function NewStoryPage() {
           </div>
         ))}
         {stickerType !== "none" && media && !focus && (
-          <div className="pointer-events-none absolute left-1/2 top-[62%] w-64 -translate-x-1/2 rounded-2xl border border-white/15 bg-black/55 p-3 text-center backdrop-blur-md">
+          <div
+            onPointerDown={(e) => dragLayer(e, (x, y) => setStickerPos({ x, y }))}
+            onDoubleClick={(e) => { e.stopPropagation(); setPanel("sticker"); }}
+            style={{ left: `${stickerPos.x * 100}%`, top: `${stickerPos.y * 100}%` }}
+            className="absolute w-60 max-w-[78%] -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none rounded-2xl border border-white/15 bg-black/55 p-3 text-center backdrop-blur-md"
+          >
+
             {stickerType === "mood" ? (
               <>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Vibe do dia</p>
@@ -668,7 +707,7 @@ function NewStoryPage() {
             <button className={cn(glass, "border-primary text-primary")} aria-label="Confirmar texto" onClick={() => {
               const value = draftText.trim().slice(0, 120);
               if (editingTextId) setTexts((prev) => prev.flatMap((t) => t.id !== editingTextId ? [t] : value ? [{ ...t, text: value, style: textStyle, color: ink }] : []));
-              else if (value) setTexts((prev) => [...prev, { id: crypto.randomUUID(), text: value, x: 0.5, y: 0.35 + (prev.length % 3) * 0.12, style: textStyle, color: ink }]);
+              else if (value) setTexts((prev) => [...prev, { id: crypto.randomUUID(), text: value, x: 0.5, y: 0.2 + (prev.length % 3) * 0.08, style: textStyle, color: ink }]);
               setPanel(null);
             }}><Check className="h-5 w-5" /></button>
           </div>
@@ -685,7 +724,9 @@ function NewStoryPage() {
       {/* Rodapé */}
       <div className={cn("relative z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-opacity", focus && "pointer-events-none opacity-0")}>
         {!media ? (
+          <>
           <div className="flex items-center justify-between">
+
             <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className={cn(glass, "h-12 w-12")} aria-label="Galeria"><ImagePlus className="h-5 w-5" /></Button>
             <div className="flex flex-col items-center gap-2">
               <Button type="button" variant="ghost" size="sm" aria-pressed={timerEnabled} onClick={() => setTimerEnabled((v) => !v)} className={cn("h-8 rounded-full border border-border/30 bg-background/50 text-xs text-foreground", timerEnabled && "border-primary text-primary")}><Timer className="h-4 w-4" /> {timerEnabled ? "Timer 3s" : "Sem timer"}</Button>
@@ -708,7 +749,10 @@ function NewStoryPage() {
             </div>
             <Button type="button" variant="ghost" size="icon" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className={cn(glass, "h-12 w-12")} aria-label="Trocar câmera"><RefreshCw className="h-5 w-5" /></Button>
           </div>
+          <CreateModeRail active="vibes" className="pt-3" onBeforeLeave={stopCamera} />
+          </>
         ) : panel !== "text" && (
+
           <div className="space-y-3">
             <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={200} placeholder="Adicione uma legenda…"
               className="h-11 w-full rounded-full border border-white/15 bg-black/40 px-4 text-sm text-white outline-none backdrop-blur-md placeholder:text-white/55 focus:border-primary/60" />

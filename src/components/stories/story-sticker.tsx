@@ -4,10 +4,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-export type StickerData =
-  | { type: "poll"; question: string; options: string[] }
-  | { type: "question"; prompt: string }
-  | { type: "mood"; emoji: string; label: string };
+type StickerPos = { x?: number; y?: number };
+
+export type StickerData = StickerPos &
+  (
+    | { type: "poll"; question: string; options: string[] }
+    | { type: "question"; prompt: string }
+    | { type: "mood"; emoji: string; label: string }
+  );
 
 export const VIBE_MOODS = [
   { emoji: "🔥", label: "Foguete" },
@@ -17,16 +21,22 @@ export const VIBE_MOODS = [
   { emoji: "🌀", label: "Caótico" },
 ];
 
+function num(v: unknown, fallback: number) {
+  return typeof v === "number" && Number.isFinite(v) ? Math.min(0.92, Math.max(0.08, v)) : fallback;
+}
+
 export function parseSticker(raw: unknown): StickerData | null {
   const s = raw as any;
   if (!s || typeof s !== "object") return null;
+  const pos = { x: num(s.x, 0.5), y: num(s.y, 0.78) };
   if (s.type === "poll" && typeof s.question === "string" && Array.isArray(s.options) && s.options.length >= 2)
-    return { type: "poll", question: s.question, options: s.options.slice(0, 4).map(String) };
-  if (s.type === "question" && typeof s.prompt === "string") return { type: "question", prompt: s.prompt };
+    return { ...pos, type: "poll", question: s.question, options: s.options.slice(0, 4).map(String) };
+  if (s.type === "question" && typeof s.prompt === "string") return { ...pos, type: "question", prompt: s.prompt };
   if (s.type === "mood" && typeof s.emoji === "string" && typeof s.label === "string")
-    return { type: "mood", emoji: s.emoji.slice(0, 8), label: s.label.slice(0, 20) };
+    return { ...pos, type: "mood", emoji: s.emoji.slice(0, 8), label: s.label.slice(0, 20) };
   return null;
 }
+
 
 export function StorySticker({ storyId, sticker, viewerId, isOwn }: { storyId: string; sticker: StickerData; viewerId: string; isOwn: boolean }) {
   const qc = useQueryClient();

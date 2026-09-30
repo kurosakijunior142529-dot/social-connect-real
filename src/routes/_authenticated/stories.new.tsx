@@ -285,17 +285,22 @@ function NewStoryPage() {
   const takePhoto = async () => {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return;
+    // Usa a resolução real do sensor (sem ampliar) para a foto sair nítida.
+    const outW = Math.min(W, Math.min(v.videoWidth, v.videoHeight));
+    const outH = Math.round((outW * H) / W);
     const c = document.createElement("canvas");
-    c.width = W;
-    c.height = H;
+    c.width = outW;
+    c.height = outH;
     const ctx = c.getContext("2d")!;
-    drawCover(ctx, v, v.videoWidth, v.videoHeight, facing === "user");
-    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.92));
+    ctx.imageSmoothingQuality = "high";
+    drawCover(ctx, v, v.videoWidth, v.videoHeight, facing === "user", outW, outH);
+    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", 0.95));
     if (!blob) return;
     buzz(15);
     const file = new File([blob], `vibe-${Date.now()}.jpg`, { type: "image/jpeg" });
     setMedia({ file, url: URL.createObjectURL(file), video: false });
   };
+
 
   const startRec = () => {
     const s = streamRef.current;

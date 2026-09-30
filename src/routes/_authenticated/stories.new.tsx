@@ -543,7 +543,13 @@ function NewStoryPage() {
           </div>
         ))}
         {stickerType !== "none" && media && !focus && (
-          <div className="pointer-events-none absolute left-1/2 top-[62%] w-64 -translate-x-1/2 rounded-2xl border border-white/15 bg-black/55 p-3 text-center backdrop-blur-md">
+          <div
+            onPointerDown={(e) => dragLayer(e, (x, y) => setStickerPos({ x, y }))}
+            onDoubleClick={(e) => { e.stopPropagation(); setPanel("sticker"); }}
+            style={{ left: `${stickerPos.x * 100}%`, top: `${stickerPos.y * 100}%` }}
+            className="absolute w-60 max-w-[78%] -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none rounded-2xl border border-white/15 bg-black/55 p-3 text-center backdrop-blur-md"
+          >
+
             {stickerType === "mood" ? (
               <>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Vibe do dia</p>

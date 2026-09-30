@@ -45,6 +45,8 @@ import { PollComposer, emptyPollDraft } from "@/components/polls/poll-composer";
 import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
 import { cn } from "@/lib/utils";
 import mascot from "@/assets/vibely-ai-mascot.png.asset.json";
+import { CreateModeRail } from "@/components/create/create-mode-rail";
+
 
 type Mode = "media" | "text" | "poll";
 const MAX_MEDIA = 10;

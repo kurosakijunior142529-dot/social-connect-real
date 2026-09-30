@@ -278,11 +278,15 @@ export function StoryViewer({
         {(() => {
           const st = parseSticker(story.sticker);
           return st ? (
-            <div className="absolute inset-x-0 top-1/2 z-30 flex -translate-y-1/2 justify-center">
+            <div
+              className="absolute z-30 flex w-full -translate-x-1/2 -translate-y-1/2 justify-center px-4"
+              style={{ left: `${(st.x ?? 0.5) * 100}%`, top: `${(st.y ?? 0.78) * 100}%` }}
+            >
               <StorySticker key={story.id} storyId={story.id} sticker={st} viewerId={viewerId} isOwn={isOwn} />
             </div>
           ) : null;
         })()}
+
       </div>
     </div>
   );

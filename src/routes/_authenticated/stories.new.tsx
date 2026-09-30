@@ -480,25 +480,37 @@ function NewStoryPage() {
       <div className="absolute inset-0" onClick={() => media && !panel && setFocus((f) => !f)}>
         {!media ? (
           <video ref={videoRef} muted playsInline autoPlay className={cn("h-full w-full object-cover", facing === "user" && "-scale-x-100")} />
-        ) : media.video ? (
-          <video src={media.url} autoPlay loop playsInline className="h-full w-full object-cover" style={{ filter: filterCss }} />
         ) : (
-          <img src={media.url} alt="Sua Vibe" className="h-full w-full object-cover" style={{ filter: filterCss }} />
+          <>
+            {fit && <div className="absolute inset-0 scale-125 bg-cover bg-center blur-3xl brightness-50" style={{ backgroundImage: `url(${media.url})` }} />}
+            {media.video ? (
+              <video src={media.url} autoPlay loop playsInline className={cn("relative h-full w-full", fit ? "object-contain" : "object-cover")} style={{ filter: filterCss }} />
+            ) : (
+              <img src={media.url} alt="Sua Vibe" className={cn("relative h-full w-full", fit ? "object-contain" : "object-cover")} style={{ filter: filterCss }} />
+            )}
+          </>
         )}
-        {text && media && (
+        {media && strokes.length > 0 && (
+          <svg viewBox="0 0 1080 1920" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+            {strokes.map((s, i) => <polyline key={i} points={s.points.map((p) => `${p.x * W},${p.y * H}`).join(" ")} fill="none" stroke={s.color} strokeWidth={s.width} strokeLinecap="round" strokeLinejoin="round" />)}
+          </svg>
+        )}
+        {texts.map((text) => media && (
           <div
-            onPointerDown={dragText}
+            key={text.id}
+            onPointerDown={(e) => dragText(e, text.id)}
+            onDoubleClick={(e) => { e.stopPropagation(); setEditingTextId(text.id); setDraftText(text.text); setTextStyle(text.style); setInk(text.color); setPanel("text"); }}
             className={cn(
               "absolute left-1/2 max-w-[86%] -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none whitespace-pre-wrap text-center font-display text-3xl font-bold",
               text.style === "neon" && "text-primary [text-shadow:0_0_18px_var(--primary)]",
               text.style === "box" && "rounded-2xl bg-black/75 px-4 py-2",
               text.style === "clean" && "[text-shadow:0_2px_12px_rgba(0,0,0,.6)]",
             )}
-            style={{ top: `${text.y * 100}%` }}
+            style={{ top: `${text.y * 100}%`, left: `${text.x * 100}%`, color: text.color }}
           >
             {text.text}
           </div>
-        )}
+        ))}
         {stickerType !== "none" && media && !focus && (
           <div className="pointer-events-none absolute left-1/2 top-[62%] w-64 -translate-x-1/2 rounded-2xl border border-white/15 bg-black/55 p-3 text-center backdrop-blur-md">
             {stickerType === "mood" ? (
@@ -518,11 +530,21 @@ function NewStoryPage() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/75 to-transparent" />
       </div>
 
+      {media && panel === "draw" && (
+        <svg viewBox="0 0 1080 1920" preserveAspectRatio="none" className="absolute inset-0 z-20 h-full w-full touch-none" aria-label="Desenhar sobre a Vibe"
+          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setActiveStroke({ points: [pointFromEvent(e)], color: ink, width: 12 }); }}
+          onPointerMove={(e) => { if (e.buttons) setActiveStroke((s) => s ? { ...s, points: [...s.points, pointFromEvent(e)] } : null); }}
+          onPointerUp={(e) => { if (activeStroke) setStrokes((prev) => [...prev, { ...activeStroke, points: [...activeStroke.points, pointFromEvent(e)] }]); setActiveStroke(null); }}>
+          {activeStroke && <polyline points={activeStroke.points.map((p) => `${p.x * W},${p.y * H}`).join(" ")} fill="none" stroke={activeStroke.color} strokeWidth={activeStroke.width} strokeLinecap="round" strokeLinejoin="round" />}
+        </svg>
+      )}
+      {countdown > 0 && <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-background/30 font-display text-8xl font-bold text-primary">{countdown}</div>}
+
       {camState === "denied" && !media && (
         <div className="absolute inset-0 grid place-items-center p-8 text-center">
           <div className="space-y-3">
             <p className="text-sm text-white/80">Sem acesso à câmera. Libere nas configurações do navegador ou escolha da galeria.</p>
-            <button onClick={() => fileInputRef.current?.click()} className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Abrir galeria</button>
+          <Button onClick={() => fileInputRef.current?.click()}>Abrir galeria</Button>
           </div>
         </div>
       )}
@@ -552,19 +574,21 @@ function NewStoryPage() {
       {media && !focus && (
         <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3">
           {[
-            { k: "text", icon: Type, label: "Texto", show: !media.video },
+            { k: "text", icon: Type, label: "Texto", show: true },
+            { k: "draw", icon: PenLine, label: "Desenhar", show: true },
             { k: "sticker", icon: Sticker, label: "Figurinha", show: true },
             { k: "filters", icon: Sparkles, label: "Filtros", show: true },
             { k: "music", icon: Music2, label: "Música", show: true },
           ].filter((b) => b.show).map((b) => (
             <button key={b.k} aria-label={b.label} className={cn(glass, panel === b.k && "border-primary text-primary")}
               onClick={() => {
-                if (b.k === "text") { setDraftText(text?.text ?? ""); setTextStyle(text?.style ?? "clean"); }
+                if (b.k === "text") { setEditingTextId(null); setDraftText(""); setTextStyle("clean"); setInk(INKS[1]); }
                 setPanel(panel === b.k ? null : (b.k as any));
               }}>
               <b.icon className="h-5 w-5" />
             </button>
           ))}
+          <Button type="button" variant="ghost" size="icon" title={fit ? "Preencher tela" : "Mostrar imagem inteira"} aria-label={fit ? "Preencher tela" : "Mostrar imagem inteira"} onClick={() => setFit((v) => !v)} className={glass}><Scan className="h-5 w-5" /></Button>
           <button aria-label="Salvar" className={glass} onClick={save}><Download className="h-5 w-5" /></button>
         </div>
       )}

@@ -747,7 +747,10 @@ function NewStoryPage() {
             </div>
             <Button type="button" variant="ghost" size="icon" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className={cn(glass, "h-12 w-12")} aria-label="Trocar câmera"><RefreshCw className="h-5 w-5" /></Button>
           </div>
+          <CreateModeRail active="vibes" className="pt-3" onBeforeLeave={stopCamera} />
+          </>
         ) : panel !== "text" && (
+
           <div className="space-y-3">
             <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={200} placeholder="Adicione uma legenda…"
               className="h-11 w-full rounded-full border border-white/15 bg-black/40 px-4 text-sm text-white outline-none backdrop-blur-md placeholder:text-white/55 focus:border-primary/60" />

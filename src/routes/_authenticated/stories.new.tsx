@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Download, ImagePlus, Loader2, Music2, RefreshCw, Send, Settings2, Sparkles, Star, Sticker, Type, X, Zap, ZapOff } from "lucide-react";
+import { ArrowLeft, Check, Download, ImagePlus, Loader2, Music2, RefreshCw, Send, Settings2, Sparkles, Star, Sticker, Type, X, Zap, ZapOff, PenLine, Scan, Timer, Trash2 } from "lucide-react";
 import { MusicPicker } from "@/components/music/music-picker";
 import { trackAudioUrl, type MusicSelection } from "@/lib/music/api";
 import { VIBE_MOODS } from "@/components/stories/story-sticker";
@@ -14,6 +14,8 @@ import { checkFile, previewDataUrl, sha256Hex } from "@/lib/file-safety";
 import { VIDEO_FILTERS } from "@/lib/video-filters";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
+import { exportVideo, probeDuration } from "@/lib/video-export";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/stories/new")({
   head: () => ({
@@ -34,7 +36,9 @@ const W = 1080;
 const H = 1920;
 
 type Media = { file: File; url: string; video: boolean };
-type TextLayer = { text: string; y: number; style: "clean" | "neon" | "box" };
+type TextLayer = { id: string; text: string; x: number; y: number; style: "clean" | "neon" | "box"; color: string };
+type Stroke = { points: { x: number; y: number }[]; color: string; width: number };
+const INKS = ["#ffffff", "#22E06A", "#FFDA65", "#FF6B87", "#69D4FF"];
 
 function pickMime() {
   for (const m of ["video/mp4;codecs=avc1", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]) {
@@ -72,35 +76,67 @@ function drawText(ctx: CanvasRenderingContext2D, t: TextLayer) {
       ctx.beginPath();
       ctx.roundRect(W / 2 - w / 2, ly - 50, w, 100, 28);
       ctx.fill();
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = t.color;
     } else if (t.style === "neon") {
-      ctx.shadowColor = "#22E06A";
+      ctx.shadowColor = t.color;
       ctx.shadowBlur = 28;
-      ctx.fillStyle = "#22E06A";
+      ctx.fillStyle = t.color;
     } else {
       ctx.shadowColor = "rgba(0,0,0,0.6)";
       ctx.shadowBlur = 16;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = t.color;
     }
-    ctx.fillText(line, W / 2, ly);
+    ctx.fillText(line, t.x * W, ly, W * 0.86);
   });
   ctx.restore();
 }
 
-async function renderPhoto(url: string, filter: string, text: TextLayer | null): Promise<File> {
+function drawStrokes(ctx: CanvasRenderingContext2D, strokes: Stroke[]) {
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const stroke of strokes) {
+    if (!stroke.points.length) continue;
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.width;
+    ctx.shadowColor = stroke.color;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(stroke.points[0].x * W, stroke.points[0].y * H);
+    for (const p of stroke.points.slice(1)) ctx.lineTo(p.x * W, p.y * H);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawOverlays(ctx: CanvasRenderingContext2D, texts: TextLayer[], strokes: Stroke[]) {
+  drawStrokes(ctx, strokes);
+  texts.forEach((t) => drawText(ctx, t));
+}
+
+async function renderPhoto(url: string, filter: string, texts: TextLayer[], strokes: Stroke[], fit: boolean): Promise<File> {
   const img = new Image();
   img.src = url;
   await img.decode();
   const c = document.createElement("canvas");
   c.width = W;
   c.height = H;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, W, H);
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("Edição indisponível neste aparelho");
+  if (fit) {
+    ctx.save();
+    ctx.filter = "blur(50px) brightness(0.55)";
+    drawCover(ctx, img, img.naturalWidth, img.naturalHeight);
+    ctx.restore();
+  }
   ctx.filter = filter === "none" ? "none" : filter;
-  drawCover(ctx, img, img.naturalWidth, img.naturalHeight);
+  if (fit) {
+    const scale = Math.min(W / img.naturalWidth, H / img.naturalHeight);
+    const iw = img.naturalWidth * scale, ih = img.naturalHeight * scale;
+    ctx.drawImage(img, (W - iw) / 2, (H - ih) / 2, iw, ih);
+  } else drawCover(ctx, img, img.naturalWidth, img.naturalHeight);
   ctx.filter = "none";
-  if (text) drawText(ctx, text);
+  drawOverlays(ctx, texts, strokes);
   const blob = await new Promise<Blob>((r, j) => c.toBlob((b) => (b ? r(b) : j(new Error("Falha ao gerar imagem"))), "image/jpeg", 0.9));
   return new File([blob], `vibe-${Date.now()}.jpg`, { type: "image/jpeg" });
 }
@@ -131,10 +167,18 @@ function NewStoryPage() {
   const [media, setMedia] = useState<Media | null>(null);
 
   const [filterId, setFilterId] = useState("none");
-  const [panel, setPanel] = useState<null | "filters" | "sticker" | "text" | "music">(null);
-  const [text, setText] = useState<TextLayer | null>(null);
+  const [panel, setPanel] = useState<null | "filters" | "sticker" | "text" | "music" | "draw">(null);
+  const [texts, setTexts] = useState<TextLayer[]>([]);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [draftText, setDraftText] = useState("");
   const [textStyle, setTextStyle] = useState<TextLayer["style"]>("clean");
+  const [ink, setInk] = useState(INKS[1]);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [activeStroke, setActiveStroke] = useState<Stroke | null>(null);
+  const [fit, setFit] = useState(false);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef<number | null>(null);
   const [focus, setFocus] = useState(false);
   const [caption, setCaption] = useState("");
   const [stickerType, setStickerType] = useState<"none" | "poll" | "question" | "mood">("none");
@@ -149,6 +193,9 @@ function NewStoryPage() {
   const [avatar, setAvatar] = useState<string | null>(null);
 
   const filterCss = VIDEO_FILTERS.find((f) => f.id === filterId)?.css ?? "none";
+  const editedText = texts.find((t) => t.id === editingTextId);
+
+  useEffect(() => () => { if (countdownRef.current) window.clearTimeout(countdownRef.current); }, []);
 
   useEffect(() => {
     void (supabase as any).from("profiles").select("avatar_url").eq("id", user.id).maybeSingle().then(({ data }: any) => setAvatar(data?.avatar_url ?? null));

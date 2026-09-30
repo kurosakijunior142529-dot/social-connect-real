@@ -608,6 +608,15 @@ function NewStoryPage() {
           ))}
         </div>
       )}
+      {media && panel === "draw" && (
+        <div className="relative z-30 mb-3 flex items-center justify-between gap-2 rounded-lg bg-background/80 px-3 py-2 backdrop-blur-xl">
+          <div className="flex gap-2">
+            {INKS.map((color) => <Button key={color} type="button" variant="ghost" size="icon" aria-label={`Cor ${color}`} aria-pressed={ink === color} onClick={() => setInk(color)} className={cn("h-8 w-8 rounded-full p-1", ink === color && "ring-2 ring-primary")}><span className="h-full w-full rounded-full" style={{ backgroundColor: color }} /></Button>)}
+          </div>
+          <Button type="button" variant="ghost" size="icon" aria-label="Desfazer traço" disabled={!strokes.length} onClick={() => setStrokes((prev) => prev.slice(0, -1))}><Trash2 className="h-4 w-4" /></Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setPanel(null)}>Pronto</Button>
+        </div>
+      )}
       {media && panel === "sticker" && (
         <div className="relative z-10 mx-3 mb-3 space-y-2 rounded-3xl border border-white/15 bg-black/60 p-3 backdrop-blur-xl">
           <div className="grid grid-cols-4 gap-1.5">
@@ -657,13 +666,18 @@ function NewStoryPage() {
               ))}
             </div>
             <button className={cn(glass, "border-primary text-primary")} aria-label="Confirmar texto" onClick={() => {
-              setText(draftText.trim() ? { text: draftText.slice(0, 120), y: text?.y ?? 0.4, style: textStyle } : null);
+              const value = draftText.trim().slice(0, 120);
+              if (editingTextId) setTexts((prev) => prev.flatMap((t) => t.id !== editingTextId ? [t] : value ? [{ ...t, text: value, style: textStyle, color: ink }] : []));
+              else if (value) setTexts((prev) => [...prev, { id: crypto.randomUUID(), text: value, x: 0.5, y: 0.35 + (prev.length % 3) * 0.12, style: textStyle, color: ink }]);
               setPanel(null);
             }}><Check className="h-5 w-5" /></button>
           </div>
+          <div className="flex justify-center gap-2 pt-4">
+            {INKS.map((color) => <Button key={color} type="button" variant="ghost" size="icon" aria-label={`Cor ${color}`} aria-pressed={ink === color} onClick={() => setInk(color)} className={cn("h-9 w-9 rounded-full p-1", ink === color && "ring-2 ring-primary")}><span className="h-full w-full rounded-full" style={{ backgroundColor: color }} /></Button>)}
+          </div>
           <div className="grid flex-1 place-items-center px-6">
             <textarea autoFocus value={draftText} onChange={(e) => setDraftText(e.target.value)} maxLength={120} rows={3} placeholder="Digite algo…"
-              className={cn("w-full resize-none bg-transparent text-center font-display text-3xl font-bold outline-none placeholder:text-white/40", textStyle === "neon" && "text-primary")} />
+              className="w-full resize-none bg-transparent text-center font-display text-3xl font-bold outline-none placeholder:text-muted-foreground" style={{ color: ink }} />
           </div>
         </div>
       )}
@@ -672,15 +686,16 @@ function NewStoryPage() {
       <div className={cn("relative z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] transition-opacity", focus && "pointer-events-none opacity-0")}>
         {!media ? (
           <div className="flex items-center justify-between">
-            <button onClick={() => fileInputRef.current?.click()} className={cn(glass, "h-12 w-12 rounded-2xl")} aria-label="Galeria"><ImagePlus className="h-5 w-5" /></button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className={cn(glass, "h-12 w-12")} aria-label="Galeria"><ImagePlus className="h-5 w-5" /></Button>
             <div className="flex flex-col items-center gap-2">
+              <Button type="button" variant="ghost" size="sm" aria-pressed={timerEnabled} onClick={() => setTimerEnabled((v) => !v)} className={cn("h-8 rounded-full border border-border/30 bg-background/50 text-xs text-foreground", timerEnabled && "border-primary text-primary")}><Timer className="h-4 w-4" /> {timerEnabled ? "Timer 3s" : "Sem timer"}</Button>
               <button
-                aria-label="Toque para foto, segure para vídeo"
+                aria-label={timerEnabled ? "Gravar vídeo após 3 segundos; toque para parar" : "Toque para foto, segure para vídeo"}
                 onPointerDown={onShutterDown}
                 onPointerUp={onShutterUp}
-                onPointerLeave={() => recording && stopRec()}
+                onPointerLeave={() => !timerEnabled && recording && stopRec()}
                 onContextMenu={(e) => e.preventDefault()}
-                disabled={camState !== "ready"}
+                disabled={camState !== "ready" || countdown > 0}
                 className="relative grid h-[88px] w-[88px] touch-none select-none place-items-center disabled:opacity-40"
               >
                 <svg className="absolute inset-0 -rotate-90" viewBox="0 0 88 88">
@@ -689,9 +704,9 @@ function NewStoryPage() {
                 </svg>
                 <span className={cn("rounded-full bg-white transition-all", recording ? "h-9 w-9 rounded-xl bg-destructive" : "h-[66px] w-[66px]")} />
               </button>
-              <span className="text-[11px] font-semibold text-white/70">Toque: foto · Segure: vídeo até {MAX_SECONDS}s</span>
+              <span className="text-[11px] font-semibold text-foreground/70">{timerEnabled ? `Toque: vídeo em 3s · até ${MAX_SECONDS}s` : `Toque: foto · Segure: vídeo até ${MAX_SECONDS}s`}</span>
             </div>
-            <button onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className={cn(glass, "h-12 w-12")} aria-label="Trocar câmera"><RefreshCw className="h-5 w-5" /></button>
+            <Button type="button" variant="ghost" size="icon" onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))} className={cn(glass, "h-12 w-12")} aria-label="Trocar câmera"><RefreshCw className="h-5 w-5" /></Button>
           </div>
         ) : panel !== "text" && (
           <div className="space-y-3">

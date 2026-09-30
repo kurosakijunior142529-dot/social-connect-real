@@ -183,6 +183,8 @@ function NewStoryPage() {
   const [focus, setFocus] = useState(false);
   const [caption, setCaption] = useState("");
   const [stickerType, setStickerType] = useState<"none" | "poll" | "question" | "mood">("none");
+  const [stickerPos, setStickerPos] = useState({ x: 0.5, y: 0.78 });
+
   const [moodIdx, setMoodIdx] = useState(0);
   const [music, setMusic] = useState<MusicSelection | null>(null);
   const [vipOpen, setVipOpen] = useState(false);

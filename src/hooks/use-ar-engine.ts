@@ -27,7 +27,13 @@ export function useArEngine({ facing, fps, enabled = true }: Options) {
 
   useEffect(() => {
     let alive = true;
-    void fetchArEffects().then((list) => alive && setEffects(list));
+    void fetchArEffects().then((list) => {
+      if (!alive) return;
+      setEffects((prev) => {
+        const known = new Set(list.map((e) => e.lensId));
+        return [...list, ...prev.filter((e) => e.lensId && !known.has(e.lensId))];
+      });
+    });
     return () => {
       alive = false;
     };
@@ -52,6 +58,7 @@ export function useArEngine({ facing, fps, enabled = true }: Options) {
           if (!alive) return engine.dispose();
           setLensesAvailable(true);
           const groupEffects = await (engine as CameraKitEngine).listGroupEffects();
+          console.info("[AR] lentes do grupo:", groupEffects.length);
           if (alive && groupEffects.length) {
             setEffects((prev) => {
               const known = new Set(prev.map((e) => e.lensId));

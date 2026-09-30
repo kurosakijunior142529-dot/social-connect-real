@@ -16,6 +16,8 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { exportVideo, probeDuration } from "@/lib/video-export";
 import { Button } from "@/components/ui/button";
+import { CreateModeRail } from "@/components/create/create-mode-rail";
+
 
 export const Route = createFileRoute("/_authenticated/stories/new")({
   head: () => ({

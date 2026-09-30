@@ -51,6 +51,13 @@ export function useArEngine({ facing, fps, enabled = true }: Options) {
           await engine.startCamera(options);
           if (!alive) return engine.dispose();
           setLensesAvailable(true);
+          const groupEffects = await (engine as CameraKitEngine).listGroupEffects();
+          if (alive && groupEffects.length) {
+            setEffects((prev) => {
+              const known = new Set(prev.map((e) => e.lensId));
+              return [...prev, ...groupEffects.filter((e) => !known.has(e.lensId))];
+            });
+          }
         } catch (err) {
           engine?.dispose();
           engine = null;

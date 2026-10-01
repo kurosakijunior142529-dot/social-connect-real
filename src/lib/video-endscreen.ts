@@ -24,22 +24,97 @@ export type EndScreenArt = HTMLImageElement;
 
 let cached: Promise<EndScreenArt | null> | null = null;
 
-/** Carrega (e memoiza) a arte oficial. Retorna null se o asset não existir. */
-export function loadEndScreenArt(src: string = END_SCREEN_ASSET): Promise<EndScreenArt | null> {
-  if (cached) return cached;
-  cached = new Promise<EndScreenArt | null>((resolve) => {
-    if (typeof window === "undefined") return resolve(null);
+function imageFromUrl(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
     img.decoding = "async";
     img.onload = () => resolve(img);
-    img.onerror = () => {
-      console.warn("[end-screen] arte oficial não encontrada em", src);
-      resolve(null);
-    };
-    img.src = src;
+    img.onerror = () => reject(new Error("img"));
+    img.src = url;
+  });
+}
+
+/**
+ * Carrega (e memoiza) a arte oficial. A imagem é baixada como arquivo local
+ * (Blob) antes de ser desenhada: assim nenhum bloqueio de origem/CORS do
+ * celular consegue impedir que ela entre no vídeo. Falhas não ficam em cache.
+ */
+export function loadEndScreenArt(src: string = END_SCREEN_ASSET): Promise<EndScreenArt | null> {
+  if (cached) return cached;
+  cached = (async () => {
+    if (typeof window === "undefined") return null;
+    try {
+      const res = await fetch(src, { cache: "force-cache" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const img = await imageFromUrl(url);
+      try {
+        await img.decode();
+      } catch {
+        /* já carregada */
+      }
+      return img;
+    } catch (err) {
+      try {
+        // última tentativa: carregamento direto, sem crossOrigin
+        return await imageFromUrl(src);
+      } catch {
+        console.warn("[end-screen] arte oficial indisponível", src, err);
+        return null;
+      }
+    }
+  })();
+  void cached.then((r) => {
+    if (!r) cached = null;
   });
   return cached;
+}
+
+/** Retângulo (contain) onde a arte inteira fica centralizada no quadro. */
+function artBox(art: EndScreenArt, w: number, h: number) {
+  const s = Math.min(w / art.naturalWidth, h / art.naturalHeight);
+  const aw = art.naturalWidth * s;
+  const ah = art.naturalHeight * s;
+  return { ax: (w - aw) / 2, ay: (h - ah) / 2, aw, ah };
+}
+
+/**
+ * Pré-renderiza UMA vez o fundo desfocado + a arte oficial no tamanho do
+ * vídeo. Durante a gravação cada quadro só copia esta imagem pronta
+ * (fração de milissegundo), em vez de aplicar desfoque 30 vezes por segundo.
+ */
+export function prepareEndScreen(art: EndScreenArt, w: number, h: number): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d", { alpha: false });
+  if (!ctx) return c;
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, w, h);
+  const cover = Math.max(w / art.naturalWidth, h / art.naturalHeight);
+  const cw = art.naturalWidth * cover;
+  const ch = art.naturalHeight * cover;
+  // desfoque barato: reduz e amplia (funciona até onde ctx.filter não existe)
+  const small = document.createElement("canvas");
+  small.width = Math.max(8, Math.round(w / 24));
+  small.height = Math.max(8, Math.round(h / 24));
+  const sctx = small.getContext("2d");
+  if (sctx) {
+    sctx.imageSmoothingEnabled = true;
+    sctx.imageSmoothingQuality = "high";
+    sctx.drawImage(art, (small.width - cw / 24) / 2, (small.height - ch / 24) / 2, cw / 24, ch / 24);
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.filter = "brightness(0.58) saturate(1.08)";
+    ctx.drawImage(small, 0, 0, w, h);
+    ctx.restore();
+  }
+  const { ax, ay, aw, ah } = artBox(art, w, h);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(art, ax, ay, aw, ah);
+  return c;
 }
 
 const easeOut = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
@@ -57,6 +132,7 @@ export function drawEndScreenFrame(
   h: number,
   username: string | null,
   t: number,
+  prepared?: HTMLCanvasElement | null,
 ): boolean {
   const total = END_SCREEN_SECONDS;
   // Sem @ real do criador, a arte oficial aparece sem nome (nunca um @ fixo).
@@ -77,30 +153,25 @@ export function drawEndScreenFrame(
 
   // A end screen NÃO herda o enquadramento do vídeo. O fundo sempre cobre
   // 100% do quadro e a arte oficial aparece inteira por cima, centralizada.
-  // Assim não há barras pretas nem corte do mascote, logo ou campo de busca,
-  // inclusive quando o vídeo original é horizontal ou quadrado.
-  const coverScale = Math.max(w / art.naturalWidth, h / art.naturalHeight);
-  const coverW = art.naturalWidth * coverScale;
-  const coverH = art.naturalHeight * coverScale;
-  const coverX = (w - coverW) / 2;
-  const coverY = (h - coverH) / 2;
-  const containScale = Math.min(w / art.naturalWidth, h / art.naturalHeight);
-  const aw = art.naturalWidth * containScale;
-  const ah = art.naturalHeight * containScale;
-  const ax = (w - aw) / 2;
-  const ay = (h - ah) / 2;
+  const { ax, ay, aw, ah } = artBox(art, w, h);
 
   ctx.translate(w / 2, h / 2);
   ctx.scale(zoom, zoom);
   ctx.translate(-w / 2, -h / 2);
-  // Fundo ampliado da própria arte, suavizado, ocupa a tela inteira.
-  ctx.save();
-  (ctx as any).filter = `blur(${Math.max(18, Math.round(Math.min(w, h) * 0.035))}px) brightness(0.58) saturate(1.08)`;
-  ctx.drawImage(art, coverX, coverY, coverW, coverH);
-  ctx.restore();
 
-  // Arte oficial inteira, sem recorte e sem deformação.
-  ctx.drawImage(art, ax, ay, aw, ah);
+  if (prepared) {
+    // quadro pronto (fundo desfocado + arte) — custo mínimo por quadro
+    ctx.drawImage(prepared, 0, 0, w, h);
+  } else {
+    const coverScale = Math.max(w / art.naturalWidth, h / art.naturalHeight);
+    const coverW = art.naturalWidth * coverScale;
+    const coverH = art.naturalHeight * coverScale;
+    ctx.save();
+    (ctx as any).filter = `blur(${Math.max(18, Math.round(Math.min(w, h) * 0.035))}px) brightness(0.58) saturate(1.08)`;
+    ctx.drawImage(art, (w - coverW) / 2, (h - coverH) / 2, coverW, coverH);
+    ctx.restore();
+    ctx.drawImage(art, ax, ay, aw, ah);
+  }
 
   // brilho verde muito sutil (respiração), sem adicionar elementos novos
   const breathe = 0.05 + 0.03 * Math.sin((t / total) * Math.PI * 2);

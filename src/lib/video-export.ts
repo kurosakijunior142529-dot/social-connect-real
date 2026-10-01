@@ -9,8 +9,33 @@ import {
   END_SCREEN_SECONDS,
   drawEndScreenFrame,
   loadEndScreenArt,
+  prepareEndScreen,
   type EndScreenArt,
 } from "./video-endscreen";
+
+/**
+ * Vídeos que tocam "soltos" (fora da página) são rebaixados pelo navegador
+ * para 10–12 fps. Anexamos o elemento numa camada invisível e minúscula para
+ * manter a decodificação por hardware em ritmo cheio durante a exportação.
+ */
+function attachHidden(el: HTMLMediaElement) {
+  try {
+    el.setAttribute("aria-hidden", "true");
+    Object.assign(el.style, {
+      position: "fixed",
+      left: "0px",
+      top: "0px",
+      width: "2px",
+      height: "2px",
+      opacity: "0.01",
+      pointerEvents: "none",
+      zIndex: "-1",
+    } as Partial<CSSStyleDeclaration>);
+    document.body.appendChild(el);
+  } catch {
+    /* sem DOM: segue sem anexar */
+  }
+}
 
 
 export function pickVideoMime(): string {
@@ -335,14 +360,22 @@ export async function exportVideo(
   }
 
   const src = document.createElement("video");
-  src.src = srcUrl;
-  src.crossOrigin = "anonymous";
+  if (!srcUrl.startsWith("blob:") && !srcUrl.startsWith("data:")) src.crossOrigin = "anonymous";
   src.playsInline = true;
+  src.preload = "auto";
   src.muted = muted;
-  await new Promise<void>((res, rej) => {
-    src.onloadedmetadata = () => res();
-    src.onerror = () => rej(new Error("Falha ao carregar vídeo"));
-  });
+  src.setAttribute("playsinline", "");
+  src.src = srcUrl;
+  attachHidden(src);
+  try {
+    await new Promise<void>((res, rej) => {
+      src.onloadedmetadata = () => res();
+      src.onerror = () => rej(new Error("Falha ao carregar vídeo"));
+    });
+  } catch (err) {
+    src.remove();
+    throw err;
+  }
 
   const duration = Number.isFinite(src.duration) ? src.duration : 0;
   const from = Math.max(0, opts.from ?? 0);
@@ -356,7 +389,7 @@ export async function exportVideo(
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+  const ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) throw new Error("Canvas indisponível neste dispositivo");
 
   const scratch = document.createElement("canvas");
@@ -453,7 +486,7 @@ export async function exportVideo(
       for (const r of rects) cleanRegion(ctx, scratch, sctx, r, w, h, dewatermarkStrength);
     }
     if (watermark) drawVibelyWatermark(ctx, w, h, watermark.username);
-    onProgress?.(Math.min(1, (src.currentTime - from) / total));
+    onProgress?.(Math.min(1, (src.currentTime - from) / total) * (endScreen ? 0.9 : 1));
   };
 
   // Desenha quando o decodificador realmente entrega um quadro novo. Antes o
@@ -522,8 +555,35 @@ export async function exportVideo(
   } catch (err) {
     stopDrawLoop();
     if (rec.state !== "inactive") rec.stop();
+    src.remove();
     throw new Error("Não foi possível processar o vídeo neste dispositivo");
   }
+
+  // Se o decodificador engasgar, a gravação PAUSA junto — assim nenhum quadro
+  // congelado fica gravado no arquivo final.
+  const onStall = () => {
+    if (rec.state === "recording") {
+      try {
+        rec.pause();
+        musicEl?.pause();
+      } catch {
+        /* noop */
+      }
+    }
+  };
+  const onResume = () => {
+    if (rec.state === "paused") {
+      try {
+        rec.resume();
+        void musicEl?.play().catch(() => undefined);
+      } catch {
+        /* noop */
+      }
+    }
+  };
+  src.addEventListener("waiting", onStall);
+  src.addEventListener("stalled", onStall);
+  src.addEventListener("playing", onResume);
 
   await new Promise<void>((res) => {
     const check = () => {
@@ -533,6 +593,10 @@ export async function exportVideo(
     requestAnimationFrame(check);
   });
 
+  src.removeEventListener("waiting", onStall);
+  src.removeEventListener("stalled", onStall);
+  src.removeEventListener("playing", onResume);
+  if (rec.state === "paused") rec.resume();
   src.pause();
   musicEl?.pause();
   stopDrawLoop();
@@ -542,6 +606,7 @@ export async function exportVideo(
   // ao final, no MESMO quadro (mesma resolução, proporção e 30 fps).
   if (endScreen && endArt) {
     const art = endArt;
+    const prepared = prepareEndScreen(art, w, h);
     if (audioCtx && audioDest) playVibelyChime(audioCtx, audioDest, audioCtx.currentTime + 0.85);
     const started = performance.now();
     await new Promise<void>((res) => {
@@ -551,7 +616,7 @@ export async function exportVideo(
         if (now >= next) {
           next = Math.max(now, next + FRAME_MS);
           const t = (now - started) / 1000;
-          const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
+          const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t, prepared);
           onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
           if (!alive) return res();
         }
@@ -568,6 +633,7 @@ export async function exportVideo(
   rec.stop();
 
   const blob = await done;
+  src.remove();
   try {
     await audioCtx?.close();
   } catch {

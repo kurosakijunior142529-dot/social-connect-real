@@ -389,7 +389,7 @@ export async function exportVideo(
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+  const ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) throw new Error("Canvas indisponível neste dispositivo");
 
   const scratch = document.createElement("canvas");
@@ -486,7 +486,7 @@ export async function exportVideo(
       for (const r of rects) cleanRegion(ctx, scratch, sctx, r, w, h, dewatermarkStrength);
     }
     if (watermark) drawVibelyWatermark(ctx, w, h, watermark.username);
-    onProgress?.(Math.min(1, (src.currentTime - from) / total));
+    onProgress?.(Math.min(1, (src.currentTime - from) / total) * (endScreen ? 0.9 : 1));
   };
 
   // Desenha quando o decodificador realmente entrega um quadro novo. Antes o

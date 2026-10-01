@@ -555,8 +555,35 @@ export async function exportVideo(
   } catch (err) {
     stopDrawLoop();
     if (rec.state !== "inactive") rec.stop();
+    src.remove();
     throw new Error("Não foi possível processar o vídeo neste dispositivo");
   }
+
+  // Se o decodificador engasgar, a gravação PAUSA junto — assim nenhum quadro
+  // congelado fica gravado no arquivo final.
+  const onStall = () => {
+    if (rec.state === "recording") {
+      try {
+        rec.pause();
+        musicEl?.pause();
+      } catch {
+        /* noop */
+      }
+    }
+  };
+  const onResume = () => {
+    if (rec.state === "paused") {
+      try {
+        rec.resume();
+        void musicEl?.play().catch(() => undefined);
+      } catch {
+        /* noop */
+      }
+    }
+  };
+  src.addEventListener("waiting", onStall);
+  src.addEventListener("stalled", onStall);
+  src.addEventListener("playing", onResume);
 
   await new Promise<void>((res) => {
     const check = () => {
@@ -566,6 +593,10 @@ export async function exportVideo(
     requestAnimationFrame(check);
   });
 
+  src.removeEventListener("waiting", onStall);
+  src.removeEventListener("stalled", onStall);
+  src.removeEventListener("playing", onResume);
+  if (rec.state === "paused") rec.resume();
   src.pause();
   musicEl?.pause();
   stopDrawLoop();
@@ -575,6 +606,7 @@ export async function exportVideo(
   // ao final, no MESMO quadro (mesma resolução, proporção e 30 fps).
   if (endScreen && endArt) {
     const art = endArt;
+    const prepared = prepareEndScreen(art, w, h);
     if (audioCtx && audioDest) playVibelyChime(audioCtx, audioDest, audioCtx.currentTime + 0.85);
     const started = performance.now();
     await new Promise<void>((res) => {
@@ -584,7 +616,7 @@ export async function exportVideo(
         if (now >= next) {
           next = Math.max(now, next + FRAME_MS);
           const t = (now - started) / 1000;
-          const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t);
+          const alive = drawEndScreenFrame(ctx, art, w, h, endScreen.username, t, prepared);
           onProgress?.(Math.min(1, 0.9 + (t / END_SCREEN_SECONDS) * 0.1));
           if (!alive) return res();
         }
@@ -601,6 +633,7 @@ export async function exportVideo(
   rec.stop();
 
   const blob = await done;
+  src.remove();
   try {
     await audioCtx?.close();
   } catch {

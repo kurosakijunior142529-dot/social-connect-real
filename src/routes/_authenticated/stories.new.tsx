@@ -812,27 +812,28 @@ function NewStoryPage() {
           </>
         ) : panel !== "text" && (
 
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-center">
-              <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/45 p-1 backdrop-blur-xl">
-                <button onClick={() => { buzz(6); setAud("all"); }} aria-pressed={aud === "all"}
-                  className={cn("flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-xs font-bold transition", aud === "all" ? "bg-white/15 text-white" : "text-white/60")}>
-                  <UserAvatar avatarPath={avatar} displayName={user.email ?? "Você"} className="h-6 w-6" />
-                  Público · 24h
-                </button>
-                <button onClick={() => { buzz(6); setAud("vip"); }} aria-pressed={aud === "vip"}
-                  className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition", aud === "vip" ? "bg-primary/20 text-primary ring-1 ring-primary/50" : "text-white/60")}>
-                  <Star className={cn("h-3.5 w-3.5", aud === "vip" && "fill-primary")} /> Sintonia VIP
-                </button>
-                <button onClick={() => setVipOpen(true)} aria-label="Editar Sintonia VIP" className="grid h-7 w-7 place-items-center rounded-full text-white/60"><Settings2 className="h-3.5 w-3.5" /></button>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={200} placeholder="Adicione uma legenda…"
-                className="h-12 min-w-0 flex-1 rounded-full border border-white/10 bg-black/45 px-4 text-sm text-white outline-none backdrop-blur-xl placeholder:text-white/50 focus:border-primary/60" />
-              <button disabled={busy} onClick={() => submit(aud)} aria-label="Publicar" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_24px_-4px_var(--primary)] transition active:scale-90 disabled:opacity-60">
-                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+          <div className="flex items-center gap-2">
+            <button disabled={busy} onClick={() => { buzz(15); setAud("all"); void submit("all"); }} aria-label="Publicar em Sua Vibe"
+              className="flex h-14 min-w-0 flex-1 items-center gap-2.5 rounded-full border border-white/15 bg-black/50 py-1.5 pl-1.5 pr-4 text-left text-white backdrop-blur-xl transition active:scale-95 disabled:opacity-60">
+              <span className="rounded-full p-[2px] ring-2 ring-white/80"><UserAvatar avatarPath={avatar} displayName={user.email ?? "Você"} className="h-9 w-9" /></span>
+              <span className="min-w-0 leading-tight">
+                <span className="block font-display text-sm font-bold">Sua Vibe</span>
+                <span className="block text-[11px] text-white/60">Público · 24h</span>
+              </span>
+              {busy && aud === "all" && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
+            </button>
+            <div className="flex h-14 min-w-0 flex-1 items-center rounded-full bg-primary/15 ring-1 ring-primary/50 backdrop-blur-xl">
+              <button disabled={busy} onClick={() => { buzz(15); setAud("vip"); void submit("vip"); }} aria-label="Publicar na Sintonia VIP"
+                className="flex h-full min-w-0 flex-1 items-center gap-2.5 pl-1.5 text-left text-primary transition active:scale-95 disabled:opacity-60">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_20px_-4px_var(--primary)]">
+                  {busy && aud === "vip" ? <Loader2 className="h-5 w-5 animate-spin" /> : <Star className="h-5 w-5 fill-current" />}
+                </span>
+                <span className="min-w-0 leading-tight">
+                  <span className="block truncate font-display text-sm font-bold">Sintonia VIP</span>
+                  <span className="block text-[11px] text-primary/70">Amigos próximos</span>
+                </span>
               </button>
+              <button onClick={() => setVipOpen(true)} aria-label="Editar Sintonia VIP" className="grid h-10 w-9 shrink-0 place-items-center text-primary/70"><Settings2 className="h-4 w-4" /></button>
             </div>
           </div>
         )}

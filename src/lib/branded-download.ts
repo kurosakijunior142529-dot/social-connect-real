@@ -42,24 +42,10 @@ export async function downloadBrandedVideo(
   } else {
     blob = source;
   }
-  const handle = opts.username ?? (await currentUsername());
-  const base = filename.replace(/\.[^.]+$/, "");
-  const srcUrl = URL.createObjectURL(blob);
-  try {
-    if (await canBurnWatermark(srcUrl)) {
-      const out = await exportVideo(srcUrl, {
-        watermark: { username: handle },
-        endScreen: { username: handle },
-        onProgress: opts.onProgress,
-      });
-      saveBlob(out.blob, `${base}.${out.ext}`);
-      return { branded: true };
-    }
-  } catch (err) {
-    console.warn("[branded-download] falhou, baixando original", err);
-  } finally {
-    URL.revokeObjectURL(srcUrl);
-  }
+  // Download direto e instantâneo: a regravação em tempo real copiava
+  // pausas e engasgos da reprodução para o arquivo final.
+  void canBurnWatermark;
+  void exportVideo;
   saveBlob(blob, filename);
   return { branded: false };
 }

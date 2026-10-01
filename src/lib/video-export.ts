@@ -485,14 +485,23 @@ export async function exportVideo(
     if (sctx) {
       for (const r of rects) cleanRegion(ctx, scratch, sctx, r, w, h, dewatermarkStrength);
     }
-    if (watermark) drawVibelyWatermark(ctx, w, h, watermark.username);
+    if (wmCanvas) ctx.drawImage(wmCanvas, 0, 0);
     onProgress?.(Math.min(1, (src.currentTime - from) / total) * (endScreen ? 0.9 : 1));
   };
 
-  // Desenha quando o decodificador realmente entrega um quadro novo. Antes o
-  // requestAnimationFrame redesenhava o mesmo quadro e competia com o encoder,
-  // causando travadas principalmente no Android. O captureStream mantém a
-  // trilha final em 30 fps e repete somente quando a fonte original exige.
+  // Marca d'água pré-renderizada uma única vez (sombra é cara por quadro).
+  let wmCanvas: HTMLCanvasElement | null = null;
+  if (watermark) {
+    wmCanvas = document.createElement("canvas");
+    wmCanvas.width = w;
+    wmCanvas.height = h;
+    const wctx = wmCanvas.getContext("2d");
+    if (wctx) drawVibelyWatermark(wctx, w, h, watermark.username);
+    else wmCanvas = null;
+  }
+
+  // Desenha a cada quadro novo entregue pelo decodificador (sem descartar
+  // quadros por pequenas oscilações de tempo).
   const FRAME_MS = 1000 / EXPORT_FPS;
   const startDrawLoop = () => {
     const videoWithFrameCallback = src as HTMLVideoElement & {
@@ -502,7 +511,7 @@ export async function exportVideo(
     if (videoWithFrameCallback.requestVideoFrameCallback) {
       let lastPaintedMediaTime = -Infinity;
       const onVideoFrame = (_now: number, metadata: { mediaTime: number }) => {
-        if ((metadata.mediaTime - lastPaintedMediaTime) * 1000 >= FRAME_MS - 2) {
+        if (metadata.mediaTime !== lastPaintedMediaTime) {
           lastPaintedMediaTime = metadata.mediaTime;
           paint();
         }

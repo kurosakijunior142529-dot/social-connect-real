@@ -193,6 +193,7 @@ function NewStoryPage() {
   const [moodIdx, setMoodIdx] = useState(0);
   const [music, setMusic] = useState<MusicSelection | null>(null);
   const [vipOpen, setVipOpen] = useState(false);
+  const [aud, setAud] = useState<"all" | "vip">("all");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [pollQ, setPollQ] = useState("");
   const [pollOpts, setPollOpts] = useState(["Sim", "Não"]);
@@ -634,48 +635,52 @@ function NewStoryPage() {
       )}
 
       {/* Topo */}
-      <div className={cn("relative z-10 flex items-center gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] transition-opacity", focus && "pointer-events-none opacity-0")}>
-        <button className={glass} aria-label={media ? "Descartar" : "Voltar"} onClick={() => (media ? discard() : navigate({ to: "/" }))}>
-          {media ? <X className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
-        </button>
-        <div className="mx-auto rounded-full border border-white/15 bg-black/40 px-3.5 py-1.5 text-xs font-bold tracking-wide backdrop-blur-md">
-          {recording ? (
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 animate-pulse rounded-full bg-destructive" />{(progress * MAX_SECONDS).toFixed(1)}s</span>
-          ) : media && music ? (
-            <button onClick={() => setPanel("music")} className="flex max-w-[52vw] items-center gap-2">
-              <span className="flex h-3 items-end gap-[2px]">{[0, 1, 2].map((i) => <span key={i} className="w-[3px] animate-pulse rounded-full bg-primary" style={{ height: `${6 + i * 3}px`, animationDelay: `${i * 150}ms` }} />)}</span>
-              <span className="truncate">{music.track.title} · {music.track.artist}</span>
-              <X className="h-3.5 w-3.5 shrink-0 text-white/70" onClick={(e) => { e.stopPropagation(); setMusic(null); }} />
-            </button>
-          ) : media ? "Editar Vibe" : "Nova Vibe"}
+      <div className={cn("relative z-10 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] transition-opacity", focus && "pointer-events-none opacity-0")}>
+        <div className="flex items-center gap-2">
+          <button className={glass} aria-label={media ? "Descartar" : "Voltar"} onClick={() => (media ? discard() : navigate({ to: "/" }))}>
+            {media ? <X className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
+          </button>
+          {media ? (
+            <div className="ml-auto flex items-center gap-0.5 rounded-full border border-white/10 bg-black/45 p-1 backdrop-blur-xl">
+              {[
+                { k: "text", icon: Type, label: "Texto" },
+                { k: "draw", icon: PenLine, label: "Desenhar" },
+                { k: "sticker", icon: Sticker, label: "Figurinha" },
+                { k: "filters", icon: Sparkles, label: "Filtros" },
+                { k: "music", icon: Music2, label: "Música" },
+              ].map((b) => (
+                <button key={b.k} aria-label={b.label} title={b.label}
+                  className={cn("grid h-9 w-9 place-items-center rounded-full text-white/85 transition active:scale-90", panel === b.k && "bg-primary/20 text-primary")}
+                  onClick={() => {
+                    if (b.k === "text") { setEditingTextId(null); setDraftText(""); setTextStyle("clean"); setInk(INKS[1]); }
+                    setPanel(panel === b.k ? null : (b.k as any));
+                  }}>
+                  <b.icon className="h-[18px] w-[18px]" />
+                </button>
+              ))}
+              <span className="mx-0.5 h-5 w-px bg-white/15" />
+              <button aria-label={fit ? "Preencher tela" : "Mostrar imagem inteira"} title="Enquadrar" onClick={() => setFit((v) => !v)} className={cn("grid h-9 w-9 place-items-center rounded-full text-white/85 active:scale-90", fit && "text-primary")}><Scan className="h-[18px] w-[18px]" /></button>
+              <button aria-label="Salvar" title="Salvar" onClick={save} className="grid h-9 w-9 place-items-center rounded-full text-white/85 active:scale-90"><Download className="h-[18px] w-[18px]" /></button>
+            </div>
+          ) : (
+            <>
+              <div className="mx-auto rounded-full border border-white/15 bg-black/40 px-3.5 py-1.5 text-xs font-bold tracking-wide backdrop-blur-md">
+                {recording ? (
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 animate-pulse rounded-full bg-destructive" />{(progress * MAX_SECONDS).toFixed(1)}s</span>
+                ) : "Nova Vibe"}
+              </div>
+              <button className={glass} aria-label="Flash" onClick={toggleTorch}>{torch ? <Zap className="h-5 w-5 text-primary" /> : <ZapOff className="h-5 w-5" />}</button>
+            </>
+          )}
         </div>
-        {!media ? (
-          <button className={glass} aria-label="Flash" onClick={toggleTorch}>{torch ? <Zap className="h-5 w-5 text-primary" /> : <ZapOff className="h-5 w-5" />}</button>
-        ) : <div className="w-11" />}
+        {media && music && (
+          <button onClick={() => setPanel("music")} className="mx-auto mt-2 flex max-w-[70vw] items-center gap-2 rounded-full border border-white/10 bg-black/45 px-3 py-1.5 text-xs font-semibold backdrop-blur-xl">
+            <span className="flex h-3 items-end gap-[2px]">{[0, 1, 2].map((i) => <span key={i} className="w-[3px] animate-pulse rounded-full bg-primary" style={{ height: `${6 + i * 3}px`, animationDelay: `${i * 150}ms` }} />)}</span>
+            <span className="truncate">{music.track.title} · {music.track.artist}</span>
+            <X className="h-3.5 w-3.5 shrink-0 text-white/70" onClick={(e) => { e.stopPropagation(); setMusic(null); }} />
+          </button>
+        )}
       </div>
-
-      {/* Dock lateral */}
-      {media && !focus && (
-        <div className="absolute right-3 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3">
-          {[
-            { k: "text", icon: Type, label: "Texto", show: true },
-            { k: "draw", icon: PenLine, label: "Desenhar", show: true },
-            { k: "sticker", icon: Sticker, label: "Figurinha", show: true },
-            { k: "filters", icon: Sparkles, label: "Filtros", show: true },
-            { k: "music", icon: Music2, label: "Música", show: true },
-          ].filter((b) => b.show).map((b) => (
-            <button key={b.k} aria-label={b.label} className={cn(glass, panel === b.k && "border-primary text-primary")}
-              onClick={() => {
-                if (b.k === "text") { setEditingTextId(null); setDraftText(""); setTextStyle("clean"); setInk(INKS[1]); }
-                setPanel(panel === b.k ? null : (b.k as any));
-              }}>
-              <b.icon className="h-5 w-5" />
-            </button>
-          ))}
-          <Button type="button" variant="ghost" size="icon" title={fit ? "Preencher tela" : "Mostrar imagem inteira"} aria-label={fit ? "Preencher tela" : "Mostrar imagem inteira"} onClick={() => setFit((v) => !v)} className={glass}><Scan className="h-5 w-5" /></Button>
-          <button aria-label="Salvar" className={glass} onClick={save}><Download className="h-5 w-5" /></button>
-        </div>
-      )}
 
       <div className="flex-1" />
 
@@ -807,25 +812,25 @@ function NewStoryPage() {
           </>
         ) : panel !== "text" && (
 
-          <div className="space-y-3">
-            <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={200} placeholder="Adicione uma legenda…"
-              className="h-11 w-full rounded-full border border-white/15 bg-black/40 px-4 text-sm text-white outline-none backdrop-blur-md placeholder:text-white/55 focus:border-primary/60" />
-            <div className="flex items-center gap-2">
-              <button disabled={busy} onClick={() => submit("all")} className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-full border border-white/15 bg-black/45 pl-1.5 pr-4 backdrop-blur-md disabled:opacity-60">
-                <UserAvatar avatarPath={avatar} displayName={user.email ?? "Você"} className="h-9 w-9" />
-                <span className="text-left leading-tight">
-                  <span className="block text-sm font-bold">Sua Vibe</span>
-                  <span className="block text-[10px] text-white/60">24h para todos</span>
-                </span>
-              </button>
-              <div className="flex h-12 items-center rounded-full border border-primary/40 bg-black/45 backdrop-blur-md">
-                <button disabled={busy} onClick={() => submit("vip")} className="flex h-full items-center gap-1.5 pl-3 pr-2 disabled:opacity-60">
-                  <Star className="h-4 w-4 fill-primary text-primary" />
-                  <span className="text-left leading-tight"><span className="block text-xs font-bold">Sintonia VIP</span><span className="block text-[10px] text-white/60">Só amigos próximos</span></span>
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-center">
+              <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/45 p-1 backdrop-blur-xl">
+                <button onClick={() => { buzz(6); setAud("all"); }} aria-pressed={aud === "all"}
+                  className={cn("flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-xs font-bold transition", aud === "all" ? "bg-white/15 text-white" : "text-white/60")}>
+                  <UserAvatar avatarPath={avatar} displayName={user.email ?? "Você"} className="h-6 w-6" />
+                  Público · 24h
                 </button>
-                <button onClick={() => setVipOpen(true)} aria-label="Editar Sintonia VIP" className="grid h-full w-8 place-items-center border-l border-white/10 text-white/70"><Settings2 className="h-4 w-4" /></button>
+                <button onClick={() => { buzz(6); setAud("vip"); }} aria-pressed={aud === "vip"}
+                  className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition", aud === "vip" ? "bg-primary/20 text-primary ring-1 ring-primary/50" : "text-white/60")}>
+                  <Star className={cn("h-3.5 w-3.5", aud === "vip" && "fill-primary")} /> Sintonia VIP
+                </button>
+                <button onClick={() => setVipOpen(true)} aria-label="Editar Sintonia VIP" className="grid h-7 w-7 place-items-center rounded-full text-white/60"><Settings2 className="h-3.5 w-3.5" /></button>
               </div>
-              <button disabled={busy} onClick={() => submit("all")} aria-label="Publicar" className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_24px_-4px_var(--primary)] transition active:scale-90 disabled:opacity-60">
+            </div>
+            <div className="flex items-center gap-2">
+              <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={200} placeholder="Adicione uma legenda…"
+                className="h-12 min-w-0 flex-1 rounded-full border border-white/10 bg-black/45 px-4 text-sm text-white outline-none backdrop-blur-xl placeholder:text-white/50 focus:border-primary/60" />
+              <button disabled={busy} onClick={() => submit(aud)} aria-label="Publicar" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_24px_-4px_var(--primary)] transition active:scale-90 disabled:opacity-60">
                 {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </button>
             </div>

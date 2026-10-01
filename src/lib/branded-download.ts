@@ -26,14 +26,14 @@ function saveBlob(blob: Blob, filename: string) {
 }
 
 /**
- * Baixa um vídeo com a marca d'água e a end screen oficial gravadas no arquivo.
- * Se o dispositivo não conseguir reprocessar, entrega o arquivo original em vez
- * de falhar o download.
+ * Baixa um vídeo com marca d'água, end screen com @ e som do Vibely.
+ * O arquivo é baixado inteiro para a memória ANTES de processar (sem
+ * engasgos de rede). Se o aparelho não suportar, entrega o original.
  */
 export async function downloadBrandedVideo(
   source: Blob | string,
   filename: string,
-  opts: { username?: string | null; onProgress?: (p: number) => void } = {},
+  opts: { username?: string | null; onProgress?: (p: number) => void; original?: boolean } = {},
 ): Promise<{ branded: boolean }> {
   let blob: Blob;
   if (typeof source === "string") {
@@ -42,10 +42,27 @@ export async function downloadBrandedVideo(
   } else {
     blob = source;
   }
-  // Download direto e instantâneo: a regravação em tempo real copiava
-  // pausas e engasgos da reprodução para o arquivo final.
-  void canBurnWatermark;
-  void exportVideo;
-  saveBlob(blob, filename);
-  return { branded: false };
+  const base = filename.replace(/\.[^.]+$/, "");
+  if (opts.original) {
+    saveBlob(blob, filename);
+    return { branded: false };
+  }
+  const localUrl = URL.createObjectURL(blob);
+  try {
+    if (!(await canBurnWatermark(localUrl))) throw new Error("unsupported");
+    const username = opts.username !== undefined ? opts.username : await currentUsername();
+    const out = await exportVideo(localUrl, {
+      watermark: { username },
+      endScreen: { username },
+      onProgress: opts.onProgress,
+    });
+    saveBlob(out.blob, `${base}.${out.ext}`);
+    return { branded: true };
+  } catch (err) {
+    console.warn("[branded-download] fallback original", err);
+    saveBlob(blob, filename);
+    return { branded: false };
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(localUrl), 4000);
+  }
 }

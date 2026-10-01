@@ -1,3 +1,4 @@
+import { downloadBrandedVideo } from "@/lib/branded-download";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Heart, Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -242,29 +243,10 @@ export function VideoPlayer({
     setDownloading(true);
     setDlPct(0);
     try {
-      let blob: Blob;
-      let ext = "mp4";
-      // Baixa primeiro o arquivo original para um blob local: assim o
-      // processamento não esbarra em restrições de origem (canvas "tainted").
-      const res = await fetch(src);
-      const original = await res.blob();
-      // Download direto do arquivo original: sem regravar em tempo real
-      // (a regravação herdava engasgos/pausas da reprodução).
-      blob = original;
-      if (original.type.includes("webm")) ext = "webm";
-      void watermarkUsername;
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = downloadName
-        ? downloadName.replace(/\.[^.]+$/, "") + "." + ext
-        : `vibely-${Date.now()}.${ext}`;
-
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      await downloadBrandedVideo(src, downloadName ?? `vibely-${Date.now()}.mp4`, {
+        username: watermarkUsername ?? undefined,
+        onProgress: (p) => setDlPct(Math.round(p * 100)),
+      });
     } catch {
       window.open(src, "_blank", "noopener");
     } finally {

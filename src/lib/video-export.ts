@@ -690,49 +690,78 @@ export async function canBurnWatermark(srcUrl: string): Promise<boolean> {
 }
 
 
-/** Assinatura sonora do Vibely: acorde ascendente brilhante + "pop" final. */
+/** Assinatura sonora do Vibely: impacto grave moderno (sub-bass) + brilho suave e espacial. */
 export function playVibelyChime(ac: AudioContext, out: AudioNode, at: number) {
   try {
     const master = ac.createGain();
-    master.gain.value = 0.32;
-    const delay = ac.createDelay(1);
-    delay.delayTime.value = 0.18;
-    const fb = ac.createGain();
-    fb.gain.value = 0.28;
-    delay.connect(fb).connect(delay);
-    master.connect(out);
-    master.connect(delay);
-    delay.connect(out);
-    const notes = [523.25, 659.25, 783.99, 1046.5];
-    notes.forEach((f, i) => {
-      const t = at + i * 0.09;
-      const o = ac.createOscillator();
-      const o2 = ac.createOscillator();
-      const g = ac.createGain();
-      o.type = "triangle";
-      o2.type = "sine";
-      o.frequency.value = f;
-      o2.frequency.value = f * 2;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-      o.connect(g);
-      o2.connect(g);
-      g.connect(master);
-      o.start(t); o2.start(t);
-      o.stop(t + 1); o2.stop(t + 1);
+    master.gain.value = 0.55;
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -14;
+    comp.ratio.value = 4;
+    master.connect(comp).connect(out);
+
+    // reverb curto e escuro (ruído decaindo)
+    const len = Math.floor(ac.sampleRate * 1.6);
+    const ir = ac.createBuffer(2, len, ac.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const d = ir.getChannelData(c);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    }
+    const verb = ac.createConvolver();
+    verb.buffer = ir;
+    const verbGain = ac.createGain();
+    verbGain.gain.value = 0.35;
+    verb.connect(verbGain).connect(master);
+
+    // 1) sub drop: senoide grave caindo de 110Hz para 42Hz
+    const sub = ac.createOscillator();
+    const subG = ac.createGain();
+    sub.type = "sine";
+    sub.frequency.setValueAtTime(110, at);
+    sub.frequency.exponentialRampToValueAtTime(42, at + 0.45);
+    subG.gain.setValueAtTime(0.0001, at);
+    subG.gain.exponentialRampToValueAtTime(0.9, at + 0.012);
+    subG.gain.exponentialRampToValueAtTime(0.0001, at + 1.3);
+    sub.connect(subG).connect(master);
+    sub.start(at); sub.stop(at + 1.4);
+
+    // 2) "thump" de ataque: ruído filtrado bem curto
+    const nb = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.08), ac.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * (1 - i / nd.length);
+    const noise = ac.createBufferSource();
+    noise.buffer = nb;
+    const lp = ac.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 900;
+    const ng = ac.createGain();
+    ng.gain.value = 0.5;
+    noise.connect(lp).connect(ng).connect(master);
+    noise.start(at);
+
+    // 3) brilho aéreo: acorde suave (Ré maior 9) com ataque lento, abafado
+    const pad = [293.66, 440, 554.37, 659.25];
+    const padLp = ac.createBiquadFilter();
+    padLp.type = "lowpass";
+    padLp.frequency.setValueAtTime(600, at + 0.08);
+    padLp.frequency.exponentialRampToValueAtTime(3200, at + 0.9);
+    const padG = ac.createGain();
+    padG.gain.setValueAtTime(0.0001, at + 0.08);
+    padG.gain.exponentialRampToValueAtTime(0.16, at + 0.5);
+    padG.gain.exponentialRampToValueAtTime(0.0001, at + 2.2);
+    padLp.connect(padG);
+    padG.connect(master);
+    padG.connect(verb);
+    pad.forEach((f, i) => {
+      for (const det of [-6, 6]) {
+        const o = ac.createOscillator();
+        o.type = i === 0 ? "sine" : "triangle";
+        o.frequency.value = f;
+        o.detune.value = det;
+        o.connect(padLp);
+        o.start(at + 0.08); o.stop(at + 2.3);
+      }
     });
-    const pt = at + notes.length * 0.09 + 0.05;
-    const p = ac.createOscillator();
-    const pg = ac.createGain();
-    p.type = "sine";
-    p.frequency.setValueAtTime(1600, pt);
-    p.frequency.exponentialRampToValueAtTime(400, pt + 0.12);
-    pg.gain.setValueAtTime(0.0001, pt);
-    pg.gain.exponentialRampToValueAtTime(0.6, pt + 0.01);
-    pg.gain.exponentialRampToValueAtTime(0.0001, pt + 0.18);
-    p.connect(pg).connect(master);
-    p.start(pt); p.stop(pt + 0.2);
   } catch (err) {
     console.warn("[video-export] chime failed", err);
   }

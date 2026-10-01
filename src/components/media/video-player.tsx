@@ -248,26 +248,11 @@ export function VideoPlayer({
       // processamento não esbarra em restrições de origem (canvas "tainted").
       const res = await fetch(src);
       const original = await res.blob();
-      const localUrl = URL.createObjectURL(original);
+      // Download direto do arquivo original: sem regravar em tempo real
+      // (a regravação herdava engasgos/pausas da reprodução).
       blob = original;
-      try {
-        const { exportVideo, canBurnWatermark } = await import("@/lib/video-export");
-        if (await canBurnWatermark(localUrl)) {
-          const handle = watermarkUsername ?? null;
-          const out = await exportVideo(localUrl, {
-            watermark: { username: handle },
-            // ~3s da end screen oficial com o @ do criador, gravados no arquivo.
-            endScreen: { username: handle },
-            onProgress: (p) => setDlPct(Math.round(p * 100)),
-          });
-          blob = out.blob;
-          ext = out.ext || "mp4";
-        }
-      } catch (err) {
-        console.warn("[video-player] processamento do download falhou", err);
-      } finally {
-        URL.revokeObjectURL(localUrl);
-      }
+      if (original.type.includes("webm")) ext = "webm";
+      void watermarkUsername;
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

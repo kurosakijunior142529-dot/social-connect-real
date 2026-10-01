@@ -262,28 +262,10 @@ export function ShareSheet({
       // Marca d'água gravada no arquivo baixado (vídeo e imagem).
       // A gravação em vídeo roda em tempo real, então só é feita em clipes
       // curtos e quando o navegador consegue gerar MP4 (galerias não abrem webm).
+      // Vídeos: download direto do original (sem regravação em tempo real).
       if (isVideo) {
-        const srcUrl = URL.createObjectURL(blob);
-        try {
-          if (await canBurnWatermark(srcUrl)) {
-            const handle = username;
-            const out = await exportVideo(srcUrl, {
-              watermark: { username: handle },
-              // ~3s de encerramento oficial com o @ do criador, depois do
-              // vídeo original (que não é cortado nem alterado).
-              endScreen: { username: handle },
-              onProgress: (p) => setProgress(Math.round(p * 100)),
-            });
-            blob = out.blob;
-            filename = name.replace(/\.[^.]+$/, "") + "." + out.ext;
-          }
-        } catch (err) {
-          console.warn("[share-sheet] watermark burn failed", err);
-          toast.error("Não consegui finalizar o encerramento; baixando o vídeo original.");
-        } finally {
-          URL.revokeObjectURL(srcUrl);
-        }
-
+        void canBurnWatermark;
+        void exportVideo;
       } else if (blob.type.startsWith("image/")) {
         blob = await brandImage(blob, username);
         filename = name.replace(/\.[^.]+$/, "") + ".jpg";

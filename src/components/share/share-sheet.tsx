@@ -1,3 +1,4 @@
+import { downloadBrandedVideo } from "@/lib/branded-download";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -243,7 +244,7 @@ export function ShareSheet({
     }
   }
 
-  async function download() {
+  async function download(original = false) {
     if (!target.media) return;
     setDownloading(true);
     setProgress(0);
@@ -264,8 +265,13 @@ export function ShareSheet({
       // curtos e quando o navegador consegue gerar MP4 (galerias não abrem webm).
       // Vídeos: download direto do original (sem regravação em tempo real).
       if (isVideo) {
-        void canBurnWatermark;
-        void exportVideo;
+        const r = await downloadBrandedVideo(blob, name, {
+          username,
+          original,
+          onProgress: (p) => setProgress(Math.round(p * 100)),
+        });
+        toast.success(r.branded || original ? "Vídeo salvo" : "Vídeo salvo sem marca (aparelho não suporta)");
+        return;
       } else if (blob.type.startsWith("image/")) {
         blob = await brandImage(blob, username);
         filename = name.replace(/\.[^.]+$/, "") + ".jpg";
@@ -408,7 +414,7 @@ export function ShareSheet({
               <EndScreenPreview username={target.post.authorUsername} />
             ) : null}
             {target.media ? (
-              <Button className="w-full rounded-full" disabled={downloading} onClick={download}>
+              <Button className="w-full rounded-full" disabled={downloading} onClick={() => download(false)}>
                 {downloading ? (
                   <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                 ) : (
@@ -421,6 +427,16 @@ export function ShareSheet({
                 Este conteúdo não tem arquivo para baixar.
               </div>
             )}
+            {target.media ? (
+              <button
+                type="button"
+                disabled={downloading}
+                onClick={() => download(true)}
+                className="w-full text-center text-xs text-muted-foreground underline-offset-2 hover:underline"
+              >
+                Baixar original direto (sem marca)
+              </button>
+            ) : null}
             <Button variant="secondary" className="w-full rounded-full" onClick={copyLink}>
               <Copy className="mr-1 h-4 w-4" /> Copiar link
             </Button>

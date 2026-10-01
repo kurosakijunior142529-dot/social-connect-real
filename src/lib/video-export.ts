@@ -370,11 +370,13 @@ export async function exportVideo(
   // ---- audio graph (original + music) ----
   let audioCtx: AudioContext | null = null;
   let musicEl: HTMLAudioElement | null = null;
-  const wantsAudio = !muted || !!music;
+  let audioDest: MediaStreamAudioDestinationNode | null = null;
+  const wantsAudio = !muted || !!music || !!endScreen;
   if (wantsAudio) {
     try {
       audioCtx = new AudioContext();
       const dest = audioCtx.createMediaStreamDestination();
+      audioDest = dest;
 
       if (!muted) {
         const sourceNode = audioCtx.createMediaElementSource(src);
@@ -540,6 +542,7 @@ export async function exportVideo(
   // ao final, no MESMO quadro (mesma resolução, proporção e 30 fps).
   if (endScreen && endArt) {
     const art = endArt;
+    if (audioCtx && audioDest) playVibelyChime(audioCtx, audioDest, audioCtx.currentTime + 0.85);
     const started = performance.now();
     await new Promise<void>((res) => {
       let next = started;
@@ -620,3 +623,51 @@ export async function canBurnWatermark(srcUrl: string): Promise<boolean> {
   return d > 0 && d <= WATERMARK_BURN_MAX_SECONDS;
 }
 
+
+/** Assinatura sonora do Vibely: acorde ascendente brilhante + "pop" final. */
+export function playVibelyChime(ac: AudioContext, out: AudioNode, at: number) {
+  try {
+    const master = ac.createGain();
+    master.gain.value = 0.32;
+    const delay = ac.createDelay(1);
+    delay.delayTime.value = 0.18;
+    const fb = ac.createGain();
+    fb.gain.value = 0.28;
+    delay.connect(fb).connect(delay);
+    master.connect(out);
+    master.connect(delay);
+    delay.connect(out);
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((f, i) => {
+      const t = at + i * 0.09;
+      const o = ac.createOscillator();
+      const o2 = ac.createOscillator();
+      const g = ac.createGain();
+      o.type = "triangle";
+      o2.type = "sine";
+      o.frequency.value = f;
+      o2.frequency.value = f * 2;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      o.connect(g);
+      o2.connect(g);
+      g.connect(master);
+      o.start(t); o2.start(t);
+      o.stop(t + 1); o2.stop(t + 1);
+    });
+    const pt = at + notes.length * 0.09 + 0.05;
+    const p = ac.createOscillator();
+    const pg = ac.createGain();
+    p.type = "sine";
+    p.frequency.setValueAtTime(1600, pt);
+    p.frequency.exponentialRampToValueAtTime(400, pt + 0.12);
+    pg.gain.setValueAtTime(0.0001, pt);
+    pg.gain.exponentialRampToValueAtTime(0.6, pt + 0.01);
+    pg.gain.exponentialRampToValueAtTime(0.0001, pt + 0.18);
+    p.connect(pg).connect(master);
+    p.start(pt); p.stop(pt + 0.2);
+  } catch (err) {
+    console.warn("[video-export] chime failed", err);
+  }
+}

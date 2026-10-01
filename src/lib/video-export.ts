@@ -9,8 +9,33 @@ import {
   END_SCREEN_SECONDS,
   drawEndScreenFrame,
   loadEndScreenArt,
+  prepareEndScreen,
   type EndScreenArt,
 } from "./video-endscreen";
+
+/**
+ * Vídeos que tocam "soltos" (fora da página) são rebaixados pelo navegador
+ * para 10–12 fps. Anexamos o elemento numa camada invisível e minúscula para
+ * manter a decodificação por hardware em ritmo cheio durante a exportação.
+ */
+function attachHidden(el: HTMLMediaElement) {
+  try {
+    el.setAttribute("aria-hidden", "true");
+    Object.assign(el.style, {
+      position: "fixed",
+      left: "0px",
+      top: "0px",
+      width: "2px",
+      height: "2px",
+      opacity: "0.01",
+      pointerEvents: "none",
+      zIndex: "-1",
+    } as Partial<CSSStyleDeclaration>);
+    document.body.appendChild(el);
+  } catch {
+    /* sem DOM: segue sem anexar */
+  }
+}
 
 
 export function pickVideoMime(): string {
@@ -335,14 +360,22 @@ export async function exportVideo(
   }
 
   const src = document.createElement("video");
-  src.src = srcUrl;
-  src.crossOrigin = "anonymous";
+  if (!srcUrl.startsWith("blob:") && !srcUrl.startsWith("data:")) src.crossOrigin = "anonymous";
   src.playsInline = true;
+  src.preload = "auto";
   src.muted = muted;
-  await new Promise<void>((res, rej) => {
-    src.onloadedmetadata = () => res();
-    src.onerror = () => rej(new Error("Falha ao carregar vídeo"));
-  });
+  src.setAttribute("playsinline", "");
+  src.src = srcUrl;
+  attachHidden(src);
+  try {
+    await new Promise<void>((res, rej) => {
+      src.onloadedmetadata = () => res();
+      src.onerror = () => rej(new Error("Falha ao carregar vídeo"));
+    });
+  } catch (err) {
+    src.remove();
+    throw err;
+  }
 
   const duration = Number.isFinite(src.duration) ? src.duration : 0;
   const from = Math.max(0, opts.from ?? 0);

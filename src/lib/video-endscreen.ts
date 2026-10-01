@@ -132,6 +132,7 @@ export function drawEndScreenFrame(
   h: number,
   username: string | null,
   t: number,
+  prepared?: HTMLCanvasElement | null,
 ): boolean {
   const total = END_SCREEN_SECONDS;
   // Sem @ real do criador, a arte oficial aparece sem nome (nunca um @ fixo).
@@ -152,30 +153,25 @@ export function drawEndScreenFrame(
 
   // A end screen NÃO herda o enquadramento do vídeo. O fundo sempre cobre
   // 100% do quadro e a arte oficial aparece inteira por cima, centralizada.
-  // Assim não há barras pretas nem corte do mascote, logo ou campo de busca,
-  // inclusive quando o vídeo original é horizontal ou quadrado.
-  const coverScale = Math.max(w / art.naturalWidth, h / art.naturalHeight);
-  const coverW = art.naturalWidth * coverScale;
-  const coverH = art.naturalHeight * coverScale;
-  const coverX = (w - coverW) / 2;
-  const coverY = (h - coverH) / 2;
-  const containScale = Math.min(w / art.naturalWidth, h / art.naturalHeight);
-  const aw = art.naturalWidth * containScale;
-  const ah = art.naturalHeight * containScale;
-  const ax = (w - aw) / 2;
-  const ay = (h - ah) / 2;
+  const { ax, ay, aw, ah } = artBox(art, w, h);
 
   ctx.translate(w / 2, h / 2);
   ctx.scale(zoom, zoom);
   ctx.translate(-w / 2, -h / 2);
-  // Fundo ampliado da própria arte, suavizado, ocupa a tela inteira.
-  ctx.save();
-  (ctx as any).filter = `blur(${Math.max(18, Math.round(Math.min(w, h) * 0.035))}px) brightness(0.58) saturate(1.08)`;
-  ctx.drawImage(art, coverX, coverY, coverW, coverH);
-  ctx.restore();
 
-  // Arte oficial inteira, sem recorte e sem deformação.
-  ctx.drawImage(art, ax, ay, aw, ah);
+  if (prepared) {
+    // quadro pronto (fundo desfocado + arte) — custo mínimo por quadro
+    ctx.drawImage(prepared, 0, 0, w, h);
+  } else {
+    const coverScale = Math.max(w / art.naturalWidth, h / art.naturalHeight);
+    const coverW = art.naturalWidth * coverScale;
+    const coverH = art.naturalHeight * coverScale;
+    ctx.save();
+    (ctx as any).filter = `blur(${Math.max(18, Math.round(Math.min(w, h) * 0.035))}px) brightness(0.58) saturate(1.08)`;
+    ctx.drawImage(art, (w - coverW) / 2, (h - coverH) / 2, coverW, coverH);
+    ctx.restore();
+    ctx.drawImage(art, ax, ay, aw, ah);
+  }
 
   // brilho verde muito sutil (respiração), sem adicionar elementos novos
   const breathe = 0.05 + 0.03 * Math.sin((t / total) * Math.PI * 2);

@@ -3,7 +3,7 @@ import { Music2 } from "lucide-react";
 import { getTrack } from "@/lib/music/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VerifiedName } from "@/components/verified-badge";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, Languages, MessageCircle } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -40,6 +40,13 @@ export type FeedPost = {
 function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: string | null }) {
   const queryClient = useQueryClient();
   const [popKey, setPopKey] = useState(0);
+  const [pulseKey, setPulseKey] = useState(0);
+  const lastTapRef = useRef(0);
+  const navigate = useNavigate();
+  const firePulse = () => {
+    setPulseKey((k) => k + 1);
+    try { navigator.vibrate?.([18, 70, 28]); } catch { /* noop */ }
+  };
   const [captionTranslation, setCaptionTranslation] = useState<string | null>(null);
   const [translatingCaption, setTranslatingCaption] = useState(false);
   const runTranslate = useServerFn(translateText);
@@ -189,7 +196,8 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
       ) : post.media_type === "video" ? (
         <div className="space-y-3">
           <PostCarousel postId={post.id}>
-            <div className="relative mx-3 overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]">
+            <div className="media-depth relative mx-3 overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]">
+             {pulseKey ? <NeonPulse key={pulseKey} /> : null}
              <SignedVideo
                bucket="posts"
                path={post.media_url ?? ""}
@@ -198,6 +206,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
                expandHref={`/reels?post=${post.id}`}
                watermarkUsername={author?.username}
                onDoubleTapLike={() => {
+                 firePulse();
                  if (!post.liked_by_me) toggleLike.mutate();
                }}
              />
@@ -210,8 +219,22 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
           <Link
             to="/p/$id"
             params={{ id: post.id }}
-              className="mx-3 block overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]"
+              className="media-depth relative mx-3 block overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]"
+              onClick={(e) => {
+                const now = Date.now();
+                if (now - lastTapRef.current < 300) {
+                  e.preventDefault();
+                  firePulse();
+                  if (!post.liked_by_me) toggleLike.mutate();
+                  lastTapRef.current = 0;
+                  return;
+                }
+                lastTapRef.current = now;
+                e.preventDefault();
+                window.setTimeout(() => { if (lastTapRef.current === now) navigate({ to: "/p/$id", params: { id: post.id } }); }, 300);
+              }}
           >
+            {pulseKey ? <NeonPulse key={pulseKey} /> : null}
             <SignedImage
               bucket="posts"
               path={post.media_url ?? ""}
@@ -428,5 +451,15 @@ function PostMusicTag({ trackId }: { trackId: string }) {
     <p className="mb-1 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
       <Music2 className="h-3.5 w-3.5 shrink-0 text-primary" /> <span className="truncate">{data.title} · {data.artist}</span>
     </p>
+  );
+}
+
+function NeonPulse() {
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-0 z-20 grid place-items-center">
+      <span className="neon-ring absolute h-24 w-24 rounded-full" />
+      <span className="neon-ring absolute h-24 w-24 rounded-full [animation-delay:120ms]" />
+      <Heart className="neon-heart h-20 w-20 fill-primary text-primary" />
+    </span>
   );
 }

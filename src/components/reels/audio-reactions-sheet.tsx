@@ -127,7 +127,18 @@ export function AudioReactionsSheet({ postId, currentUserId, onClose, postAuthor
                 <UserAvatar avatarPath={r.author?.avatar_url ?? null} displayName={r.author?.display_name ?? r.author?.username ?? "?"} className="h-9 w-9" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{r.author?.display_name ?? r.author?.username ?? "Alguém"}</p>
-                  <p className="text-xs text-muted-foreground">{(r.duration_ms / 1000).toFixed(1)}s</p>
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden className="flex h-4 items-center gap-[2px]">
+                      {[0.5, 0.9, 0.6, 1, 0.7, 0.4, 0.8].map((h, i) => (
+                        <span
+                          key={i}
+                          className={playing === r.id ? "w-[3px] rounded-full bg-primary animate-pulse" : "w-[3px] rounded-full bg-muted-foreground/40"}
+                          style={{ height: `${h * 100}%`, animationDelay: `${i * 90}ms`, animationDuration: "0.7s" }}
+                        />
+                      ))}
+                    </span>
+                    <p className="text-xs text-muted-foreground">{(r.duration_ms / 1000).toFixed(1)}s</p>
+                  </div>
                 </div>
                 <button onClick={() => play(r)} aria-label={playing === r.id ? "Pausar" : "Ouvir"} className="grid h-9 w-9 place-items-center rounded-full bg-secondary">
                   {playing === r.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}

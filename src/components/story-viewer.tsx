@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Trash2, Star, Music2, Volume2, VolumeX } from "lucide-react";
+import { X, Trash2, Star, Music2, Volume2, VolumeX, ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { getTrack, trackAudioUrl, type MusicTrack } from "@/lib/music/api";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { UserAvatar } from "@/components/user-avatar";
@@ -57,6 +58,10 @@ export function StoryViewer({
   const { data: url } = useSignedUrl("stories", story?.media_url);
   const [track, setTrack] = useState<MusicTrack | null>(null);
   const [muted, setMuted] = useState(false);
+  const [pure, setPure] = useState(false);
+  const [tray, setTray] = useState(false);
+  const holdRef = useRef<number | null>(null);
+  const swipeY = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // trilha sonora da Vibe
@@ -136,7 +141,7 @@ export function StoryViewer({
 
       <div className="relative h-full w-full max-w-md overflow-hidden bg-black md:h-[92vh] md:rounded-[28px] md:ring-1 md:ring-[color:color-mix(in_oklab,var(--primary)_25%,transparent)] md:shadow-[0_30px_90px_-30px_color-mix(in_oklab,var(--primary)_45%,transparent)]">
         {/* Progress bars */}
-        <div className="absolute top-3 inset-x-3 z-20 flex gap-1.5">
+        <div className={cn("absolute top-3 inset-x-3 z-20 flex gap-1.5 transition-opacity duration-300", pure && "opacity-0")}>
           {group.stories.map((_, i) => (
             <div key={i} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/20">
               <div
@@ -151,10 +156,10 @@ export function StoryViewer({
         </div>
 
         {/* Top gradient scrim */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-black/75 to-transparent" />
+        <div className={cn("pointer-events-none absolute inset-x-0 top-0 z-10 h-36 transition-opacity duration-300", pure && "opacity-0")}><div className="h-full bg-gradient-to-b from-black/75 to-transparent" /></div>
 
         {/* Header */}
-        <div className="absolute top-6 inset-x-3 z-20 flex items-center gap-3 pt-3">
+        <div className={cn("absolute top-6 inset-x-3 z-20 flex items-center gap-3 pt-3 transition-all duration-300", pure && "pointer-events-none -translate-y-3 opacity-0")}>
           <span className="rounded-full bg-gradient-brand p-[2px] shadow-[0_0_18px_color-mix(in_oklab,var(--primary)_55%,transparent)]">
             <UserAvatar
               avatarPath={group.profile?.avatar_url}
@@ -236,16 +241,24 @@ export function StoryViewer({
 
         {/* Caption */}
         {story.caption ? (
-          <div className="absolute bottom-24 inset-x-4 z-20 rounded-2xl border border-white/10 bg-black/45 px-4 py-3 text-sm leading-relaxed text-white backdrop-blur-md">
+          <div className={cn("absolute bottom-24 inset-x-4 z-20 rounded-2xl transition-opacity duration-300", pure && "opacity-0")}><div className="rounded-2xl border border-white/10 bg-black/45 px-4 py-3 text-sm leading-relaxed text-white backdrop-blur-md">
             {story.caption}
-          </div>
+          </div></div>
         ) : null}
 
 
         {/* Reactions bar (only for others' stories) */}
         {!isOwn ? (
-          <div className="absolute bottom-6 inset-x-4 z-20 flex justify-center">
-            <div className="flex items-center gap-1 rounded-full border border-white/12 bg-black/45 px-2 py-1.5 backdrop-blur-xl shadow-[0_10px_40px_-12px_color-mix(in_oklab,var(--primary)_50%,transparent)]">
+          <div className={cn("absolute bottom-0 inset-x-0 z-40 flex flex-col items-center transition-all duration-300", pure && "pointer-events-none opacity-0")}>
+            {!tray ? (
+              <button onClick={() => setTray(true)} className="mb-6 flex items-center gap-1.5 rounded-full border border-white/12 bg-black/35 px-4 py-2 text-[12px] font-semibold text-white/85 backdrop-blur-xl active:scale-95">
+                <ChevronUp className="h-4 w-4 animate-bounce" /> Responder
+              </button>
+            ) : (
+            <div className="w-full rounded-t-[32px] border-t border-white/12 bg-black/55 px-4 pb-[calc(env(safe-area-inset-bottom)+18px)] pt-3 backdrop-blur-2xl animate-in slide-in-from-bottom duration-300">
+              <button onClick={() => setTray(false)} aria-label="Fechar respostas" className="mx-auto mb-3 block h-1.5 w-10 rounded-full bg-white/30" />
+              <div className="flex justify-center">
+            <div className="flex items-center gap-1 rounded-full border border-white/12 bg-white/[0.06] px-2 py-1.5 shadow-[0_10px_40px_-12px_color-mix(in_oklab,var(--primary)_50%,transparent)]">
               {["❤️", "🔥", "😂", "😮", "😢", "👏"].map((e) => (
                 <button
                   key={e}
@@ -267,13 +280,32 @@ export function StoryViewer({
                 </button>
               ))}
             </div>
+              </div>
+            </div>
+            )}
           </div>
         ) : null}
 
-
-        {/* Touch zones */}
+        {/* Touch zones — segure para Visão Pura, deslize para cima para responder */}
         <button aria-label="Anterior" onClick={prev} className="absolute inset-y-0 left-0 w-1/3" />
         <button aria-label="Próximo" onClick={next} className="absolute inset-y-0 right-0 w-1/3" />
+        <div
+          className="absolute inset-y-0 left-1/3 w-1/3 touch-none"
+          onPointerDown={(e) => {
+            swipeY.current = e.clientY;
+            holdRef.current = window.setTimeout(() => setPure(true), 220);
+          }}
+          onPointerUp={(e) => {
+            if (holdRef.current) window.clearTimeout(holdRef.current);
+            const dy = swipeY.current != null ? swipeY.current - e.clientY : 0;
+            swipeY.current = null;
+            if (pure) return setPure(false);
+            if (dy > 40) setTray(true);
+            else if (tray) setTray(false);
+            else next();
+          }}
+          onPointerCancel={() => { if (holdRef.current) window.clearTimeout(holdRef.current); setPure(false); }}
+        />
 
         {(() => {
           const st = parseSticker(story.sticker);

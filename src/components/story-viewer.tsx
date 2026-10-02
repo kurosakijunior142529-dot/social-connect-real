@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Trash2, Star, Music2, Volume2, VolumeX } from "lucide-react";
+import { X, Trash2, Star, Music2, Volume2, VolumeX, ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { getTrack, trackAudioUrl, type MusicTrack } from "@/lib/music/api";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { UserAvatar } from "@/components/user-avatar";

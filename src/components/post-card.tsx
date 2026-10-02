@@ -189,7 +189,8 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
       ) : post.media_type === "video" ? (
         <div className="space-y-3">
           <PostCarousel postId={post.id}>
-            <div className="relative mx-3 overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]">
+            <div className="media-depth relative mx-3 overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]">
+             {pulseKey ? <NeonPulse key={pulseKey} /> : null}
              <SignedVideo
                bucket="posts"
                path={post.media_url ?? ""}
@@ -198,6 +199,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
                expandHref={`/reels?post=${post.id}`}
                watermarkUsername={author?.username}
                onDoubleTapLike={() => {
+                 firePulse();
                  if (!post.liked_by_me) toggleLike.mutate();
                }}
              />
@@ -210,8 +212,23 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
           <Link
             to="/p/$id"
             params={{ id: post.id }}
-              className="mx-3 block overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]"
+              className="media-depth relative mx-3 block overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]"
+              onClick={(e) => {
+                const now = Date.now();
+                if (now - lastTapRef.current < 300) {
+                  e.preventDefault();
+                  firePulse();
+                  if (!post.liked_by_me) toggleLike.mutate();
+                  lastTapRef.current = 0;
+                  return;
+                }
+                lastTapRef.current = now;
+                e.preventDefault();
+                const target = e.currentTarget;
+                window.setTimeout(() => { if (lastTapRef.current === now) target.dispatchEvent(new CustomEvent("vibely-open")); }, 300);
+              }}
           >
+            {pulseKey ? <NeonPulse key={pulseKey} /> : null}
             <SignedImage
               bucket="posts"
               path={post.media_url ?? ""}

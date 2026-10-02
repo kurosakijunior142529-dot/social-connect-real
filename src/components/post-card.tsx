@@ -3,7 +3,7 @@ import { Music2 } from "lucide-react";
 import { getTrack } from "@/lib/music/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VerifiedName } from "@/components/verified-badge";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, Languages, MessageCircle } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";

@@ -622,6 +622,39 @@
 }
 .badge-breathe { animation: badge-breathe-anim 3.2s ease-in-out infinite; }
 
+/* ============ Identidade dos selos verificados ============ */
+.badge-tone-verified { --badge-tone: oklch(0.79 0.2 147); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
+.badge-tone-premium { --badge-tone: oklch(0.82 0.16 82); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
+.badge-tone-developer { --badge-tone: oklch(0.68 0.17 265); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
+.badge-tone-partner { --badge-tone: oklch(0.67 0.2 302); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
+.badge-tone-creator { --badge-tone: oklch(0.68 0.23 355); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
+.badge-tone-star { --badge-tone: oklch(0.75 0.15 224); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
+.badge-tone-founder { --badge-tone: oklch(0.86 0.16 95); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
+
+.verified-avatar-aura {
+  background: linear-gradient(145deg, var(--badge-tone), color-mix(in oklab, var(--badge-tone) 28%, var(--background)));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--badge-tone) 34%, transparent), 0 0 14px -4px var(--badge-tone);
+}
+.badge-auth-card {
+  background: radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--badge-tone) 15%, transparent), transparent 52%), var(--background);
+}
+.badge-auth-orbit {
+  background: var(--badge-tone-soft);
+  border: 1px solid var(--badge-tone-border);
+  box-shadow: 0 0 34px -12px var(--badge-tone), inset 0 1px 0 color-mix(in oklab, var(--foreground) 10%, transparent);
+}
+.verified-social-highlight {
+  border-left: 2px solid var(--primary);
+  background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 8%, transparent), transparent 72%);
+  padding-left: 0.5rem;
+}
+@keyframes profile-badge-lock {
+  0% { transform: scale(0.7) rotate(-12deg); opacity: 0; }
+  70% { transform: scale(1.12) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.profile-badge-lock { animation: profile-badge-lock 420ms var(--ease-out-quart) both; }
+
 /* ============ Glass bubble theme ============ */
 .bubble-glass {
   backdrop-filter: blur(18px) saturate(160%);

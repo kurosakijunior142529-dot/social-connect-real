@@ -8,9 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StoriesRail } from "@/components/stories-rail";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { FollowSuggestionsRail } from "@/components/follow-suggestions-rail";
-import { WatchRoomsRail } from "@/components/watch-rooms-rail";
 
-import { WhatsNewCard } from "@/components/whats-new-card";
 import { ResumeBar } from "@/components/resume-bar";
 import { VibeCheckCard } from "@/components/vibe-check-card";
 

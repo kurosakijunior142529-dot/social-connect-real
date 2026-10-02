@@ -10,7 +10,7 @@ type Props = {
   ring?: boolean | "story" | "viewed";
   /** mantido por compatibilidade — o selo é exibido apenas no nome */
   verified?: boolean;
-  badgeVariant?: BadgeVariant | null;
+  badgeVariant?: BadgeVariant | string | null;
 };
 
 export function UserAvatar({ avatarPath, displayName, className, ring, verified, badgeVariant }: Props) {

@@ -22,6 +22,14 @@ export type ChatWallpaper = {
 
 export const CHAT_WALLPAPERS: ChatWallpaper[] = [
   { id: "default", label: "Padrão", className: "bg-background" },
+  { id: "emerald", label: "Vibely Esmeralda", className: "bg-[radial-gradient(ellipse_at_10%_0%,rgba(34,224,106,0.28),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(34,224,106,0.14),transparent_40%),linear-gradient(180deg,#05110a,#070908)]" },
+  { id: "indigo", label: "Cyber Índigo", className: "bg-[radial-gradient(ellipse_at_85%_10%,rgba(99,102,241,0.35),transparent_45%),radial-gradient(ellipse_at_0%_90%,rgba(34,211,238,0.16),transparent_40%),linear-gradient(170deg,#07071a,#0a0a12)]" },
+  { id: "nebula", label: "Nebulosa", className: "bg-[radial-gradient(circle_at_30%_25%,rgba(192,38,211,0.32),transparent_38%),radial-gradient(circle_at_75%_70%,rgba(79,70,229,0.28),transparent_40%),radial-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),#06030f] [background-size:auto,auto,22px_22px,auto]" },
+  { id: "dusk", label: "Crepúsculo", className: "bg-[radial-gradient(ellipse_at_50%_110%,rgba(251,146,60,0.35),transparent_50%),radial-gradient(ellipse_at_90%_0%,rgba(219,39,119,0.25),transparent_45%),linear-gradient(180deg,#0f0710,#160a0c)]" },
+  { id: "sapphire", label: "Safira", className: "bg-[radial-gradient(ellipse_at_50%_-10%,rgba(59,130,246,0.45),transparent_55%),linear-gradient(180deg,#030a1c,#04060d)]" },
+  { id: "carbon", label: "Carbono", className: "bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.035)_0_2px,transparent_2px_10px),linear-gradient(160deg,#121214,#050506)]" },
+  { id: "aurora-boreal", label: "Aurora Boreal", className: "bg-[linear-gradient(200deg,rgba(34,224,106,0.22)_0%,transparent_35%),linear-gradient(160deg,transparent_30%,rgba(56,189,248,0.2)_55%,transparent_75%),linear-gradient(180deg,#030b10,#06060a)]" },
+  { id: "rose-gold", label: "Rose Gold", className: "bg-[radial-gradient(ellipse_at_20%_0%,rgba(251,191,170,0.3),transparent_45%),radial-gradient(ellipse_at_100%_80%,rgba(244,114,182,0.18),transparent_45%),linear-gradient(180deg,#140c0d,#0a0708)]" },
   { id: "aurora", label: "Aurora", className: "bg-[radial-gradient(circle_at_20%_10%,rgba(215,255,58,0.16),transparent_28%),radial-gradient(circle_at_90%_20%,rgba(74,222,128,0.12),transparent_24%),#0a0a0b]" },
   { id: "midnight", label: "Noite", className: "bg-[linear-gradient(135deg,#070707,#141418_48%,#0c1612)]" },
   { id: "lime", label: "Lima", className: "bg-[linear-gradient(160deg,rgba(215,255,58,0.18),rgba(17,17,19,0.94)_42%,rgba(245,245,247,0.05))]" },

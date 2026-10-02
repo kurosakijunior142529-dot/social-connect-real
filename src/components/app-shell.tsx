@@ -123,7 +123,6 @@ export function AppShell({
     pathname === "/notifications" ||
     pathname === "/create" ||
     pathname === "/settings" ||
-    pathname === "/games" ||
     pathname === "/saved";
   const isProfile = pathname.startsWith("/u/");
   const isReels = pathname === "/reels";
@@ -219,29 +218,6 @@ export function AppShell({
           >
             <Tv className="h-[18px] w-[18px]" strokeWidth={1.6} />
             {t("nav.watch")}
-          </Link>
-          <Link
-            to="/reality"
-            className={cn(
-              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-              pathname.startsWith("/reality") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
-            )}
-          >
-            <Aperture className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            Vibely Reality
-            <span className="ml-auto rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
-              novo
-            </span>
-          </Link>
-          <Link
-            to="/games"
-            className={cn(
-              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-              pathname.startsWith("/games") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
-            )}
-          >
-            <Gamepad2 className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            {t("nav.games")}
           </Link>
           <Link
             to="/voice"

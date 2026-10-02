@@ -416,6 +416,10 @@ function CreatePage() {
       }
 
       const path = await uploadMedia("posts", user.id, toUpload);
+      // Envia todas as mídias extras ANTES de criar o post: se alguma falhar,
+      // nada aparece no feed e "Tentar novamente" não duplica.
+      const extraPaths: string[] = [];
+      for (const ex of extraChecked) extraPaths.push(await uploadMedia("posts", user.id, ex.file));
       const { data: created, error } = await supabase
         .from("posts")
         .insert({
@@ -429,13 +433,14 @@ function CreatePage() {
         .select("id")
         .single();
       if (error) throw error;
-      for (let i = 0; i < extraChecked.length; i++) {
-        const ex = extraChecked[i];
-        const exPath = await uploadMedia("posts", user.id, ex.file);
+      if (extraPaths.length) {
         const { error: mErr } = await (supabase as any)
           .from("post_media")
-          .insert({ post_id: created.id, position: i + 1, media_type: ex.type, media_url: exPath });
-        if (mErr) throw mErr;
+          .insert(extraPaths.map((p, i) => ({ post_id: created.id, position: i + 1, media_type: extraChecked[i].type, media_url: p })));
+        if (mErr) {
+          await supabase.from("posts").delete().eq("id", created.id);
+          throw mErr;
+        }
       }
       setPublishState("success");
       draftReady.current = false;

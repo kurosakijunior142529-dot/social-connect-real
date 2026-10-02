@@ -440,7 +440,12 @@ function NewStoryPage() {
       if (!duration || duration > 60) throw new Error("Este vídeo não pode ser editado aqui. Escolha um vídeo de até 60 segundos.");
       const out = await exportVideo(media.url, {
         aspect: "vertical", filterCss, fitInside: fit,
-        drawOverlay: (ctx) => drawOverlays(ctx, texts, strokes),
+        drawOverlay: (ctx, w, h) => {
+          ctx.save();
+          ctx.scale(w / W, h / H);
+          drawOverlays(ctx, texts, strokes);
+          ctx.restore();
+        },
       });
       return new File([out.blob], `vibe-${Date.now()}.${out.ext}`, { type: out.blob.type });
     }

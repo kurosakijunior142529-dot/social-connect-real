@@ -196,7 +196,14 @@ export function PostComments({
     const like = likes.data?.[c.id];
     const isAuthor = !!postAuthorId && c.author_id === postAuthorId;
     return (
-      <div key={c.id} className={cn("group flex items-start gap-3", isReply && "ml-11")}>
+      <div
+        key={c.id}
+        className={cn(
+          "group flex items-start gap-3 rounded-r-xl py-1 pr-1",
+          isReply && "ml-11",
+          c.author?.is_verified && "verified-social-highlight",
+        )}
+      >
         <UserAvatar
           avatarPath={c.author?.avatar_url}
           displayName={c.author?.display_name ?? "?"}

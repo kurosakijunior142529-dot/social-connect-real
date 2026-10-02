@@ -1,6 +1,6 @@
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { type BadgeVariant } from "@/components/verified-badge";
+import { BADGE_CONFIG, getBadgeVariant, type BadgeVariant } from "@/components/verified-badge";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -13,7 +13,7 @@ type Props = {
   badgeVariant?: BadgeVariant | null;
 };
 
-export function UserAvatar({ avatarPath, displayName, className, ring }: Props) {
+export function UserAvatar({ avatarPath, displayName, className, ring, verified, badgeVariant }: Props) {
   const { data: url } = useSignedUrl("avatars", avatarPath);
   const initials = displayName
     .split(" ")
@@ -30,6 +30,8 @@ export function UserAvatar({ avatarPath, displayName, className, ring }: Props) 
         : ring
           ? "ring-story"
           : "";
+  const showAura = !!verified || !!badgeVariant;
+  const auraClass = showAura ? BADGE_CONFIG[getBadgeVariant(badgeVariant)].toneClass : "";
 
   const inner = (
     <Avatar className={cn("h-10 w-10", className)}>
@@ -43,10 +45,10 @@ export function UserAvatar({ avatarPath, displayName, className, ring }: Props) 
   // O selo verificado aparece somente ao lado do nome (VerifiedName), nunca na foto.
   const withBadge = (child: React.ReactNode) => child;
 
-  if (!ring) return withBadge(inner);
+  if (!ring && !showAura) return withBadge(inner);
 
   return withBadge(
-    <div className={cn("rounded-full p-[2px]", ringClass)}>
+    <div className={cn("rounded-full p-[2px]", ringClass, showAura && "verified-avatar-aura", auraClass)}>
       <div className="rounded-full bg-background p-[2px]">{inner}</div>
     </div>,
   );

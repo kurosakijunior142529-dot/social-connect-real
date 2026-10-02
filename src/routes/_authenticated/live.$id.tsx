@@ -39,6 +39,7 @@ import { ArEffectTray } from "@/components/ar/ar-effect-tray";
 import { formatElapsed, formatViewers } from "@/lib/live-utils";
 import { GiftAnimation, type GiftEvent } from "@/components/gifts/gift-animation";
 import { getGiftMeta, RARITY_STYLE } from "@/lib/gifts/catalog";
+import { VerifiedName } from "@/components/verified-badge";
 
 export const Route = createFileRoute("/_authenticated/live/$id")({
   validateSearch: (s: Record<string, unknown>) => ({ host: s.host === 1 || s.host === "1" ? 1 : undefined }),
@@ -765,11 +766,10 @@ function LiveRoom() {
         <div className="absolute top-0 inset-x-0 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] bg-gradient-to-b from-black/80 via-black/40 to-transparent">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 rounded-full bg-black/40 backdrop-blur-md pl-1 pr-2 py-1">
-              <UserAvatar avatarPath={hostProfileQ.data?.avatar_url ?? null} displayName={hostProfileQ.data?.display_name ?? hostProfileQ.data?.username ?? "?"} className="h-9 w-9 border-2 border-primary/50" />
+               <UserAvatar avatarPath={hostProfileQ.data?.avatar_url ?? null} displayName={hostProfileQ.data?.display_name ?? hostProfileQ.data?.username ?? "?"} verified={!!hostProfileQ.data?.is_verified} badgeVariant={hostProfileQ.data?.badge_variant} className="h-9 w-9" />
               <div className="min-w-0">
                 <div className="text-white text-sm font-semibold truncate flex items-center gap-1">
-                  {hostProfileQ.data?.display_name ?? hostProfileQ.data?.username ?? "Criador"}
-                  {hostProfileQ.data?.is_verified && <Check className="h-3.5 w-3.5 text-primary" />}
+                   <VerifiedName name={hostProfileQ.data?.display_name ?? hostProfileQ.data?.username ?? "Criador"} verified={hostProfileQ.data?.is_verified} badgeVariant={hostProfileQ.data?.badge_variant} size={13} />
                 </div>
                 <div className="text-white/70 text-[11px] truncate max-w-[42vw] md:max-w-xs">
                   {live.title}{live.category ? ` · ${live.category}` : ""}
@@ -872,10 +872,10 @@ function LiveRoom() {
         {live.status !== "ended" && (
           <div className="md:hidden pointer-events-none absolute bottom-[6.5rem] left-3 right-20 space-y-1.5">
             {lastMessages.map((m: any) => (
-              <div key={m.id} className="flex items-start gap-1.5 text-[12px] text-white drop-shadow">
-                <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? "?"} className="h-5 w-5" />
-                <span className="rounded-2xl bg-black/45 backdrop-blur-sm px-2 py-1">
-                  <b className="text-primary mr-1">{m.profile?.display_name ?? m.profile?.username ?? "user"}</b>
+               <div key={m.id} className={cn("flex items-start gap-1.5 text-[12px] text-white drop-shadow", m.profile?.is_verified && "verified-social-highlight rounded-r-xl")}>
+                 <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? "?"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} className="h-5 w-5" />
+                 <span className="rounded-2xl bg-background/45 backdrop-blur-sm px-2 py-1">
+                   <b className="text-primary mr-1"><VerifiedName name={m.profile?.display_name ?? m.profile?.username ?? "user"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} size={11} /></b>
                   {m.content}
                 </span>
               </div>
@@ -1115,10 +1115,10 @@ function ChatRow({
   onPin: () => void; onDelete: () => void; onBan: () => void; onMod: () => void;
 }) {
   return (
-    <div className={cn("group flex items-start gap-2 rounded-xl p-2", m.is_highlighted || m.pinned ? "bg-primary/10 ring-1 ring-primary/40" : "")}>
-      <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? m.profile?.username ?? "?"} className="h-6 w-6" />
+    <div className={cn("group flex items-start gap-2 rounded-xl p-2", m.is_highlighted || m.pinned ? "bg-primary/10 ring-1 ring-primary/40" : "", m.profile?.is_verified && "verified-social-highlight")}>
+      <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? m.profile?.username ?? "?"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} className="h-6 w-6" />
       <div className="text-[13px] min-w-0 flex-1">
-        <span className="font-semibold text-primary mr-1.5">{m.profile?.display_name ?? m.profile?.username ?? "user"}</span>
+        <span className="font-semibold text-primary mr-1.5"><VerifiedName name={m.profile?.display_name ?? m.profile?.username ?? "user"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} size={11} /></span>
         <span className="break-words">{m.content}</span>
       </div>
       {canModerate && (

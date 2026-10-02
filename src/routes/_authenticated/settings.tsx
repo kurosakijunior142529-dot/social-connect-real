@@ -18,6 +18,7 @@ import { useAppTheme } from "@/lib/theme";
 import { PushSettings } from "@/components/settings/push-settings";
 import { useSmartRepliesEnabled, TRANSLATE_LANGUAGES } from "@/lib/chat-settings";
 import { useI18n, LOCALES, type LocaleCode } from "@/lib/i18n";
+import { BADGE_CONFIG, VerifiedBadge, getBadgeVariant, type BadgeVariant } from "@/components/verified-badge";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -196,6 +197,7 @@ function SettingsPage() {
           ["conta", "E-mail"],
           ["notificacoes", "Notificações"],
           ["aparencia", "Aparência"],
+          ["verificacao", "Verificação"],
           ["idioma", "Idioma"],
           ["privacidade", "Privacidade"],
           ["sessao", "Sessão"],
@@ -368,6 +370,8 @@ function SettingsPage() {
         </div>
       </section>
 
+      <VerificationSection verified={!!profile.data?.is_verified} badgeVariant={profile.data?.badge_variant} />
+
       <section className="space-y-3 rounded-[24px] bg-[color:var(--surface)] p-4">
         <div>
           <h2 className="text-base font-semibold">Respostas da IA no chat</h2>
@@ -465,6 +469,56 @@ function SettingsPage() {
       />
     </div>
 
+  );
+}
+
+function VerificationSection({ verified, badgeVariant }: { verified: boolean; badgeVariant?: string | null }) {
+  const current = verified || badgeVariant ? getBadgeVariant(badgeVariant) : null;
+  const categories: BadgeVariant[] = ["verified", "creator", "star", "developer", "partner", "premium", "founder"];
+
+  return (
+    <section id="verificacao" className="scroll-mt-24 space-y-4 rounded-[24px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4">
+      <div className="flex items-start gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+          <ShieldCheck className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold">Verificação e reconhecimento</h2>
+          <p className="text-[13px] text-muted-foreground">Selos são concedidos pelo Vibely por autenticidade, mérito e contribuição.</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-[color:var(--surface-2)] p-3">
+        {current ? (
+          <div className="flex items-center gap-3">
+            <VerifiedBadge size={34} variant={current} animated={false} />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">Seu selo: {BADGE_CONFIG[current].shortLabel}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">{BADGE_CONFIG[current].description}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border text-muted-foreground"><Shield className="h-4 w-4" /></div>
+            <div><div className="text-sm font-semibold">Conta sem selo no momento</div><div className="text-xs text-muted-foreground">Continue criando e participando de forma autêntica.</div></div>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {categories.map((variant) => {
+          const cfg = BADGE_CONFIG[variant];
+          return (
+            <div key={variant} className="flex items-center gap-3 rounded-xl border border-[color:var(--hairline)] px-3 py-2.5">
+              <VerifiedBadge size={18} variant={variant} animated={false} />
+              <div className="min-w-0 flex-1"><div className="text-xs font-semibold">{cfg.shortLabel}</div><div className="text-[11px] leading-4 text-muted-foreground">{cfg.criterion}</div></div>
+              {current === variant ? <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" aria-label="Seu selo atual" /> : null}
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[11px] leading-5 text-muted-foreground">A análise considera comportamento real e segurança. Selos não são liberados por edição do perfil.</p>
+    </section>
   );
 }
 

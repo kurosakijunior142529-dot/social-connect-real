@@ -122,6 +122,12 @@ function ProfileContent() {
   const blockedMe = profile ? blocks.data?.blockedBy.has(profile.id) ?? false : false;
   const isBlockedPair = iBlocked || blockedMe;
 
+  useEffect(() => {
+    if (!profile?.id || (!profile.is_verified && !profile.badge_variant)) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    navigator.vibrate?.(12);
+  }, [profile?.id, profile?.is_verified, profile?.badge_variant]);
+
   const { data: coverUrl } = useSignedUrl("covers", profile?.cover_url ?? null);
   const { openCheckout, checkoutElement } = useStripeCheckout();
 
@@ -420,7 +426,7 @@ function ProfileContent() {
         <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-5 sm:px-6 md:px-8 md:pb-7">
           <div className="relative w-fit">
             <div className="rounded-full bg-background/95 p-1 ring-1 ring-primary/35 shadow-elegant">
-              <UserAvatar avatarPath={profile.avatar_url} displayName={profile.display_name} className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32" />
+              <UserAvatar avatarPath={profile.avatar_url} displayName={profile.display_name} verified={profile.is_verified} badgeVariant={profile.badge_variant} className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32" />
             </div>
             <span className="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full border-[3px] border-background bg-primary" aria-label="Perfil ativo" />
           </div>
@@ -432,7 +438,7 @@ function ProfileContent() {
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
               <h1 className="truncate text-3xl font-bold sm:text-4xl">{profile.display_name}</h1>
-              {profile.is_verified || profile.badge_variant ? <span className="shrink-0"><VerifiedBadge size={17} variant={profile.badge_variant ?? "verified"} animated={false} /></span> : null}
+              {profile.is_verified || profile.badge_variant ? <span className="profile-badge-lock shrink-0"><VerifiedBadge size={17} variant={profile.badge_variant ?? "verified"} animated={false} /></span> : null}
             </div>
             <p className="mt-1 truncate text-sm font-medium text-muted-foreground">@{profile.username}{profile.pronouns ? ` · ${profile.pronouns}` : ""}</p>
             {profile.bio ? <p className="mt-3 max-w-3xl whitespace-pre-wrap text-[15px] leading-6 text-foreground/90 md:text-base md:leading-7">{profile.bio}</p> : <p className="mt-3 text-sm text-muted-foreground">Este perfil ainda não adicionou uma bio.</p>}

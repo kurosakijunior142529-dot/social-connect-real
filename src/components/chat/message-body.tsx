@@ -56,56 +56,69 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   return <EmojiText text={msg.content ?? ""} />;
 }
 
-/** Publicação compartilhada — card com capa, autor e legenda (abre o post completo). */
+/** Publicação compartilhada — vídeo toca dentro do chat; "Ver publicação" abre o post. */
 function PostShareBody({ msg }: { msg: Msg }) {
   const p = msg.meta?.post ?? {};
   const bucket = (msg.media_bucket as any) ?? "posts";
-  const cover = useSignedUrl(bucket, msg.poster_url ?? msg.media_url ?? null);
   const isVideo = (p.media_type ?? "video") === "video";
+  const cover = useSignedUrl(bucket, msg.poster_url ?? msg.media_url ?? null);
+  const videoSrc = useSignedUrl(bucket, isVideo ? msg.media_url ?? null : null);
   const usesVideoFrame = isVideo && !msg.poster_url;
+  const [playing, setPlaying] = useState(false);
 
   return (
-    <Link
-      to="/p/$id"
-      params={{ id: String(p.id ?? "") }}
-      className="block w-60 max-w-full overflow-hidden rounded-2xl border border-white/10 bg-black/25"
-    >
+    <div className="block w-60 max-w-full overflow-hidden rounded-2xl border border-white/10 bg-black/25">
       <div className="relative aspect-[4/5] w-full bg-black/40">
-        {cover.data ? (
-          usesVideoFrame ? (
-            <video
-              src={`${cover.data}#t=0.1`}
-              className="h-full w-full object-cover"
-              muted
-              playsInline
-              preload="metadata"
-            />
-          ) : (
-            <img src={cover.data} alt="" className="h-full w-full object-cover" loading="lazy" />
-          )
+        {isVideo && playing && videoSrc.data ? (
+          <VideoPlayer
+            src={videoSrc.data}
+            poster={!usesVideoFrame ? cover.data ?? undefined : undefined}
+            autoPlayInView={false}
+            fit="cover"
+            className="h-full w-full"
+          />
         ) : (
-          <div className="h-full w-full animate-pulse bg-white/5" />
+          <>
+            {cover.data ? (
+              usesVideoFrame ? (
+                <video src={`${cover.data}#t=0.1`} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+              ) : (
+                <img src={cover.data} alt="" className="h-full w-full object-cover" loading="lazy" />
+              )
+            ) : (
+              <div className="h-full w-full animate-pulse bg-white/5" />
+            )}
+            {isVideo ? (
+              <button
+                type="button"
+                aria-label="Assistir aqui"
+                onClick={() => setPlaying(true)}
+                className="absolute inset-0 grid place-items-center"
+              >
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-black/45 backdrop-blur-md ring-1 ring-white/20 transition active:scale-95">
+                  <Play className="h-5 w-5 text-white" fill="currentColor" strokeWidth={0} />
+                </span>
+              </button>
+            ) : (
+              <Link to="/p/$id" params={{ id: String(p.id ?? "") }} className="absolute inset-0" aria-label="Ver publicação" />
+            )}
+          </>
         )}
-        {isVideo ? (
-          <span className="pointer-events-none absolute inset-0 grid place-items-center">
-            <span className="grid h-11 w-11 place-items-center rounded-full bg-black/45 backdrop-blur-md">
-              <Play className="h-5 w-5 text-white" fill="currentColor" strokeWidth={0} />
-            </span>
-          </span>
-        ) : null}
       </div>
       <div className="space-y-1 p-2.5">
-        <div className="text-[12px] font-semibold">
-          @{p.author_username ?? "publicação"}
-        </div>
+        <div className="text-[12px] font-semibold">@{p.author_username ?? "publicação"}</div>
         {p.caption ? (
-          <div className="line-clamp-2 text-[12px] leading-snug text-muted-foreground">
-            {p.caption}
-          </div>
+          <div className="line-clamp-2 text-[12px] leading-snug text-muted-foreground">{p.caption}</div>
         ) : null}
-        <div className="pt-0.5 text-[11px] font-medium text-primary">Ver publicação</div>
+        <Link
+          to="/p/$id"
+          params={{ id: String(p.id ?? "") }}
+          className="inline-block pt-0.5 text-[11px] font-medium text-primary"
+        >
+          Ver publicação
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 }
 

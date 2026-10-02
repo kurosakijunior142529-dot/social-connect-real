@@ -45,7 +45,6 @@ import { useBlocks } from "@/hooks/use-blocks";
 import { uploadMedia } from "@/lib/media";
 
 import { VibeCollections } from "@/components/profile/vibe-collections";
-import { ProfileRealities } from "@/components/profile/profile-realities";
 
 
 export const Route = createFileRoute("/_authenticated/u/$username")({
@@ -568,7 +567,6 @@ function ProfileContent() {
 
         <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
 
-        <ProfileRealities profileId={profile.id} isMe={isMe} />
 
       {isBlockedPair ? (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">

@@ -101,7 +101,7 @@ function FeedPage() {
   const [showExtras, setShowExtras] = useState(false);
   useEffect(() => {
     if (showExtras) return;
-    const delay = query.isLoading ? 2500 : 400;
+    const delay = query.isLoading ? 1200 : 0;
     const t = setTimeout(() => setShowExtras(true), delay);
     return () => clearTimeout(t);
   }, [query.isLoading, showExtras]);
@@ -140,10 +140,7 @@ function FeedPage() {
       {/* Blocos secundários só entram depois dos posts, para o feed abrir rápido. */}
       {showExtras ? (
         <>
-          <WhatsNewCard />
-          <WatchRoomsRail />
           <VibeCheckCard />
-          <DailyPromptCard />
         </>
       ) : null}
 
@@ -239,7 +236,7 @@ function HeaderAction({
   label,
   primary,
 }: {
-  to: "/watch" | "/create" | "/settings" | "/games" | "/lives" | "/pro" | "/reels" | "/notifications";
+  to: "/watch" | "/create" | "/settings" | "/lives" | "/pro" | "/reels" | "/notifications";
   icon: ReactNode;
   label: string;
   primary?: boolean;

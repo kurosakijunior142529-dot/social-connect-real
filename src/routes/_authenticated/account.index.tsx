@@ -93,7 +93,6 @@ function AccountHubPage() {
     {
       title: "Criador",
       rows: [
-        { to: "/games", icon: Gamepad2, label: "Jogos & conquistas", hint: "Progresso e níveis" },
       ],
     },
     ...(admin.data

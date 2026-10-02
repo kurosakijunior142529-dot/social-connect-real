@@ -32,7 +32,8 @@ import { ChatSearchBar } from "@/components/chat/search-bar";
 import { TypingIndicator, useConversationPresence } from "@/components/chat/typing-indicator";
 import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
-import { Smile, Timer } from "lucide-react";
+import { Smile, Timer, Plus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-panel";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
 import { useChatPrefs } from "@/lib/bubble-themes";
@@ -741,55 +742,88 @@ function ConversationPage() {
 
       <form
         onSubmit={send}
-        className="relative px-3 pt-3 flex items-end gap-1 bg-background border-t border-border/40 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className="relative px-3 pt-2 flex items-end gap-2 bg-gradient-to-t from-background via-background/95 to-transparent pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
-        <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
-        <button
-          type="button"
-          disabled={isBlockedPair}
-          aria-label="Emojis, GIFs e figurinhas"
-          onClick={() => togglePanel("emoji")}
-          className="p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40"
-        >
-          <Smile className="h-[18px] w-[18px]" strokeWidth={1.8} />
-        </button>
-        <button
-          type="button"
-          disabled={isBlockedPair}
-          aria-label="Recado que some"
-          title="Recado que some (foto, vídeo ou áudio some após ser visto)"
-          onClick={() => {
-            setEphemeral((v) => !v);
-            if (!ephemeral) toast.info("Próxima foto, vídeo ou áudio some depois de visto");
-          }}
-          className={cn(
-            "p-2 rounded-full active:bg-[color:var(--surface-2)] disabled:opacity-40",
-            ephemeral && "bg-primary/15 text-primary",
-          )}
-        >
-          <Timer className="h-[18px] w-[18px]" strokeWidth={1.8} />
-        </button>
-        <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
-        <div className="flex-1 min-w-0 flex items-center gap-2 rounded-2xl bg-[color:var(--surface-2)]/60 px-4 py-2.5 border border-[color:var(--hairline)] transition-colors focus-within:border-primary/40">
-          <Input
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              disabled={isBlockedPair}
+              aria-label="Mais opções"
+              className={cn(
+                "h-11 w-11 shrink-0 grid place-items-center rounded-full bg-[color:var(--surface-2)] border border-[color:var(--hairline)] transition active:scale-95 disabled:opacity-40",
+                ephemeral && "border-primary/50 text-primary",
+              )}
+            >
+              <Plus className="h-5 w-5" strokeWidth={2} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="start" className="w-56 p-1.5 glass border-white/10">
+            <button
+              type="button"
+              onClick={() => {
+                setEphemeral((v) => !v);
+                if (!ephemeral) toast.info("Próxima foto, vídeo ou áudio some depois de visto");
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] hover:bg-white/10 transition",
+                ephemeral && "text-primary",
+              )}
+            >
+              <Timer className="h-4 w-4" strokeWidth={1.8} />
+              <span className="flex-1 text-left">Recado que some</span>
+              {ephemeral ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+            </button>
+            <div className="flex items-center gap-3 rounded-xl px-1.5 py-1 text-[13px]">
+              <ScheduleButton userId={user.id} target={{ type: "dm", conversationId }} />
+              <span>Agendar mensagem</span>
+            </div>
+          </PopoverContent>
+        </Popover>
+        <div className="flex-1 min-w-0 flex items-end gap-1 rounded-[24px] bg-[color:var(--surface-2)] pl-1.5 pr-1 py-1 border border-[color:var(--hairline)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.6)] transition-colors focus-within:border-primary/40">
+          <button
+            type="button"
+            disabled={isBlockedPair}
+            aria-label="Emojis, GIFs e figurinhas"
+            onClick={() => togglePanel("emoji")}
+            className="h-9 w-9 shrink-0 grid place-items-center rounded-full text-muted-foreground hover:text-foreground disabled:opacity-40"
+          >
+            <Smile className="h-5 w-5" strokeWidth={1.8} />
+          </button>
+          <textarea
             value={draft}
+            rows={1}
             onChange={(e) => {
               setDraft(e.target.value);
               if (!editing) noteTyping();
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !("ontouchstart" in window)) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
             }}
             placeholder={
               isBlockedPair
                 ? "Mensagens desativadas"
                 : editing
                 ? "Editar mensagem…"
-                : "Mensagem ou /ia pergunta…"
+                : "Mensagem…"
             }
             maxLength={2000}
             disabled={isBlockedPair}
-            className="border-0 bg-transparent h-8 p-0 text-[14px] focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
+            className="flex-1 min-w-0 resize-none bg-transparent py-2 text-[15px] leading-5 outline-none placeholder:text-muted-foreground max-h-[120px]"
           />
           {draft.startsWith("/ia") ? (
-            <Sparkles className="h-4 w-4 text-primary animate-pulse shrink-0" />
+            <Sparkles className="h-4 w-4 mb-2.5 text-primary animate-pulse shrink-0" />
+          ) : null}
+          {!draft.trim() ? (
+            <div className="text-muted-foreground">
+              <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
+            </div>
           ) : null}
         </div>
         {draft.trim() && !isBlockedPair ? (
@@ -797,9 +831,9 @@ function ConversationPage() {
             type="submit"
             disabled={sending}
             size="icon"
-            className="rounded-xl bg-chat-mine text-chat-mine-foreground hover:bg-chat-mine/90 h-10 w-10 shrink-0"
+            className="rounded-full bg-chat-mine text-chat-mine-foreground hover:bg-chat-mine/90 h-11 w-11 shrink-0 transition active:scale-95"
           >
-            <Send className="h-4 w-4" strokeWidth={2.2} />
+            <Send className="h-[18px] w-[18px]" strokeWidth={2.2} />
           </Button>
         ) : (
           <AudioRecorder onSend={handleAudio} disabled={isBlockedPair} />

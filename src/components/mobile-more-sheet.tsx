@@ -93,13 +93,6 @@ export function MobileMoreSheet({ onSignOut }: { onSignOut: () => void }) {
   const icon = "h-[18px] w-[18px]";
 
   const discover: Entry[] = [
-    {
-      to: "/reality",
-      label: "Vibely Reality",
-      hint: "Entre na realidade de alguém",
-      icon: <Aperture className={icon} />,
-      isNew: true,
-    },
     { to: "/nearby", label: t("nav.nearby"), hint: t("more.nearbyHint"), icon: <MapPin className={icon} />, isNew: true },
     { to: "/watch", label: t("nav.watch"), hint: t("more.watchHint"), icon: <Tv className={icon} />, isNew: true },
     { to: "/explore", label: t("nav.explore"), hint: t("more.exploreHint"), icon: <Compass className={icon} /> },
@@ -116,7 +109,6 @@ export function MobileMoreSheet({ onSignOut }: { onSignOut: () => void }) {
   ];
 
   const fun: Entry[] = [
-    { to: "/games", label: t("nav.games"), hint: t("more.gamesHint"), icon: <Gamepad2 className={icon} /> },
     { to: "/voice", label: t("nav.voice"), hint: t("more.voiceHint"), icon: <Headphones className={icon} /> },
     { to: "/messages", label: t("nav.messages"), hint: t("more.messagesHint"), icon: <MessageCircle className={icon} /> },
     { to: "/notifications", label: t("nav.notifications"), hint: t("more.notificationsHint"), icon: <Bell className={icon} /> },

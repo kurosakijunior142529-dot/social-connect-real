@@ -96,7 +96,7 @@ export function VibeCheckCard() {
                 <div className="flex -space-x-2">
                   {friends.slice(0, 4).map((f) => (
                     <div key={f.user_id} className="relative">
-                      <UserAvatar src={f.avatar_url} name={f.display_name ?? f.username ?? ""} size="sm" className="ring-2 ring-background" />
+                      <UserAvatar avatarPath={f.avatar_url} displayName={f.display_name ?? f.username ?? ""} className="h-7 w-7 ring-2 ring-background" />
                       <span className="absolute -bottom-1 -right-1 text-[11px]">
                         {MOODS.find((m) => m.key === f.mood)?.emoji}
                       </span>

@@ -16,3 +16,4 @@
 - [x] Redesenhar perfil como experiência editorial social premium com Vibe atual e Vibe Spaces
 - [x] Adicionar Co-Viewing funcional aos Reels sem alterar o Streaming Amigo existente
 - [x] Adicionar reações rápidas em áudio com gravação, reprodução e exclusão segura
+- [ ] Evoluir os verificados: cartão de autenticidade, aura, mérito, destaque social e vibração sem som

@@ -40,6 +40,13 @@ export type FeedPost = {
 function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: string | null }) {
   const queryClient = useQueryClient();
   const [popKey, setPopKey] = useState(0);
+  const [pulseKey, setPulseKey] = useState(0);
+  const lastTapRef = useRef(0);
+  const navigate = useNavigate();
+  const firePulse = () => {
+    setPulseKey((k) => k + 1);
+    try { navigator.vibrate?.([18, 70, 28]); } catch { /* noop */ }
+  };
   const [captionTranslation, setCaptionTranslation] = useState<string | null>(null);
   const [translatingCaption, setTranslatingCaption] = useState(false);
   const runTranslate = useServerFn(translateText);
@@ -224,8 +231,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
                 }
                 lastTapRef.current = now;
                 e.preventDefault();
-                const target = e.currentTarget;
-                window.setTimeout(() => { if (lastTapRef.current === now) target.dispatchEvent(new CustomEvent("vibely-open")); }, 300);
+                window.setTimeout(() => { if (lastTapRef.current === now) navigate({ to: "/p/$id", params: { id: post.id } }); }, 300);
               }}
           >
             {pulseKey ? <NeonPulse key={pulseKey} /> : null}
@@ -445,5 +451,15 @@ function PostMusicTag({ trackId }: { trackId: string }) {
     <p className="mb-1 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
       <Music2 className="h-3.5 w-3.5 shrink-0 text-primary" /> <span className="truncate">{data.title} · {data.artist}</span>
     </p>
+  );
+}
+
+function NeonPulse() {
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-0 z-20 grid place-items-center">
+      <span className="neon-ring absolute h-24 w-24 rounded-full" />
+      <span className="neon-ring absolute h-24 w-24 rounded-full [animation-delay:120ms]" />
+      <Heart className="neon-heart h-20 w-20 fill-primary text-primary" />
+    </span>
   );
 }

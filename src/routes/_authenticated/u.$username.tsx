@@ -399,7 +399,7 @@ function ProfileContent() {
 
   return (
     <div className="profile-enter -mt-4 min-w-0 overflow-hidden pb-6 md:-mt-6">
-      <section className="relative h-[310px] overflow-hidden border-b border-border/60 sm:h-[340px] md:h-[390px] md:rounded-2xl md:border">
+      <section className="relative h-[260px] overflow-hidden sm:h-[320px] md:h-[390px] md:rounded-2xl md:border">
         {coverUrl ? (
           <img src={coverUrl} alt={`Capa do perfil de ${profile.display_name}`} className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
         ) : (
@@ -424,26 +424,26 @@ function ProfileContent() {
 
         <div className="absolute inset-x-0 bottom-0 z-10 px-4 pb-5 sm:px-6 md:px-8 md:pb-7">
           <div className="relative w-fit">
-            <div className="rounded-full bg-background/95 p-1 ring-1 ring-primary/35 shadow-elegant">
+            <div className="rounded-full bg-background p-1 ring-1 ring-[color:var(--hairline)] shadow-elegant">
               <UserAvatar avatarPath={profile.avatar_url} displayName={profile.display_name} verified={profile.is_verified} badgeVariant={profile.badge_variant} className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32" />
             </div>
-            <span className="absolute bottom-1.5 right-1.5 h-4 w-4 rounded-full border-[3px] border-background bg-primary" aria-label="Perfil ativo" />
+            
           </div>
         </div>
       </section>
 
       <div className="space-y-8 px-4 py-5 sm:px-6 md:px-8 md:py-7">
-        <section className="space-y-5 border-b border-border/50 pb-8">
+        <section className="space-y-5 pb-2">
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
-              <h1 className="truncate text-3xl font-bold sm:text-4xl">{profile.display_name}</h1>
+              <h1 className="truncate font-display text-[26px] font-bold tracking-tight sm:text-4xl">{profile.display_name}</h1>
               {profile.is_verified || profile.badge_variant ? <span className="profile-badge-lock shrink-0"><VerifiedBadge size={17} variant={profile.badge_variant ?? "verified"} animated={false} /></span> : null}
             </div>
             <p className="mt-1 truncate text-sm font-medium text-muted-foreground">@{profile.username}{profile.pronouns ? ` · ${profile.pronouns}` : ""}</p>
             {profile.bio ? <p className="mt-3 max-w-3xl whitespace-pre-wrap text-[15px] leading-6 text-foreground/90 md:text-base md:leading-7">{profile.bio}</p> : <p className="mt-3 text-sm text-muted-foreground">Este perfil ainda não adicionou uma bio.</p>}
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {isSupporter ? <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary"><Heart className="h-3 w-3 fill-primary" /> Apoiador</span> : null}
-              {profile.is_creator ? <span className="rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary">Criador</span> : null}
+              {isSupporter ? <span className="inline-flex items-center gap-1 rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] px-2.5 py-1 text-[10px] font-semibold text-foreground/80"><Heart className="h-3 w-3" /> Apoiador</span> : null}
+              {profile.is_creator ? <span className="rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] px-2.5 py-1 text-[10px] font-semibold text-foreground/80">Criador</span> : null}
             </div>
           </div>
 
@@ -464,10 +464,10 @@ function ProfileContent() {
             {!isMe && profile.is_creator ? <Button onClick={() => openCheckout({ priceId: "channel_sub_monthly", creatorId: profile.id })} variant={supporting ? "secondary" : "outline"} className="col-span-2 h-11 shrink-0 gap-2 rounded-xl sm:col-span-1"><Crown className="h-4 w-4" /> {supporting ? "Apoiador" : "Apoiar"}</Button> : null}
           </div>
 
-          <div className="grid grid-cols-3 divide-x divide-border/70 border-y border-border/60 py-4 text-center">
-            <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "followers" }} className="min-w-0 px-2"><strong className="block truncate text-lg font-bold tabular">{formatCount(stats.data?.followers ?? 0)}</strong><span className="text-[11px] text-muted-foreground">Seguidores</span></Link>
-            <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "following" }} className="min-w-0 px-2"><strong className="block truncate text-lg font-bold tabular">{formatCount(stats.data?.following ?? 0)}</strong><span className="text-[11px] text-muted-foreground">Seguindo</span></Link>
-            <span className="min-w-0 px-2"><strong className="block truncate text-lg font-bold tabular">{formatCount(stats.data?.likesReceived ?? 0)}</strong><span className="text-[11px] text-muted-foreground">Curtidas</span></span>
+          <div className="grid grid-cols-3 rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface)] py-3.5 text-center">
+            <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "followers" }} className="min-w-0 px-2"><strong className="block truncate text-lg font-display font-bold tabular">{formatCount(stats.data?.followers ?? 0)}</strong><span className="text-[10px] uppercase tracking-wider text-muted-foreground">Seguidores</span></Link>
+            <Link to="/u/$username/follows" params={{ username: profile.username }} search={{ tab: "following" }} className="min-w-0 px-2"><strong className="block truncate text-lg font-display font-bold tabular">{formatCount(stats.data?.following ?? 0)}</strong><span className="text-[10px] uppercase tracking-wider text-muted-foreground">Seguindo</span></Link>
+            <span className="min-w-0 px-2"><strong className="block truncate text-lg font-display font-bold tabular">{formatCount(stats.data?.likesReceived ?? 0)}</strong><span className="text-[10px] uppercase tracking-wider text-muted-foreground">Curtidas</span></span>
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
@@ -477,7 +477,7 @@ function ProfileContent() {
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{formatCount(stats.data?.viewsTotal ?? 0)} visualizações</span><span aria-hidden>·</span><span>{formatCount(activeVibes.length)} Vibes ativas</span>
-            {isMe ? <Link to="/stories/new" className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-primary/40 px-3 py-1 text-[11px] font-semibold text-primary transition active:scale-95">Nova Vibe</Link> : null}
+            {isMe ? <Link to="/stories/new" className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-1 text-[11px] font-semibold text-foreground transition active:scale-95">Nova Vibe</Link> : null}
           </div>
         </section>
 

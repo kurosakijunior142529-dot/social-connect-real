@@ -418,23 +418,69 @@ function DocBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   );
 }
 
+function lonToTile(lon: number, z: number) { return ((lon + 180) / 360) * 2 ** z; }
+function latToTile(lat: number, z: number) {
+  const r = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * 2 ** z;
+}
+
+/** Mapa em mosaico (3x3 tiles) centralizado no ponto, com marcador pulsante. */
 function LocationBody({ msg }: { msg: Msg }) {
   const lat = msg.meta?.lat as number | undefined;
   const lng = msg.meta?.lng as number | undefined;
+  const addr = useQuery({
+    queryKey: ["revgeo", lat?.toFixed(4), lng?.toFixed(4)],
+    enabled: lat != null && lng != null,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "pt-BR" } });
+      const j = await r.json();
+      const a = j.address ?? {};
+      return {
+        title: a.road ?? a.neighbourhood ?? a.suburb ?? "Localização",
+        sub: [a.suburb ?? a.neighbourhood, a.city ?? a.town ?? a.village].filter(Boolean).join(", "),
+      };
+    },
+  });
   if (lat == null || lng == null) return <span>📍 localização</span>;
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-  const img = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=15&size=280x160&markers=${lat},${lng},red-pushpin`;
+  const Z = 16;
+  const x = lonToTile(lng, Z), y = latToTile(lat, Z);
+  const tx = Math.floor(x), ty = Math.floor(y);
+  const T = 128; // px por tile exibido
+  const offX = (x - tx + 1) * T, offY = (y - ty + 1) * T;
+  const W = 260, H = 150;
+  const tiles = [-1, 0, 1].flatMap((dy) => [-1, 0, 1].map((dx) => ({ dx, dy })));
+  const open = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const route = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
   return (
-    <a href={url} target="_blank" rel="noreferrer" className="block">
-      <img
-        src={img}
-        alt="localização"
-        onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
-        className="rounded-xl w-[280px] max-w-full"
-      />
-      <div className="mt-1 flex items-center gap-1 text-[12px] opacity-80">
-        <MapPin className="h-3 w-3" /> {lat.toFixed(4)}, {lng.toFixed(4)}
+    <div className="w-[260px] max-w-full overflow-hidden rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface)]">
+      <a href={open} target="_blank" rel="noreferrer" className="relative block overflow-hidden" style={{ height: H }}>
+        <div className="absolute" style={{ left: W / 2 - offX, top: H / 2 - offY, width: T * 3, height: T * 3 }}>
+          {tiles.map(({ dx, dy }) => (
+            <img
+              key={`${dx}${dy}`}
+              src={`https://tile.openstreetmap.org/${Z}/${tx + dx}/${ty + dy}.png`}
+              alt=""
+              loading="lazy"
+              draggable={false}
+              className="absolute select-none"
+              style={{ left: (dx + 1) * T, top: (dy + 1) * T, width: T, height: T }}
+            />
+          ))}
+        </div>
+        <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <span className="absolute -inset-3 animate-ping rounded-full bg-primary/30" />
+          <span className="relative block h-4 w-4 rounded-full border-[3px] border-background bg-primary shadow-lg" />
+        </span>
+      </a>
+      <div className="flex items-center gap-2 p-2.5">
+        <MapPin className="h-4 w-4 shrink-0 text-primary" />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[13px] font-semibold">{addr.data?.title ?? "Localização"}</div>
+          <div className="truncate text-[11px] text-muted-foreground">{addr.data?.sub || `${lat.toFixed(4)}, ${lng.toFixed(4)}`}</div>
+        </div>
+        <a href={route} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-[11px] font-semibold">Rota</a>
       </div>
-    </a>
+    </div>
   );
 }

@@ -7,7 +7,7 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus, Tv, Flame } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles } from "lucide-react";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
@@ -33,12 +33,21 @@ function MessagesPage() {
   const { user } = Route.useRouteContext();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("direct");
   const navigate = useNavigate();
+  const [q, setQ] = useState("");
 
   return (
     <div>
       <header className="sticky top-0 z-20 glass-heavy hairline-b">
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <h1 className="text-[26px] font-display font-bold tracking-tight">Conversas</h1>
+          <div className="flex items-center gap-2">
+          <Link
+            to="/ai"
+            aria-label="Vibely AI"
+            className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-[color:var(--surface-2)] text-foreground transition active:scale-95"
+          >
+            <Sparkles className="h-[18px] w-[18px]" />
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -60,27 +69,42 @@ function MessagesPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-        <div className="px-4 pb-3">
-          <div className="flex gap-1 rounded-2xl bg-[color:var(--surface)] p-1">
-            {TABS.map((t) => {
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={cn(
-                    "flex-1 rounded-xl py-2 text-[13px] transition-all",
-                    active
-                      ? "bg-chat-mine font-bold text-chat-mine-foreground"
-                      : "font-medium text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {t.label}
-                </button>
-              );
-            })}
           </div>
+        </div>
+        <div className="px-4 pb-2">
+          <label className="flex h-10 items-center gap-2 rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)]/70 px-3.5 backdrop-blur">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar conversas"
+              className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
+            />
+            {q && (
+              <button onClick={() => setQ("")} aria-label="Limpar busca" className="text-muted-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </label>
+        </div>
+        <div className="flex gap-2 overflow-x-auto px-4 pb-3 no-scrollbar">
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "shrink-0 rounded-full border px-4 py-1.5 text-[13px] transition-all active:scale-95",
+                  active
+                    ? "border-transparent bg-foreground font-semibold text-background"
+                    : "border-[color:var(--hairline)] font-medium text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
       </header>
 
@@ -88,15 +112,15 @@ function MessagesPage() {
 
 
       <div className="pt-1">
-        {tab === "direct" && <DirectList userId={user.id} />}
-        {tab === "group" && <ChatList userId={user.id} type="group" />}
-        {tab === "channel" && <ChatList userId={user.id} type="channel" />}
+        {tab === "direct" && <DirectList userId={user.id} q={q} />}
+        {tab === "group" && <ChatList userId={user.id} type="group" q={q} />}
+        {tab === "channel" && <ChatList userId={user.id} type="channel" q={q} />}
       </div>
     </div>
   );
 }
 
-function DirectList({ userId }: { userId: string }) {
+function DirectList({ userId, q }: { userId: string; q: string }) {
   const blocks = useBlocks();
   const hidden = blocks.data?.hidden;
 
@@ -122,7 +146,7 @@ function DirectList({ userId }: { userId: string }) {
         list.length
           ? supabase
               .from("messages")
-              .select("conversation_id, content, created_at, sender_id")
+              .select("conversation_id, content, created_at, sender_id, media_type, read_at")
               .in("conversation_id", list.map((c) => c.id))
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[] }),
@@ -154,7 +178,12 @@ function DirectList({ userId }: { userId: string }) {
     },
   });
 
+  const term = q.trim().toLowerCase();
+  const rows = (query.data ?? []).filter(
+    (c) => !term || `${c.other?.display_name ?? ""} ${c.other?.username ?? ""}`.toLowerCase().includes(term),
+  );
   if (query.isLoading) return <ListSkeleton />;
+  if (term && !rows.length) return <EmptyState icon={<Search className="h-6 w-6" strokeWidth={1.6} />} title="Nada encontrado" hint="Tente outro nome." />;
   if (!query.data?.length) {
     return (
       <EmptyState
@@ -165,14 +194,15 @@ function DirectList({ userId }: { userId: string }) {
     );
   }
   return (
-    <ul className="pb-4 pt-1 divide-y divide-border/30">
-      {query.data.map((c) => {
+    <ul className="space-y-1 px-2 pb-4 pt-1">
+      {rows.map((c) => {
+        const unread = !!c.last && c.last.sender_id !== userId && !c.last.read_at;
         return (
           <li key={c.id}>
             <Link
               to="/messages/$conversationId"
               params={{ conversationId: c.id }}
-              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[color:var(--surface)]/60 active:bg-[color:var(--surface)]"
+              className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:scale-[0.99] active:bg-[color:var(--surface)]"
             >
               <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12 rounded-full border border-white/10" />
               <div className="flex-1 min-w-0">
@@ -182,9 +212,9 @@ function DirectList({ userId }: { userId: string }) {
                     {c.streak > 0 && (
                       <span
                         title={`Sequência de ${c.streak} ${c.streak === 1 ? "dia" : "dias"} conversando`}
-                        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-bold text-orange-400"
+                        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-[color:var(--surface-2)] px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
                       >
-                        <Flame className="h-3 w-3" fill="currentColor" />
+                        <Flame className="h-3 w-3 text-orange-400" fill="currentColor" />
                         {c.streak}
                       </span>
                     )}
@@ -195,7 +225,12 @@ function DirectList({ userId }: { userId: string }) {
                     </div>
                   ) : null}
                 </div>
-                <div className="text-[13px] truncate leading-snug text-muted-foreground">{c.last?.content ?? "Diga oi 👋"}</div>
+                <div className="flex items-center gap-2">
+                  <div className={cn("flex-1 truncate text-[13px] leading-snug", unread ? "font-semibold text-foreground" : "text-muted-foreground")}>
+                    {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : "Diga oi 👋"}
+                  </div>
+                  {unread && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" aria-label="Não lida" />}
+                </div>
               </div>
             </Link>
           </li>
@@ -206,7 +241,7 @@ function DirectList({ userId }: { userId: string }) {
   );
 }
 
-function ChatList({ userId, type }: { userId: string; type: "group" | "channel" }) {
+function ChatList({ userId, type, q }: { userId: string; type: "group" | "channel"; q: string }) {
   const query = useQuery({
     queryKey: ["chats", type, userId],
     queryFn: async () => {
@@ -226,7 +261,7 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
       const { data: lastMessages } = list.length
         ? await (supabase as any)
             .from("chat_messages")
-            .select("chat_id, content, created_at, sender_id")
+            .select("chat_id, content, created_at, sender_id, media_type")
             .in("chat_id", list.map((c) => c.id))
             .order("created_at", { ascending: false })
         : { data: [] as any[] };
@@ -238,7 +273,10 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
     },
   });
 
+  const term = q.trim().toLowerCase();
+  const rows = ((query.data ?? []) as any[]).filter((c) => !term || String(c.title ?? "").toLowerCase().includes(term));
   if (query.isLoading) return <ListSkeleton />;
+  if (term && !rows.length) return <EmptyState icon={<Search className="h-6 w-6" strokeWidth={1.6} />} title="Nada encontrado" hint="Tente outro nome." />;
   if (!query.data?.length) {
     return (
       <EmptyState
@@ -249,14 +287,14 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
     );
   }
   return (
-    <ul className="pb-4 pt-1 divide-y divide-border/30">
-      {query.data.map((c: any) => {
+    <ul className="space-y-1 px-2 pb-4 pt-1">
+      {rows.map((c: any) => {
         return (
           <li key={c.id}>
             <Link
               to="/chats/$id"
               params={{ id: c.id }}
-              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[color:var(--surface)]/60 active:bg-[color:var(--surface)]"
+              className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:scale-[0.99] active:bg-[color:var(--surface)]"
             >
               {c.avatar_url ? (
                 <div className="h-12 w-12 rounded-full overflow-hidden bg-[color:var(--surface-2)] border border-white/10">
@@ -277,7 +315,7 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
                   ) : null}
                 </div>
                 <div className="text-[13px] truncate leading-snug text-muted-foreground">
-                  {c.last?.content ?? c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
+                  {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
                 </div>
               </div>
             </Link>
@@ -285,6 +323,20 @@ function ChatList({ userId, type }: { userId: string; type: "group" | "channel" 
         );
       })}
     </ul>
+  );
+}
+
+function Preview({ m, mine }: { m: any; mine: boolean }) {
+  const t = String(m.media_type ?? "");
+  const icon = t.startsWith("audio") ? <Mic className="h-3.5 w-3.5" /> : t.startsWith("image") ? <Camera className="h-3.5 w-3.5" /> : t.startsWith("video") ? <Video className="h-3.5 w-3.5" /> : null;
+  const label = t.startsWith("audio") ? "Áudio" : t.startsWith("image") ? "Foto" : t.startsWith("video") ? "Vídeo" : null;
+  const text = m.content || label || "Mensagem";
+  return (
+    <span className="inline-flex max-w-full items-center gap-1 truncate">
+      {mine && <span className="shrink-0 text-muted-foreground">Você:</span>}
+      {icon && <span className="shrink-0">{icon}</span>}
+      <span className="truncate">{text}</span>
+    </span>
   );
 }
 

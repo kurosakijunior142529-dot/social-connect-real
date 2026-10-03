@@ -7,11 +7,30 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles, Lock, Unlock, Pin, BellOff } from "lucide-react";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  ConversationActionsSheet,
+  SwipeRow,
+  VaultPinSheet,
+  EMPTY_PREFS,
+  savePrefs,
+  setMute,
+  type ConvPrefs,
+} from "@/components/chat/conversation-actions";
+
+const FILTERS = [
+  { id: "all", label: "Todas" },
+  { id: "unread", label: "Não lidas" },
+  { id: "pinned", label: "Fixadas" },
+  { id: "archived", label: "Arquivadas" },
+] as const;
+type Filter = (typeof FILTERS)[number]["id"];
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -34,6 +53,9 @@ function MessagesPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("direct");
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [vaultOpen, setVaultOpen] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
 
   return (
     <div>
@@ -110,12 +132,38 @@ function MessagesPage() {
 
       <OnlineBubbles currentUserId={user.id} />
 
+      {tab === "direct" && (
+        <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-2 no-scrollbar">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1 text-[12px] transition active:scale-95",
+                filter === f.id ? "bg-[color:var(--surface-2)] font-semibold text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+          <button
+            onClick={() => (vaultOpen ? setVaultOpen(false) : setPinOpen(true))}
+            className={cn(
+              "ml-auto flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[12px] transition active:scale-95",
+              vaultOpen ? "bg-[color:var(--surface-2)] font-semibold text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {vaultOpen ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />} Cofre
+          </button>
+        </div>
+      )}
 
       <div className="pt-1">
-        {tab === "direct" && <DirectList userId={user.id} q={q} />}
+        {tab === "direct" && <DirectList userId={user.id} q={q} filter={filter} vault={vaultOpen} />}
         {tab === "group" && <ChatList userId={user.id} type="group" q={q} />}
         {tab === "channel" && <ChatList userId={user.id} type="channel" q={q} />}
       </div>
+      <VaultPinSheet open={pinOpen} onOpenChange={setPinOpen} userId={user.id} onUnlocked={() => setVaultOpen(true)} />
     </div>
   );
 }

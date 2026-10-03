@@ -105,9 +105,9 @@
   --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 18px 48px -28px rgba(0,0,0,0.85);
 
   /* Neon Lime chat */
-  --chat-mine: #A3E635;
-  --chat-mine-foreground: #0D1A05;
-  --chat-mine-glow: rgba(163, 230, 53, 0.20);
+  --chat-mine: #17251D;
+  --chat-mine-foreground: #E8F1EB;
+  --chat-mine-glow: rgba(0, 0, 0, 0.25);
 }
 
 .dark { }
@@ -143,9 +143,9 @@
   --sidebar-accent-foreground: #121416;
   --sidebar-border: rgba(13, 20, 16, 0.08);
   --sidebar-ring: #16B957;
-  --chat-mine: #84CC16;
-  --chat-mine-foreground: #162404;
-  --chat-mine-glow: rgba(132, 204, 22, 0.18);
+  --chat-mine: #DDEFE3;
+  --chat-mine-foreground: #0F1F15;
+  --chat-mine-glow: rgba(0, 0, 0, 0.06);
   --edge-light: rgba(255, 255, 255, 0.9);
   --shadow-card: 0 1px 2px rgba(16, 24, 20, 0.05), 0 12px 32px -18px rgba(16, 24, 20, 0.18);
 }
@@ -297,7 +297,7 @@
 @utility bubble-chat-mine {
   background-color: var(--chat-mine);
   color: var(--chat-mine-foreground);
-  box-shadow: 0 0 20px var(--chat-mine-glow);
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
 }
 @utility bubble-chat-theirs {
   background-color: color-mix(in oklab, var(--surface-2) 85%, transparent);
@@ -632,20 +632,19 @@
 .badge-tone-founder { --badge-tone: oklch(0.86 0.16 95); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
 
 .verified-avatar-aura {
-  background: linear-gradient(145deg, var(--badge-tone), color-mix(in oklab, var(--badge-tone) 28%, var(--background)));
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--badge-tone) 34%, transparent), 0 0 14px -4px var(--badge-tone);
+  background: color-mix(in oklab, var(--foreground) 22%, transparent);
+  box-shadow: 0 0 0 1px var(--hairline);
 }
 .badge-auth-card {
-  background: radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--badge-tone) 15%, transparent), transparent 52%), var(--background);
+  background: radial-gradient(circle at 50% 0%, color-mix(in oklab, var(--badge-tone) 7%, transparent), transparent 52%), var(--background);
 }
 .badge-auth-orbit {
   background: var(--badge-tone-soft);
   border: 1px solid var(--badge-tone-border);
-  box-shadow: 0 0 34px -12px var(--badge-tone), inset 0 1px 0 color-mix(in oklab, var(--foreground) 10%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--foreground) 10%, transparent);
 }
 .verified-social-highlight {
-  border-left: 2px solid var(--primary);
-  background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 8%, transparent), transparent 72%);
+  border-left: 1px solid var(--hairline);
   padding-left: 0.5rem;
 }
 @keyframes profile-badge-lock {
@@ -757,13 +756,12 @@ img, video {
   }
 }
 @utility neon-ring {
-  border: 3px solid var(--primary);
-  box-shadow: 0 0 24px var(--primary), inset 0 0 18px color-mix(in oklab, var(--primary) 60%, transparent);
-  animation: neon-shock 0.85s cubic-bezier(.22, 1, .36, 1) forwards;
+  border: 1.5px solid color-mix(in oklab, var(--foreground) 55%, transparent);
+  animation: neon-shock 0.7s cubic-bezier(.22, 1, .36, 1) forwards;
 }
 @utility neon-heart {
-  filter: drop-shadow(0 0 18px var(--primary));
-  animation: neon-heart 0.9s cubic-bezier(.22, 1, .36, 1) forwards;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.45));
+  animation: neon-heart 0.75s cubic-bezier(.22, 1, .36, 1) forwards;
 }
 @keyframes dock-breathe {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 40%, transparent), 0 8px 24px -10px var(--primary); }

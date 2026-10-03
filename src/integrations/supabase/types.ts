@@ -792,6 +792,24 @@ export type Database = {
           },
         ]
       }
+      chat_vault: {
+        Row: {
+          pin_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          pin_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          pin_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chats: {
         Row: {
           avatar_url: string | null
@@ -1013,6 +1031,47 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      conversation_prefs: {
+        Row: {
+          archived: boolean
+          cleared_at: string | null
+          conversation_id: string
+          hidden: boolean
+          marked_unread: boolean
+          pinned_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          cleared_at?: string | null
+          conversation_id: string
+          hidden?: boolean
+          marked_unread?: boolean
+          pinned_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          cleared_at?: string | null
+          conversation_id?: string
+          hidden?: boolean
+          marked_unread?: boolean
+          pinned_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_prefs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {

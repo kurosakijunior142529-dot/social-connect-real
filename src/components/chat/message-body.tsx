@@ -239,7 +239,7 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("play", onPlay);
     };
-  }, [totalMs]);
+  }, [totalMs, src, fallback]);
 
   async function loadBuffer(): Promise<AudioBuffer | null> {
     if (bufRef.current || !src) return bufRef.current;
@@ -306,11 +306,18 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
       return;
     }
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio) {
+      setFallback(true);
+      await playFallback(0);
+      return;
+    }
     if (audio.paused) {
       try {
+        if (audio.readyState === 0) audio.load();
         await audio.play();
-      } catch {
+        setPlaying(true);
+      } catch (err: any) {
+        if (err?.name === "NotAllowedError") return;
         setFallback(true);
         await playFallback(0);
       }
@@ -342,7 +349,8 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
         <audio
           ref={audioRef}
           src={src}
-          preload="metadata"
+          preload="auto"
+          playsInline
           onError={() => setFallback(true)}
         />
       ) : null}

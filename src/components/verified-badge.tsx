@@ -118,7 +118,7 @@ export function VerifiedBadge({
   className,
   size = 16,
   variant = "verified",
-  animated = true,
+  animated = false,
   title,
   interactive = true,
 }: Props) {
@@ -168,7 +168,9 @@ export function VerifiedBadge({
         )}
         style={{
           background: cfg.gradient,
-          boxShadow: `${cfg.glow}, inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.28), 0 0 0 1px ${cfg.ring}`,
+          boxShadow: animated
+            ? `${cfg.glow}, inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.28), 0 0 0 1px ${cfg.ring}`
+            : "inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.25)",
         }}
       >
         {/* Gloss highlight */}

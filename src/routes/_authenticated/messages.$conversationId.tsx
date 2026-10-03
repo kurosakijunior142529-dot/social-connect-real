@@ -442,10 +442,37 @@ function ConversationPage() {
   const isBlockedPair = otherId ? blocks.data?.hidden.has(otherId) ?? false : false;
   const iBlocked = otherId ? blocks.data?.blocked.has(otherId) ?? false : false;
 
+  // "Ligar de volta" a partir do card de chamada no histórico
+  useEffect(() => {
+    const onCallback = (e: Event) => {
+      const t = (e as CustomEvent).detail === "video" ? "video" : "audio";
+      if (!other || isBlockedPair) return;
+      startCall({ id: other.id, username: other.username, display_name: other.display_name, avatar_url: other.avatar_url }, t);
+    };
+    window.addEventListener("vibely:callback", onCallback);
+    return () => window.removeEventListener("vibely:callback", onCallback);
+  }, [other, isBlockedPair, startCall]);
+
+  // Conversa apagada por mim: esconde mensagens anteriores ao apagar
+  const clearedAt = useQuery({
+    queryKey: ["conv-cleared", conversationId, user.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("conversation_prefs")
+        .select("cleared_at")
+        .eq("user_id", user.id)
+        .eq("conversation_id", conversationId)
+        .maybeSingle();
+      return (data?.cleared_at as string | null) ?? null;
+    },
+  });
+
   const visibleMessages = useMemo(() => {
     const now = Date.now();
+    const cut = clearedAt.data ? new Date(clearedAt.data).getTime() : 0;
     let list = (messages.data ?? []).filter(
       (m) =>
+        new Date(m.created_at).getTime() > cut &&
         !blocks.data?.blockedBy.has(m.sender_id) &&
         !(m.expires_at && new Date(m.expires_at).getTime() < now && m.sender_id !== user.id),
     );
@@ -454,7 +481,7 @@ function ConversationPage() {
       list = list.filter((m) => (m.content ?? "").toLowerCase().includes(q));
     }
     return list;
-  }, [messages.data, blocks.data, searchOpen, searchQ]);
+  }, [messages.data, blocks.data, searchOpen, searchQ, clearedAt.data]);
 
   const byId = useMemo(
     () => new Map(visibleMessages.map((m) => [m.id, m])),

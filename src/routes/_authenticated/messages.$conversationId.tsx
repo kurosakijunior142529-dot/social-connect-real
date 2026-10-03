@@ -156,6 +156,16 @@ function ConversationPage() {
   );
   const reactions = useMessageReactions("dm", messageIds, user.id);
 
+  const lastReadMineId = useMemo(() => {
+    const list = messages.data ?? [];
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].sender_id === user.id && list[i].kind !== "call") {
+        return list[i].read_at ? list[i].id : null;
+      }
+    }
+    return null;
+  }, [messages.data, user.id]);
+
   const pinnedList = useMemo(
     () => (messages.data ?? []).filter((m) => m.pinned_at),
     [messages.data],
@@ -978,7 +988,14 @@ const MessageRow = memo(
         <span>{timeFmt.format(new Date(m.created_at))}</span>
         {mine ? (
           m.read_at ? (
-            <CheckCheck className="h-3 w-3 text-[#7ad9ff]" />
+            m.id === lastReadMineId ? (
+              <span className="flex items-center gap-1 font-medium text-primary">
+                <CheckCheck className="h-3 w-3" />
+                Visto às {timeFmt.format(new Date(m.read_at))}
+              </span>
+            ) : (
+              <CheckCheck className="h-3 w-3 text-primary" />
+            )
           ) : (
             <Check className="h-3 w-3" />
           )

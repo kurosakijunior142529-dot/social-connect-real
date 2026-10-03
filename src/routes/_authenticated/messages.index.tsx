@@ -7,11 +7,30 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles, Lock, Unlock, Pin, BellOff } from "lucide-react";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  ConversationActionsSheet,
+  SwipeRow,
+  VaultPinSheet,
+  EMPTY_PREFS,
+  savePrefs,
+  setMute,
+  type ConvPrefs,
+} from "@/components/chat/conversation-actions";
+
+const FILTERS = [
+  { id: "all", label: "Todas" },
+  { id: "unread", label: "Não lidas" },
+  { id: "pinned", label: "Fixadas" },
+  { id: "archived", label: "Arquivadas" },
+] as const;
+type Filter = (typeof FILTERS)[number]["id"];
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -34,6 +53,9 @@ function MessagesPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("direct");
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [vaultOpen, setVaultOpen] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
 
   return (
     <div>
@@ -110,17 +132,43 @@ function MessagesPage() {
 
       <OnlineBubbles currentUserId={user.id} />
 
+      {tab === "direct" && (
+        <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-2 no-scrollbar">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1 text-[12px] transition active:scale-95",
+                filter === f.id ? "bg-[color:var(--surface-2)] font-semibold text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+          <button
+            onClick={() => (vaultOpen ? setVaultOpen(false) : setPinOpen(true))}
+            className={cn(
+              "ml-auto flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[12px] transition active:scale-95",
+              vaultOpen ? "bg-[color:var(--surface-2)] font-semibold text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {vaultOpen ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />} Cofre
+          </button>
+        </div>
+      )}
 
       <div className="pt-1">
-        {tab === "direct" && <DirectList userId={user.id} q={q} />}
+        {tab === "direct" && <DirectList userId={user.id} q={q} filter={filter} vault={vaultOpen} />}
         {tab === "group" && <ChatList userId={user.id} type="group" q={q} />}
         {tab === "channel" && <ChatList userId={user.id} type="channel" q={q} />}
       </div>
+      <VaultPinSheet open={pinOpen} onOpenChange={setPinOpen} userId={user.id} onUnlocked={() => setVaultOpen(true)} />
     </div>
   );
 }
 
-function DirectList({ userId, q }: { userId: string; q: string }) {
+function DirectList({ userId, q, filter, vault }: { userId: string; q: string; filter: Filter; vault: boolean }) {
   const blocks = useBlocks();
   const hidden = blocks.data?.hidden;
 
@@ -178,31 +226,129 @@ function DirectList({ userId, q }: { userId: string; q: string }) {
     },
   });
 
+  const qc = useQueryClient();
+  const prefsQ = useQuery({
+    queryKey: ["conv-prefs", userId],
+    queryFn: async () => {
+      const [p, m] = await Promise.all([
+        supabase.from("conversation_prefs").select("*").eq("user_id", userId),
+        supabase.from("muted_conversations").select("conversation_id, until").eq("user_id", userId),
+      ]);
+      const prefs = new Map<string, ConvPrefs>();
+      for (const r of p.data ?? []) prefs.set(r.conversation_id, r as ConvPrefs);
+      const now = Date.now();
+      const muted = new Set((m.data ?? []).filter((r) => !r.until || new Date(r.until).getTime() > now).map((r) => r.conversation_id));
+      return { prefs, muted };
+    },
+  });
+  const [sheetFor, setSheetFor] = useState<string | null>(null);
+
+  const prefsOf = (id: string) => prefsQ.data?.prefs.get(id) ?? EMPTY_PREFS;
+  const isMuted = (id: string) => !!prefsQ.data?.muted.has(id);
+  const isUnread = (c: any) => prefsOf(c.id).marked_unread || (!!c.last && c.last.sender_id !== userId && !c.last.read_at);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["conv-prefs", userId] });
+    qc.invalidateQueries({ queryKey: ["conversations", userId] });
+  };
+
+  async function run(id: string, a: Parameters<React.ComponentProps<typeof ConversationActionsSheet>["onAction"]>[0]) {
+    const p = prefsOf(id);
+    try {
+      switch (a) {
+        case "pin":
+          await savePrefs(userId, id, { pinned_at: p.pinned_at ? null : new Date().toISOString() });
+          toast.success(p.pinned_at ? "Desafixada" : "Fixada no topo");
+          break;
+        case "unread":
+          await savePrefs(userId, id, { marked_unread: true });
+          break;
+        case "read":
+          await savePrefs(userId, id, { marked_unread: false });
+          await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("conversation_id", id).neq("sender_id", userId).is("read_at", null);
+          break;
+        case "mute8h":
+          await setMute(userId, id, new Date(Date.now() + 8 * 3600e3).toISOString()); toast.success("Silenciada por 8 horas"); break;
+        case "mute1w":
+          await setMute(userId, id, new Date(Date.now() + 7 * 86400e3).toISOString()); toast.success("Silenciada por 1 semana"); break;
+        case "muteAlways":
+          await setMute(userId, id, null); toast.success("Silenciada"); break;
+        case "unmute":
+          await setMute(userId, id, false); toast.success("Notificações reativadas"); break;
+        case "archive":
+          await savePrefs(userId, id, { archived: !p.archived });
+          toast.success(p.archived ? "Voltou para a lista" : "Arquivada");
+          break;
+        case "hide":
+          await savePrefs(userId, id, { hidden: !p.hidden });
+          toast.success(p.hidden ? "Saiu do Cofre" : "Guardada no Cofre");
+          break;
+        case "delete":
+          await savePrefs(userId, id, { cleared_at: new Date().toISOString(), pinned_at: null, archived: false, marked_unread: false });
+          toast.success("Conversa apagada");
+          break;
+      }
+    } catch {
+      toast.error("Não deu certo. Tente de novo.");
+    }
+    refresh();
+  }
+
   const term = q.trim().toLowerCase();
-  const rows = (query.data ?? []).filter(
-    (c) => !term || `${c.other?.display_name ?? ""} ${c.other?.username ?? ""}`.toLowerCase().includes(term),
-  );
+  const rows = (query.data ?? [])
+    .filter((c) => {
+      const p = prefsOf(c.id);
+      if (p.cleared_at && (!c.last || new Date(c.last.created_at) <= new Date(p.cleared_at))) return false;
+      if (vault) return p.hidden;
+      if (p.hidden) return false;
+      if (filter === "archived") return p.archived;
+      if (p.archived) return false;
+      if (filter === "pinned") return !!p.pinned_at;
+      if (filter === "unread") return isUnread(c);
+      return true;
+    })
+    .filter((c) => !term || `${c.other?.display_name ?? ""} ${c.other?.username ?? ""}`.toLowerCase().includes(term))
+    .sort((a, b) => {
+      const pa = prefsOf(a.id).pinned_at, pb = prefsOf(b.id).pinned_at;
+      if (pa && !pb) return -1;
+      if (pb && !pa) return 1;
+      if (pa && pb) return pb.localeCompare(pa);
+      return 0;
+    });
+  const sheetConv = (query.data ?? []).find((c) => c.id === sheetFor);
+
   if (query.isLoading) return <ListSkeleton />;
   if (term && !rows.length) return <EmptyState icon={<Search className="h-6 w-6" strokeWidth={1.6} />} title="Nada encontrado" hint="Tente outro nome." />;
-  if (!query.data?.length) {
-    return (
-      <EmptyState
-        icon={<MessageCircle className="h-6 w-6" strokeWidth={1.6} />}
-        title="Nenhuma conversa direta"
-        hint="Encontre pessoas no Explorar e converse pelo perfil."
-      />
-    );
+  if (!rows.length) {
+    const empty = vault
+      ? { t: "Cofre vazio", h: "Segure uma conversa e escolha Guardar no Cofre." }
+      : filter === "archived" ? { t: "Nada arquivado", h: "Deslize uma conversa para a esquerda para arquivar." }
+      : filter === "pinned" ? { t: "Nenhuma fixada", h: "Deslize uma conversa para a direita para fixar." }
+      : filter === "unread" ? { t: "Tudo em dia", h: "Você não tem mensagens novas." }
+      : { t: "Nenhuma conversa direta", h: "Encontre pessoas no Explorar e converse pelo perfil." };
+    return <EmptyState icon={vault ? <Lock className="h-6 w-6" strokeWidth={1.6} /> : <MessageCircle className="h-6 w-6" strokeWidth={1.6} />} title={empty.t} hint={empty.h} />;
   }
   return (
+    <>
     <ul className="space-y-1 px-2 pb-4 pt-1">
       {rows.map((c) => {
-        const unread = !!c.last && c.last.sender_id !== userId && !c.last.read_at;
+        const p = prefsOf(c.id);
+        const unread = isUnread(c);
+        const muted = isMuted(c.id);
         return (
           <li key={c.id}>
+           <SwipeRow
+             pinned={!!p.pinned_at}
+             archived={p.archived}
+             onLongPress={() => setSheetFor(c.id)}
+             onSwipeRight={() => void run(c.id, "pin")}
+             onSwipeLeft={() => void run(c.id, "archive")}
+           >
             <Link
               to="/messages/$conversationId"
               params={{ conversationId: c.id }}
-              className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:scale-[0.99] active:bg-[color:var(--surface)]"
+              onClick={() => { if (p.marked_unread) void savePrefs(userId, c.id, { marked_unread: false }).then(refresh); }}
+              className="flex select-none items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:bg-[color:var(--surface)]"
             >
               <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12 rounded-full border border-white/10" />
               <div className="flex-1 min-w-0">
@@ -219,25 +365,41 @@ function DirectList({ userId, q }: { userId: string; q: string }) {
                       </span>
                     )}
                   </div>
-                  {c.last ? (
-                    <div className="text-[10px] shrink-0 tabular uppercase tracking-widest text-muted-foreground">
-                      {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
-                    </div>
-                  ) : null}
+                  <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
+                    {muted && <BellOff className="h-3 w-3" aria-label="Silenciada" />}
+                    {p.pinned_at && <Pin className="h-3 w-3 text-primary" aria-label="Fixada" />}
+                    {c.last ? (
+                      <span className="text-[10px] tabular uppercase tracking-widest">
+                        {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className={cn("flex-1 truncate text-[13px] leading-snug", unread ? "font-semibold text-foreground" : "text-muted-foreground")}>
                     {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : "Diga oi 👋"}
                   </div>
-                  {unread && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" aria-label="Não lida" />}
+                  {unread && <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", muted ? "bg-muted-foreground" : "bg-primary")} aria-label="Não lida" />}
                 </div>
               </div>
             </Link>
+           </SwipeRow>
           </li>
         );
       })}
     </ul>
-
+    {sheetConv && (
+      <ConversationActionsSheet
+        open={!!sheetFor}
+        onOpenChange={(o) => !o && setSheetFor(null)}
+        name={sheetConv.other?.display_name ?? "Conversa"}
+        prefs={prefsOf(sheetConv.id)}
+        muted={isMuted(sheetConv.id)}
+        unread={isUnread(sheetConv)}
+        onAction={(a) => void run(sheetConv.id, a)}
+      />
+    )}
+    </>
   );
 }
 

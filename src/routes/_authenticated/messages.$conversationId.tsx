@@ -36,6 +36,7 @@ import { Smile, Timer, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-panel";
 import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
+import { CallEvent } from "@/components/chat/call-event";
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
 import { parseVibelyMention } from "@/lib/vibely-mention";
@@ -716,7 +717,9 @@ function ConversationPage() {
           </div>
         ) : null}
 
-        {rows.map(({ m, first, last, daySep }) => (
+        {rows.map(({ m, first, last, daySep }) => m.kind === "call" ? (
+          <CallEvent key={m.id} m={m} outgoing={m.sender_id === user.id} />
+        ) : (
           <MessageRow
             key={m.id}
             m={m}

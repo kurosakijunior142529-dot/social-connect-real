@@ -273,7 +273,7 @@ function ConversationPage() {
   }
 
 
-  async function handleFile(file: File) {
+  async function handleFile(file: File, caption?: string) {
     if (isBlockedPair) return;
     const toastId = toast.loading("Enviando…");
     try {
@@ -301,6 +301,7 @@ function ConversationPage() {
         media_bucket: bucket,
         media_type: file.type || null,
         media_name: file.name,
+        ...(caption ? { content: caption } : {}),
         media_size: file.size,
         poster_url,
         ...(ephemeral ? { meta: { ephemeral: true } } : {}),

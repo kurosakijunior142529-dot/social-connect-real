@@ -42,6 +42,11 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
   const [popKey, setPopKey] = useState(0);
   const [pulseKey, setPulseKey] = useState(0);
   const lastTapRef = useRef(0);
+  // Visão limpa: segurar a foto esconde ações e legenda
+  const [pure, setPure] = useState(false);
+  const holdTimer = useRef<number | undefined>(undefined);
+  const heldRef = useRef(false);
+  const endHold = () => { window.clearTimeout(holdTimer.current); setPure(false); };
   const navigate = useNavigate();
   const firePulse = () => {
     setPulseKey((k) => k + 1);
@@ -219,8 +224,16 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
           <Link
             to="/p/$id"
             params={{ id: post.id }}
-              className="media-depth relative mx-3 block overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]"
+              className="media-depth relative mx-3 block select-none overflow-hidden rounded-[22px] bg-black ring-1 ring-white/[0.06]"
+              onPointerDown={() => {
+                holdTimer.current = window.setTimeout(() => { heldRef.current = true; setPure(true); }, 220);
+              }}
+              onPointerUp={endHold}
+              onPointerLeave={endHold}
+              onPointerCancel={endHold}
+              onContextMenu={(e) => e.preventDefault()}
               onClick={(e) => {
+                if (heldRef.current) { e.preventDefault(); heldRef.current = false; return; }
                 const now = Date.now();
                 if (now - lastTapRef.current < 300) {
                   e.preventDefault();
@@ -245,7 +258,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
         </PostCarousel>
       )}
 
-      <div className="space-y-2.5 px-4 pb-4 pt-3.5">
+      <div className={cn("space-y-2.5 px-4 pb-4 pt-3.5 transition-opacity duration-200", pure && "pointer-events-none opacity-0")}>
         <div className="flex items-center gap-2">
           <button
             onClick={() => toggleLike.mutate()}

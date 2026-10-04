@@ -434,8 +434,67 @@ function ChatList({ userId, type, q }: { userId: string; type: "group" | "channe
     },
   });
 
+  const qc = useQueryClient();
+  const storeKey = `vibely:chat-prefs:${userId}`;
+  const [local, setLocal] = useState<Record<string, ConvPrefs>>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(localStorage.getItem(storeKey) || "{}"); } catch { return {}; }
+  });
+  const [sheetFor, setSheetFor] = useState<any | null>(null);
+  const mutes = useQuery({
+    queryKey: ["chat-mutes", userId],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("muted_chats").select("chat_id, until").eq("user_id", userId);
+      const now = Date.now();
+      return new Set(((data ?? []) as any[]).filter((m) => !m.until || new Date(m.until).getTime() > now).map((m) => m.chat_id as string));
+    },
+  });
+  const prefOf = (id: string): ConvPrefs => ({ ...EMPTY_PREFS, ...(local[id] ?? {}) });
+  const patch = (id: string, p: Partial<ConvPrefs>) => {
+    setLocal((prev) => {
+      const next = { ...prev, [id]: { ...EMPTY_PREFS, ...(prev[id] ?? {}), ...p } };
+      try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch { /* */ }
+      return next;
+    });
+  };
+  const mute = async (id: string, until: string | null | false) => {
+    await (supabase as any).from("muted_chats").delete().eq("user_id", userId).eq("chat_id", id);
+    if (until !== false) await (supabase as any).from("muted_chats").insert({ user_id: userId, chat_id: id, until });
+    qc.invalidateQueries({ queryKey: ["chat-mutes", userId] });
+  };
+  const run = async (c: any, a: string) => {
+    const p = prefOf(c.id);
+    try {
+      if (a === "pin") { patch(c.id, { pinned_at: p.pinned_at ? null : new Date().toISOString() }); toast(p.pinned_at ? "Desafixado" : "Fixado no topo"); }
+      else if (a === "archive") { patch(c.id, { archived: !p.archived }); toast(p.archived ? "Desarquivado" : "Arquivado"); }
+      else if (a === "unread") patch(c.id, { marked_unread: true });
+      else if (a === "read") patch(c.id, { marked_unread: false });
+      else if (a === "mute8h") { await mute(c.id, new Date(Date.now() + 8 * 3600e3).toISOString()); toast("Silenciado por 8 horas"); }
+      else if (a === "mute1w") { await mute(c.id, new Date(Date.now() + 7 * 86400e3).toISOString()); toast("Silenciado por 1 semana"); }
+      else if (a === "muteAlways") { await mute(c.id, null); toast("Silenciado"); }
+      else if (a === "unmute") { await mute(c.id, false); toast("Notificações reativadas"); }
+      else if (a === "hide") toast("O Cofre é só para conversas diretas");
+      else if (a === "delete") {
+        const { error } = await (supabase as any).from("chat_members").delete().eq("user_id", userId).eq("chat_id", c.id);
+        if (error) throw error;
+        toast(type === "group" ? "Você saiu do grupo" : "Você saiu do canal");
+        qc.invalidateQueries({ queryKey: ["chats", type, userId] });
+      }
+    } catch { toast.error("Não deu certo. Tente de novo."); }
+  };
+
   const term = q.trim().toLowerCase();
-  const rows = ((query.data ?? []) as any[]).filter((c) => !term || String(c.title ?? "").toLowerCase().includes(term));
+  const rows = ((query.data ?? []) as any[])
+    .filter((c) => !term || String(c.title ?? "").toLowerCase().includes(term))
+    .filter((c) => {
+      const p = prefOf(c.id);
+      if (filter === "archived") return p.archived;
+      if (p.archived) return false;
+      if (filter === "pinned") return !!p.pinned_at;
+      if (filter === "unread") return p.marked_unread;
+      return true;
+    })
+    .sort((a, b) => (prefOf(b.id).pinned_at ?? "").localeCompare(prefOf(a.id).pinned_at ?? ""));
   if (query.isLoading) return <ListSkeleton />;
   if (term && !rows.length) return <EmptyState icon={<Search className="h-6 w-6" strokeWidth={1.6} />} title="Nada encontrado" hint="Tente outro nome." />;
   if (!query.data?.length) {
@@ -447,13 +506,27 @@ function ChatList({ userId, type, q }: { userId: string; type: "group" | "channe
       />
     );
   }
+  if (!rows.length) {
+    return <EmptyState icon={<Pin className="h-6 w-6" strokeWidth={1.6} />} title={filter === "archived" ? "Nada arquivado" : filter === "pinned" ? "Nenhum fixado" : "Tudo em dia"} hint="Segure ou deslize para ver as opções." />;
+  }
   return (
+    <>
     <ul className="space-y-1 px-2 pb-4 pt-1">
       {rows.map((c: any) => {
+        const p = prefOf(c.id);
+        const isMuted = mutes.data?.has(c.id) ?? false;
         return (
           <li key={c.id}>
+            <SwipeRow
+              pinned={!!p.pinned_at}
+              archived={p.archived}
+              onLongPress={() => setSheetFor(c)}
+              onSwipeRight={() => run(c, "pin")}
+              onSwipeLeft={() => run(c, "archive")}
+            >
             <Link
               to="/chats/$id"
+              onClick={() => p.marked_unread && patch(c.id, { marked_unread: false })}
               params={{ id: c.id }}
               className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:scale-[0.99] active:bg-[color:var(--surface)]"
             >

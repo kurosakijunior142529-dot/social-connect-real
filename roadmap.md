@@ -17,3 +17,10 @@
 - [x] Adicionar Co-Viewing funcional aos Reels sem alterar o Streaming Amigo existente
 - [x] Adicionar reações rápidas em áudio com gravação, reprodução e exclusão segura
 - [x] Evoluir os verificados: cartão de autenticidade, aura, mérito, destaque social e vibração sem som
+- [x] Recorte panorâmico da capa do perfil
+- [x] Nova janela de anexos com pré-visualização e legenda
+- [x] Verde principal #22E06A no escuro
+- [x] Trocar/esquecer PIN do Cofre
+- [x] Avisos com filtros e curtidas agrupadas
+- [ ] Opções de fixar/silenciar/arquivar em Grupos e Canais
+- [ ] Link da bio em chip, Visão Pura no feed, anel de Vibes não vistas

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { VerifiedName } from "@/components/verified-badge";
 import { useT } from "@/lib/i18n";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNotifications, markAllRead, type NotificationRow } from "@/hooks/use-notifications";
 import { UserAvatar } from "@/components/user-avatar";
@@ -44,7 +44,24 @@ function NotificationsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const q = useNotifications(user.id);
-  const items = (q.data ?? []).filter((n) => ALLOWED.has(n.type));
+  const [tab, setTab] = useState<"all" | "mentions" | "follows" | "vibes">("all");
+  const items = useMemo(() => {
+    const base = (q.data ?? []).filter((n) => ALLOWED.has(n.type)).filter((n) =>
+      tab === "all" ? true : tab === "mentions" ? n.type === "comment" : tab === "follows" ? n.type === "follow" : n.type === "story_reaction",
+    );
+    // Agrupa curtidas do mesmo post: "Fulano e outras N pessoas"
+    const out: (NotificationRow & { others?: number })[] = [];
+    const likeIdx = new Map<string, number>();
+    for (const n of base) {
+      if (n.type === "like" && n.entity_id) {
+        const i = likeIdx.get(n.entity_id);
+        if (i !== undefined) { out[i] = { ...out[i], others: (out[i].others ?? 0) + 1 }; continue; }
+        likeIdx.set(n.entity_id, out.length);
+      }
+      out.push(n);
+    }
+    return out;
+  }, [q.data, tab]);
 
   useEffect(() => {
     markAllRead().then(() => qc.invalidateQueries({ queryKey: ["notifications-unread", user.id] }));
@@ -75,6 +92,14 @@ function NotificationsPage() {
         <Bell className="h-6 w-6 text-primary" />
         <h1 className="font-display text-3xl font-bold">{t("notifications.title")}</h1>
       </header>
+
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        {([["all", "Todas"], ["mentions", "Comentários"], ["follows", "Seguidores"], ["vibes", "Vibes"]] as const).map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setTab(k)} className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition active:scale-95 ${tab === k ? "border-transparent bg-foreground text-background" : "border-[color:var(--hairline)] bg-[color:var(--surface)] text-muted-foreground"}`}>
+            {l}
+          </button>
+        ))}
+      </div>
 
       {q.isLoading ? (
         <div className="space-y-2">
@@ -120,7 +145,8 @@ function NotificationsPage() {
                         <VerifiedName name={n.actor.display_name} verified={(n.actor as any).is_verified} badgeVariant={(n.actor as any).badge_variant} size={13} />
                       </Link>
                     ) : "Alguém"}
-                    <span className="text-muted-foreground"> — {label(n).split(" — ")[0].replace(n.actor?.display_name ?? "", "").trim() || label(n)}</span>
+                    {n.others ? <span className="font-semibold"> e outras {n.others} pessoas</span> : null}
+                    <span className="text-muted-foreground"> — {n.others ? "curtiram seu post" : label(n).split(" — ")[0].replace(n.actor?.display_name ?? "", "").trim() || label(n)}</span>
                   </p>
                   <span className="text-xs text-muted-foreground">
                     {formatDistanceToNowStrict(new Date(n.created_at), { locale: ptBR, addSuffix: true })}

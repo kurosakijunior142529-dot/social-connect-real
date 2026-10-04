@@ -194,9 +194,10 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
   const [first, setFirst] = useState("");
   const [stored, setStored] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [changing, setChanging] = useState(false);
 
   const load = async () => {
-    setPin(""); setError(false); setFirst("");
+    setPin(""); setError(false); setFirst(""); setChanging(false);
     const { data } = await supabase.from("chat_vault").select("pin_hash").eq("user_id", userId).maybeSingle();
     setStored(data?.pin_hash ?? null);
     setMode(data ? "enter" : "create");
@@ -215,15 +216,27 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
       const h = await hashPin(userId, next);
       const { error: e } = await supabase.from("chat_vault").upsert({ user_id: userId, pin_hash: h, updated_at: new Date().toISOString() });
       if (e) { toast.error("Não deu para salvar o PIN"); return; }
-      toast.success("Cofre criado");
+      toast.success(changing ? "PIN alterado" : "Cofre criado");
+      setChanging(false);
       onOpenChange(false); onUnlocked(); return;
     }
     const h = await hashPin(userId, next);
-    if (h === stored) { onOpenChange(false); onUnlocked(); }
+    if (h === stored) {
+      if (changing) { setPin(""); setMode("create"); return; }
+      onOpenChange(false); onUnlocked();
+    }
     else { setError(true); buzz([20, 40, 20]); setTimeout(() => setPin(""), 250); }
   };
 
-  const title = mode === "create" ? "Crie um PIN para o Cofre" : mode === "confirm" ? "Repita o PIN" : "Digite seu PIN";
+  const forgot = async () => {
+    if (!confirm("Redefinir o Cofre? As conversas guardadas voltam para a lista normal e você cria um PIN novo.")) return;
+    await supabase.from("conversation_prefs").update({ hidden: false }).eq("user_id", userId).eq("hidden", true);
+    await supabase.from("chat_vault").delete().eq("user_id", userId);
+    toast.success("Cofre redefinido. Crie um PIN novo.");
+    setStored(null); setPin(""); setChanging(false); setMode("create");
+  };
+
+  const title = changing && mode === "enter" ? "Digite o PIN atual" : changing && mode === "create" ? "Crie o PIN novo" : mode === "create" ? "Crie um PIN para o Cofre" : mode === "confirm" ? "Repita o PIN" : "Digite seu PIN";
 
   return (
     <Drawer open={open} onOpenChange={(o) => { onOpenChange(o); if (o) void load(); }}>
@@ -251,6 +264,12 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
               ),
             )}
           </div>
+          {mode === "enter" ? (
+            <div className="flex gap-4 pt-1 text-[12px] text-muted-foreground">
+              {!changing ? <button type="button" onClick={() => { setChanging(true); setPin(""); setError(false); }} className="underline-offset-2 hover:underline">Trocar PIN</button> : null}
+              <button type="button" onClick={() => void forgot()} className="underline-offset-2 hover:underline">Esqueci o PIN</button>
+            </div>
+          ) : null}
         </div>
       </DrawerContent>
     </Drawer>

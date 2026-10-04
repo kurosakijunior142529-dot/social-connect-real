@@ -132,7 +132,7 @@ function MessagesPage() {
 
       <OnlineBubbles currentUserId={user.id} />
 
-      {tab === "direct" && (
+      {(
         <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-2 no-scrollbar">
           {FILTERS.map((f) => (
             <button
@@ -146,7 +146,7 @@ function MessagesPage() {
               {f.label}
             </button>
           ))}
-          <button
+          {tab === "direct" && <button
             onClick={() => (vaultOpen ? setVaultOpen(false) : setPinOpen(true))}
             className={cn(
               "ml-auto flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[12px] transition active:scale-95",
@@ -154,14 +154,13 @@ function MessagesPage() {
             )}
           >
             {vaultOpen ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />} Cofre
-          </button>
+          </button>}
         </div>
       )}
 
-      <div className="pt-1">
         {tab === "direct" && <DirectList userId={user.id} q={q} filter={filter} vault={vaultOpen} />}
-        {tab === "group" && <ChatList userId={user.id} type="group" q={q} />}
-        {tab === "channel" && <ChatList userId={user.id} type="channel" q={q} />}
+        {tab === "group" && <ChatList userId={user.id} type="group" q={q} filter={filter} />}
+        {tab === "channel" && <ChatList userId={user.id} type="channel" q={q} filter={filter} />}
       </div>
       <VaultPinSheet open={pinOpen} onOpenChange={setPinOpen} userId={user.id} onUnlocked={() => setVaultOpen(true)} />
     </div>

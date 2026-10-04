@@ -157,7 +157,7 @@ function MessagesPage() {
           </button>}
         </div>
       )}
-      <div className="flex-1">
+      <div className="pt-1">
 
         {tab === "direct" && <DirectList userId={user.id} q={q} filter={filter} vault={vaultOpen} />}
         {tab === "group" && <ChatList userId={user.id} type="group" q={q} filter={filter} />}

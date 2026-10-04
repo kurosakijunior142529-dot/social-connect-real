@@ -734,6 +734,7 @@ function ConversationPage() {
             key={m.id}
             m={m}
             mine={m.sender_id === user.id}
+            isLastRead={m.id === lastReadMineId}
             first={first}
             last={last}
             daySep={daySep}

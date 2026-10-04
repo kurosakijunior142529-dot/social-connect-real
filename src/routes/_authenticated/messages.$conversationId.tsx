@@ -734,6 +734,7 @@ function ConversationPage() {
             key={m.id}
             m={m}
             mine={m.sender_id === user.id}
+            isLastRead={m.id === lastReadMineId}
             first={first}
             last={last}
             daySep={daySep}
@@ -949,6 +950,7 @@ type RowProps = {
   last: boolean;
   daySep: boolean;
   userId: string;
+  isLastRead?: boolean;
   radius: number | string;
   bubbleMine: string;
   bubbleTheirs: string;
@@ -988,7 +990,7 @@ const MessageRow = memo(
         <span>{timeFmt.format(new Date(m.created_at))}</span>
         {mine ? (
           m.read_at ? (
-            m.id === lastReadMineId ? (
+            p.isLastRead ? (
               <span className="flex items-center gap-1 font-medium text-primary">
                 <CheckCheck className="h-3 w-3" />
                 Visto às {timeFmt.format(new Date(m.read_at))}
@@ -1130,6 +1132,7 @@ const MessageRow = memo(
   },
   (a, b) =>
     a.m === b.m &&
+    a.isLastRead === b.isLastRead &&
     a.mine === b.mine &&
     a.first === b.first &&
     a.last === b.last &&

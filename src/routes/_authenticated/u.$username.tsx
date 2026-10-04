@@ -715,15 +715,20 @@ function ProfileSkeleton() {
 function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  async function onPick(f: File) {
+  const [pending, setPending] = useState<File | null>(null);
+  function onPick(f: File) {
     if (!f.type.startsWith("image/")) return toast.error("Selecione uma imagem");
-    if (f.size > 8 * 1024 * 1024) return toast.error("Imagem maior que 8MB");
+    if (f.size > 15 * 1024 * 1024) return toast.error("Imagem maior que 15MB");
+    setPending(f);
+  }
+  async function upload(f: File) {
     setBusy(true);
     try {
       const path = await uploadMedia("covers", userId, f);
       const { error } = await supabase.from("profiles").update({ cover_url: path }).eq("id", userId);
       if (error) throw error;
       toast.success("Capa atualizada");
+      setPending(null);
       onDone();
     } catch (err: any) {
       toast.error(err?.message ?? "Falha ao enviar");
@@ -753,6 +758,7 @@ function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void 
           e.target.value = "";
         }}
       />
+      <CoverEditor file={pending} open={!!pending} onOpenChange={(o) => !o && setPending(null)} onConfirm={upload} busy={busy} />
     </>
   );
 }

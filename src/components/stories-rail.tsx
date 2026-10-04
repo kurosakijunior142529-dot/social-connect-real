@@ -48,9 +48,21 @@ export function StoriesRail({ currentUserId, currentProfile }: {
         g.stories.push(s);
         byUser.set(s.user_id, g);
       }
-      const arr = Array.from(byUser.values());
-      // Current user first
-      arr.sort((a, b) => (a.userId === currentUserId ? -1 : b.userId === currentUserId ? 1 : 0));
+      const ids = list.map((s) => s.id);
+      const { data: views } = ids.length
+        ? await (supabase as any).from("story_views").select("story_id").eq("viewer_id", currentUserId).in("story_id", ids)
+        : { data: [] as any[] };
+      const viewed = new Set(((views ?? []) as any[]).map((v) => v.story_id));
+      const arr = Array.from(byUser.values()).map((g) => ({
+        ...g,
+        seen: g.stories.every((s) => viewed.has(s.id)),
+      }));
+      // Você primeiro, depois quem tem Vibes não vistas
+      arr.sort((a, b) => {
+        if (a.userId === currentUserId) return -1;
+        if (b.userId === currentUserId) return 1;
+        return Number(a.seen) - Number(b.seen);
+      });
       return arr;
     },
     staleTime: 30_000,
@@ -108,11 +120,11 @@ export function StoriesRail({ currentUserId, currentProfile }: {
               onClick={() => setViewing({ groups, index: myGroup ? idx + 1 : idx })}
               className="flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl py-1 transition-transform hover:-translate-y-0.5"
             >
-              <span className="rounded-full bg-gradient-brand p-[2px]">
+              <span className={(g as any).seen ? "rounded-full bg-[color:var(--hairline)] p-[1.5px]" : "rounded-full bg-gradient-brand p-[2px] shadow-[0_0_10px_color-mix(in_oklab,var(--primary)_35%,transparent)]"}>
                 <UserAvatar
                   avatarPath={g.profile?.avatar_url}
                   displayName={g.profile?.display_name ?? "?"}
-                  className="h-14 w-14 ring-2 ring-background"
+                  className={(g as any).seen ? "h-14 w-14 ring-2 ring-background opacity-75" : "h-14 w-14 ring-2 ring-background"}
                 />
               </span>
               <span className="w-full truncate text-center text-[11px]">
@@ -128,7 +140,7 @@ export function StoriesRail({ currentUserId, currentProfile }: {
           groups={viewing.groups}
           startIndex={viewing.index}
           viewerId={currentUserId}
-          onClose={() => setViewing(null)}
+          onClose={() => { setViewing(null); void q.refetch(); }}
         />
       ) : null}
     </>

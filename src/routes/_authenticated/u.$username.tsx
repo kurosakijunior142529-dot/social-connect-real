@@ -473,7 +473,7 @@ function ProfileContent() {
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             {profile.location ? <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {profile.location}</span> : null}
-            {profile.website ? <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-primary hover:underline"><LinkIcon className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">{profile.website.replace(/^https?:\/\//, "")}</span></a> : null}
+            {profile.website ? <a href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] py-1.5 pl-2 pr-3 text-[13px] font-medium text-foreground backdrop-blur transition active:scale-95"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 text-primary"><LinkIcon className="h-3.5 w-3.5" /></span><span className="truncate">{profile.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span><span aria-hidden className="text-muted-foreground">↗</span></a> : null}
             {profile.featured_username ? <Link to="/u/$username" params={{ username: profile.featured_username }} className="font-medium text-muted-foreground transition-colors hover:text-primary">Conexão vibrante com @{profile.featured_username}</Link> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

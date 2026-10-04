@@ -1132,6 +1132,7 @@ const MessageRow = memo(
   },
   (a, b) =>
     a.m === b.m &&
+    a.isLastRead === b.isLastRead &&
     a.mine === b.mine &&
     a.first === b.first &&
     a.last === b.last &&

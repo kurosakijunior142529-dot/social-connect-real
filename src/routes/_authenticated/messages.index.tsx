@@ -402,7 +402,7 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
   );
 }
 
-function ChatList({ userId, type, q }: { userId: string; type: "group" | "channel"; q: string }) {
+function ChatList({ userId, type, q, filter }: { userId: string; type: "group" | "channel"; q: string; filter: Filter }) {
   const query = useQuery({
     queryKey: ["chats", type, userId],
     queryFn: async () => {
@@ -541,22 +541,42 @@ function ChatList({ userId, type, q }: { userId: string; type: "group" | "channe
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <div className="truncate text-[15px] font-semibold">{c.title}</div>
-                  {c.last ? (
-                    <div className="text-[10px] shrink-0 tabular uppercase tracking-widest text-muted-foreground">
-                      {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
-                    </div>
-                  ) : null}
+                  <div className={cn("flex min-w-0 items-center gap-1.5 truncate text-[15px]", p.marked_unread ? "font-bold" : "font-semibold")}>
+                    {p.pinned_at && <Pin className="h-3 w-3 shrink-0 text-primary" />}
+                    <span className="truncate">{c.title}</span>
+                    {isMuted && <BellOff className="h-3 w-3 shrink-0 text-muted-foreground" />}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {c.last ? (
+                      <span className="text-[10px] tabular uppercase tracking-widest text-muted-foreground">
+                        {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
+                      </span>
+                    ) : null}
+                    {p.marked_unread && <span className={cn("h-2 w-2 rounded-full", isMuted ? "bg-muted-foreground" : "bg-primary")} />}
+                  </div>
                 </div>
                 <div className="text-[13px] truncate leading-snug text-muted-foreground">
                   {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
                 </div>
               </div>
             </Link>
+            </SwipeRow>
           </li>
         );
       })}
     </ul>
+    {sheetFor && (
+      <ConversationActionsSheet
+        open={!!sheetFor}
+        onOpenChange={(o) => !o && setSheetFor(null)}
+        name={sheetFor.title ?? ""}
+        prefs={prefOf(sheetFor.id)}
+        muted={mutes.data?.has(sheetFor.id) ?? false}
+        unread={prefOf(sheetFor.id).marked_unread}
+        onAction={(a) => run(sheetFor, a)}
+      />
+    )}
+    </>
   );
 }
 

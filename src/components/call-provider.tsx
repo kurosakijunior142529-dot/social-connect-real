@@ -136,6 +136,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const transcribe = useServerFn(transcribeCallClip);
   const translateMany = useServerFn(translateBatch);
   const translationEnabledRef = useRef(false);
+  /** True while the other person has translation on and needs our captions. */
+  const peerCaptureRef = useRef(false);
+  const startCaptureRef = useRef<(() => Promise<boolean>) | null>(null);
+  const capturing = () => translationEnabledRef.current || peerCaptureRef.current;
   const translationLanguageRef = useRef("pt-BR");
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [translationLanguage, setTranslationLanguage] = useState("pt-BR");
@@ -258,6 +262,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
         const payload = row.payload ?? {};
         try {
           if (row.kind === "caption") {
+            // The other person asks us to send captions of what we say.
+            if (payload.control === "start") {
+              peerCaptureRef.current = true;
+              if (!sttFallbackRef.current) void startCaptureRef.current?.();
+              return;
+            }
+            if (payload.control === "stop") {
+              peerCaptureRef.current = false;
+              if (!translationEnabledRef.current) {
+                sttFallbackRef.current?.stop();
+                sttFallbackRef.current = null;
+              }
+              return;
+            }
             const original = typeof payload.text === "string" ? payload.text.trim() : "";
             if (!original || !translationEnabledRef.current) return;
             const id = String(row.id);
@@ -789,12 +807,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
       lastTranscriptRef.current = { text: clean, at: now };
+      void sendSignalRef.current?.("caption", { text: clean, language: sourceLang });
+      // Only capturing for the other person: no local captions needed.
+      if (!translationEnabledRef.current) return;
       const id = crypto.randomUUID();
       setCaptions((current) => [
         ...current.slice(-60),
         { id, speaker: "me" as const, original: clean, status: "pending" as const },
       ]);
-      void sendSignalRef.current?.("caption", { text: clean, language: sourceLang });
 
       const target = translationLanguageRef.current;
       if (sourceLang.split("-")[0] === target.split("-")[0]) {
@@ -810,12 +830,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
     [translateCaption],
   );
 
-
   const stopTranslation = useCallback(() => {
+    const wasOn = translationEnabledRef.current;
     translationEnabledRef.current = false;
-    translationSessionRef.current += 1;
-    sttFallbackRef.current?.stop();
-    sttFallbackRef.current = null;
+    if (wasOn) void sendSignalRef.current?.("caption", { control: "stop" }).catch(() => {});
+    try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
+    ttsAudioRef.current?.pause();
+    if (!peerCaptureRef.current) {
+      translationSessionRef.current += 1;
+      sttFallbackRef.current?.stop();
+      sttFallbackRef.current = null;
+    }
     setTranslationEnabled(false);
   }, []);
   stopTranslationRef.current = stopTranslation;
@@ -833,13 +858,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // Free path first: the device's own speech recognition (no AI credits).
     const Recognition =
       (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    if (Recognition) {
+    // Android beeps every time recognition restarts, which sounds like noise in the call.
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (Recognition && !isAndroid) {
       const nativeSession = translationSessionRef.current + 1;
       translationSessionRef.current = nativeSession;
       let alive = true;
       let failed = false;
       let rec: any = null;
-      const active = () => alive && translationEnabledRef.current && nativeSession === translationSessionRef.current;
+      const active = () => alive && capturing() && nativeSession === translationSessionRef.current;
       const begin = () => {
         if (!active()) return;
         try {
@@ -895,7 +922,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
 
       onClip: async (audio) => {
-        if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
+        if (!capturing() || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
         try {
           let timeoutId: number | undefined;
           const timeout = new Promise<never>((_, reject) => {
@@ -922,7 +949,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             if (timeoutId !== undefined) window.clearTimeout(timeoutId);
           });
           consecutiveFailures = 0;
-          if (translationEnabledRef.current && session === translationSessionRef.current) {
+          if (capturing() && session === translationSessionRef.current) {
             if (result.text) pushMyCaption(result.text, spokenLangRef.current);
             else pushUnclearRef.current?.();
           }
@@ -955,6 +982,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
     return true;
   }, [pushMyCaption, transcribe]);
+  startCaptureRef.current = startCallTranscription;
 
   const startTranslation = useCallback(async () => {
     if (!mediaConnectedRef.current || roomRef.current?.state !== "connected") {
@@ -963,12 +991,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
     spokenLangRef.current = navigator.language || "pt-BR";
     translationEnabledRef.current = true;
-    if (!(await startCallTranscription())) {
+    if (!sttFallbackRef.current && !(await startCallTranscription())) {
       translationEnabledRef.current = false;
       setTranslationEnabled(false);
       return;
     }
     setTranslationEnabled(true);
+    // Ask the other phone to send captions of what they say.
+    void sendSignalRef.current?.("caption", { control: "start" }).catch(() => {});
   }, [startCallTranscription]);
 
   const toggleTranslation = useCallback(() => {
@@ -1236,6 +1266,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setSpeakTranslations((prev) => {
       const next = !prev;
       speakTranslationsRef.current = next;
+      if (next) {
+        // Unlock the phone's voice inside the tap so later translations can play.
+        try {
+          const u = new SpeechSynthesisUtterance(" ");
+          u.volume = 0;
+          window.speechSynthesis?.speak(u);
+        } catch { /* noop */ }
+      }
       if (!next) {
         ttsAudioRef.current?.pause();
         try { window.speechSynthesis?.cancel(); } catch { /* noop */ }

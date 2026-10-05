@@ -272,7 +272,13 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
           </div>
           <div className="grid w-full max-w-[260px] grid-cols-3 gap-3 pt-2">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((k, i) =>
-              k === "" ? <span key={i} /> : (
+              k === "" ? (
+                mode === "enter" && !changing && bioOn ? (
+                  <button key={i} type="button" aria-label="Abrir com digital" onClick={() => void tryBio()} className="grid h-14 place-items-center rounded-full text-primary transition active:scale-95">
+                    <Fingerprint className="h-7 w-7" />
+                  </button>
+                ) : <span key={i} />
+              ) : (
                 <button
                   key={i}
                   disabled={mode === "loading"}
@@ -285,9 +291,14 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
             )}
           </div>
           {mode === "enter" ? (
-            <div className="flex gap-4 pt-1 text-[12px] text-muted-foreground">
+            <div className="flex flex-wrap justify-center gap-4 pt-1 text-[12px] text-muted-foreground">
               {!changing ? <button type="button" onClick={() => { setChanging(true); setPin(""); setError(false); }} className="underline-offset-2 hover:underline">Trocar PIN</button> : null}
               <button type="button" onClick={() => void forgot()} className="underline-offset-2 hover:underline">Esqueci o PIN</button>
+              {bioOk && !changing ? (
+                <button type="button" onClick={() => void toggleBio()} className="inline-flex items-center gap-1 underline-offset-2 hover:underline">
+                  <Fingerprint className="h-3.5 w-3.5" /> {bioOn ? "Desativar digital" : "Ativar digital"}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

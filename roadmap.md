@@ -24,6 +24,6 @@
 - [x] Avisos com filtros e curtidas agrupadas
 - [x] Opções de fixar/silenciar/arquivar em Grupos e Canais
 - [x] Link da bio em chip, Visão Pura no feed, anel de Vibes não vistas
-- [ ] Aviso flutuante no topo ao chegar mensagem/ligação
-- [ ] Reels pré-carregando o próximo vídeo
-- [ ] Vibrações extras (curtida, deslizar, Cofre)
+- [x] Aviso flutuante no topo ao chegar mensagem/ligação
+- [x] Reels pré-carregando o próximo vídeo
+- [x] Vibrações extras (curtida, deslizar, Cofre)

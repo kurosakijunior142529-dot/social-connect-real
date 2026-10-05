@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useUnreadNotifications } from "@/hooks/use-notifications";
 import { signOutAndClearSession } from "@/lib/auth-session";
 import { MobileMoreSheet } from "@/components/mobile-more-sheet";
+import { InAppBanner } from "@/components/in-app-banner";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
@@ -149,6 +150,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-background">
+      <InAppBanner userId={userId} />
       {/* Desktop sidebar */}
       <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-64 md:flex-col md:border-r md:border-[color:var(--hairline)] md:bg-sidebar">
         <div className="px-6 pt-8 pb-7">

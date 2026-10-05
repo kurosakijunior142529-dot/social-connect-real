@@ -131,7 +131,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     if (near) {
       if (v.getAttribute("src") !== url) {
         v.setAttribute("src", url);
-        v.preload = visible ? "auto" : "metadata";
+        v.preload = "auto"; // pré-carrega o início do próximo Reel
         v.load();
       } else if (visible && v.preload !== "auto") {
         v.preload = "auto";

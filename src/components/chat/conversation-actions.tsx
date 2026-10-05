@@ -218,12 +218,12 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
       if (e) { toast.error("Não deu para salvar o PIN"); return; }
       toast.success(changing ? "PIN alterado" : "Cofre criado");
       setChanging(false);
-      onOpenChange(false); onUnlocked(); return;
+      buzz([10, 30, 16]); onOpenChange(false); onUnlocked(); return;
     }
     const h = await hashPin(userId, next);
     if (h === stored) {
       if (changing) { setPin(""); setMode("create"); return; }
-      onOpenChange(false); onUnlocked();
+      buzz([10, 30, 16]); onOpenChange(false); onUnlocked();
     }
     else { setError(true); buzz([20, 40, 20]); setTimeout(() => setPin(""), 250); }
   };

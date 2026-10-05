@@ -22,5 +22,8 @@
 - [x] Verde principal #22E06A no escuro
 - [x] Trocar/esquecer PIN do Cofre
 - [x] Avisos com filtros e curtidas agrupadas
-- [ ] Opções de fixar/silenciar/arquivar em Grupos e Canais
-- [ ] Link da bio em chip, Visão Pura no feed, anel de Vibes não vistas
+- [x] Opções de fixar/silenciar/arquivar em Grupos e Canais
+- [x] Link da bio em chip, Visão Pura no feed, anel de Vibes não vistas
+- [ ] Aviso flutuante no topo ao chegar mensagem/ligação
+- [ ] Reels pré-carregando o próximo vídeo
+- [ ] Vibrações extras (curtida, deslizar, Cofre)

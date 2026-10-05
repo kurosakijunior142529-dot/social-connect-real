@@ -807,12 +807,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
       lastTranscriptRef.current = { text: clean, at: now };
+      void sendSignalRef.current?.("caption", { text: clean, language: sourceLang });
+      // Only capturing for the other person: no local captions needed.
+      if (!translationEnabledRef.current) return;
       const id = crypto.randomUUID();
       setCaptions((current) => [
         ...current.slice(-60),
         { id, speaker: "me" as const, original: clean, status: "pending" as const },
       ]);
-      void sendSignalRef.current?.("caption", { text: clean, language: sourceLang });
 
       const target = translationLanguageRef.current;
       if (sourceLang.split("-")[0] === target.split("-")[0]) {
@@ -828,12 +830,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
     [translateCaption],
   );
 
-
   const stopTranslation = useCallback(() => {
+    const wasOn = translationEnabledRef.current;
     translationEnabledRef.current = false;
-    translationSessionRef.current += 1;
-    sttFallbackRef.current?.stop();
-    sttFallbackRef.current = null;
+    if (wasOn) void sendSignalRef.current?.("caption", { control: "stop" }).catch(() => {});
+    try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
+    ttsAudioRef.current?.pause();
+    if (!peerCaptureRef.current) {
+      translationSessionRef.current += 1;
+      sttFallbackRef.current?.stop();
+      sttFallbackRef.current = null;
+    }
     setTranslationEnabled(false);
   }, []);
   stopTranslationRef.current = stopTranslation;

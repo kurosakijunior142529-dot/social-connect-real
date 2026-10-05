@@ -258,6 +258,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
         const payload = row.payload ?? {};
         try {
           if (row.kind === "caption") {
+            // The other person asks us to send captions of what we say.
+            if (payload.control === "start") {
+              peerCaptureRef.current = true;
+              if (!sttFallbackRef.current) void startCaptureRef.current?.();
+              return;
+            }
+            if (payload.control === "stop") {
+              peerCaptureRef.current = false;
+              if (!translationEnabledRef.current) {
+                sttFallbackRef.current?.stop();
+                sttFallbackRef.current = null;
+              }
+              return;
+            }
             const original = typeof payload.text === "string" ? payload.text.trim() : "";
             if (!original || !translationEnabledRef.current) return;
             const id = String(row.id);

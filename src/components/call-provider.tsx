@@ -1123,6 +1123,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
       // Keep the microphone capture paused while we speak so the translation is
       // never transcribed back as the user's own voice.
       ttsBusyUntilRef.current = Date.now() + 2_000;
+      // Free path: the device's own voice. AI voice only when unavailable.
+      const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+      if (synth && typeof SpeechSynthesisUtterance !== "undefined") {
+        try {
+          const utter = new SpeechSynthesisUtterance(clean.slice(0, 600));
+          const lang = translationLanguageRef.current;
+          utter.lang = lang === "pt-BR" ? "pt-BR" : lang;
+          const voice = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang.split("-")[0]!.toLowerCase()));
+          if (voice) utter.voice = voice;
+          ttsBusyUntilRef.current = Date.now() + 20_000;
+          utter.onend = () => { ttsBusyUntilRef.current = Date.now() + 400; };
+          utter.onerror = () => { ttsBusyUntilRef.current = 0; };
+          synth.speak(utter);
+          return;
+        } catch (error) {
+          console.warn("[call-translation] native speech failed", error);
+        }
+      }
       void speak({ data: { text: clean.slice(0, 600), voice: "alloy" } })
         .then((result: { audio: string; mime: string }) => {
           if (!speakTranslationsRef.current) return;
@@ -1152,6 +1170,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       speakTranslationsRef.current = next;
       if (!next) {
         ttsAudioRef.current?.pause();
+        try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
         ttsBusyUntilRef.current = 0;
       }
       return next;
@@ -1187,6 +1206,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         />
       ) : null}
       {active && !minimized ? (
+        <CallScreenBoundary onCrash={() => stopTranslationRef.current?.()}>
         <CallScreen
           call={active}
           localStream={localStream}
@@ -1215,7 +1235,25 @@ export function CallProvider({ children }: { children: ReactNode }) {
           onMinimize={() => setMinimized(true)}
           onHangup={hangupLocal}
         />
+        </CallScreenBoundary>
       ) : null}
     </CallContext.Provider>
   );
+}
+
+/** Keeps a rendering error in the call screen from blanking the whole app. */
+class CallScreenBoundary extends Component<{ children: ReactNode; onCrash: () => void }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error("[call] screen crashed", error);
+    this.props.onCrash();
+    toast.error("A tradução foi desligada por um erro. A chamada continua.");
+    window.setTimeout(() => this.setState({ failed: false }), 50);
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }

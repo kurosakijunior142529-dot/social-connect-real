@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { Pin, PinOff, Mail, MailOpen, BellOff, Bell, Archive, ArchiveRestore, Lock, Unlock, Trash2 } from "lucide-react";
+import { Pin, PinOff, Mail, MailOpen, BellOff, Bell, Archive, ArchiveRestore, Lock, Unlock, Trash2, Fingerprint } from "lucide-react";
+import { biometricAvailable, biometricEnabled, enableBiometric, disableBiometric, unlockWithBiometric } from "@/lib/vault-biometric";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

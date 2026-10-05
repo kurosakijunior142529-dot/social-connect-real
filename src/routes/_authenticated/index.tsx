@@ -107,14 +107,14 @@ function FeedPage() {
   return (
     <div>
       {/* Sticky slim header */}
-      <header className="sticky top-0 z-20 glass-heavy hairline-b">
+      <header className="sticky top-0 z-20 header-veil">
         <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4">
           <div className="min-w-0">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[22px] font-display font-semibold">vibely</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <div className="flex items-baseline gap-1">
+              <span className="text-[24px] font-display font-semibold tracking-[-0.03em]">vibely</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
             </div>
-            <span className="block truncate text-[11px] text-muted-foreground tabular">@{meProfile.data?.username ?? "…"}</span>
+            <span className="block truncate text-[11px] tracking-wide text-muted-foreground tabular">@{meProfile.data?.username ?? "…"}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <ThemeToggle />
@@ -245,8 +245,8 @@ function HeaderAction({
       aria-label={label}
       className={
         primary
-          ? "grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground transition active:scale-95"
-          : "grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)] text-muted-foreground transition hover:text-foreground active:scale-95"
+          ? "grid h-10 w-10 place-items-center rounded-full bg-primary text-primary-foreground transition active:scale-90"
+          : "glass-pill grid h-10 w-10 place-items-center rounded-full text-foreground/80 transition duration-200 hover:text-foreground active:scale-90"
       }
     >
       {icon}

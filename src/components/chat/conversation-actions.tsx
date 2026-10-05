@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { Pin, PinOff, Mail, MailOpen, BellOff, Bell, Archive, ArchiveRestore, Lock, Unlock, Trash2 } from "lucide-react";
+import { Pin, PinOff, Mail, MailOpen, BellOff, Bell, Archive, ArchiveRestore, Lock, Unlock, Trash2, Fingerprint } from "lucide-react";
+import { biometricAvailable, biometricEnabled, enableBiometric, disableBiometric, unlockWithBiometric } from "@/lib/vault-biometric";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -195,12 +196,31 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
   const [stored, setStored] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [changing, setChanging] = useState(false);
+  const [bioOk, setBioOk] = useState(false);
+  const [bioOn, setBioOn] = useState(false);
+
+  const tryBio = async () => {
+    buzz(6);
+    if (await unlockWithBiometric(userId)) { buzz([10, 30, 16]); onOpenChange(false); onUnlocked(); }
+    else toast.error("Digital não reconhecida. Use o PIN.");
+  };
+
+  const toggleBio = async () => {
+    if (bioOn) { disableBiometric(userId); setBioOn(false); toast.success("Digital desativada neste aparelho"); return; }
+    try {
+      if (await enableBiometric(userId)) { setBioOn(true); toast.success("Digital ativada para o Cofre"); }
+    } catch { toast.error("Não deu para ativar a digital neste aparelho"); }
+  };
 
   const load = async () => {
     setPin(""); setError(false); setFirst(""); setChanging(false);
     const { data } = await supabase.from("chat_vault").select("pin_hash").eq("user_id", userId).maybeSingle();
     setStored(data?.pin_hash ?? null);
     setMode(data ? "enter" : "create");
+    const avail = await biometricAvailable();
+    const on = avail && biometricEnabled(userId);
+    setBioOk(avail); setBioOn(on);
+    if (data && on) setTimeout(() => void tryBio(), 250);
   };
 
   const press = async (d: string) => {
@@ -252,7 +272,13 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
           </div>
           <div className="grid w-full max-w-[260px] grid-cols-3 gap-3 pt-2">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"].map((k, i) =>
-              k === "" ? <span key={i} /> : (
+              k === "" ? (
+                mode === "enter" && !changing && bioOn ? (
+                  <button key={i} type="button" aria-label="Abrir com digital" onClick={() => void tryBio()} className="grid h-14 place-items-center rounded-full text-primary transition active:scale-95">
+                    <Fingerprint className="h-7 w-7" />
+                  </button>
+                ) : <span key={i} />
+              ) : (
                 <button
                   key={i}
                   disabled={mode === "loading"}
@@ -265,9 +291,14 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
             )}
           </div>
           {mode === "enter" ? (
-            <div className="flex gap-4 pt-1 text-[12px] text-muted-foreground">
+            <div className="flex flex-wrap justify-center gap-4 pt-1 text-[12px] text-muted-foreground">
               {!changing ? <button type="button" onClick={() => { setChanging(true); setPin(""); setError(false); }} className="underline-offset-2 hover:underline">Trocar PIN</button> : null}
               <button type="button" onClick={() => void forgot()} className="underline-offset-2 hover:underline">Esqueci o PIN</button>
+              {bioOk && !changing ? (
+                <button type="button" onClick={() => void toggleBio()} className="inline-flex items-center gap-1 underline-offset-2 hover:underline">
+                  <Fingerprint className="h-3.5 w-3.5" /> {bioOn ? "Desativar digital" : "Ativar digital"}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

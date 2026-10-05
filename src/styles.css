@@ -216,6 +216,19 @@
   border: 1px solid var(--hairline);
   box-shadow: inset 0 1px 0 var(--edge-light), var(--shadow-card);
 }
+/* Botão redondo em vidro fumê com borda fina */
+@utility glass-pill {
+  background-color: color-mix(in oklab, var(--surface-2) 70%, transparent);
+  backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid var(--hairline);
+  box-shadow: inset 0 1px 0 var(--edge-light);
+}
+/* Topo translúcido que dissolve no conteúdo */
+@utility header-veil {
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--background) 94%, transparent), color-mix(in oklab, var(--background) 72%, transparent));
+  backdrop-filter: blur(24px) saturate(170%);
+  border-bottom: 1px solid var(--hairline);
+}
 @utility social-card {
   background: linear-gradient(145deg, color-mix(in oklab, var(--surface-2) 42%, var(--surface)), var(--surface));
   border: 1px solid var(--hairline);

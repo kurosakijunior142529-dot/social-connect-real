@@ -858,13 +858,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // Free path first: the device's own speech recognition (no AI credits).
     const Recognition =
       (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    if (Recognition) {
+    // Android beeps every time recognition restarts, which sounds like noise in the call.
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (Recognition && !isAndroid) {
       const nativeSession = translationSessionRef.current + 1;
       translationSessionRef.current = nativeSession;
       let alive = true;
       let failed = false;
       let rec: any = null;
-      const active = () => alive && translationEnabledRef.current && nativeSession === translationSessionRef.current;
+      const active = () => alive && capturing() && nativeSession === translationSessionRef.current;
       const begin = () => {
         if (!active()) return;
         try {
@@ -920,7 +922,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
 
       onClip: async (audio) => {
-        if (!translationEnabledRef.current || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
+        if (!capturing() || session !== translationSessionRef.current || !mediaConnectedRef.current) return;
         try {
           let timeoutId: number | undefined;
           const timeout = new Promise<never>((_, reject) => {
@@ -947,7 +949,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             if (timeoutId !== undefined) window.clearTimeout(timeoutId);
           });
           consecutiveFailures = 0;
-          if (translationEnabledRef.current && session === translationSessionRef.current) {
+          if (capturing() && session === translationSessionRef.current) {
             if (result.text) pushMyCaption(result.text, spokenLangRef.current);
             else pushUnclearRef.current?.();
           }
@@ -980,6 +982,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
     return true;
   }, [pushMyCaption, transcribe]);
+  startCaptureRef.current = startCallTranscription;
 
   const startTranslation = useCallback(async () => {
     if (!mediaConnectedRef.current || roomRef.current?.state !== "connected") {
@@ -988,12 +991,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
     spokenLangRef.current = navigator.language || "pt-BR";
     translationEnabledRef.current = true;
-    if (!(await startCallTranscription())) {
+    if (!sttFallbackRef.current && !(await startCallTranscription())) {
       translationEnabledRef.current = false;
       setTranslationEnabled(false);
       return;
     }
     setTranslationEnabled(true);
+    // Ask the other phone to send captions of what they say.
+    void sendSignalRef.current?.("caption", { control: "start" }).catch(() => {});
   }, [startCallTranscription]);
 
   const toggleTranslation = useCallback(() => {
@@ -1261,6 +1266,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setSpeakTranslations((prev) => {
       const next = !prev;
       speakTranslationsRef.current = next;
+      if (next) {
+        // Unlock the phone's voice inside the tap so later translations can play.
+        try {
+          const u = new SpeechSynthesisUtterance(" ");
+          u.volume = 0;
+          window.speechSynthesis?.speak(u);
+        } catch { /* noop */ }
+      }
       if (!next) {
         ttsAudioRef.current?.pause();
         try { window.speechSynthesis?.cancel(); } catch { /* noop */ }

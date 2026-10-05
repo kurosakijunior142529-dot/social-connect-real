@@ -1,4 +1,5 @@
 import {
+  Component,
   createContext,
   useCallback,
   useContext,
@@ -128,7 +129,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const translationSessionRef = useRef(0);
   const lastTranscriptRef = useRef({ text: "", at: 0 });
   const lastRemoteCaptionRef = useRef({ text: "", at: 0 });
-  const translateCaptionRef = useRef<((id: string, original: string) => Promise<void>) | null>(null);
+  const translateCaptionRef = useRef<((id: string, original: string, speakAloud?: boolean) => Promise<void>) | null>(null);
   const captionsMirrorRef = useRef<CallCaption[]>([]);
   const spokenLangRef = useRef<string>("pt-BR");
 
@@ -265,7 +266,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
               ...current.slice(-60),
               { id, speaker: "other" as const, original, status: "pending" as const },
             ]);
-            await translateCaptionRef.current?.(id, original);
+            await translateCaptionRef.current?.(id, original, true);
           } else if (row.kind === "bye") {
 
             hangupLocalRef.current?.();
@@ -686,7 +687,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   /** Translates one caption, keeping its status in sync so failures can be retried. */
   const translateCaption = useCallback(
-    async (id: string, original: string) => {
+    async (id: string, original: string, speakAloud = false) => {
       const target = translationLanguageRef.current;
       setCaptions((current) =>
         current.map((item) =>
@@ -704,6 +705,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             item.id === id ? { ...item, translated: result.text, status: "done" as const, error: undefined } : item,
           ),
         );
+        if (speakAloud && result?.text) speakTranslatedRef.current?.(result.text);
       } catch (error: any) {
         console.error("[call-translation] translate failed", error);
         setCaptions((current) =>
@@ -827,6 +829,62 @@ export function CallProvider({ children }: { children: ReactNode }) {
       return false;
     }
     sttFallbackRef.current?.stop();
+
+    // Free path first: the device's own speech recognition (no AI credits).
+    const Recognition =
+      (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (Recognition) {
+      const nativeSession = translationSessionRef.current + 1;
+      translationSessionRef.current = nativeSession;
+      let alive = true;
+      let failed = false;
+      let rec: any = null;
+      const active = () => alive && translationEnabledRef.current && nativeSession === translationSessionRef.current;
+      const begin = () => {
+        if (!active()) return;
+        try {
+          rec = new Recognition();
+          rec.continuous = true;
+          rec.interimResults = false;
+          rec.lang = spokenAutoRef.current ? navigator.language || "pt-BR" : spokenLangRef.current;
+          rec.onresult = (event: any) => {
+            if (Date.now() < ttsBusyUntilRef.current) return; // ignore our own spoken translation
+            for (let i = event.resultIndex; i < event.results.length; i += 1) {
+              const r = event.results[i];
+              if (r?.isFinal) pushMyCaption(String(r[0]?.transcript ?? ""), rec.lang);
+            }
+          };
+          rec.onerror = (event: any) => {
+            if (event?.error === "not-allowed" || event?.error === "service-not-allowed" || event?.error === "audio-capture") {
+              failed = true;
+            }
+          };
+          rec.onend = () => {
+            if (failed || !active()) return;
+            window.setTimeout(begin, 250); // keep listening for the whole call
+          };
+          rec.start();
+        } catch (error) {
+          console.warn("[call-translation] native recognition failed", error);
+          failed = true;
+        }
+      };
+      begin();
+      await new Promise((r) => window.setTimeout(r, 600));
+      if (!failed && active()) {
+        sttFallbackRef.current = {
+          ready: Promise.resolve(true),
+          stop: () => {
+            alive = false;
+            try { rec?.abort(); } catch { /* noop */ }
+          },
+        };
+        return true;
+      }
+      alive = false;
+      try { rec?.abort(); } catch { /* noop */ }
+    }
+
     const session = translationSessionRef.current + 1;
     translationSessionRef.current = session;
     let notified = false;
@@ -914,8 +972,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
   }, [startCallTranscription]);
 
   const toggleTranslation = useCallback(() => {
-    if (translationEnabledRef.current) stopTranslation();
-    else void startTranslation();
+    try {
+      if (translationEnabledRef.current) stopTranslation();
+      else
+        void startTranslation().catch((error) => {
+          console.error("[call-translation] start failed", error);
+          stopTranslation();
+          toast.error("Não foi possível ligar a tradução.");
+        });
+    } catch (error) {
+      console.error("[call-translation] toggle failed", error);
+      stopTranslation();
+    }
   }, [startTranslation, stopTranslation]);
 
   const changeTranslationLanguage = useCallback(
@@ -1123,6 +1191,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
       // Keep the microphone capture paused while we speak so the translation is
       // never transcribed back as the user's own voice.
       ttsBusyUntilRef.current = Date.now() + 2_000;
+      // Free path: the device's own voice. AI voice only when unavailable.
+      const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+      if (synth && typeof SpeechSynthesisUtterance !== "undefined") {
+        try {
+          const utter = new SpeechSynthesisUtterance(clean.slice(0, 600));
+          const lang = translationLanguageRef.current;
+          utter.lang = lang === "pt-BR" ? "pt-BR" : lang;
+          const voice = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang.split("-")[0]!.toLowerCase()));
+          if (voice) utter.voice = voice;
+          ttsBusyUntilRef.current = Date.now() + 20_000;
+          utter.onend = () => { ttsBusyUntilRef.current = Date.now() + 400; };
+          utter.onerror = () => { ttsBusyUntilRef.current = 0; };
+          synth.speak(utter);
+          return;
+        } catch (error) {
+          console.warn("[call-translation] native speech failed", error);
+        }
+      }
       void speak({ data: { text: clean.slice(0, 600), voice: "alloy" } })
         .then((result: { audio: string; mime: string }) => {
           if (!speakTranslationsRef.current) return;
@@ -1152,6 +1238,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       speakTranslationsRef.current = next;
       if (!next) {
         ttsAudioRef.current?.pause();
+        try { window.speechSynthesis?.cancel(); } catch { /* noop */ }
         ttsBusyUntilRef.current = 0;
       }
       return next;
@@ -1187,6 +1274,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         />
       ) : null}
       {active && !minimized ? (
+        <CallScreenBoundary onCrash={() => stopTranslationRef.current?.()}>
         <CallScreen
           call={active}
           localStream={localStream}
@@ -1215,7 +1303,25 @@ export function CallProvider({ children }: { children: ReactNode }) {
           onMinimize={() => setMinimized(true)}
           onHangup={hangupLocal}
         />
+        </CallScreenBoundary>
       ) : null}
     </CallContext.Provider>
   );
+}
+
+/** Keeps a rendering error in the call screen from blanking the whole app. */
+class CallScreenBoundary extends Component<{ children: ReactNode; onCrash: () => void }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error("[call] screen crashed", error);
+    this.props.onCrash();
+    toast.error("A tradução foi desligada por um erro. A chamada continua.");
+    window.setTimeout(() => this.setState({ failed: false }), 50);
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }

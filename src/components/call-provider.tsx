@@ -136,6 +136,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const transcribe = useServerFn(transcribeCallClip);
   const translateMany = useServerFn(translateBatch);
   const translationEnabledRef = useRef(false);
+  /** True while the other person has translation on and needs our captions. */
+  const peerCaptureRef = useRef(false);
+  const startCaptureRef = useRef<(() => Promise<boolean>) | null>(null);
+  const capturing = () => translationEnabledRef.current || peerCaptureRef.current;
   const translationLanguageRef = useRef("pt-BR");
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [translationLanguage, setTranslationLanguage] = useState("pt-BR");

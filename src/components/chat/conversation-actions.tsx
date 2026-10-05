@@ -196,12 +196,31 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
   const [stored, setStored] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [changing, setChanging] = useState(false);
+  const [bioOk, setBioOk] = useState(false);
+  const [bioOn, setBioOn] = useState(false);
+
+  const tryBio = async () => {
+    buzz(6);
+    if (await unlockWithBiometric(userId)) { buzz([10, 30, 16]); onOpenChange(false); onUnlocked(); }
+    else toast.error("Digital não reconhecida. Use o PIN.");
+  };
+
+  const toggleBio = async () => {
+    if (bioOn) { disableBiometric(userId); setBioOn(false); toast.success("Digital desativada neste aparelho"); return; }
+    try {
+      if (await enableBiometric(userId)) { setBioOn(true); toast.success("Digital ativada para o Cofre"); }
+    } catch { toast.error("Não deu para ativar a digital neste aparelho"); }
+  };
 
   const load = async () => {
     setPin(""); setError(false); setFirst(""); setChanging(false);
     const { data } = await supabase.from("chat_vault").select("pin_hash").eq("user_id", userId).maybeSingle();
     setStored(data?.pin_hash ?? null);
     setMode(data ? "enter" : "create");
+    const avail = await biometricAvailable();
+    const on = avail && biometricEnabled(userId);
+    setBioOk(avail); setBioOn(on);
+    if (data && on) setTimeout(() => void tryBio(), 250);
   };
 
   const press = async (d: string) => {

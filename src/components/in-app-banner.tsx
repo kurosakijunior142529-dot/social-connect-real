@@ -25,7 +25,7 @@ export function InAppBanner({ userId }: { userId?: string }) {
   pathRef.current = pathname;
   const [banner, setBanner] = useState<Banner | null>(null);
   const [shown, setShown] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const startY = useRef<number | null>(null);
 
   const hide = () => {

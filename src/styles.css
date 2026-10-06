@@ -58,7 +58,7 @@
 :root {
   --radius: 16px;
 
-  --background: oklch(0.13 0 0);
+  --background: oklch(0.12 0 0);
   --surface: oklch(0.165 0 0);
   --surface-2: oklch(0.205 0 0);
   --foreground: oklch(0.97 0 0);
@@ -69,8 +69,8 @@
   --popover-foreground: oklch(0.97 0 0);
 
   /* Emerald green 💚 */
-  --primary: #22E06A;
-  --primary-foreground: oklch(0.16 0.02 152);
+  --primary: #1DB954;
+  --primary-foreground: #04110A;
 
   --secondary: oklch(0.205 0 0);
   --secondary-foreground: oklch(0.97 0 0);
@@ -87,16 +87,16 @@
   --hairline: rgba(255, 255, 255, 0.06);
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.10);
-  --ring: oklch(0.80 0.22 150);
+  --ring: #1DB954;
 
   --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.97 0 0);
-  --sidebar-primary: oklch(0.80 0.22 150);
-  --sidebar-primary-foreground: oklch(0.16 0.02 152);
+  --sidebar-primary: #1DB954;
+  --sidebar-primary-foreground: #04110A;
   --sidebar-accent: oklch(0.205 0 0);
   --sidebar-accent-foreground: oklch(0.97 0 0);
   --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-ring: oklch(0.80 0.22 150);
+  --sidebar-ring: #1DB954;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
@@ -105,8 +105,8 @@
   --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 18px 48px -28px rgba(0,0,0,0.85);
 
   /* Neon Lime chat */
-  --chat-mine: #1C1F1D;
-  --chat-mine-foreground: #E8F1EB;
+  --chat-mine: #1E1E1F;
+  --chat-mine-foreground: #EDEDED;
   --chat-mine-glow: rgba(0, 0, 0, 0.25);
 }
 

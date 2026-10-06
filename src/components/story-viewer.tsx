@@ -170,7 +170,7 @@ export function StoryViewer({
           <div className="min-w-0 flex-1 text-white">
             <div className="truncate text-sm font-semibold tracking-tight">{group.profile?.display_name}</div>
             <div className="flex items-center gap-1.5 text-[11px] text-white/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {formatDistanceToNowStrict(new Date(story.created_at), { locale: ptBR, addSuffix: true })}
               {story.audience === "vip" ? (
                 <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-primary/20 px-1.5 py-0.5 font-semibold text-primary"><Star className="h-2.5 w-2.5 fill-current" />VIP</span>

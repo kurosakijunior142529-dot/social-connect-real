@@ -112,7 +112,7 @@ function FeedPage() {
           <div className="min-w-0">
             <div className="flex items-baseline gap-1">
               <span className="text-[24px] font-display font-semibold tracking-[-0.03em]">vibely</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             </div>
             <span className="block truncate text-[11px] tracking-wide text-muted-foreground tabular">@{meProfile.data?.username ?? "…"}</span>
           </div>

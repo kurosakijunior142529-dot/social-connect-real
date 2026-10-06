@@ -270,7 +270,7 @@ export function StudioTimeline({ project, sources, time, selectedId, onSelect, o
 
           {/* playhead */}
           <span
-            className="pointer-events-none absolute top-2 bottom-0 z-10 w-0.5 bg-primary shadow-[0_0_10px_var(--primary)]"
+            className="pointer-events-none absolute top-2 bottom-0 z-10 w-0.5 bg-primary"
             style={{ left: time * px }}
           >
             <span className="absolute -left-[5px] -top-1 h-3 w-3 rounded-full bg-primary" />

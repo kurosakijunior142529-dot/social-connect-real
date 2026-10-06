@@ -155,7 +155,7 @@ function NearbyPage() {
 
       {!myLocation.data ? (
         <section className="mx-4 space-y-4 rounded-[26px] border border-primary/25 bg-[radial-gradient(circle_at_50%_0%,rgba(215,255,58,0.14),transparent_45%),var(--surface)] p-6 text-center">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_22px_var(--primary)]">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground">
             <Compass className="h-7 w-7" />
           </div>
           <h2 className="text-lg font-semibold">Veja quem está por perto</h2>
@@ -214,7 +214,7 @@ function NearbyPage() {
                   }}
                 />
               ))}
-              <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_18px_var(--primary)]" />
+              <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
               <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full bg-primary/60" />
 
               {points.map(({ user: u, left, top }) => (

@@ -11,6 +11,7 @@ import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camer
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
+import { ChannelDiscover, useChannelCounts, formatMembers } from "@/components/chat/channel-discover";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -161,7 +162,13 @@ function MessagesPage() {
 
         {tab === "direct" && <DirectList userId={user.id} q={q} filter={filter} vault={vaultOpen} />}
         {tab === "group" && <ChatList userId={user.id} type="group" q={q} filter={filter} />}
-        {tab === "channel" && <ChatList userId={user.id} type="channel" q={q} filter={filter} />}
+        {tab === "channel" && (
+          <>
+            {!q && filter === "all" && <ChannelDiscover />}
+            <h2 className="px-4 pt-1 pb-1 font-display text-[17px] font-semibold tracking-tight">Seus canais</h2>
+            <ChatList userId={user.id} type="channel" q={q} filter={filter} />
+          </>
+        )}
       </div>
       <VaultPinSheet open={pinOpen} onOpenChange={setPinOpen} userId={user.id} onUnlocked={() => setVaultOpen(true)} />
     </div>

@@ -206,7 +206,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
              <SignedVideo
                bucket="posts"
                path={post.media_url ?? ""}
-               className="w-full max-h-[80vh] aspect-[4/5] mx-auto"
+               className="w-full max-h-[min(80vh,40rem)] aspect-[4/5] mx-auto"
                fit="contain"
                expandHref={`/reels?post=${post.id}`}
                watermarkUsername={author?.username}
@@ -252,7 +252,7 @@ function PostCardBase({ post, currentUserId }: { post: FeedPost; currentUserId: 
               bucket="posts"
               path={post.media_url ?? ""}
               alt={post.caption ?? "post"}
-              className="w-full h-auto max-h-[80vh] object-contain"
+              className="mx-auto w-full h-auto max-h-[min(80vh,calc((100vw-1.5rem)*1.25),40rem)] object-contain"
             />
           </Link>
         </PostCarousel>

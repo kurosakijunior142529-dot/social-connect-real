@@ -31,8 +31,9 @@ export const getRouter = () => {
     defaultPreload: "intent",
     defaultPreloadDelay: 60,
     defaultPreloadStaleTime: 0,
-    defaultPendingMs: 300,
-    defaultPendingMinMs: 200,
+    defaultPendingMs: 1000,
+    defaultPendingMinMs: 0,
+    defaultPendingComponent: () => <div className="min-h-[60vh] bg-background" />,
   });
 
   return router;

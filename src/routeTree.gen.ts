@@ -51,6 +51,7 @@ import { Route as AuthenticatedMarketplaceNewRouteImport } from './routes/_authe
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages.$conversationId'
 import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.$id'
+import { Route as AuthenticatedPostsUsernameRouteImport } from './routes/_authenticated/posts.$username'
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
 import { Route as AuthenticatedTTagRouteImport } from './routes/_authenticated/t.$tag'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
@@ -290,6 +291,12 @@ const AuthenticatedPIdRoute = AuthenticatedPIdRouteImport.update({
   path: '/p/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPostsUsernameRoute =
+  AuthenticatedPostsUsernameRouteImport.update({
+    id: '/posts/$username',
+    path: '/posts/$username',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedStoriesNewRoute = AuthenticatedStoriesNewRouteImport.update({
   id: '/stories/new',
   path: '/stories/new',
@@ -390,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
+  '/posts/$username': typeof AuthenticatedPostsUsernameRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
@@ -445,6 +453,7 @@ export interface FileRoutesByTo {
   '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
+  '/posts/$username': typeof AuthenticatedPostsUsernameRoute
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
@@ -502,6 +511,7 @@ export interface FileRoutesById {
   '/_authenticated/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/_authenticated/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/_authenticated/p/$id': typeof AuthenticatedPIdRoute
+  '/_authenticated/posts/$username': typeof AuthenticatedPostsUsernameRoute
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/t/$tag': typeof AuthenticatedTTagRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
@@ -559,6 +569,7 @@ export interface FileRouteTypes {
     | '/marketplace/new'
     | '/messages/$conversationId'
     | '/p/$id'
+    | '/posts/$username'
     | '/stories/new'
     | '/t/$tag'
     | '/u/$username'
@@ -614,6 +625,7 @@ export interface FileRouteTypes {
     | '/marketplace/new'
     | '/messages/$conversationId'
     | '/p/$id'
+    | '/posts/$username'
     | '/stories/new'
     | '/t/$tag'
     | '/u/$username'
@@ -670,6 +682,7 @@ export interface FileRouteTypes {
     | '/_authenticated/marketplace/new'
     | '/_authenticated/messages/$conversationId'
     | '/_authenticated/p/$id'
+    | '/_authenticated/posts/$username'
     | '/_authenticated/stories/new'
     | '/_authenticated/t/$tag'
     | '/_authenticated/u/$username'
@@ -998,6 +1011,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/posts/$username': {
+      id: '/_authenticated/posts/$username'
+      path: '/posts/$username'
+      fullPath: '/posts/$username'
+      preLoaderRoute: typeof AuthenticatedPostsUsernameRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/stories/new': {
       id: '/_authenticated/stories/new'
       path: '/stories/new'
@@ -1131,6 +1151,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMarketplaceNewRoute: typeof AuthenticatedMarketplaceNewRoute
   AuthenticatedMessagesConversationIdRoute: typeof AuthenticatedMessagesConversationIdRoute
   AuthenticatedPIdRoute: typeof AuthenticatedPIdRoute
+  AuthenticatedPostsUsernameRoute: typeof AuthenticatedPostsUsernameRoute
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedTTagRoute: typeof AuthenticatedTTagRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRouteWithChildren
@@ -1180,6 +1201,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMessagesConversationIdRoute:
     AuthenticatedMessagesConversationIdRoute,
   AuthenticatedPIdRoute: AuthenticatedPIdRoute,
+  AuthenticatedPostsUsernameRoute: AuthenticatedPostsUsernameRoute,
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedTTagRoute: AuthenticatedTTagRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRouteWithChildren,

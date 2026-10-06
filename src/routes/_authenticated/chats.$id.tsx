@@ -71,6 +71,23 @@ function ChatPage() {
     },
   });
 
+  const muted = useQuery({
+    queryKey: ["chat-muted", id, user.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("muted_chats").select("until").eq("user_id", user.id).eq("chat_id", id).maybeSingle();
+      return !!data && (!data.until || new Date(data.until).getTime() > Date.now());
+    },
+  });
+
+  const memberCount = useQuery({
+    queryKey: ["chat-count", id],
+    enabled: chat.data?.type === "channel",
+    queryFn: async () => {
+      const { data } = await (supabase as any).rpc("channel_member_counts", { _ids: [id] });
+      return Number((data as any[])?.[0]?.member_count ?? 0);
+    },
+  });
+
   const messages = useQuery({
     queryKey: ["chat-messages", id],
     queryFn: async () => {

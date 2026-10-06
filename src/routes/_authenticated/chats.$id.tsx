@@ -7,7 +7,10 @@ import { SignedImage } from "@/components/signed-image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Send, Users, Megaphone, LogOut, UserPlus, Trash2, X, Sparkles } from "lucide-react";
+import { ArrowLeft, Send, Users, Megaphone, LogOut, UserPlus, Trash2, X, Sparkles, Bell, BellOff } from "lucide-react";
+import { formatMembers } from "@/components/chat/channel-discover";
+
+const QUICK = ["❤️", "🔥", "👏", "🚀"];
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -172,6 +175,24 @@ function ChatPage() {
     if (error) { setDraft(text); toast.error(error.message); }
   }
 
+  async function followThis() {
+    const { error } = await (supabase as any).rpc("follow_channel", { _chat: id });
+    if (error) return toast.error("Não foi possível seguir");
+    toast.success("Seguindo o canal");
+    queryClient.invalidateQueries({ queryKey: ["chat-me", id] });
+    queryClient.invalidateQueries({ queryKey: ["chat", id] });
+    queryClient.invalidateQueries({ queryKey: ["chat-messages", id] });
+  }
+
+  async function toggleBell() {
+    if (muted.data) await (supabase as any).from("muted_chats").delete().eq("user_id", user.id).eq("chat_id", id);
+    else await (supabase as any).from("muted_chats").insert({ user_id: user.id, chat_id: id, until: null });
+    navigator.vibrate?.(10);
+    toast(muted.data ? "Notificações ativadas" : "Canal silenciado");
+    queryClient.invalidateQueries({ queryKey: ["chat-muted", id] });
+    queryClient.invalidateQueries({ queryKey: ["chat-mutes", user.id] });
+  }
+
   async function leave() {
     if (!confirm("Sair deste chat?")) return;
     const { error } = await (supabase as any).from("chat_members").delete().eq("chat_id", id).eq("user_id", user.id);
@@ -207,7 +228,7 @@ function ChatPage() {
         <button onClick={() => setMembersOpen(true)} className="flex-1 min-w-0 text-left leading-tight">
           <div className="font-semibold text-[15px] truncate">{chatData.title}</div>
           <div className="text-[11px] text-muted-foreground truncate">
-            {isChannel ? "Canal" : "Grupo"}{chatData.description ? ` · ${chatData.description}` : ""}
+            {isChannel ? (memberCount.data != null ? formatMembers(memberCount.data) : "Canal") : "Grupo"}{chatData.description ? ` · ${chatData.description}` : ""}
           </div>
         </button>
         {isChannel && isMember ? (
@@ -347,6 +368,7 @@ function ChatPage() {
           </Button>
         ) : null}
       </form>
+      )}
 
       <MembersDialog
         chatId={id}

@@ -210,6 +210,11 @@ function ChatPage() {
             {isChannel ? "Canal" : "Grupo"}{chatData.description ? ` · ${chatData.description}` : ""}
           </div>
         </button>
+        {isChannel && isMember ? (
+          <button onClick={toggleBell} className="p-2 rounded-full active:bg-[color:var(--surface-2)]" aria-label={muted.data ? "Ativar notificações" : "Silenciar notificações"}>
+            {muted.data ? <BellOff className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} /> : <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />}
+          </button>
+        ) : null}
         <SummarizeButton scope="chat" id={id} />
         <ConversationMenu
           scope="chat"
@@ -232,6 +237,35 @@ function ChatPage() {
           const replied = m.reply_to ? (byId.get(m.reply_to) as any) : null;
           const rs = reactions.data?.[m.id] ?? [];
           const translated = translations[m.id];
+          if (isChannel) {
+            return (
+              <article key={m.id} className="mx-auto w-full max-w-[560px] rounded-3xl border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4">
+                <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="font-semibold text-foreground">{m.sender?.display_name ?? chatData.title}</span>
+                  <span>· {new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                  {isAdmin ? <button onClick={() => deleteMessage(m.id)} className="ml-auto rounded-full p-1 active:bg-[color:var(--surface-2)]" aria-label="Apagar"><Trash2 className="h-3.5 w-3.5" /></button> : null}
+                </div>
+                <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.content}</div>
+                {m.edited_at ? <div className="mt-1 text-[10px] text-muted-foreground">editado</div> : null}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {QUICK.map((e) => {
+                    const r = rs.find((x: any) => x.emoji === e);
+                    return (
+                      <button
+                        key={e}
+                        disabled={!isMember}
+                        onClick={() => { navigator.vibrate?.(8); toggleReaction("chat", m.id, user.id, e, !!r?.mine).then(() => queryClient.invalidateQueries({ queryKey: ["reactions", "chat"] })); }}
+                        className={cn("inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[13px] transition active:scale-90",
+                          r?.mine ? "border-primary/50 bg-primary/10" : "border-[color:var(--hairline)] bg-[color:var(--surface-2)]")}
+                      >
+                        <span>{e}</span>{r?.count ? <span className="tabular text-[12px] text-muted-foreground">{r.count}</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </article>
+            );
+          }
           return (
             <div key={m.id} className={cn("flex items-end gap-2 group", mine ? "justify-end" : "justify-start")}>
               {!mine ? (
@@ -285,6 +319,15 @@ function ChatPage() {
         </div>
       ) : null}
 
+      {isChannel && !canPost ? (
+        <div className="p-3 hairline-t bg-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {isMember ? (
+            <p className="text-center text-[12px] text-muted-foreground">Só o criador publica aqui. Reaja tocando nos emojis das publicações.</p>
+          ) : (
+            <Button onClick={followThis} className="h-11 w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90">Seguir canal</Button>
+          )}
+        </div>
+      ) : (
       <form onSubmit={send} className="p-3 hairline-t bg-background flex items-end gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <ScheduleButton userId={user.id} target={{ type: "chat", chatId: id }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">

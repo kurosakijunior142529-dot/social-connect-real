@@ -491,6 +491,7 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
     } catch { toast.error("Não deu certo. Tente de novo."); }
   };
 
+  const counts = useChannelCounts(type === "channel" ? ((query.data ?? []) as any[]).map((c) => c.id) : []);
   const term = q.trim().toLowerCase();
   const rows = ((query.data ?? []) as any[])
     .filter((c) => !term || String(c.title ?? "").toLowerCase().includes(term))
@@ -565,6 +566,9 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
                 </div>
                 <div className="text-[13px] truncate leading-snug text-muted-foreground">
                   {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
+                  {type === "channel" && counts.data?.has(c.id) ? (
+                    <div className="mt-0.5 text-[11px] text-muted-foreground/80">{formatMembers(counts.data.get(c.id) ?? 0)}</div>
+                  ) : null}
                 </div>
               </div>
             </Link>

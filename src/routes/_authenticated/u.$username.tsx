@@ -589,12 +589,12 @@ function ProfileContent() {
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
-            <PostGrid posts={posts} empty="Nenhum post ainda." />
+            <PostGrid posts={posts} empty="Nenhum post ainda." username={username} />
           </TabsContent>
           <TabsContent value="videos" className="mt-4">
-            <PostGrid posts={videoPosts} empty="Nenhum vídeo publicado." />
+            <PostGrid posts={videoPosts} empty="Nenhum vídeo publicado." username={username} />
           </TabsContent>
-          <TabsContent value="photos" className="mt-4"><PostGrid posts={photoPosts} empty="Nenhuma foto publicada." /></TabsContent>
+          <TabsContent value="photos" className="mt-4"><PostGrid posts={photoPosts} empty="Nenhuma foto publicada." username={username} /></TabsContent>
           <TabsContent value="vibes" className="mt-4"><VibeGrid vibes={activeVibes} /></TabsContent>
           <TabsContent value="lives" className="mt-4"><LiveGrid lives={liveItems} /></TabsContent>
           <TabsContent value="reposts" className="mt-4">
@@ -618,15 +618,16 @@ function ProfileContent() {
   );
 }
 
-function PostGrid({ posts, empty }: { posts: any[]; empty: string }) {
+function PostGrid({ posts, empty, username }: { posts: any[]; empty: string; username?: string }) {
   if (!posts.length) return <div className="grid min-h-32 place-items-center px-5 text-center text-sm text-muted-foreground"><span className="grid gap-2 place-items-center"><Grid3x3 className="h-6 w-6 text-muted-foreground/50" />{empty}</span></div>;
   return (
     <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:gap-3">
       {posts.map((p) => (
         <Link
           key={p.id}
-          to="/p/$id"
-          params={{ id: p.id }}
+          {...(username
+            ? { to: "/posts/$username" as const, params: { username }, search: { start: p.id } }
+            : { to: "/p/$id" as const, params: { id: p.id } })}
           className="group relative aspect-square overflow-hidden rounded-md bg-[color:var(--surface-2)] ring-1 ring-border/60 transition duration-200 hover:ring-primary/20 active:scale-[0.98] md:rounded-lg"
         >
           <SignedMediaThumb

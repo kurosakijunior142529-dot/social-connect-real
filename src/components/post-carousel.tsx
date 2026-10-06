@@ -34,7 +34,7 @@ export function PostCarousel({ postId, children }: { postId: string; children: R
               {m.media_type === "video" ? (
                 <SignedVideo bucket="posts" path={m.media_url} className="w-full max-h-[80vh] aspect-[4/5] mx-auto" fit="contain" />
               ) : (
-                <SignedImage bucket="posts" path={m.media_url} alt="" className="mx-auto w-full h-auto max-h-[80vh] object-contain" />
+                <SignedImage bucket="posts" path={m.media_url} alt="" className="mx-auto w-full h-auto max-h-[min(80vh,calc((100vw-1.5rem)*1.25),40rem)] object-contain" />
               )}
             </div>
           </div>

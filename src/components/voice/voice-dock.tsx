@@ -16,7 +16,7 @@ export function VoiceDock() {
   }, [status]);
 
   if (!channel || status === "idle") return null;
-  if (pathname === `/voice/${channel.id}`) return null;
+  if (pathname === `/chats/${channel.id}`) return null;
 
   const speaking = members.some((m) => m.speaking);
 
@@ -31,7 +31,7 @@ export function VoiceDock() {
           {speaking ? <span className="absolute inset-0 animate-ping rounded-full bg-primary/25" /> : null}
           <Headphones className="h-4 w-4" />
         </span>
-        <Link to="/voice/$id" params={{ id: channel.id }} className="min-w-0 flex-1 text-left">
+        <Link to="/chats/$id" params={{ id: channel.id }} className="min-w-0 flex-1 text-left">
           <div className="truncate text-sm font-semibold">
             {channel.emoji ?? "🔊"} {channel.name}
           </div>
@@ -62,7 +62,7 @@ export function VoiceDock() {
           {deafened ? <HeadphoneOff className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
         </button>
         <Link
-          to="/voice/$id"
+          to="/chats/$id"
           params={{ id: channel.id }}
           aria-label="Abrir canal"
           className="hidden h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)] transition active:scale-90 sm:grid"

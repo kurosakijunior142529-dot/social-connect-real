@@ -55,8 +55,6 @@ import { Route as AuthenticatedPostsUsernameRouteImport } from './routes/_authen
 import { Route as AuthenticatedStoriesNewRouteImport } from './routes/_authenticated/stories.new'
 import { Route as AuthenticatedTTagRouteImport } from './routes/_authenticated/t.$tag'
 import { Route as AuthenticatedUUsernameRouteImport } from './routes/_authenticated/u.$username'
-import { Route as AuthenticatedVoiceIndexRouteImport } from './routes/_authenticated/voice.index'
-import { Route as AuthenticatedVoiceIdRouteImport } from './routes/_authenticated/voice.$id'
 import { Route as AuthenticatedWatchIndexRouteImport } from './routes/_authenticated/watch.index'
 import { Route as AuthenticatedWatchRoomIdRouteImport } from './routes/_authenticated/watch.$roomId'
 import { Route as ApiAiStreamRouteImport } from './routes/api/ai.stream'
@@ -312,16 +310,6 @@ const AuthenticatedUUsernameRoute = AuthenticatedUUsernameRouteImport.update({
   path: '/u/$username',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedVoiceIndexRoute = AuthenticatedVoiceIndexRouteImport.update({
-  id: '/voice/',
-  path: '/voice/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedVoiceIdRoute = AuthenticatedVoiceIdRouteImport.update({
-  id: '/voice/$id',
-  path: '/voice/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedWatchIndexRoute = AuthenticatedWatchIndexRouteImport.update({
   id: '/watch/',
   path: '/watch/',
@@ -401,7 +389,6 @@ export interface FileRoutesByFullPath {
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
-  '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/ai/stream': typeof ApiAiStreamRoute
   '/api/public/gif': typeof ApiPublicGifRoute
@@ -411,7 +398,6 @@ export interface FileRoutesByFullPath {
   '/lives/': typeof AuthenticatedLivesIndexRoute
   '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
-  '/voice/': typeof AuthenticatedVoiceIndexRoute
   '/watch/': typeof AuthenticatedWatchIndexRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -457,7 +443,6 @@ export interface FileRoutesByTo {
   '/stories/new': typeof AuthenticatedStoriesNewRoute
   '/t/$tag': typeof AuthenticatedTTagRoute
   '/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
-  '/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/ai/stream': typeof ApiAiStreamRoute
   '/api/public/gif': typeof ApiPublicGifRoute
@@ -467,7 +452,6 @@ export interface FileRoutesByTo {
   '/lives': typeof AuthenticatedLivesIndexRoute
   '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
-  '/voice': typeof AuthenticatedVoiceIndexRoute
   '/watch': typeof AuthenticatedWatchIndexRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -515,7 +499,6 @@ export interface FileRoutesById {
   '/_authenticated/stories/new': typeof AuthenticatedStoriesNewRoute
   '/_authenticated/t/$tag': typeof AuthenticatedTTagRoute
   '/_authenticated/u/$username': typeof AuthenticatedUUsernameRouteWithChildren
-  '/_authenticated/voice/$id': typeof AuthenticatedVoiceIdRoute
   '/_authenticated/watch/$roomId': typeof AuthenticatedWatchRoomIdRoute
   '/api/ai/stream': typeof ApiAiStreamRoute
   '/api/public/gif': typeof ApiPublicGifRoute
@@ -525,7 +508,6 @@ export interface FileRoutesById {
   '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
   '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
-  '/_authenticated/voice/': typeof AuthenticatedVoiceIndexRoute
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
   '/_authenticated/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -573,7 +555,6 @@ export interface FileRouteTypes {
     | '/stories/new'
     | '/t/$tag'
     | '/u/$username'
-    | '/voice/$id'
     | '/watch/$roomId'
     | '/api/ai/stream'
     | '/api/public/gif'
@@ -583,7 +564,6 @@ export interface FileRouteTypes {
     | '/lives/'
     | '/marketplace/'
     | '/messages/'
-    | '/voice/'
     | '/watch/'
     | '/u/$username/follows'
     | '/api/public/payments/webhook'
@@ -629,7 +609,6 @@ export interface FileRouteTypes {
     | '/stories/new'
     | '/t/$tag'
     | '/u/$username'
-    | '/voice/$id'
     | '/watch/$roomId'
     | '/api/ai/stream'
     | '/api/public/gif'
@@ -639,7 +618,6 @@ export interface FileRouteTypes {
     | '/lives'
     | '/marketplace'
     | '/messages'
-    | '/voice'
     | '/watch'
     | '/u/$username/follows'
     | '/api/public/payments/webhook'
@@ -686,7 +664,6 @@ export interface FileRouteTypes {
     | '/_authenticated/stories/new'
     | '/_authenticated/t/$tag'
     | '/_authenticated/u/$username'
-    | '/_authenticated/voice/$id'
     | '/_authenticated/watch/$roomId'
     | '/api/ai/stream'
     | '/api/public/gif'
@@ -696,7 +673,6 @@ export interface FileRouteTypes {
     | '/_authenticated/lives/'
     | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
-    | '/_authenticated/voice/'
     | '/_authenticated/watch/'
     | '/_authenticated/u/$username/follows'
     | '/api/public/payments/webhook'
@@ -1039,20 +1015,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUUsernameRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/voice/': {
-      id: '/_authenticated/voice/'
-      path: '/voice'
-      fullPath: '/voice/'
-      preLoaderRoute: typeof AuthenticatedVoiceIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/voice/$id': {
-      id: '/_authenticated/voice/$id'
-      path: '/voice/$id'
-      fullPath: '/voice/$id'
-      preLoaderRoute: typeof AuthenticatedVoiceIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/watch/': {
       id: '/_authenticated/watch/'
       path: '/watch'
@@ -1155,7 +1117,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedStoriesNewRoute: typeof AuthenticatedStoriesNewRoute
   AuthenticatedTTagRoute: typeof AuthenticatedTTagRoute
   AuthenticatedUUsernameRoute: typeof AuthenticatedUUsernameRouteWithChildren
-  AuthenticatedVoiceIdRoute: typeof AuthenticatedVoiceIdRoute
   AuthenticatedWatchRoomIdRoute: typeof AuthenticatedWatchRoomIdRoute
   AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -1163,7 +1124,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
   AuthenticatedMarketplaceIndexRoute: typeof AuthenticatedMarketplaceIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
-  AuthenticatedVoiceIndexRoute: typeof AuthenticatedVoiceIndexRoute
   AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
 }
 
@@ -1205,7 +1165,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedStoriesNewRoute: AuthenticatedStoriesNewRoute,
   AuthenticatedTTagRoute: AuthenticatedTTagRoute,
   AuthenticatedUUsernameRoute: AuthenticatedUUsernameRouteWithChildren,
-  AuthenticatedVoiceIdRoute: AuthenticatedVoiceIdRoute,
   AuthenticatedWatchRoomIdRoute: AuthenticatedWatchRoomIdRoute,
   AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
@@ -1213,7 +1172,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,
   AuthenticatedMarketplaceIndexRoute: AuthenticatedMarketplaceIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
-  AuthenticatedVoiceIndexRoute: AuthenticatedVoiceIndexRoute,
   AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
 }
 

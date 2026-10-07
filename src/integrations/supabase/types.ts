@@ -4185,6 +4185,13 @@ export type Database = {
       }
       can_view_reality: { Args: { _reality_id: string }; Returns: boolean }
       change_username: { Args: { _new_username: string }; Returns: string }
+      channel_member_counts: {
+        Args: { _ids: string[] }
+        Returns: {
+          chat_id: string
+          member_count: number
+        }[]
+      }
       chat_role: { Args: { _chat: string; _user: string }; Returns: string }
       check_rate_limit: {
         Args: { _limit: number; _scope: string; _window_seconds: number }
@@ -4196,8 +4203,22 @@ export type Database = {
         Returns: number
       }
       deliver_scheduled_messages: { Args: never; Returns: number }
+      discover_channels: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          category: string
+          description: string
+          id: string
+          last_message_at: string
+          member_count: number
+          owner_id: string
+          title: string
+        }[]
+      }
       end_stale_lives: { Args: never; Returns: number }
       flag_enabled: { Args: { _key: string }; Returns: boolean }
+      follow_channel: { Args: { _chat: string }; Returns: undefined }
       friends_vibe_checkins: {
         Args: never
         Returns: {

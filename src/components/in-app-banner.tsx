@@ -42,6 +42,13 @@ export function InAppBanner({ userId }: { userId?: string }) {
         const m = payload.new;
         if (!m || m.sender_id === userId) return;
         if (pathRef.current === `/messages/${m.conversation_id}`) return;
+        const { data: mute } = await supabase
+          .from("muted_conversations")
+          .select("until")
+          .eq("user_id", userId)
+          .eq("conversation_id", m.conversation_id)
+          .maybeSingle();
+        if (mute && (!mute.until || new Date(mute.until).getTime() > Date.now())) return;
         const { data: p } = await supabase
           .from("profiles")
           .select("display_name, username, avatar_url")

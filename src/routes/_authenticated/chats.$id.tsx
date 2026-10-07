@@ -35,7 +35,8 @@ import { PollCard } from "@/components/polls/poll-card";
 import { PollComposer, emptyPollDraft } from "@/components/polls/poll-composer";
 import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
 import { uploadChatFile, kindForFile } from "@/lib/chat-media";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Mic2 } from "lucide-react";
+import { GroupVoiceBar, VibeStrip, GalleryButton, ChannelFilterBar, matchesFilter, type ChannelFilter, GROUP_VIBES } from "@/components/chat/group-extras";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -57,6 +58,7 @@ function ChatPage() {
   const { prefs, theme: bubbleTheme, font: chatFont } = useChatPrefs(id);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
+  const [filter, setFilter] = useState<ChannelFilter>("all");
   const [pollDraft, setPollDraft] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
 
   const chat = useQuery({
@@ -254,6 +256,12 @@ function ChatPage() {
     }
   }
 
+  async function setVibe(key: string) {
+    const { error } = await (supabase as any).from("chat_messages").insert({ chat_id: id, sender_id: user.id, kind: "vibe", content: key });
+    if (error) toast.error("Não foi possível mudar a vibe");
+    else navigator.vibrate?.(10);
+  }
+
   async function deleteChannel() {
     if (!confirm("Excluir este canal para sempre? Todas as publicações serão apagadas.")) return;
     await (supabase as any).from("chat_messages").delete().eq("chat_id", id);
@@ -307,6 +315,7 @@ function ChatPage() {
             {muted.data ? <BellOff className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} /> : <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />}
           </button>
         ) : null}
+        {!isChannel ? <GalleryButton messages={messages.data ?? []} /> : null}
         <SummarizeButton scope="chat" id={id} />
         <ConversationMenu
           scope="chat"
@@ -326,16 +335,35 @@ function ChatPage() {
           </button>
         ) : null}
       </header>
+      {isChannel ? <ChannelFilterBar value={filter} onChange={setFilter} /> : isMember ? (
+        <div className="pb-1">
+          <GroupVoiceBar groupId={id} title={chatData.title ?? "Grupo"} />
+          <VibeStrip messages={messages.data ?? []} onPick={setVibe} />
+        </div>
+      ) : null}
 
       <div className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-2", chatFont.className)}>
-        {messages.data?.map((m: any) => {
+        {isChannel && filter !== "all" && !(messages.data ?? []).some((m: any) => matchesFilter(m, filter)) ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">Nada por aqui ainda.</p>
+        ) : null}
+        {messages.data?.filter((m: any) => !isChannel || matchesFilter(m, filter)).map((m: any) => {
+          if (m.kind === "vibe") {
+            const v = GROUP_VIBES.find((x) => x.key === m.content);
+            return (
+              <div key={m.id} className="flex justify-center py-1">
+                <span className="rounded-full bg-[color:var(--surface-2)] px-3 py-1 text-[11px] text-muted-foreground">
+                  {m.sender?.display_name ?? "Alguém"} mudou a vibe para {v?.emoji} {v?.label ?? m.content}
+                </span>
+              </div>
+            );
+          }
           const mine = m.sender_id === user.id;
           const replied = m.reply_to ? (byId.get(m.reply_to) as any) : null;
           const rs = reactions.data?.[m.id] ?? [];
           const translated = translations[m.id];
           if (isChannel) {
             return (
-              <article key={m.id} className="mx-auto w-full max-w-[560px] rounded-3xl border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4">
+              <article key={m.id} className="mx-auto w-full max-w-[560px] rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4 shadow-sm">
                 <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="font-semibold text-foreground">{m.sender?.display_name ?? chatData.title}</span>
                   <span>· {new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
@@ -349,6 +377,19 @@ function ChatPage() {
                 </div>
                 {m.kind === "poll" && m.meta?.poll_id ? (
                   <PollCard pollId={m.meta.poll_id} currentUserId={user.id} />
+                ) : m.kind === "audio" ? (
+                  <div className="rounded-2xl bg-[color:var(--surface-2)] p-3">
+                    <div className="mb-2 flex items-center gap-2.5">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-background grid place-items-center">
+                        {chatData.avatar_url ? <SignedImage bucket="chats" path={chatData.avatar_url} alt="" className="h-full w-full object-cover" /> : <Mic2 className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Boletim de voz</div>
+                        <div className="truncate text-[14px] font-semibold">{m.content || chatData.title}</div>
+                      </div>
+                    </div>
+                    <MessageBody msg={m} mine={false} />
+                  </div>
                 ) : m.kind && m.kind !== "text" ? (
                   <div className="space-y-2">
                     <div className="overflow-hidden rounded-2xl"><MessageBody msg={{ ...m, content: m.kind === "post" ? m.content : null }} mine={false} /></div>
@@ -404,13 +445,19 @@ function ChatPage() {
                   style={{
                     borderTopLeftRadius: prefs.radius,
                     borderTopRightRadius: prefs.radius,
-                    borderBottomRightRadius: mine ? 6 : prefs.radius,
-                    borderBottomLeftRadius: mine ? prefs.radius : 6,
+                    borderBottomRightRadius: prefs.radius,
+                    borderBottomLeftRadius: prefs.radius,
                   }}
                   className={cn("px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
                   mine ? bubbleTheme.mine : bubbleTheme.theirs)}>
                   {replied ? <ReplyQuote text={replied.content} /> : null}
-                  {m.content}
+                  {m.kind && m.kind !== "text" ? (
+                    <div className="space-y-1">
+                      <MessageBody msg={{ ...m, content: m.kind === "post" ? m.content : null }} mine={mine} />
+                      {m.content && m.kind !== "post" && m.kind !== "poll" ? <div>{m.content}</div> : null}
+                      {m.kind === "poll" && m.meta?.poll_id ? <PollCard pollId={m.meta.poll_id} currentUserId={user.id} /> : null}
+                    </div>
+                  ) : m.content}
                   {m.edited_at ? <span className={cn("ml-2 text-[10px]", mine ? "opacity-70" : "text-muted-foreground")}>editado</span> : null}
                   {translated ? <div className={cn("mt-1 pt-1 border-t text-[12px]", mine ? "border-black/20 opacity-90" : "border-white/10 text-muted-foreground")}>🌐 {translated}</div> : null}
                 </div>

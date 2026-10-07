@@ -191,3 +191,28 @@ export function ChannelFilterBar({ value, onChange }: { value: ChannelFilter; on
     </div>
   );
 }
+
+/* Botão discreto no cabeçalho do grupo que abre a sala de voz */
+export function GroupVoiceButton({ groupId, title }: { groupId: string; title: string }) {
+  const voice = useVoice();
+  const [open, setOpen] = useState(false);
+  const here = voice.channel?.id === groupId && voice.status !== "idle";
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="Sala de voz"
+        className={cn("relative p-2 rounded-full active:bg-[color:var(--surface-2)]", here && "text-primary")}
+      >
+        <Headphones className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        {here ? <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" /> : null}
+      </button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <SheetHeader><SheetTitle>Sala de voz</SheetTitle></SheetHeader>
+          <div className="-mx-3 pb-2"><GroupVoiceBar groupId={groupId} title={title} /></div>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}

@@ -28,6 +28,14 @@ import { useChatPrefs } from "@/lib/bubble-themes";
 import { ConversationMenu } from "@/components/chat/conversation-menu";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
 import { parseVibelyMention } from "@/lib/vibely-mention";
+import { AttachMenu } from "@/components/chat/attach-menu";
+import { AudioRecorder } from "@/components/chat/audio-recorder";
+import { MessageBody } from "@/components/chat/message-body";
+import { PollCard } from "@/components/polls/poll-card";
+import { PollComposer, emptyPollDraft } from "@/components/polls/poll-composer";
+import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
+import { uploadChatFile, kindForFile } from "@/lib/chat-media";
+import { BarChart3 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -48,6 +56,8 @@ function ChatPage() {
   const ai = useAiActions();
   const { prefs, theme: bubbleTheme, font: chatFont } = useChatPrefs(id);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [pollOpen, setPollOpen] = useState(false);
+  const [pollDraft, setPollDraft] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
 
   const chat = useQuery({
     queryKey: ["chat", id],
@@ -210,6 +220,50 @@ function ChatPage() {
     queryClient.invalidateQueries({ queryKey: ["chat-mutes", user.id] });
   }
 
+  async function sendFile(file: File, caption?: string, durationMs?: number) {
+    if (!canPost) return;
+    const t = toast.loading("Enviando…");
+    try {
+      const { bucket, path } = await uploadChatFile(user.id, file);
+      const { error } = await (supabase as any).from("chat_messages").insert({
+        chat_id: id, sender_id: user.id, kind: kindForFile(file), content: caption ?? null,
+        media_url: path, media_bucket: bucket, media_type: file.type || null, media_name: file.name,
+        media_size: file.size, media_duration_ms: durationMs ?? null,
+      });
+      if (error) throw error;
+      toast.success("Publicado", { id: t });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao enviar", { id: t });
+    }
+  }
+
+  async function sendPoll() {
+    const err = validateDraft(pollDraft);
+    if (err) return toast.error(err);
+    try {
+      const pollId = await createPoll(pollDraft, user.id);
+      const { error } = await (supabase as any).from("chat_messages").insert({
+        chat_id: id, sender_id: user.id, kind: "poll", content: pollDraft.question.trim(), meta: { poll_id: pollId },
+      });
+      if (error) throw error;
+      setPollOpen(false);
+      setPollDraft({ ...emptyPollDraft, options: ["", ""] });
+      toast.success("Enquete publicada");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao criar enquete");
+    }
+  }
+
+  async function deleteChannel() {
+    if (!confirm("Excluir este canal para sempre? Todas as publicações serão apagadas.")) return;
+    await (supabase as any).from("chat_messages").delete().eq("chat_id", id);
+    const { error } = await (supabase as any).from("chats").delete().eq("id", id);
+    if (error) return toast.error("Não foi possível excluir o canal");
+    toast.success("Canal excluído");
+    queryClient.invalidateQueries();
+    navigate({ to: "/messages" });
+  }
+
   async function leave() {
     if (!confirm("Sair deste chat?")) return;
     const { error } = await (supabase as any).from("chat_members").delete().eq("chat_id", id).eq("user_id", user.id);
@@ -262,7 +316,11 @@ function ChatPage() {
           onOpenPinned={() => toast.info("Fixe mensagens pelo menu de ações.")}
           onOpenCustomize={() => setCustomizeOpen(true)}
         />
-        {isMember ? (
+        {isChannel && role === "owner" ? (
+          <button onClick={deleteChannel} className="p-2 rounded-full active:bg-[color:var(--surface-2)] text-destructive" aria-label="Excluir canal">
+            <Trash2 className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </button>
+        ) : isMember ? (
           <button onClick={leave} className="p-2 rounded-full active:bg-[color:var(--surface-2)]" aria-label="Sair">
             <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </button>
@@ -289,7 +347,16 @@ function ChatPage() {
                       onTranslated={(mid, t) => setTranslations((p) => ({ ...p, [mid]: t }))} />
                   </span>
                 </div>
-                <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.content}</div>
+                {m.kind === "poll" && m.meta?.poll_id ? (
+                  <PollCard pollId={m.meta.poll_id} currentUserId={user.id} />
+                ) : m.kind && m.kind !== "text" ? (
+                  <div className="space-y-2">
+                    <div className="overflow-hidden rounded-2xl"><MessageBody msg={{ ...m, content: m.kind === "post" ? m.content : null }} mine={false} /></div>
+                    {m.content && m.kind !== "post" ? <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.content}</div> : null}
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.content}</div>
+                )}
                 {m.edited_at ? <div className="mt-1 text-[10px] text-muted-foreground">editado</div> : null}
                 {translated ? <div className="mt-2 border-t border-[color:var(--hairline)] pt-2 text-[13px] text-muted-foreground">🌐 {translated}</div> : null}
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -382,6 +449,12 @@ function ChatPage() {
         </div>
       ) : (
       <form onSubmit={send} className="p-3 hairline-t bg-background flex items-end gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        {canPost ? <AttachMenu onFile={(f, c) => sendFile(f, c)} onLocation={() => toast.info("Localização não está disponível em canais")} /> : null}
+        {isChannel && canPost ? (
+          <button type="button" onClick={() => setPollOpen(true)} aria-label="Criar enquete" className="grid h-9 w-9 place-items-center rounded-full transition active:scale-90 active:bg-[color:var(--surface-2)]">
+            <BarChart3 className="h-[19px] w-[19px]" strokeWidth={1.8} />
+          </button>
+        ) : null}
         <ScheduleButton userId={user.id} target={{ type: "chat", chatId: id }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
           <Input
@@ -398,6 +471,8 @@ function ChatPage() {
           <Button type="submit" disabled={sending} size="icon" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 shrink-0">
             <Send className="h-4 w-4" strokeWidth={2.2} />
           </Button>
+        ) : canPost ? (
+          <AudioRecorder onSend={(f, ms) => sendFile(f, undefined, ms)} />
         ) : null}
       </form>
       )}
@@ -409,6 +484,14 @@ function ChatPage() {
         isAdmin={isAdmin}
         currentUserId={user.id}
       />
+
+      <Dialog open={pollOpen} onOpenChange={setPollOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Nova enquete</DialogTitle></DialogHeader>
+          <PollComposer value={pollDraft} onChange={setPollDraft} />
+          <Button onClick={sendPoll} className="h-11 w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90">Publicar enquete</Button>
+        </DialogContent>
+      </Dialog>
 
       <ChatCustomizeSheet open={customizeOpen} onOpenChange={setCustomizeOpen} chatId={id} />
     </div>

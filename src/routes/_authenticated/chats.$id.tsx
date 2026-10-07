@@ -497,7 +497,7 @@ function ChatPage() {
       ) : (
       <form onSubmit={send} className="p-3 hairline-t bg-background flex items-end gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {canPost ? <AttachMenu onFile={(f, c) => sendFile(f, c)} onLocation={() => { toast.info("Localização não está disponível em canais"); }} /> : null}
-        {isChannel && canPost ? (
+        {canPost ? (
           <button type="button" onClick={() => setPollOpen(true)} aria-label="Criar enquete" className="grid h-9 w-9 place-items-center rounded-full transition active:scale-90 active:bg-[color:var(--surface-2)]">
             <BarChart3 className="h-[19px] w-[19px]" strokeWidth={1.8} />
           </button>

@@ -281,10 +281,17 @@ function ChatPage() {
                 <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="font-semibold text-foreground">{m.sender?.display_name ?? chatData.title}</span>
                   <span>· {new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-                  {isAdmin ? <button onClick={() => deleteMessage(m.id)} className="ml-auto rounded-full p-1 active:bg-[color:var(--surface-2)]" aria-label="Apagar"><Trash2 className="h-3.5 w-3.5" /></button> : null}
+                  <span className="ml-auto">
+                    <MessageActions message={m} ctx={{ scope: "chat", ownerId: user.id }} mine={mine || isAdmin}
+                      onReply={setReplyTo}
+                      onEdit={(x) => { if (mine || isAdmin) { setEditing(x); setDraft(x.content ?? ""); } }}
+                      onDelete={(id) => { if (isAdmin || mine) deleteMessage(id); }}
+                      onTranslated={(mid, t) => setTranslations((p) => ({ ...p, [mid]: t }))} />
+                  </span>
                 </div>
                 <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.content}</div>
                 {m.edited_at ? <div className="mt-1 text-[10px] text-muted-foreground">editado</div> : null}
+                {translated ? <div className="mt-2 border-t border-[color:var(--hairline)] pt-2 text-[13px] text-muted-foreground">🌐 {translated}</div> : null}
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {QUICK.map((e) => {
                     const r = rs.find((x: any) => x.emoji === e);
@@ -300,6 +307,14 @@ function ChatPage() {
                       </button>
                     );
                   })}
+                  {rs.filter((x: any) => !QUICK.includes(x.emoji)).map((r: any) => (
+                    <button key={r.emoji} disabled={!isMember}
+                      onClick={() => toggleReaction("chat", m.id, user.id, r.emoji, !!r.mine).then(() => queryClient.invalidateQueries({ queryKey: ["reactions", "chat"] }))}
+                      className={cn("inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[13px] transition active:scale-90",
+                        r.mine ? "border-primary/50 bg-primary/10" : "border-[color:var(--hairline)] bg-[color:var(--surface-2)]")}>
+                      <span>{r.emoji}</span>{r.count ? <span className="tabular text-[12px] text-muted-foreground">{r.count}</span> : null}
+                    </button>
+                  ))}
                 </div>
               </article>
             );

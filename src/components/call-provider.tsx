@@ -207,6 +207,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     sttFallbackRef.current?.stop();
     sttFallbackRef.current = null;
     translationEnabledRef.current = false;
+    peerCaptureRef.current = false;
     mediaConnectedRef.current = false;
     setMediaConnected(false);
     setTranslationEnabled(false);

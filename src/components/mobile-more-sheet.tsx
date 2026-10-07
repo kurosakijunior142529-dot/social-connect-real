@@ -109,7 +109,6 @@ export function MobileMoreSheet({ onSignOut }: { onSignOut: () => void }) {
   ];
 
   const fun: Entry[] = [
-    { to: "/voice", label: t("nav.voice"), hint: t("more.voiceHint"), icon: <Headphones className={icon} /> },
     { to: "/messages", label: t("nav.messages"), hint: t("more.messagesHint"), icon: <MessageCircle className={icon} /> },
     { to: "/notifications", label: t("nav.notifications"), hint: t("more.notificationsHint"), icon: <Bell className={icon} /> },
     { to: "/saved", label: t("nav.saved"), hint: t("more.savedHint"), icon: <Bookmark className={icon} /> },

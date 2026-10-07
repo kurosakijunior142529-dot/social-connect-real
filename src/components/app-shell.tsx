@@ -222,16 +222,6 @@ export function AppShell({
             {t("nav.watch")}
           </Link>
           <Link
-            to="/voice"
-            className={cn(
-              "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-              pathname.startsWith("/voice") ? "bg-[color:var(--surface-2)] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-[color:var(--surface)]",
-            )}
-          >
-            <Headphones className="h-[18px] w-[18px]" strokeWidth={1.6} />
-            {t("nav.voice")}
-          </Link>
-          <Link
             to="/ai"
             className={cn(
               "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",

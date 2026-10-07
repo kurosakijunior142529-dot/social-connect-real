@@ -45,9 +45,10 @@ export const getVoiceChannelAccess = createServerFn({ method: "POST" })
       if (!vc.is_public && vc.created_by !== ctx.userId) {
         throw new Error("Você não tem acesso a esta sala");
       }
-      channel = vc;
+      channel = vc as { id: string; name: string };
     }
 
+    if (!channel) throw new Error("Sala de voz não encontrada");
     const { issueToken, livekitUrl } = await import("@/lib/livekit.server");
     const room = `voice_${channel.id.replaceAll("-", "")}`;
     const token = await issueToken({

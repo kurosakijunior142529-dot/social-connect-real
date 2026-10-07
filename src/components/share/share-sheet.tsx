@@ -90,8 +90,21 @@ export function ShareSheet({
     },
   });
 
+  const channels = useQuery({
+    queryKey: ["share-channels", userId],
+    enabled: open && !!userId,
+    queryFn: async () => {
+      const { data: mem } = await (supabase as any)
+        .from("chat_members").select("chat_id, role").eq("user_id", userId).in("role", ["owner", "admin"]);
+      const ids = (mem ?? []).map((m: any) => m.chat_id);
+      if (!ids.length) return [] as any[];
+      const { data } = await (supabase as any).from("chats").select("id, title, avatar_url").eq("type", "channel").in("id", ids);
+      return (data ?? []).map((c: any) => ({ id: c.id, channel: true, other: { display_name: c.title, username: null, avatar_url: null } }));
+    },
+  });
+
   const filtered = useMemo(() => {
-    const list = convs.data ?? [];
+    const list = [...(channels.data ?? []), ...(convs.data ?? [])];
     if (!query) return list;
     const q = query.toLowerCase();
     return list.filter(
@@ -99,7 +112,7 @@ export function ShareSheet({
         c.other?.username?.toLowerCase().includes(q) ||
         c.other?.display_name?.toLowerCase().includes(q),
     );
-  }, [convs.data, query]);
+  }, [convs.data, channels.data, query]);
 
   const shareText = target.text?.trim() ? `${target.text}\n${target.url}` : target.url;
 
@@ -129,7 +142,7 @@ export function ShareSheet({
     [shareText, target.url, target.text],
   );
 
-  async function sendTo(convId: string) {
+  async function sendTo(convId: string, channel = false) {
     if (!userId) return;
     setBusy(convId);
     const post = target.post;
@@ -162,7 +175,13 @@ export function ShareSheet({
           content: shareText,
           kind: "text",
         };
-    const { error } = await (supabase as any).from("messages").insert(payload);
+    let error: any;
+    if (channel) {
+      const { conversation_id: _c, ...rest } = payload;
+      ({ error } = await (supabase as any).from("chat_messages").insert({ ...rest, chat_id: convId }));
+    } else {
+      ({ error } = await (supabase as any).from("messages").insert(payload));
+    }
     setBusy(null);
     if (error) {
       console.error("[share-sheet] send failed", error);
@@ -351,14 +370,14 @@ export function ShareSheet({
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-medium">{c.other?.display_name}</div>
                           <div className="truncate text-xs text-muted-foreground">
-                            @{c.other?.username}
+                            {c.channel ? "Seu canal" : `@${c.other?.username}`}
                           </div>
                         </div>
                         <Button
                           size="sm"
                           variant={sent[c.id] ? "secondary" : "default"}
                           disabled={busy === c.id || sent[c.id]}
-                          onClick={() => sendTo(c.id)}
+                          onClick={() => sendTo(c.id, !!c.channel)}
                           className="rounded-full"
                         >
                           {sent[c.id] ? (

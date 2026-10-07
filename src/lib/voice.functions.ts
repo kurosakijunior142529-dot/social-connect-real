@@ -19,15 +19,33 @@ export const getVoiceChannelAccess = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const ctx = context as unknown as { supabase: any; userId: string };
-    const { data: channel, error } = await ctx.supabase
-      .from("voice_channels")
-      .select("id, name, is_public, created_by")
-      .eq("id", data.channelId)
+    // Sala de voz de grupo: o id é o do próprio grupo e só membros entram.
+    const { data: member } = await ctx.supabase
+      .from("chat_members")
+      .select("chat_id")
+      .eq("chat_id", data.channelId)
+      .eq("user_id", ctx.userId)
       .maybeSingle();
-
-    if (error || !channel) throw new Error("Canal de voz não encontrado");
-    if (!channel.is_public && channel.created_by !== ctx.userId) {
-      throw new Error("Você não tem acesso a este canal");
+    let channel: { id: string; name: string } | null = null;
+    if (member) {
+      const { data: g } = await ctx.supabase
+        .from("chats")
+        .select("id, title, type")
+        .eq("id", data.channelId)
+        .maybeSingle();
+      if (g && g.type === "group") channel = { id: g.id, name: g.title ?? "Grupo" };
+    }
+    if (!channel) {
+      const { data: vc, error } = await ctx.supabase
+        .from("voice_channels")
+        .select("id, name, is_public, created_by")
+        .eq("id", data.channelId)
+        .maybeSingle();
+      if (error || !vc) throw new Error("Sala de voz não encontrada");
+      if (!vc.is_public && vc.created_by !== ctx.userId) {
+        throw new Error("Você não tem acesso a esta sala");
+      }
+      channel = vc;
     }
 
     const { issueToken, livekitUrl } = await import("@/lib/livekit.server");

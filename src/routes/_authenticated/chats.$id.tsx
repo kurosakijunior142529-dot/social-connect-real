@@ -36,7 +36,7 @@ import { PollComposer, emptyPollDraft } from "@/components/polls/poll-composer";
 import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
 import { uploadChatFile, kindForFile } from "@/lib/chat-media";
 import { BarChart3, Mic2 } from "lucide-react";
-import { GroupVoiceBar, VibeStrip, GalleryButton, ChannelFilterBar, matchesFilter, type ChannelFilter, GROUP_VIBES } from "@/components/chat/group-extras";
+import { GroupVoiceButton } from "@/components/chat/group-extras";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -58,7 +58,6 @@ function ChatPage() {
   const { prefs, theme: bubbleTheme, font: chatFont } = useChatPrefs(id);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [pollOpen, setPollOpen] = useState(false);
-  const [filter, setFilter] = useState<ChannelFilter>("all");
   const [pollDraft, setPollDraft] = useState<PollDraft>({ ...emptyPollDraft, options: ["", ""] });
 
   const chat = useQuery({
@@ -256,12 +255,6 @@ function ChatPage() {
     }
   }
 
-  async function setVibe(key: string) {
-    const { error } = await (supabase as any).from("chat_messages").insert({ chat_id: id, sender_id: user.id, kind: "vibe", content: key });
-    if (error) toast.error("Não foi possível mudar a vibe");
-    else navigator.vibrate?.(10);
-  }
-
   async function deleteChannel() {
     if (!confirm("Excluir este canal para sempre? Todas as publicações serão apagadas.")) return;
     await (supabase as any).from("chat_messages").delete().eq("chat_id", id);
@@ -315,7 +308,7 @@ function ChatPage() {
             {muted.data ? <BellOff className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} /> : <Bell className="h-[18px] w-[18px]" strokeWidth={1.8} />}
           </button>
         ) : null}
-        {!isChannel ? <GalleryButton messages={messages.data ?? []} /> : null}
+        {!isChannel && isMember ? <GroupVoiceButton groupId={id} title={chatData.title ?? "Grupo"} /> : null}
         <SummarizeButton scope="chat" id={id} />
         <ConversationMenu
           scope="chat"
@@ -325,108 +318,14 @@ function ChatPage() {
           onOpenPinned={() => toast.info("Fixe mensagens pelo menu de ações.")}
           onOpenCustomize={() => setCustomizeOpen(true)}
         />
-        {isChannel && role === "owner" ? (
-          <button onClick={deleteChannel} className="p-2 rounded-full active:bg-[color:var(--surface-2)] text-destructive" aria-label="Excluir canal">
-            <Trash2 className="h-[18px] w-[18px]" strokeWidth={1.8} />
-          </button>
-        ) : isMember ? (
-          <button onClick={leave} className="p-2 rounded-full active:bg-[color:var(--surface-2)]" aria-label="Sair">
-            <LogOut className="h-[18px] w-[18px]" strokeWidth={1.8} />
-          </button>
-        ) : null}
       </header>
-      {isChannel ? <ChannelFilterBar value={filter} onChange={setFilter} /> : isMember ? (
-        <div className="pb-1">
-          <GroupVoiceBar groupId={id} title={chatData.title ?? "Grupo"} />
-          <VibeStrip messages={messages.data ?? []} onPick={setVibe} />
-        </div>
-      ) : null}
-
       <div className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-2", chatFont.className)}>
-        {isChannel && filter !== "all" && !(messages.data ?? []).some((m: any) => matchesFilter(m, filter)) ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">Nada por aqui ainda.</p>
-        ) : null}
-        {messages.data?.filter((m: any) => !isChannel || matchesFilter(m, filter)).map((m: any) => {
-          if (m.kind === "vibe") {
-            const v = GROUP_VIBES.find((x) => x.key === m.content);
-            return (
-              <div key={m.id} className="flex justify-center py-1">
-                <span className="rounded-full bg-[color:var(--surface-2)] px-3 py-1 text-[11px] text-muted-foreground">
-                  {m.sender?.display_name ?? "Alguém"} mudou a vibe para {v?.emoji} {v?.label ?? m.content}
-                </span>
-              </div>
-            );
-          }
+        {messages.data?.map((m: any) => {
+          if (m.kind === "vibe") return null;
           const mine = m.sender_id === user.id;
           const replied = m.reply_to ? (byId.get(m.reply_to) as any) : null;
           const rs = reactions.data?.[m.id] ?? [];
           const translated = translations[m.id];
-          if (isChannel) {
-            return (
-              <article key={m.id} className="mx-auto w-full max-w-[560px] rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-4 shadow-sm">
-                <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <span className="font-semibold text-foreground">{m.sender?.display_name ?? chatData.title}</span>
-                  <span>· {new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-                  <span className="ml-auto">
-                    <MessageActions message={m} ctx={{ scope: "chat", ownerId: user.id }} mine={mine || isAdmin}
-                      onReply={setReplyTo}
-                      onEdit={(x) => { if (mine || isAdmin) { setEditing(x); setDraft(x.content ?? ""); } }}
-                      onDelete={(id) => { if (isAdmin || mine) deleteMessage(id); }}
-                      onTranslated={(mid, t) => setTranslations((p) => ({ ...p, [mid]: t }))} />
-                  </span>
-                </div>
-                {m.kind === "poll" && m.meta?.poll_id ? (
-                  <PollCard pollId={m.meta.poll_id} currentUserId={user.id} />
-                ) : m.kind === "audio" ? (
-                  <div className="rounded-2xl bg-[color:var(--surface-2)] p-3">
-                    <div className="mb-2 flex items-center gap-2.5">
-                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-background grid place-items-center">
-                        {chatData.avatar_url ? <SignedImage bucket="chats" path={chatData.avatar_url} alt="" className="h-full w-full object-cover" /> : <Mic2 className="h-4 w-4" />}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Boletim de voz</div>
-                        <div className="truncate text-[14px] font-semibold">{m.content || chatData.title}</div>
-                      </div>
-                    </div>
-                    <MessageBody msg={m} mine={false} />
-                  </div>
-                ) : m.kind && m.kind !== "text" ? (
-                  <div className="space-y-2">
-                    <div className="overflow-hidden rounded-2xl"><MessageBody msg={{ ...m, content: m.kind === "post" ? m.content : null }} mine={false} /></div>
-                    {m.content && m.kind !== "post" ? <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.content}</div> : null}
-                  </div>
-                ) : (
-                  <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.content}</div>
-                )}
-                {m.edited_at ? <div className="mt-1 text-[10px] text-muted-foreground">editado</div> : null}
-                {translated ? <div className="mt-2 border-t border-[color:var(--hairline)] pt-2 text-[13px] text-muted-foreground">🌐 {translated}</div> : null}
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {QUICK.map((e) => {
-                    const r = rs.find((x: any) => x.emoji === e);
-                    return (
-                      <button
-                        key={e}
-                        disabled={!isMember}
-                        onClick={() => { navigator.vibrate?.(8); toggleReaction("chat", m.id, user.id, e, !!r?.mine).then(() => queryClient.invalidateQueries({ queryKey: ["reactions", "chat"] })); }}
-                        className={cn("inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[13px] transition active:scale-90",
-                          r?.mine ? "border-primary/50 bg-primary/10" : "border-[color:var(--hairline)] bg-[color:var(--surface-2)]")}
-                      >
-                        <span>{e}</span>{r?.count ? <span className="tabular text-[12px] text-muted-foreground">{r.count}</span> : null}
-                      </button>
-                    );
-                  })}
-                  {rs.filter((x: any) => !QUICK.includes(x.emoji)).map((r: any) => (
-                    <button key={r.emoji} disabled={!isMember}
-                      onClick={() => toggleReaction("chat", m.id, user.id, r.emoji, !!r.mine).then(() => queryClient.invalidateQueries({ queryKey: ["reactions", "chat"] }))}
-                      className={cn("inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[13px] transition active:scale-90",
-                        r.mine ? "border-primary/50 bg-primary/10" : "border-[color:var(--hairline)] bg-[color:var(--surface-2)]")}>
-                      <span>{r.emoji}</span>{r.count ? <span className="tabular text-[12px] text-muted-foreground">{r.count}</span> : null}
-                    </button>
-                  ))}
-                </div>
-              </article>
-            );
-          }
           return (
             <div key={m.id} className={cn("flex items-end gap-2 group", mine ? "justify-end" : "justify-start")}>
               {!mine ? (
@@ -497,12 +396,6 @@ function ChatPage() {
       ) : (
       <form onSubmit={send} className="p-3 hairline-t bg-background flex items-end gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {canPost ? <AttachMenu onFile={(f, c) => sendFile(f, c)} onLocation={() => { toast.info("Localização não está disponível em canais"); }} /> : null}
-        {canPost ? (
-          <button type="button" onClick={() => setPollOpen(true)} aria-label="Criar enquete" className="grid h-9 w-9 place-items-center rounded-full transition active:scale-90 active:bg-[color:var(--surface-2)]">
-            <BarChart3 className="h-[19px] w-[19px]" strokeWidth={1.8} />
-          </button>
-        ) : null}
-        <ScheduleButton userId={user.id} target={{ type: "chat", chatId: id }} />
         <div className="flex-1 min-w-0 flex items-center gap-2 rounded-full bg-[color:var(--surface-2)] px-4 py-2">
           <Input
             value={draft}
@@ -513,6 +406,11 @@ function ChatPage() {
             className="border-0 bg-transparent h-8 p-0 text-[14px] focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
           />
           {draft.startsWith("/ia") ? <Sparkles className="h-4 w-4 text-primary animate-pulse shrink-0" /> : null}
+          {canPost && !draft.trim() ? (
+            <button type="button" onClick={() => setPollOpen(true)} aria-label="Criar enquete" className="shrink-0 text-muted-foreground active:scale-90">
+              <BarChart3 className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            </button>
+          ) : null}
         </div>
         {canPost && draft.trim() ? (
           <Button type="submit" disabled={sending} size="icon" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 shrink-0">
@@ -529,7 +427,11 @@ function ChatPage() {
         open={membersOpen}
         onOpenChange={setMembersOpen}
         isAdmin={isAdmin}
+        isOwner={role === "owner"}
+        isChannel={isChannel}
         currentUserId={user.id}
+        onLeave={isMember && role !== "owner" ? leave : undefined}
+        onDeleteChannel={isChannel && role === "owner" ? deleteChannel : undefined}
       />
 
       <Dialog open={pollOpen} onOpenChange={setPollOpen}>
@@ -550,13 +452,21 @@ function MembersDialog({
   open,
   onOpenChange,
   isAdmin,
+  isOwner,
+  isChannel,
   currentUserId,
+  onLeave,
+  onDeleteChannel,
 }: {
   chatId: string;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   isAdmin: boolean;
+  isOwner: boolean;
+  isChannel: boolean;
   currentUserId: string;
+  onLeave?: () => void;
+  onDeleteChannel?: () => void;
 }) {
   const queryClient = useQueryClient();
   const [addQuery, setAddQuery] = useState("");
@@ -610,11 +520,20 @@ function MembersDialog({
     queryClient.invalidateQueries({ queryKey: ["chat-members", chatId] });
   }
 
+  async function setRole(uid: string, role: "admin" | "member") {
+    const { error } = await (supabase as any).from("chat_members").update({ role }).eq("chat_id", chatId).eq("user_id", uid);
+    if (error) return toast.error("Não foi possível alterar o cargo");
+    toast.success(role === "admin" ? "Agora é administrador" : "Agora é membro");
+    queryClient.invalidateQueries({ queryKey: ["chat-members", chatId] });
+  }
+
+  const roleLabel = (r: string) => (r === "owner" ? "Dono" : r === "admin" ? "Admin" : "Membro");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass border-white/10 max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Membros</DialogTitle>
+          <DialogTitle>Membros{members.data ? ` · ${members.data.length}` : ""}</DialogTitle>
         </DialogHeader>
 
         {isAdmin ? (
@@ -622,7 +541,7 @@ function MembersDialog({
             <Input
               value={addQuery}
               onChange={(e) => setAddQuery(e.target.value)}
-              placeholder="@usuario"
+              placeholder="Adicionar por @usuario"
               className="rounded-full"
             />
             <Button onClick={addByUsername} disabled={adding} size="icon" className="rounded-full bg-gradient-brand">
@@ -637,16 +556,32 @@ function MembersDialog({
               <UserAvatar avatarPath={m.profile?.avatar_url} displayName={m.profile?.display_name ?? "?"} className="h-9 w-9" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{m.profile?.display_name}</div>
-                <div className="text-xs text-muted-foreground truncate">@{m.profile?.username} · {m.role}</div>
+                <div className="text-xs text-muted-foreground truncate">@{m.profile?.username}</div>
               </div>
+              {m.role !== "member" ? (
+                <span className="rounded-full bg-[color:var(--surface-2)] px-2 py-0.5 text-[10px] font-semibold">{roleLabel(m.role)}</span>
+              ) : null}
               {isAdmin && m.user_id !== currentUserId && m.role !== "owner" ? (
-                <button onClick={() => remove(m.user_id)} className="text-xs text-destructive px-2 py-1 rounded-full hover:bg-destructive/10">
-                  Remover
-                </button>
+                <div className="flex gap-1">
+                  {isOwner ? (
+                    <button onClick={() => setRole(m.user_id, m.role === "admin" ? "member" : "admin")} className="text-xs px-2 py-1 rounded-full hover:bg-[color:var(--surface-2)]">
+                      {m.role === "admin" ? "Tirar admin" : "Tornar admin"}
+                    </button>
+                  ) : null}
+                  <button onClick={() => remove(m.user_id)} className="text-xs text-destructive px-2 py-1 rounded-full hover:bg-destructive/10">
+                    Remover
+                  </button>
+                </div>
               ) : null}
             </div>
           ))}
         </div>
+        {onLeave || onDeleteChannel ? (
+          <div className="flex gap-2 pt-2 border-t border-[color:var(--hairline)]">
+            {onLeave ? <Button variant="ghost" onClick={onLeave} className="flex-1 rounded-full text-destructive">Sair {isChannel ? "do canal" : "do grupo"}</Button> : null}
+            {onDeleteChannel ? <Button variant="ghost" onClick={onDeleteChannel} className="flex-1 rounded-full text-destructive">Excluir canal</Button> : null}
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

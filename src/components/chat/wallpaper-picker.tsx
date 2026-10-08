@@ -72,7 +72,7 @@ export function WallpaperPicker({
     setSaving(type);
     try {
       const { error } = await supabase.rpc("set_conversation_wallpaper", {
-        _conversation: conversationId, _type: type, _value: value,
+        _conversation: conversationId, _type: type, _value: value ?? undefined,
       });
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });

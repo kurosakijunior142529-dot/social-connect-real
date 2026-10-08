@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Verification UI is centralized in `verified-badge.tsx`; keep badge meaning, authenticity details, and category visuals sourced from its shared configuration so every surface stays consistent.
+- Wallpaper images use existing allowed conversation wallpaper IDs; resolve images centrally in the picker, while dimming stays device-local per conversation to avoid changing the other participant's brightness.

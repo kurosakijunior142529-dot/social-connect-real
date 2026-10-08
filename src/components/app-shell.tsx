@@ -17,7 +17,7 @@ type NavItem = { to: string; label: string; Icon: typeof Home };
 function AdminLink({ pathname }: { pathname: string }) {
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getSession().then((r) => ({ data: { user: r.data.session?.user ?? null } })).then(async ({ data }) => {
       if (!data.user) return;
       const { data: r } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "admin").maybeSingle();
       setIsAdmin(!!r);
@@ -57,7 +57,7 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [userId, setUserId] = useState<string | undefined>();
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id));
+    supabase.auth.getSession().then((r) => ({ data: { user: r.data.session?.user ?? null } })).then(({ data }) => setUserId(data.user?.id));
   }, []);
   // "Continuar de onde parou": registra a última tela relevante.
   useEffect(() => {

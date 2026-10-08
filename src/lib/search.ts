@@ -313,7 +313,7 @@ export async function fetchViewHistory() {
 }
 
 export async function clearViewHistory() {
-  const { data } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getSession().then((r) => ({ data: { user: r.data.session?.user ?? null } }));
   const uid = data.user?.id;
   if (!uid) return;
   await supabase.from("post_views").delete().eq("user_id", uid);

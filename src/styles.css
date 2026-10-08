@@ -795,3 +795,10 @@ img, video {
 @media (prefers-reduced-motion: reduce) {
   .dock-aura, .neon-ring, .neon-heart { animation-duration: 0.01ms; }
 }
+
+/* Resposta imediata ao toque e rolagem leve */
+@layer base {
+  a, button, [role="button"], input, label, select, textarea { touch-action: manipulation; }
+  html { -webkit-tap-highlight-color: transparent; }
+  img { content-visibility: auto; }
+}

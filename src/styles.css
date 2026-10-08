@@ -52,11 +52,13 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-chat-mine: var(--chat-mine);
   --color-chat-mine-foreground: var(--chat-mine-foreground);
+  --color-wallpaper-scrim: var(--wallpaper-scrim);
 }
 
 /* Minimal premium — dark remains the default, light is opt-in. */
 :root {
   --radius: 16px;
+  --wallpaper-scrim: #000000;
 
   --background: oklch(0.12 0 0);
   --surface: oklch(0.165 0 0);

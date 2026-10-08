@@ -27,4 +27,4 @@
 - [x] Aviso flutuante no topo ao chegar mensagem/ligação
 - [x] Reels pré-carregando o próximo vídeo
 - [x] Vibrações extras (curtida, deslizar, Cofre)
-- [ ] Aplicar seis papéis de parede com imagens e ajuste de escurecimento; testar no chat
+- [x] Aplicar seis papéis de parede com imagens e ajuste de escurecimento; testar no chat

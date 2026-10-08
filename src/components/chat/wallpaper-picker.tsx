@@ -1,5 +1,5 @@
 import { Palette, Check, Upload, Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -13,40 +13,35 @@ import {
 import { toast } from "sonner";
 import { uploadMedia, createSignedUrl } from "@/lib/media";
 import { useAuth } from "@/hooks/use-auth";
+import { Slider } from "@/components/ui/slider";
+import { useWallpaperDimming } from "@/lib/wallpaper-dimming";
+import noite from "@/assets/wallpapers/noite.jpg";
+import neblina from "@/assets/wallpapers/neblina.jpg";
+import cidade from "@/assets/wallpapers/cidade.jpg";
+import folhas from "@/assets/wallpapers/folhas.jpg";
+import mar from "@/assets/wallpapers/mar.jpg";
+import doodle from "@/assets/wallpapers/doodle.jpg";
 
-export type ChatWallpaper = {
-  id: string;
-  label: string;
-  className: string;
-};
+export type ChatWallpaper = { id: string; label: string; image?: string };
 
 export const CHAT_WALLPAPERS: ChatWallpaper[] = [
-  { id: "default", label: "Padrão", className: "bg-background" },
-  { id: "emerald", label: "Vibely Esmeralda", className: "bg-[radial-gradient(ellipse_at_10%_0%,rgba(34,224,106,0.28),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(34,224,106,0.14),transparent_40%),linear-gradient(180deg,#05110a,#070908)]" },
-  { id: "indigo", label: "Cyber Índigo", className: "bg-[radial-gradient(ellipse_at_85%_10%,rgba(99,102,241,0.35),transparent_45%),radial-gradient(ellipse_at_0%_90%,rgba(34,211,238,0.16),transparent_40%),linear-gradient(170deg,#07071a,#0a0a12)]" },
-  { id: "nebula", label: "Nebulosa", className: "bg-[radial-gradient(circle_at_30%_25%,rgba(192,38,211,0.32),transparent_38%),radial-gradient(circle_at_75%_70%,rgba(79,70,229,0.28),transparent_40%),radial-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),#06030f] [background-size:auto,auto,22px_22px,auto]" },
-  { id: "dusk", label: "Crepúsculo", className: "bg-[radial-gradient(ellipse_at_50%_110%,rgba(251,146,60,0.35),transparent_50%),radial-gradient(ellipse_at_90%_0%,rgba(219,39,119,0.25),transparent_45%),linear-gradient(180deg,#0f0710,#160a0c)]" },
-  { id: "sapphire", label: "Safira", className: "bg-[radial-gradient(ellipse_at_50%_-10%,rgba(59,130,246,0.45),transparent_55%),linear-gradient(180deg,#030a1c,#04060d)]" },
-  { id: "carbon", label: "Carbono", className: "bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.035)_0_2px,transparent_2px_10px),linear-gradient(160deg,#121214,#050506)]" },
-  { id: "aurora-boreal", label: "Aurora Boreal", className: "bg-[linear-gradient(200deg,rgba(34,224,106,0.22)_0%,transparent_35%),linear-gradient(160deg,transparent_30%,rgba(56,189,248,0.2)_55%,transparent_75%),linear-gradient(180deg,#030b10,#06060a)]" },
-  { id: "rose-gold", label: "Rose Gold", className: "bg-[radial-gradient(ellipse_at_20%_0%,rgba(251,191,170,0.3),transparent_45%),radial-gradient(ellipse_at_100%_80%,rgba(244,114,182,0.18),transparent_45%),linear-gradient(180deg,#140c0d,#0a0708)]" },
-  { id: "aurora", label: "Aurora", className: "bg-[radial-gradient(circle_at_20%_10%,rgba(215,255,58,0.16),transparent_28%),radial-gradient(circle_at_90%_20%,rgba(74,222,128,0.12),transparent_24%),#0a0a0b]" },
-  { id: "midnight", label: "Noite", className: "bg-[linear-gradient(135deg,#070707,#141418_48%,#0c1612)]" },
-  { id: "lime", label: "Lima", className: "bg-[linear-gradient(160deg,rgba(215,255,58,0.18),rgba(17,17,19,0.94)_42%,rgba(245,245,247,0.05))]" },
-  { id: "rose", label: "Rosa", className: "bg-[radial-gradient(circle_at_80%_5%,rgba(255,69,96,0.18),transparent_28%),linear-gradient(180deg,#111113,#09090a)]" },
-  { id: "ocean", label: "Oceano", className: "bg-[radial-gradient(circle_at_15%_5%,rgba(56,189,248,0.18),transparent_28%),linear-gradient(145deg,#081015,#111113)]" },
-  { id: "sunset", label: "Pôr do sol", className: "bg-[linear-gradient(160deg,#ff9966,#ff5e62_45%,#3a1c40)]" },
-  { id: "forest", label: "Floresta", className: "bg-[radial-gradient(circle_at_25%_80%,rgba(34,197,94,0.28),transparent_32%),linear-gradient(160deg,#0b1a12,#0a0a0b)]" },
-  { id: "cosmic", label: "Cósmico", className: "bg-[radial-gradient(circle_at_70%_20%,rgba(168,85,247,0.35),transparent_35%),radial-gradient(circle_at_20%_80%,rgba(59,130,246,0.28),transparent_30%),#050510]" },
-  { id: "peach", label: "Pêssego", className: "bg-[linear-gradient(160deg,#fde2c8,#f8b4a0_45%,#c76e6e)]" },
-  { id: "graphite", label: "Grafite", className: "bg-[linear-gradient(135deg,#1a1a1d,#2a2a30_50%,#101013)]" },
-  { id: "paper", label: "Papel", className: "bg-[linear-gradient(180deg,#f5f1e8,#eae2d0)]" },
-  { id: "mesh", label: "Mesh", className: "bg-[conic-gradient(from_180deg_at_50%_50%,rgba(215,255,58,0.18),rgba(56,189,248,0.14),rgba(255,69,96,0.14),rgba(215,255,58,0.18))]" },
-  { id: "mono", label: "Mono", className: "bg-[linear-gradient(135deg,rgba(255,255,255,0.07)_0_1px,transparent_1px_18px),#0a0a0b]" },
+  { id: "default", label: "Sem imagem" },
+  { id: "mono", label: "Desenhos Vibely", image: doodle },
+  { id: "midnight", label: "Céu estrelado", image: noite },
+  { id: "graphite", label: "Montanhas na neblina", image: neblina },
+  { id: "aurora", label: "Cidade na chuva", image: cidade },
+  { id: "forest", label: "Folhas e gotas", image: folhas },
+  { id: "ocean", label: "Mar ao entardecer", image: mar },
 ];
 
-export function wallpaperClass(type?: string | null) {
-  return CHAT_WALLPAPERS.find((w) => w.id === type)?.className ?? CHAT_WALLPAPERS[0].className;
+export function wallpaperImage(type?: string | null) {
+  return CHAT_WALLPAPERS.find((w) => w.id === type)?.image;
+}
+
+export function wallpaperBackground(image: string | null | undefined, dim: number) {
+  if (!image) return undefined;
+  const scrim = `color-mix(in srgb, var(--wallpaper-scrim) ${dim}%, transparent)`;
+  return { backgroundImage: `linear-gradient(${scrim}, ${scrim}), url(${JSON.stringify(image)})`, backgroundSize: "cover", backgroundPosition: "center" };
 }
 
 export function WallpaperPicker({
@@ -67,23 +62,27 @@ export function WallpaperPicker({
   const [saving, setSaving] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { dim, updateDim } = useWallpaperDimming(conversationId);
+  const [selected, setSelected] = useState(current ?? "default");
+  const customUrl = useCustomWallpaperUrl(current, currentValue);
+  useEffect(() => { if (open) setSelected(current ?? "default"); }, [open, current]);
+  const previewImage = selected === "custom" ? customUrl : wallpaperImage(selected);
 
   async function apply(type: string, value: string | null) {
     setSaving(type);
-    const { error } = await (supabase as any).rpc("set_conversation_wallpaper", {
-      _conversation: conversationId,
-      _type: type,
-      _value: value,
-    });
-    setSaving(null);
-    if (error) {
-      toast.error(error.message ?? "Não foi possível mudar o papel de parede");
+    try {
+      const { error } = await supabase.rpc("set_conversation_wallpaper", {
+        _conversation: conversationId, _type: type, _value: value,
+      });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
+      toast.success(type === "default" ? "Papel de parede removido" : "Papel de parede atualizado");
+      onOpenChange(false);
+      return true;
+    } catch {
+      toast.error("Não foi possível mudar o papel de parede. Tente novamente.");
       return false;
-    }
-    queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
-    toast.success(type === "default" ? "Papel de parede removido" : "Papel de parede atualizado");
-    onOpenChange(false);
-    return true;
+    } finally { setSaving(null); }
   }
 
   async function handleUpload(file: File) {
@@ -109,86 +108,41 @@ export function WallpaperPicker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass border-white/10 max-w-md max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Palette className="h-4 w-4 text-primary" /> Papel de parede
-          </DialogTitle>
-        </DialogHeader>
-
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void handleUpload(f);
-            e.target.value = "";
-          }}
-        />
-
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading || !!saving}
-          className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-[color:var(--hairline)] bg-[color:var(--surface-2)] p-4 text-left transition hover:border-primary/50 disabled:opacity-60"
-        >
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-primary/15 text-primary">
-              {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold">
-                {current === "custom" ? "Trocar imagem enviada" : "Enviar imagem própria"}
-              </div>
-              <div className="text-[11px] text-muted-foreground">
-                PNG/JPG até 8MB · só você e a outra pessoa veem
-              </div>
-            </div>
-          </div>
-        </button>
-
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          {CHAT_WALLPAPERS.map((wallpaper) => {
-            const active = (current ?? "default") === wallpaper.id;
-            return (
-              <button
-                key={wallpaper.id}
-                type="button"
-                onClick={() => apply(wallpaper.id, null)}
-                disabled={!!saving || uploading}
-                className="group overflow-hidden rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface)] text-left transition active:scale-[0.98] disabled:opacity-60"
-              >
-                <div className={cn("relative h-24", wallpaper.className)}>
-                  <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_30%_30%,currentColor_1px,transparent_1px)] [background-size:18px_18px]" />
-                  {active ? (
-                    <span className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-primary text-primary-foreground">
-                      <Check className="h-4 w-4" />
-                    </span>
-                  ) : null}
-                </div>
-                <div className="px-3 py-2 text-sm font-medium">{wallpaper.label}</div>
-              </button>
-            );
-          })}
+      <DialogContent className="border-hairline bg-background max-w-md max-h-[85dvh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader><DialogTitle>Papel de parede</DialogTitle></DialogHeader>
+        <div className="relative flex h-36 flex-col justify-center gap-3 overflow-hidden rounded-lg bg-surface p-4" style={wallpaperBackground(previewImage, dim)} aria-label="Prévia do papel de parede">
+          <span className="relative self-start rounded-2xl rounded-bl-md bg-surface px-3 py-2 text-sm text-foreground">Que lugar bonito!</span>
+          <span className="relative self-end rounded-2xl rounded-br-md bg-chat-mine px-3 py-2 text-sm text-chat-mine-foreground">Nossa próxima viagem ✨</span>
         </div>
-
-        {current === "custom" && currentValue ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full"
-            onClick={() => apply("default", null)}
-            disabled={!!saving || uploading}
-          >
-            Remover imagem
-          </Button>
-        ) : null}
-
-        <Button variant="secondary" className="rounded-full" onClick={() => onOpenChange(false)}>
-          Fechar
+        <div className="space-y-3 py-1">
+          <div className="flex items-center justify-between text-sm"><label id="wallpaper-dim-label">Escurecimento</label><span className="text-muted-foreground">{dim}%</span></div>
+          <Slider aria-labelledby="wallpaper-dim-label" value={[dim]} min={0} max={80} step={5} onValueChange={(v) => updateDim(v[0] ?? 35)} />
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+          const f = e.target.files?.[0]; if (f) void handleUpload(f); e.target.value = "";
+        }} />
+        <Button variant="outline" className="h-12 justify-start gap-3 border-hairline" onClick={() => fileRef.current?.click()} disabled={uploading || saving !== null}>
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {uploading ? "Enviando imagem…" : "Escolher da galeria"}
         </Button>
+        <div className="grid grid-cols-2 gap-2.5">
+          {CHAT_WALLPAPERS.map((wallpaper) => (
+            <Button key={wallpaper.id} variant="ghost" aria-pressed={selected === wallpaper.id} onClick={() => setSelected(wallpaper.id)} disabled={saving !== null || uploading}
+              className={cn("relative flex h-auto min-w-0 flex-col items-stretch gap-0 overflow-hidden rounded-lg border p-0 text-left", selected === wallpaper.id ? "border-primary" : "border-hairline")}>
+              <span className="relative block h-24 w-full bg-surface">
+                {wallpaper.image ? <img src={wallpaper.image} alt="" loading="lazy" className="h-full w-full object-cover" /> : <Palette className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground" />}
+                {selected === wallpaper.id ? <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground"><Check className="h-3.5 w-3.5" /></span> : null}
+              </span>
+              <span className="w-full whitespace-normal px-2.5 py-2 text-xs font-medium">{wallpaper.label}</span>
+            </Button>
+          ))}
+        </div>
+        <div className="sticky bottom-0 flex justify-end gap-2 border-t border-hairline bg-background pt-3">
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button disabled={saving !== null || uploading} onClick={() => void apply(selected, selected === "custom" ? currentValue ?? null : null)}>
+            {saving !== null ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />} Aplicar
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -198,16 +152,15 @@ export function useCustomWallpaperUrl(
   type: string | null | undefined,
   value: string | null | undefined,
 ) {
-  const [url, setUrl] = useState<string | null>(null);
-  const lastKey = useRef<string | null>(null);
+  const [resolved, setResolved] = useState<{ key: string; url: string | null } | null>(null);
   const key = type === "custom" && value ? value : null;
-  if (key !== lastKey.current) {
-    lastKey.current = key;
-    if (!key) {
-      setUrl(null);
-    } else {
-      void createSignedUrl("chats", key).then((u) => setUrl(u));
-    }
-  }
-  return url;
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    void createSignedUrl("chats", key).then((url) => {
+      if (!cancelled) setResolved({ key, url });
+    }).catch(() => { if (!cancelled) setResolved({ key, url: null }); });
+    return () => { cancelled = true; };
+  }, [key]);
+  return key && resolved?.key === key ? resolved.url : null;
 }

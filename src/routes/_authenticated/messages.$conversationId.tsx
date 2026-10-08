@@ -35,7 +35,8 @@ import { captureVideoPoster } from "@/lib/media/video-thumbnail";
 import { Smile, Timer, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-panel";
-import { WallpaperPicker, wallpaperClass, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
+import { WallpaperPicker, wallpaperImage, wallpaperBackground, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
+import { useWallpaperDimming } from "@/lib/wallpaper-dimming";
 import { CallEvent } from "@/components/chat/call-event";
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
@@ -43,6 +44,14 @@ import { parseVibelyMention } from "@/lib/vibely-mention";
 import vibelyMascot from "@/assets/vibely-mascot.png";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
+  head: () => ({ meta: [
+    { title: "Conversa privada | Vibely" },
+    { name: "description", content: "Suas mensagens, fotos e conversas privadas no Vibely." },
+    { property: "og:title", content: "Conversa privada | Vibely" },
+    { property: "og:description", content: "Suas mensagens, fotos e conversas privadas no Vibely." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ConversationPage,
 });
 
@@ -50,6 +59,7 @@ function ConversationPage() {
   const { conversationId } = Route.useParams();
   const { user } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const { dim } = useWallpaperDimming(conversationId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<number | null>(null);
   const [draft, setDraft] = useState("");
@@ -701,21 +711,13 @@ function ConversationPage() {
         className={cn(
           "relative flex-1 overflow-y-auto overscroll-contain px-4 py-4 [content-visibility:auto] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]",
           chatFont.className,
-          (conv.data as any)?.wallpaper_type === "custom"
-            ? "bg-background"
-            : wallpaperClass((conv.data as any)?.wallpaper_type),
+          "bg-background",
         )}
-        style={
-          (conv.data as any)?.wallpaper_type === "custom" && customWallpaperUrl
-            ? {
-                backgroundImage: `url(${customWallpaperUrl})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }
-            : undefined
-        }
+        style={wallpaperBackground(
+          (conv.data as any)?.wallpaper_type === "custom" ? customWallpaperUrl : wallpaperImage((conv.data as any)?.wallpaper_type), dim,
+        )}
+        aria-label="Mensagens da conversa"
       >
-        <div className="pointer-events-none absolute inset-0 bg-background/35 backdrop-blur-[1px]" />
         {hasOlder && (messages.data?.length ?? 0) > 0 ? (
           <div className="relative mb-3 flex justify-center">
             <button

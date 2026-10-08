@@ -65,7 +65,7 @@ export function MobileMoreSheet({ onSignOut }: { onSignOut: () => void }) {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getSession().then((r) => ({ data: { user: r.data.session?.user ?? null } })).then(async ({ data }) => {
       if (!data.user) return;
       const [{ data: r }, { data: p }] = await Promise.all([
         supabase

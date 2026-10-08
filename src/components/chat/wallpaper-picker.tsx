@@ -1,4 +1,4 @@
-import { Palette, Check, Upload, Loader2 } from "lucide-react";
+import { Palette, Check, ImagePlus, Loader2, Sun, Moon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,38 +108,66 @@ export function WallpaperPicker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-hairline bg-background max-w-md max-h-[85dvh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader><DialogTitle>Papel de parede</DialogTitle></DialogHeader>
-        <div className="relative flex h-36 flex-col justify-center gap-3 overflow-hidden rounded-lg bg-surface p-4" style={wallpaperBackground(previewImage, dim)} aria-label="Prévia do papel de parede">
-          <span className="relative self-start rounded-2xl rounded-bl-md bg-surface px-3 py-2 text-sm text-foreground">Que lugar bonito!</span>
-          <span className="relative self-end rounded-2xl rounded-br-md bg-chat-mine px-3 py-2 text-sm text-chat-mine-foreground">Nossa próxima viagem ✨</span>
-        </div>
-        <div className="space-y-3 py-1">
-          <div className="flex items-center justify-between text-sm"><label id="wallpaper-dim-label">Escurecimento</label><span className="text-muted-foreground">{dim}%</span></div>
-          <Slider aria-labelledby="wallpaper-dim-label" value={[dim]} min={0} max={80} step={5} onValueChange={(v) => updateDim(v[0] ?? 35)} />
-        </div>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
-          const f = e.target.files?.[0]; if (f) void handleUpload(f); e.target.value = "";
-        }} />
-        <Button variant="outline" className="h-12 justify-start gap-3 border-hairline" onClick={() => fileRef.current?.click()} disabled={uploading || saving !== null}>
-          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          {uploading ? "Enviando imagem…" : "Escolher da galeria"}
-        </Button>
-        <div className="grid grid-cols-2 gap-2.5">
-          {CHAT_WALLPAPERS.map((wallpaper) => (
-            <Button key={wallpaper.id} variant="ghost" aria-pressed={selected === wallpaper.id} onClick={() => setSelected(wallpaper.id)} disabled={saving !== null || uploading}
-              className={cn("relative flex h-auto min-w-0 flex-col items-stretch gap-0 overflow-hidden rounded-lg border p-0 text-left", selected === wallpaper.id ? "border-primary" : "border-hairline")}>
-              <span className="relative block h-24 w-full bg-surface">
-                {wallpaper.image ? <img src={wallpaper.image} alt="" loading="lazy" className="h-full w-full object-cover" /> : <Palette className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground" />}
-                {selected === wallpaper.id ? <span className="absolute right-2 top-2 rounded-full bg-primary p-1 text-primary-foreground"><Check className="h-3.5 w-3.5" /></span> : null}
+      <DialogContent className="top-auto bottom-0 translate-y-0 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 max-w-md max-h-[92dvh] gap-0 overflow-hidden rounded-t-3xl sm:rounded-3xl border-hairline bg-background p-0 flex flex-col">
+        <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-muted sm:hidden" />
+        <DialogHeader className="px-5 pt-3 pb-3 text-left">
+          <DialogTitle className="font-display text-lg">Papel de parede</DialogTitle>
+          <p className="text-xs text-muted-foreground">Só você vê o fundo desta conversa.</p>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-5">
+          {/* Prévia realista */}
+          <div className="mx-auto w-full max-w-[260px] overflow-hidden rounded-[28px] border border-hairline bg-surface shadow-lg">
+            <div className="flex items-center gap-2 border-b border-hairline bg-background/80 px-3 py-2 backdrop-blur">
+              <span className="h-7 w-7 shrink-0 rounded-full bg-muted" />
+              <div className="min-w-0"><p className="truncate text-xs font-semibold">Sofia</p><p className="text-[10px] text-muted-foreground">online</p></div>
+            </div>
+            <div className="flex h-56 flex-col justify-end gap-2 p-3 transition-all duration-300" style={wallpaperBackground(previewImage, dim)} aria-label="Prévia do papel de parede">
+              <span className="max-w-[80%] self-start rounded-2xl rounded-bl-md bg-surface px-3 py-1.5 text-xs text-foreground shadow-sm">Que lugar bonito! <span className="ml-1 text-[9px] text-muted-foreground">17:32</span></span>
+              <span className="max-w-[80%] self-end rounded-2xl rounded-br-md bg-chat-mine px-3 py-1.5 text-xs text-chat-mine-foreground shadow-sm">Nossa próxima viagem ✨ <span className="ml-1 text-[9px] opacity-70">17:33</span></span>
+            </div>
+          </div>
+
+          {/* Escurecimento */}
+          <div className={cn("rounded-2xl bg-surface p-3.5 transition-opacity", !previewImage && "opacity-50 pointer-events-none")}>
+            <div className="mb-3 flex items-center justify-between text-sm"><label id="wallpaper-dim-label" className="font-medium">Escurecimento</label><span className="tabular-nums text-muted-foreground">{dim}%</span></div>
+            <div className="flex items-center gap-3">
+              <Sun className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Slider aria-labelledby="wallpaper-dim-label" value={[dim]} min={0} max={80} step={5} onValueChange={(v) => updateDim(v[0] ?? 35)} />
+              <Moon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </div>
+          </div>
+
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+            const f = e.target.files?.[0]; if (f) void handleUpload(f); e.target.value = "";
+          }} />
+
+          {/* Grade */}
+          <div className="grid grid-cols-3 gap-2.5">
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading || saving !== null}
+              className="group flex aspect-[9/16] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-surface text-muted-foreground transition hover:text-foreground active:scale-95">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-background">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
               </span>
-              <span className="w-full whitespace-normal px-2.5 py-2 text-xs font-medium">{wallpaper.label}</span>
-            </Button>
-          ))}
+              <span className="px-1 text-center text-[11px] font-medium leading-tight">{uploading ? "Enviando…" : "Sua foto"}</span>
+            </button>
+            {CHAT_WALLPAPERS.map((wallpaper) => {
+              const active = selected === wallpaper.id;
+              return (
+                <button type="button" key={wallpaper.id} aria-pressed={active} aria-label={wallpaper.label} onClick={() => setSelected(wallpaper.id)} disabled={saving !== null || uploading}
+                  className={cn("relative aspect-[9/16] overflow-hidden rounded-2xl bg-surface ring-offset-2 ring-offset-background transition active:scale-95", active ? "ring-2 ring-primary" : "ring-1 ring-hairline")}>
+                  {wallpaper.image ? <img src={wallpaper.image} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" /> : <Palette className="absolute inset-0 m-auto h-5 w-5 text-muted-foreground" />}
+                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-transparent px-1.5 pb-1.5 pt-6 text-left text-[10px] font-medium leading-tight text-foreground">{wallpaper.label}</span>
+                  {active ? <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground shadow"><Check className="h-3 w-3" /></span> : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="sticky bottom-0 flex justify-end gap-2 border-t border-hairline bg-background pt-3">
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>Fechar</Button>
-          <Button disabled={saving !== null || uploading} onClick={() => void apply(selected, selected === "custom" ? currentValue ?? null : null)}>
+
+        <div className="flex shrink-0 gap-2 border-t border-hairline bg-background px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <Button variant="secondary" className="flex-1 rounded-full" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button className="flex-1 rounded-full" disabled={saving !== null || uploading} onClick={() => void apply(selected, selected === "custom" ? currentValue ?? null : null)}>
             {saving !== null ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />} Aplicar
           </Button>
         </div>

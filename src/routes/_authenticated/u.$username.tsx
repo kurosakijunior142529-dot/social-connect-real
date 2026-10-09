@@ -472,7 +472,7 @@ function ProfileContent() {
               </Link>
             ) : (
               <>
-                <Button onClick={() => toggleFollow.mutate()} disabled={toggleFollow.isPending} className="h-11 min-w-0 rounded-xl sm:w-44" variant={stats.data?.isFollowing ? "outline" : "default"}>
+                <Button onClick={() => toggleFollow.mutate(!!stats.data?.isFollowing)} className="h-11 min-w-0 rounded-xl sm:w-44" variant={stats.data?.isFollowing ? "outline" : "default"}>
                   {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
                 </Button>
                 <Button onClick={openChat} variant="outline" className="h-11 shrink-0 gap-2 rounded-xl"><MessageCircle className="h-4 w-4" /> <span className="hidden min-[370px]:inline">Mensagem</span></Button>

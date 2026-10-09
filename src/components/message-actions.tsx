@@ -98,7 +98,7 @@ export function MessageActions({
         timer = null;
         try { navigator.vibrate?.(15); } catch {}
         setOpen(true);
-      }, 420);
+      }, 320);
     };
     const move = (e: PointerEvent) => {
       if (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8) cancel();

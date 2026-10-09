@@ -154,18 +154,22 @@ function ChatPage() {
     if (!text || sending || !canPost) return;
 
     if (editing) {
-      setSending(true);
-      const prev = (messages.data ?? []).find((m: any) => m.id === editing.id)?.content ?? null;
+      const target = editing;
+      const key = ["chat-messages", id];
+      const prev = (messages.data ?? []).find((m: any) => m.id === target.id)?.content ?? null;
+      const editedAt = new Date().toISOString();
+      queryClient.setQueryData<any[]>(key, (l) => (l ?? []).map((m) => (m.id === target.id ? { ...m, content: text, edited_at: editedAt } : m)));
+      setEditing(null); setDraft("");
       const { error } = await (supabase as any).from("chat_messages")
-        .update({ content: text, edited_at: new Date().toISOString() }).eq("id", editing.id);
-      if (!error) {
-        await (supabase as any).from("message_edits").insert({
-          source: "chat", message_id: editing.id, previous_content: prev, editor_id: user.id,
+        .update({ content: text, edited_at: editedAt }).eq("id", target.id);
+      if (error) {
+        queryClient.setQueryData<any[]>(key, (l) => (l ?? []).map((m) => (m.id === target.id ? { ...m, content: prev } : m)));
+        toast.error("Não foi possível editar");
+      } else {
+        void (supabase as any).from("message_edits").insert({
+          source: "chat", message_id: target.id, previous_content: prev, editor_id: user.id,
         });
       }
-      setSending(false);
-      setEditing(null); setDraft("");
-      if (error) toast.error(error.message);
       return;
     }
 
@@ -276,8 +280,14 @@ function ChatPage() {
 
   async function deleteMessage(mid: string) {
     if (!(await appConfirm("Apagar para todos?"))) return;
+    const key = ["chat-messages", id];
+    const snapshot = queryClient.getQueryData<any[]>(key);
+    queryClient.setQueryData<any[]>(key, (l) => (l ?? []).filter((m) => m.id !== mid));
     const { error } = await (supabase as any).from("chat_messages").delete().eq("id", mid);
-    if (error) return toast.error(error.message);
+    if (error) {
+      queryClient.setQueryData(key, snapshot);
+      toast.error("Não foi possível apagar");
+    }
   }
 
   if (chat.isLoading) return <Skeleton className="h-96 rounded-3xl" />;
@@ -414,7 +424,7 @@ function ChatPage() {
           ) : null}
         </div>
         {canPost && draft.trim() ? (
-          <Button type="submit" disabled={sending} size="icon" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 shrink-0">
+          <Button type="submit" disabled={sending} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} size="icon" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10 shrink-0">
             <Send className="h-4 w-4" strokeWidth={2.2} />
           </Button>
         ) : canPost ? (

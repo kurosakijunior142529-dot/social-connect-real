@@ -840,3 +840,14 @@ img, video {
 @keyframes voice-bar { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
 .voice-bar { transform-origin: bottom; animation: voice-bar .8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .sticker-pop, .voice-speaking, .voice-bar { animation: none; } }
+
+/* Avisos em cápsula estilo app */
+.vibely-toaster [data-sonner-toast] { display: flex; justify-content: center; }
+.vibely-toast {
+  background: color-mix(in oklab, var(--background) 72%, transparent);
+  backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid color-mix(in oklab, var(--foreground) 9%, transparent);
+  box-shadow: 0 10px 30px -12px oklch(0 0 0 / 0.35);
+}
+.vibely-toast-success .vibely-toast-icon { color: var(--primary); }
+.vibely-toast-error .vibely-toast-icon { color: var(--destructive); }

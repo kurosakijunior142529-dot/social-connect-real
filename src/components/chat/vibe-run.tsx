@@ -59,11 +59,45 @@ export function RunInviteDrawer({ open, onOpenChange, onSend }: {
   );
 }
 
-function Initial({ name, accent }: { name: string; accent?: boolean }) {
+type Person = { id: string; name: string; avatar: string | null };
+
+/** Busca os dois participantes da conversa (quem enviou e o outro). */
+function useRunPeople(conversationId: string, senderId: string) {
+  const q = useQuery({
+    queryKey: ["run-people", conversationId],
+    staleTime: 300_000,
+    enabled: !!conversationId,
+    queryFn: async () => {
+      const { data: c } = await supabase.from("conversations").select("user_a, user_b").eq("id", conversationId).maybeSingle();
+      if (!c) return [] as Person[];
+      const { data } = await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", [c.user_a, c.user_b]);
+      return (data ?? []).map((p: any) => ({ id: p.id, name: p.display_name || p.username || "Amigo", avatar: p.avatar_url })) as Person[];
+    },
+  });
+  const list = q.data ?? [];
+  const sender = list.find((p) => p.id === senderId) ?? null;
+  const other = list.find((p) => p.id !== senderId) ?? null;
+  return { sender, other };
+}
+
+const firstName = (n?: string | null) => (n ?? "").trim().split(/\s+/)[0] || "Amigo";
+
+function Avatar({ person, accent, crown }: { person: Person | null; accent?: boolean; crown?: boolean }) {
+  const name = person?.name ?? "?";
   return (
-    <div className={cn("grid h-12 w-12 place-items-center rounded-full text-lg font-bold ring-2",
-      accent ? "bg-primary/20 text-primary ring-primary" : "bg-[color:var(--surface-2)] ring-[color:var(--hairline)]")}>
-      {(name.trim()[0] ?? "?").toUpperCase()}
+    <div className="flex w-20 flex-col items-center gap-1">
+      <div className="relative">
+        {crown ? <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-base">👑</span> : null}
+        {person?.avatar ? (
+          <img src={person.avatar} alt={name} className={cn("h-12 w-12 rounded-full object-cover ring-2", accent ? "ring-primary" : "ring-[color:var(--hairline)]")} />
+        ) : (
+          <div className={cn("grid h-12 w-12 place-items-center rounded-full text-lg font-bold ring-2",
+            accent ? "bg-primary/20 text-primary ring-primary" : "bg-[color:var(--surface-2)] ring-[color:var(--hairline)]")}>
+            {(name.trim()[0] ?? "?").toUpperCase()}
+          </div>
+        )}
+      </div>
+      <span className="max-w-full truncate text-[11px] font-semibold">{firstName(name)}</span>
     </div>
   );
 }
@@ -71,8 +105,9 @@ function Initial({ name, accent }: { name: string; accent?: boolean }) {
 export function RunInviteBody({ msg, mine, onFinish }: { msg: any; mine: boolean; onFinish?: (s: RunState) => void }) {
   const meta = msg.meta ?? {};
   const run = useRun();
+  const { sender, other } = useRunPeople(msg.conversation_id, msg.sender_id);
   const active = run?.runId === meta.runId;
-  if (meta.result) return <RunResultBody meta={meta} mine={mine} />;
+  if (meta.result) return <RunResultBody meta={meta} mine={mine} sender={sender} other={other} />;
   const goal: RunGoal = meta.goal ?? { type: "free" };
   const join = () => startRun({ runId: meta.runId, conversationId: msg.conversation_id, goal, onFinish });
   return (
@@ -81,13 +116,15 @@ export function RunInviteBody({ msg, mine, onFinish }: { msg: any; mine: boolean
         <span className="text-[11px] font-bold tracking-wider text-primary">⚡ DESAFIO · {goalChip(goal)}</span>
         <Footprints className="h-4 w-4 text-primary" />
       </div>
-      <div className="flex items-center justify-center gap-4 px-3 py-4">
-        <Initial name={mine ? "Você" : "Ele"} accent={mine} />
+      <div className="flex items-center justify-center gap-2 px-3 py-4">
+        <Avatar person={sender} accent />
         <span className="animate-pulse text-sm font-black text-primary">VS</span>
-        <Initial name={mine ? "Ele" : "Você"} accent={!mine} />
+        <Avatar person={other} />
       </div>
       <div className="px-3 text-center text-[13px] text-foreground/85">
-        {mine ? (active ? "Duelo em andamento!" : "Aguardando seu parceiro calçar os tênis…") : "Te desafiou para uma disputa ao vivo!"}
+        {mine
+          ? (active ? "Duelo em andamento!" : `Aguardando ${firstName(other?.name)} calçar os tênis…`)
+          : `${firstName(sender?.name)} te desafiou para uma disputa ao vivo!`}
       </div>
       <div className="p-3">
         <button type="button" onClick={join}
@@ -99,11 +136,12 @@ export function RunInviteBody({ msg, mine, onFinish }: { msg: any; mine: boolean
   );
 }
 
-function RunResultBody({ meta, mine }: { meta: any; mine: boolean }) {
+function RunResultBody({ meta, mine, sender: senderP, other: otherP }: { meta: any; mine: boolean; sender: Person | null; other: Person | null }) {
   const r = meta.result;
   // r.me = quem enviou o resumo
   const sender = r.me, partner = r.other;
   const you = mine ? sender : partner, them = mine ? partner : sender;
+  const youP = mine ? senderP : otherP, themP = mine ? otherP : senderP;
   const goal: RunGoal = meta.goal ?? { type: "free" };
   const draw = !you || !them || Math.abs((you?.meters ?? 0) - (them?.meters ?? 0)) < 5;
   const youWon = !draw && you.meters > them.meters;
@@ -196,7 +234,7 @@ function RunMap({ paths, height = 220, showFlags }: { paths: MapPath[]; height?:
     <div className="relative w-full overflow-hidden bg-[color:var(--surface-2)]" style={{ height: H }}>
       <div className="absolute left-1/2 top-0 -translate-x-1/2" style={{ width: W, height: H }}>
         {tiles.map((t) => (
-          <img key={`${t.x}-${t.y}`} alt="" draggable={false} loading="lazy"
+          <img key={`${t.x}-${t.y}`} alt="" draggable={false} referrerPolicy="no-referrer-when-downgrade"
             src={`https://tile.openstreetmap.org/${z}/${t.x}/${t.y}.png`}
             className="absolute select-none opacity-90 dark:[filter:invert(1)_hue-rotate(180deg)_brightness(0.85)_contrast(0.9)]"
             style={{ left: t.x * 256 - left, top: t.y * 256 - top, width: 256, height: 256 }} />

@@ -199,6 +199,12 @@
       transform: none;
     }
   }
+  html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+  body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+  input, textarea, [contenteditable="true"], .selectable { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+  img { -webkit-user-drag: none; }
+  * { scrollbar-width: none; }
+  *::-webkit-scrollbar { display: none; }
   ::selection { background: var(--primary); color: var(--primary-foreground); }
 }
 

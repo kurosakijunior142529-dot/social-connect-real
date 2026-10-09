@@ -398,6 +398,7 @@ export function LiveRunHost({ conversationId, otherName }: { conversationId: str
           </div>
           {run.gpsError ? <div className="rounded-2xl bg-destructive/15 p-3 text-sm text-destructive">{run.gpsError}. Libere a localização para medir sua distância.</div> : null}
         </div>
+        </>
       )}
 
       {run.status === "running" ? (

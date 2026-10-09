@@ -38,6 +38,7 @@ import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
 import { uploadChatFile, kindForFile } from "@/lib/chat-media";
 import { BarChart3, Mic2 } from "lucide-react";
 import { GroupVoiceButton } from "@/components/chat/group-extras";
+import { useKeyboardViewport, scrollListToBottom, KEYBOARD_SAFE_CLASS } from "@/hooks/use-keyboard-viewport";
 
 export const Route = createFileRoute("/_authenticated/chats/$id")({
   component: ChatPage,
@@ -49,6 +50,8 @@ function ChatPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  useKeyboardViewport(listRef);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
@@ -137,7 +140,7 @@ function ChatPage() {
   }, [id, queryClient]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollListToBottom(listRef.current, true);
   }, [messages.data?.length]);
 
   const chatData = chat.data;
@@ -294,7 +297,7 @@ function ChatPage() {
   if (!chatData) return <div className="text-center py-12">Chat não encontrado.</div>;
 
   return (
-    <div className="flex flex-col h-[100dvh] md:h-[calc(100vh-4rem)] overflow-hidden md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
+    <div className={cn("flex flex-col h-[100dvh] md:h-[calc(100vh-4rem)] overflow-hidden md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]", KEYBOARD_SAFE_CLASS)}>
       <header className="flex items-center gap-3 px-3 h-14 glass-heavy hairline-b sticky top-0 z-10">
         <Link to="/messages" className="p-2 -ml-1 rounded-full active:bg-[color:var(--surface-2)] md:hidden" aria-label="Voltar">
           <ArrowLeft className="h-5 w-5" strokeWidth={1.8} />
@@ -330,7 +333,7 @@ function ChatPage() {
           onOpenCustomize={() => setCustomizeOpen(true)}
         />
       </header>
-      <div className={cn("flex-1 overflow-y-auto px-4 py-4 space-y-2", chatFont.className)}>
+      <div ref={listRef} className={cn("flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-2", chatFont.className)}>
         {messages.data?.map((m: any) => {
           if (m.kind === "vibe") return null;
           const mine = m.sender_id === user.id;

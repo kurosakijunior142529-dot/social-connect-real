@@ -92,6 +92,8 @@ export function startRun(opts: { runId: string; conversationId: string; goal: Ru
       navigator.geolocation.getCurrentPosition(onPos, err, { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 });
       watchId = navigator.geolocation.watchPosition(onPos, err, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
     }
+    void acquireWake();
+    document.addEventListener("visibilitychange", onVisible);
     tick = setInterval(() => {
       if (!state || state.status !== "running") return;
       const ms = Date.now() - state.startedAt;
@@ -133,7 +135,30 @@ function onPos(pos: GeolocationPosition) {
   leadCheck(prevLead);
 }
 
+let wake: any = null;
+async function acquireWake() {
+  try { wake = await (navigator as any).wakeLock?.request("screen"); } catch { /* sem suporte */ }
+}
+function onVisible() {
+  if (document.visibilityState !== "visible" || !state || state.status !== "running") return;
+  void acquireWake();
+  // ao voltar, pega a posição na hora e soma o trecho percorrido em segundo plano
+  navigator.geolocation?.getCurrentPosition((pos) => {
+    if (!state || !last) return onPos(pos);
+    const d = haversine([last.lat, last.lng], [pos.coords.latitude, pos.coords.longitude]);
+    const dt = (pos.timestamp - last.t) / 1000;
+    if (pos.coords.accuracy > 50 || d < 3 || dt <= 0 || d / dt > 12) return;
+    const me = { ...state.me, meters: state.me.meters + d, path: [...state.me.path, [pos.coords.latitude, pos.coords.longitude] as [number, number]] };
+    me.kcal = Math.round((me.meters / 1000) * WEIGHT_KG * 0.9);
+    last = { lat: pos.coords.latitude, lng: pos.coords.longitude, t: pos.timestamp };
+    set({ me });
+    broadcast();
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+}
+
 function stopInternal() {
+  document.removeEventListener("visibilitychange", onVisible);
+  try { wake?.release?.(); } catch { /* */ } wake = null;
   if (watchId != null) navigator.geolocation?.clearWatch(watchId);
   if (tick) clearInterval(tick);
   if (channel) supabase.removeChannel(channel);

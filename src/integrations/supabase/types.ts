@@ -937,6 +937,7 @@ export type Database = {
           edited_at: string | null
           id: string
           parent_id: string | null
+          pinned_at: string | null
           poll_id: string | null
           post_id: string
           sticker_url: string | null
@@ -948,6 +949,7 @@ export type Database = {
           edited_at?: string | null
           id?: string
           parent_id?: string | null
+          pinned_at?: string | null
           poll_id?: string | null
           post_id: string
           sticker_url?: string | null
@@ -959,6 +961,7 @@ export type Database = {
           edited_at?: string | null
           id?: string
           parent_id?: string | null
+          pinned_at?: string | null
           poll_id?: string | null
           post_id?: string
           sticker_url?: string | null
@@ -4715,6 +4718,7 @@ export type Database = {
           prompt: string
         }[]
       }
+      toggle_comment_pin: { Args: { _comment_id: string }; Returns: boolean }
       trending_hashtags: {
         Args: { _limit?: number }
         Returns: {

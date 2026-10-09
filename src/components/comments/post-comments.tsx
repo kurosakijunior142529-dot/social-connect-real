@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, X, Smile, SmilePlus, Heart, Mic } from "lucide-react";
+import { Send, X, Smile, SmilePlus, Heart, Mic, Pin } from "lucide-react";
 import { EmojiText, AppEmojiPicker } from "@/components/chat/app-emoji";
 import { useTranslatable } from "@/components/i18n/translate-text";
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ type CommentRow = {
   parent_id: string | null;
   edited_at: string | null;
   sticker_url: string | null;
+  pinned_at?: string | null;
   author?: { id: string; username: string; display_name: string; avatar_url: string | null; is_verified?: boolean | null; badge_variant?: string | null };
 };
 
@@ -56,6 +57,7 @@ export function usePostComments(postId: string | null) {
         if (parent) parent.replies.push(node);
         else roots.push(node);
       }
+      roots.sort((a, b) => (b.pinned_at ? 1 : 0) - (a.pinned_at ? 1 : 0));
       return roots;
     },
   });
@@ -190,6 +192,16 @@ export function PostComments({
     refresh();
   }
 
+  async function togglePin(id: string) {
+    const { data, error } = await (supabase as any).rpc("toggle_comment_pin", { _comment_id: id });
+    if (error) {
+      toast.error("Não foi possível fixar");
+      return;
+    }
+    toast.success(data ? "Comentário fixado" : "Comentário desafixado");
+    refresh();
+  }
+
   function renderComment(c: CommentRow, isReply = false) {
     const canEdit = c.author_id === currentUserId;
     const canDelete = canEdit || (!!postAuthorId && postAuthorId === currentUserId);
@@ -212,6 +224,11 @@ export function PostComments({
           className={isReply ? "h-7 w-7" : "h-9 w-9"}
         />
         <div className="min-w-0 flex-1">
+          {c.pinned_at && !isReply ? (
+            <div className="mb-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-primary">
+              <Pin className="h-3 w-3" /> Fixado pelo criador
+            </div>
+          ) : null}
           <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
             <VerifiedName
               name={c.author?.display_name ?? `@${c.author?.username ?? ""}`}
@@ -259,6 +276,11 @@ export function PostComments({
               {canEdit ? (
                 <button type="button" className="hover:text-foreground" onClick={() => setEditing({ id: c.id, text: c.content })}>
                   Editar
+                </button>
+              ) : null}
+              {!isReply && postAuthorId === currentUserId ? (
+                <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => void togglePin(c.id)}>
+                  <Pin className="h-3 w-3" /> {c.pinned_at ? "Desafixar" : "Fixar"}
                 </button>
               ) : null}
               {canDelete ? (

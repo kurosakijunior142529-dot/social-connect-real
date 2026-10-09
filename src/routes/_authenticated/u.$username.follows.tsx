@@ -105,11 +105,25 @@ function FollowsPage() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["follows-list"] });
-      qc.invalidateQueries({ queryKey: ["profile"] });
+    onMutate: async ({ targetId, follow }) => {
+      const key = ["follows-list", username, tab];
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<any>(key);
+      if (prev) {
+        const next = new Set<string>(prev.myFollowing ?? []);
+        follow ? next.add(targetId) : next.delete(targetId);
+        qc.setQueryData(key, { ...prev, myFollowing: next });
+      }
+      try { navigator.vibrate?.(8); } catch {}
+      return { prev, key };
     },
-    onError: () => toast.error("Não foi possível atualizar"),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["profile-stats"] });
+    },
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev);
+      toast.error("Não foi possível atualizar");
+    },
   });
 
   const removeFollower = useMutation({

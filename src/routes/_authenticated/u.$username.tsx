@@ -280,15 +280,32 @@ function ProfileContent() {
   });
 
   const toggleFollow = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (wasFollowing: boolean) => {
       if (!profile || isMe) return;
-      if (stats.data?.isFollowing) {
-        await supabase.from("follows").delete().match({ follower_id: user.id, following_id: profile.id });
-      } else {
-        await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
-      }
+      const { error } = wasFollowing
+        ? await supabase.from("follows").delete().match({ follower_id: user.id, following_id: profile.id })
+        : await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
+      if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile-stats", profile?.id, user.id] }),
+    onMutate: async (wasFollowing: boolean) => {
+      const key = ["profile-stats", profile?.id, user.id];
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData<any>(key);
+      if (prev) {
+        queryClient.setQueryData(key, {
+          ...prev,
+          isFollowing: !wasFollowing,
+          followers: Math.max(0, (prev.followers ?? 0) + (wasFollowing ? -1 : 1)),
+        });
+      }
+      try { navigator.vibrate?.(8); } catch {}
+      return { prev, key };
+    },
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.prev) queryClient.setQueryData(ctx.key, ctx.prev);
+      toast.error("Não foi possível atualizar");
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["follows-list"] }),
   });
 
   async function openChat() {

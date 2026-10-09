@@ -21,6 +21,7 @@ import { translateText, translateBatch } from "@/lib/ai.functions";
 import { transcribeCallClip } from "@/lib/call-transcribe.functions";
 import { startSttFallback, type SttFallbackHandle } from "@/lib/call-stt-fallback";
 import { speakCallTranslation } from "@/lib/call-speech.functions";
+import { getCallVoice, deviceVoicesFor } from "@/lib/call-voice";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getCallAccess } from "@/lib/calls.functions";
@@ -1245,7 +1246,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           console.warn("[call-translation] native speech failed", error);
         }
       }
-      void speak({ data: { text: clean.slice(0, 600), voice: "alloy" } })
+      void speak({ data: { text: clean.slice(0, 600), voice: aiVoice } })
         .then((result: { audio: string; mime: string }) => {
           if (!speakTranslationsRef.current) return;
           const audio = ttsAudioRef.current ?? new Audio();

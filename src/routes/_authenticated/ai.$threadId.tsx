@@ -382,7 +382,7 @@ function AIThread() {
               <MessageSquare className={cn("h-4 w-4 shrink-0", t.id === threadId ? "text-primary" : "text-muted-foreground")} />
               <span className="flex-1 truncate">{t.title}</span>
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
                   const title = (await appPrompt("Novo nome da conversa", t.title))?.trim();
                   if (title) {

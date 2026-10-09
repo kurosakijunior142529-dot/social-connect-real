@@ -242,11 +242,16 @@ function ReelsPage() {
         <button
           onClick={() => void startTogether()}
           aria-label="Assistir junto"
-          className={cn("flex h-9 items-center gap-1 rounded-full px-2.5 text-xs font-semibold backdrop-blur",
-            code ? "bg-primary text-primary-foreground" : "bg-black/30 text-white")}
+          className={cn("flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold backdrop-blur-md transition active:scale-95",
+            code ? "bg-primary text-primary-foreground" : "bg-black/35 text-white ring-1 ring-white/15")}
         >
-          <Users className="h-4 w-4" />
-          {code ? (peers > 0 ? `+${peers}` : "Juntos") : null}
+          {code ? (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-foreground opacity-70" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-foreground" />
+            </span>
+          ) : <Users className="h-4 w-4" />}
+          {code ? (peers > 0 ? `Juntos · ${peers + 1}` : "Esperando amigo…") : "Juntos"}
         </button>
       </header>
 

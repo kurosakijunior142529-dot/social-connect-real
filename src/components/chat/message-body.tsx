@@ -166,7 +166,7 @@ function StickerBody({ msg }: { msg: Msg }) {
           alt={name}
           loading="lazy"
           decoding="async"
-          className="h-40 w-40 object-contain drop-shadow-[0_6px_14px_var(--sticker-shadow)] animate-in zoom-in-90 duration-300"
+          className="sticker-pop h-40 w-40 object-contain drop-shadow-[0_6px_14px_var(--sticker-shadow)]"
         />
       </button>
       <Dialog open={open} onOpenChange={setOpen}>

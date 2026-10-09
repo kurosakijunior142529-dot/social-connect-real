@@ -826,3 +826,17 @@ img, video {
   html { -webkit-tap-highlight-color: transparent; }
   img { content-visibility: auto; }
 }
+
+/* Figurinhas: contraste igual no claro e no escuro, animação suave */
+:root { --sticker-cell: oklch(0.5 0 0 / 0.06); --sticker-cell-press: oklch(0.5 0 0 / 0.14); }
+.dark { --sticker-shadow: oklch(0 0 0 / 0.55); --sticker-cell: oklch(1 0 0 / 0.05); --sticker-cell-press: oklch(1 0 0 / 0.12); }
+.sticker-cell { background: var(--sticker-cell); transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .15s; -webkit-tap-highlight-color: transparent; }
+.sticker-cell:active { transform: scale(.88); background: var(--sticker-cell-press); }
+.sticker-img { filter: drop-shadow(0 3px 6px var(--sticker-shadow)); transform: translateZ(0); image-rendering: auto; }
+.sticker-pop { animation: sticker-pop .45s cubic-bezier(.34,1.56,.64,1) both; transform: translateZ(0); }
+@keyframes sticker-pop { 0% { transform: scale(.6) rotate(-6deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes voice-ring { 0%,100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 55%, transparent); } 50% { box-shadow: 0 0 0 7px color-mix(in oklch, var(--primary) 0%, transparent); } }
+.voice-speaking { animation: voice-ring 1.1s ease-in-out infinite; }
+@keyframes voice-bar { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+.voice-bar { transform-origin: bottom; animation: voice-bar .8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sticker-pop, .voice-speaking, .voice-bar { animation: none; } }

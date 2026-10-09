@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -47,6 +47,7 @@ export function MessageActions({
   onPinToggle?: (id: string, pinned: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const ai = useAiActions();
   const reactTable = ctx.scope === "chat" ? "message_reactions" : "dm_message_reactions";
   const pinned = !!message.pinned_at;
@@ -81,17 +82,58 @@ export function MessageActions({
 
   const canEdit = mine && (message.kind ?? "text") === "text" && !!message.content;
 
+  // Segurar a mensagem abre o menu
+  useEffect(() => {
+    const row = btnRef.current?.closest(".group") as HTMLElement | null;
+    if (!row) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let sx = 0, sy = 0;
+    const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+    const down = (e: PointerEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.closest("button, a, input, textarea, audio, video")) return;
+      sx = e.clientX; sy = e.clientY;
+      cancel();
+      timer = setTimeout(() => {
+        timer = null;
+        try { navigator.vibrate?.(15); } catch {}
+        setOpen(true);
+      }, 420);
+    };
+    const move = (e: PointerEvent) => {
+      if (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8) cancel();
+    };
+    const ctx = (e: Event) => { e.preventDefault(); setOpen(true); };
+    row.addEventListener("pointerdown", down);
+    row.addEventListener("pointermove", move);
+    row.addEventListener("pointerup", cancel);
+    row.addEventListener("pointercancel", cancel);
+    row.addEventListener("pointerleave", cancel);
+    row.addEventListener("contextmenu", ctx);
+    row.style.setProperty("-webkit-touch-callout", "none");
+    return () => {
+      cancel();
+      row.removeEventListener("pointerdown", down);
+      row.removeEventListener("pointermove", move);
+      row.removeEventListener("pointerup", cancel);
+      row.removeEventListener("pointercancel", cancel);
+      row.removeEventListener("pointerleave", cancel);
+      row.removeEventListener("contextmenu", ctx);
+    };
+  }, []);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition p-1 rounded-full hover:bg-white/10"
+          ref={btnRef}
+          className="opacity-0 md:group-hover:opacity-100 transition p-1 rounded-full hover:bg-white/10 pointer-events-none md:pointer-events-auto"
           aria-label="Ações"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 glass border-white/10" align="end">
+      <PopoverContent className="w-64 p-2 rounded-2xl glass border-white/10 shadow-2xl animate-in zoom-in-95 fade-in" align="center" side="top">
         <div className="flex gap-1 pb-2 border-b border-white/5 justify-around">
           {QUICK_EMOJIS.map((e) => (
             <button

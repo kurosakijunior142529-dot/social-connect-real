@@ -110,7 +110,7 @@ function NewLive() {
       });
       navigate({ to: "/live/$id", params: { id: res.liveId }, search: { host: 1 } as any });
     } catch (err: any) {
-      toast.error(err?.message ?? "Falha ao criar a live");
+      const msg = String(err?.message ?? ""); toast.error(/bloquead|regras/i.test(msg) ? msg : "Não foi possível criar a live agora. Tente de novo.");
       setBusy(false);
     }
   };

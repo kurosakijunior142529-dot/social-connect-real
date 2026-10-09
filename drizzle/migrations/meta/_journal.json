@@ -379,6 +379,13 @@
       "when": 1791578875537,
       "tag": "0053_comments_allow_sticker_only",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1791586665410,
+      "tag": "0054_fix_lives_policy_recursion",
+      "breakpoints": true
     }
   ]
 }

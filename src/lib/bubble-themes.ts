@@ -23,76 +23,18 @@ export type BubbleTheme = {
 };
 
 export const BUBBLE_THEMES: BubbleTheme[] = [
-  {
-    id: "classic",
-    label: "Neon Lime",
-    swatch: "linear-gradient(135deg,#A3E635,#0BA85B)",
-    mine: "bubble-chat-mine rounded-br-[6px]",
-    theirs: "bubble-chat-theirs rounded-bl-[6px]",
-  },
-  {
-    id: "modern",
-    label: "Moderno",
-    swatch: "linear-gradient(135deg,#F5F5F7,#22E06A)",
-    mine: "bg-white text-black rounded-br-[4px]",
-    theirs: "bg-chat-mine text-chat-mine-foreground rounded-bl-[4px]",
-  },
-  {
-    id: "neon",
-    label: "Neon",
-    swatch: "linear-gradient(135deg,#22E06A,#22B8F2)",
-    mine: "text-white rounded-br-[6px] shadow-[0_0_18px_rgba(34,224,106,0.65)] border border-[#22E06A]/70 bg-[linear-gradient(135deg,rgba(34,224,106,0.25),rgba(34,184,242,0.25))]",
-    theirs: "text-white rounded-bl-[6px] shadow-[0_0_14px_rgba(255,61,138,0.4)] border border-[#FF3D8A]/60 bg-[linear-gradient(135deg,rgba(255,61,138,0.18),rgba(124,58,237,0.18))]",
-  },
-  {
-    id: "glass",
-    label: "Vidro",
-    swatch: "linear-gradient(135deg,rgba(255,255,255,0.5),rgba(255,255,255,0.1))",
-    mine: "bubble-glass bubble-glass-mine rounded-br-[6px]",
-    theirs: "bubble-glass bubble-glass-theirs rounded-bl-[6px]",
-  },
-  {
-    id: "gradient",
-    label: "Gradiente",
-    swatch: "linear-gradient(135deg,#FF3D8A,#7C3AED,#22B8F2)",
-    mine: "text-white rounded-br-[6px] bg-[linear-gradient(135deg,#22E06A,#22B8F2,#7C3AED)]",
-    theirs: "text-white rounded-bl-[6px] bg-[linear-gradient(135deg,#FF3D8A,#7C3AED)]",
-  },
-  {
-    id: "minimal",
-    label: "Minimalista",
-    swatch: "linear-gradient(135deg,#F5F5F7,#3a3a3c)",
-    mine: "bg-transparent border border-primary/70 text-primary rounded-br-[6px]",
-    theirs: "bg-transparent border border-white/15 text-foreground rounded-bl-[6px]",
-  },
-  {
-    id: "gamer",
-    label: "Gamer",
-    swatch: "linear-gradient(135deg,#22E06A,#0f0f11)",
-    mine: "font-mono text-[#0aff9d] rounded-br-[6px] bg-[#001a0d] border border-[#0aff9d]/60 shadow-[0_0_14px_rgba(10,255,157,0.35)]",
-    theirs: "font-mono text-[#8be9ff] rounded-bl-[6px] bg-[#001522] border border-[#8be9ff]/50 shadow-[0_0_14px_rgba(139,233,255,0.25)]",
-  },
-  {
-    id: "cyberpunk",
-    label: "Cyberpunk",
-    swatch: "linear-gradient(135deg,#FF00E5,#00E5FF)",
-    mine: "text-white rounded-br-[6px] bg-[linear-gradient(135deg,#ff00c8,#7a00ff)] shadow-[0_0_20px_rgba(255,0,200,0.55)] border border-[#ff00c8]/70",
-    theirs: "text-[#e6faff] rounded-bl-[6px] bg-[linear-gradient(135deg,#001a2a,#00303a)] border border-[#00e5ff]/60 shadow-[0_0_18px_rgba(0,229,255,0.4)]",
-  },
-  {
-    id: "premium",
-    label: "Premium",
-    swatch: "linear-gradient(135deg,#FFE27A,#B8791A)",
-    mine: "text-[#2a1a00] rounded-br-[6px] bg-[linear-gradient(135deg,#FFE27A,#F7B733,#B8791A)] shadow-[0_6px_20px_-8px_rgba(247,183,51,0.7)] border border-[#F7B733]/60",
-    theirs: "text-[#f8ecd0] rounded-bl-[6px] bg-[linear-gradient(135deg,#2a1e08,#3d2a0d)] border border-[#F7B733]/40",
-  },
-  {
-    id: "custom",
-    label: "Personalizado",
-    swatch: "conic-gradient(from 210deg,#22E06A,#FF3D8A,#22B8F2,#22E06A)",
-    mine: "text-white rounded-br-[6px] bg-[conic-gradient(from_210deg,#22E06A,#22B8F2,#7C3AED,#FF3D8A,#22E06A)] shadow-[0_0_16px_rgba(124,58,237,0.5)]",
-    theirs: "text-white rounded-bl-[6px] bg-[linear-gradient(135deg,#0f0f11,#1a1a1d)] border border-white/10",
-  },
+  { id: "modern", label: "Vibely", swatch: "linear-gradient(135deg,#1F8F55,#2a2a2e)",
+    mine: "bubble-v-mine rounded-br-[6px]", theirs: "bubble-v-theirs rounded-bl-[6px]" },
+  { id: "classic", label: "Clássico", swatch: "linear-gradient(135deg,#005C4B,#202C33)",
+    mine: "bubble-wa-mine rounded-br-[6px]", theirs: "bubble-wa-theirs rounded-bl-[6px]" },
+  { id: "minimal", label: "Grafite", swatch: "linear-gradient(135deg,#3a3a3f,#1c1c1f)",
+    mine: "bubble-g-mine rounded-br-[6px]", theirs: "bubble-g-theirs rounded-bl-[6px]" },
+  { id: "glass", label: "Vidro", swatch: "linear-gradient(135deg,rgba(255,255,255,0.4),rgba(255,255,255,0.08))",
+    mine: "bubble-glass bubble-glass-mine rounded-br-[6px]", theirs: "bubble-glass bubble-glass-theirs rounded-bl-[6px]" },
+  { id: "neon", label: "Oceano", swatch: "linear-gradient(135deg,#1E5E8C,#1c2530)",
+    mine: "bubble-o-mine rounded-br-[6px]", theirs: "bubble-o-theirs rounded-bl-[6px]" },
+  { id: "premium", label: "Areia", swatch: "linear-gradient(135deg,#C9A66B,#2b2620)",
+    mine: "bubble-a-mine rounded-br-[6px]", theirs: "bubble-a-theirs rounded-bl-[6px]" },
 ];
 
 export type ChatFontId = "system" | "serif" | "mono" | "rounded";

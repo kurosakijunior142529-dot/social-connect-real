@@ -49,6 +49,7 @@ function ReelsPage() {
   const [peers, setPeers] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const currentRef = useRef<string | null>(null);
+  const [watchingId, setWatchingId] = useState<string | null>(startPostId ?? null);
   const remoteRef = useRef(false);
   useEffect(() => {
     if (!code) return;
@@ -201,6 +202,7 @@ function ReelsPage() {
         const id = posts[idx]?.id;
         if (id && id !== currentRef.current && Math.abs(el.scrollTop - idx * el.clientHeight) < 4) {
           currentRef.current = id;
+          setWatchingId(id);
           if (remoteRef.current) remoteRef.current = false;
           else void channelRef.current?.send({ type: "broadcast", event: "goto", payload: { postId: id } });
         }

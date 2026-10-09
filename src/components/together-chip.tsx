@@ -1,78 +1,37 @@
-import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Tv, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useGlobalPresence } from "@/lib/presence";
-import { inviteLinkFor } from "@/lib/watch/rooms";
+import { Play } from "lucide-react";
+import { useFriendReel } from "@/lib/reels-presence";
 
 /**
- * "Momento em dupla": só aparece quando os dois estão online ao mesmo tempo.
- * Cria uma sala privada na hora e manda o convite na própria conversa.
+ * Aparece só quando a outra pessoa está na tela de Reels agora.
+ * Tocar leva direto ao Reel que ela está vendo.
  */
 export function TogetherChip({
   currentUserId,
   otherUserId,
   otherName,
-  conversationId,
 }: {
   currentUserId: string;
   otherUserId: string;
   otherName: string;
-  conversationId: string;
+  conversationId?: string;
 }) {
   const navigate = useNavigate();
-  const { online } = useGlobalPresence(currentUserId);
-  const [busy, setBusy] = useState(false);
-
-  if (!online[otherUserId]) return null;
-
-  async function start() {
-    setBusy(true);
-    try {
-      const { data, error } = await (supabase as any)
-        .from("watch_rooms")
-        .insert({
-          host_id: currentUserId,
-          provider: "youtube",
-          video_id: "",
-          title: `Você e ${otherName}`,
-          visibility: "invite",
-          category: "geral",
-        })
-        .select("id, invite_code")
-        .single();
-      if (error || !data) throw error ?? new Error("Não foi possível abrir a sala.");
-
-      await (supabase as any).from("messages").insert({
-        conversation_id: conversationId,
-        sender_id: currentUserId,
-        content: `Bora assistir junto agora? ${inviteLinkFor(data.invite_code)}`,
-      });
-
-      void navigate({ to: "/watch/$roomId", params: { roomId: data.id } });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível abrir a sala.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const postId = useFriendReel(currentUserId, otherUserId);
+  if (!postId) return null;
 
   return (
     <div className="px-4 pt-2">
       <button
         type="button"
-        onClick={() => void start()}
-        disabled={busy}
-        className="flex w-full items-center gap-2 rounded-full border border-white/[0.07] bg-[color:var(--surface)] px-4 py-2 text-left transition active:scale-[0.99] disabled:opacity-60"
+        onClick={() => void navigate({ to: "/reels", search: { post: postId } as any })}
+        className="flex w-full items-center gap-2 rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] px-4 py-2 text-left transition active:scale-[0.99]"
       >
-        {busy ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-        ) : (
-          <Tv className="h-3.5 w-3.5 text-primary" />
-        )}
+        <span className="relative grid h-5 w-5 place-items-center rounded-full bg-primary/15">
+          <Play className="h-3 w-3 fill-primary text-primary" />
+        </span>
         <span className="text-[12px] text-muted-foreground">
-          {otherName} está online — assistir junto agora
+          <span className="font-semibold text-foreground">{otherName}</span> está assistindo Reels agora · ver junto
         </span>
       </button>
     </div>

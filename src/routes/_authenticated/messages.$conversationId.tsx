@@ -737,6 +737,7 @@ function ConversationPage() {
       ) : null}
 
       <div
+        ref={listRef}
         className={cn(
           "relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]",
           chatFont.className,

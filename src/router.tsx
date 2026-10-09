@@ -30,8 +30,9 @@ export const getRouter = () => {
     scrollRestoration: true,
     defaultPreload: "intent",
     defaultPreloadDelay: 0,
-    defaultPreloadStaleTime: 30_000,
-    defaultPendingMs: 1000,
+    defaultPreloadStaleTime: 60_000,
+    defaultStructuralSharing: true,
+    defaultPendingMs: 1500,
     defaultPendingMinMs: 0,
     defaultPendingComponent: () => <div className="min-h-[60vh] bg-background" />,
   });

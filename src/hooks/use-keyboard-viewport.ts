@@ -16,6 +16,8 @@ export function useKeyboardViewport(scrollRef?: RefObject<HTMLElement | null>) {
     document.body.style.overflow = "hidden";
 
     let raf = 0;
+    let lastH = -1;
+    let lastT = -1;
     const apply = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {

@@ -10,7 +10,7 @@
 
 @theme inline {
   --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans Variable", "Noto Color Emoji", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
 
   --radius-sm: 8px;
@@ -321,6 +321,23 @@
   border: 1px solid var(--hairline);
   color: var(--foreground);
 }
+/* Temas de balão: sem bordas duras, só um relevo suave */
+@utility bubble-v-mine { background: #1F7A4D; color: #F2FFF7; box-shadow: 0 1px 1px rgba(0,0,0,0.18); }
+@utility bubble-v-theirs { background: var(--surface-2); color: var(--foreground); box-shadow: 0 1px 1px rgba(0,0,0,0.14); }
+@utility bubble-wa-mine { background: #005C4B; color: #E9EDEF; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
+@utility bubble-wa-theirs { background: #202C33; color: #E9EDEF; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
+@utility bubble-g-mine { background: #3A3A40; color: #F5F5F7; box-shadow: 0 1px 1px rgba(0,0,0,0.2); }
+@utility bubble-g-theirs { background: #1E1E22; color: #E8E8EA; box-shadow: 0 1px 1px rgba(0,0,0,0.2); }
+@utility bubble-o-mine { background: #1E5E8C; color: #EEF7FF; box-shadow: 0 1px 1px rgba(0,0,0,0.18); }
+@utility bubble-o-theirs { background: #1C2530; color: #E6EEF5; box-shadow: 0 1px 1px rgba(0,0,0,0.18); }
+@utility bubble-a-mine { background: #8A6D3F; color: #FFF8EC; box-shadow: 0 1px 1px rgba(0,0,0,0.18); }
+@utility bubble-a-theirs { background: #2B2620; color: #F3EADB; box-shadow: 0 1px 1px rgba(0,0,0,0.18); }
+.light .bubble-v-mine { background: #D7F5E2; color: #0B2415; }
+.light .bubble-v-theirs, .light .bubble-wa-theirs, .light .bubble-g-theirs, .light .bubble-o-theirs, .light .bubble-a-theirs { background: #FFFFFF; color: #111B21; box-shadow: 0 1px 0.5px rgba(11,20,26,0.13); }
+.light .bubble-wa-mine { background: #D9FDD3; color: #111B21; }
+.light .bubble-g-mine { background: #E9E9EC; color: #111; }
+.light .bubble-o-mine { background: #D6EAFB; color: #0B1E2E; }
+.light .bubble-a-mine { background: #F3E6CF; color: #2A1D08; }
 @utility glow-chat {
   box-shadow: 0 0 16px var(--chat-mine-glow);
 }

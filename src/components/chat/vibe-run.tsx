@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Flag, Flame, Footprints, Gauge, Minimize2, RotateCcw, Timer, Trophy, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -155,17 +157,21 @@ function RunResultBody({ meta, mine, sender: senderP, other: otherP }: { meta: a
   return (
     <div className="w-72 overflow-hidden rounded-2xl bg-[color:var(--surface)] ring-1 ring-primary/30">
       <div className="bg-gradient-to-br from-primary/30 via-primary/10 to-transparent px-3 py-3 text-center">
-        <Trophy className="mx-auto h-7 w-7 text-primary" />
+        <div className="flex items-end justify-center gap-2 pt-2">
+          <Avatar person={youP} accent={!draw && youWon} crown={!draw && youWon} />
+          <Trophy className="mb-6 h-7 w-7 text-primary" />
+          <Avatar person={themP} accent={!draw && !youWon} crown={!draw && !youWon} />
+        </div>
         <div className="mt-1 text-[15px] font-bold">
-          {draw ? "Missão cumprida em dupla! 🤝" : youWon ? "Vitória sua! 🏆" : "Vitória do parceiro! 🏆"}
+          {draw ? "Missão cumprida em dupla! 🤝" : `Vitória de ${youWon ? firstName(youP?.name) : firstName(themP?.name)}! 🏆`}
         </div>
         <div className="text-[11px] text-muted-foreground">{goalLabel(goal)}</div>
       </div>
       <div className="px-3 py-2">
         <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1.5 text-[12px]">
           <span />
-          <span className={cn("text-right font-bold", youWon && "text-primary")}>Você</span>
-          <span className={cn("text-right font-bold", !draw && !youWon && "text-primary")}>Parceiro</span>
+          <span className={cn("max-w-16 truncate text-right font-bold", youWon && "text-primary")}>{firstName(youP?.name)}</span>
+          <span className={cn("max-w-16 truncate text-right font-bold", !draw && !youWon && "text-primary")}>{firstName(themP?.name)}</span>
           {rows.map(([label, f]) => (
             <Row3 key={label} label={label} a={you ? f(you) : "—"} b={them ? f(them) : "—"} />
           ))}

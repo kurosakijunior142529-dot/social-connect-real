@@ -594,14 +594,14 @@ function StickerTab({
                       recents.push({ id: s.id, url: s.url, name: s.name, path: s.path, own: s.own });
                       onSticker(s);
                     }}
-                    className="aspect-square w-full rounded-xl p-1 transition active:scale-95 active:bg-muted"
+                    className="aspect-square w-full rounded-2xl bg-muted/30 p-1.5 transition duration-200 hover:bg-muted/60 active:scale-90"
                   >
                     <img
                       src={s.url}
                       alt={s.name}
                       loading="lazy"
                       decoding="async"
-                      className="h-full w-full object-contain"
+                      className="h-full w-full object-contain drop-shadow-[0_3px_6px_var(--sticker-shadow)]"
                     />
                   </button>
                   <button
@@ -651,8 +651,8 @@ function StickerTab({
             aria-pressed={pack === p.id}
             onClick={() => setPack(p.id)}
             className={cn(
-              "shrink-0 rounded-lg px-2.5 py-1.5 text-base transition",
-              pack === p.id ? "bg-primary/15 ring-1 ring-primary/40" : "active:bg-muted",
+              "shrink-0 rounded-full px-3 py-1.5 text-base transition active:scale-95",
+              pack === p.id ? "bg-foreground/10 ring-1 ring-border" : "opacity-70 active:bg-muted",
             )}
           >
             {p.icon}

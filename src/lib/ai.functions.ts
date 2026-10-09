@@ -56,7 +56,9 @@ export const translateText = createServerFn({ method: "POST" })
 
     if (hash && translated) {
       try {
-        await (context.supabase as any)
+        // Só o servidor grava no cache, para ninguém inserir traduções falsas.
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await (supabaseAdmin as any)
           .from("translation_cache")
           .upsert(
             { source_hash: hash, target_lang: data.target, source_text: data.text, translated_text: translated },

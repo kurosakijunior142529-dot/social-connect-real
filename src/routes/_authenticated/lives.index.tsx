@@ -108,7 +108,7 @@ function LivesFeed() {
           <p className="text-sm text-muted-foreground">
             {allLives.length > 0
               ? `${allLives.length} transmitindo agora`
-              : "Descubra criadores, reveja replays ou comece a sua."}
+              : "Descubra criadores, reveja gravações ou comece a sua."}
           </p>
         </div>
         <Link to="/lives/new" className="shrink-0">
@@ -222,7 +222,7 @@ function LivesFeed() {
       )}
 
       {olds.length > 0 && (
-        <Section icon={<History className="h-4 w-4 text-muted-foreground" />} title="Replays recentes">
+        <Section icon={<History className="h-4 w-4 text-muted-foreground" />} title="Gravações recentes">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {olds.map((r) => (
               <ReplayCard key={r.id} r={r} />
@@ -368,7 +368,7 @@ function LiveCard({ r, live = false, compact = false }: { r: LiveFeedRow; live?:
           </span>
         ) : (
           <span className="absolute top-2 left-2 rounded-md bg-black/70 text-white/80 text-[10px] font-semibold uppercase tracking-widest px-1.5 py-0.5">
-            Replay
+            Gravação
           </span>
         )}
         {r.category ? (
@@ -428,7 +428,7 @@ function ReplayCard({ r }: { r: LiveFeedRow }) {
         <Cover r={r} className="group-hover:scale-[1.03] transition duration-500" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
         <span className="absolute top-2 left-2 rounded-md bg-black/75 text-white/85 text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5">
-          Replay
+          Gravação
         </span>
         {dur ? (
           <span className="absolute bottom-2 right-2 rounded bg-black/75 text-white text-[11px] px-1.5 py-0.5">{dur}</span>
@@ -481,7 +481,7 @@ function CompactEmpty() {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold leading-tight">Ninguém ao vivo agora</p>
-        <p className="text-[12px] text-muted-foreground truncate">Veja replays abaixo ou comece a sua transmissão.</p>
+        <p className="text-[12px] text-muted-foreground truncate">Veja gravações abaixo ou comece a sua transmissão.</p>
       </div>
       <Link to="/lives/new" className="shrink-0">
         <Button size="sm" className="rounded-full">

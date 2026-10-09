@@ -204,7 +204,7 @@ function ProfileContent() {
       const [posts, followers, following, mine, lives] = await Promise.all([
         supabase
           .from("posts")
-          .select("id, media_url, media_type, view_count, post_kind, created_at, music_track_id, music_tracks(title, artist, cover_url)")
+          .select("id, media_url, media_type, caption, view_count, post_kind, created_at, music_track_id, music_tracks(title, artist, cover_url)")
           .eq("author_id", profile!.id)
           .order("created_at", { ascending: false }),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profile!.id),
@@ -240,7 +240,7 @@ function ProfileContent() {
         .limit(120);
       const rids = (repostRows ?? []).map((r: any) => r.post_id);
       if (rids.length) {
-        const { data } = await supabase.from("posts").select("id, media_url, media_type").in("id", rids);
+        const { data } = await supabase.from("posts").select("id, media_url, media_type, caption").in("id", rids);
         repostedPosts = data ?? [];
       }
 
@@ -255,11 +255,11 @@ function ProfileContent() {
         const lids = (likedRes.data ?? []).map((l: any) => l.post_id);
         const sids = (savedRes.data ?? []).map((s: any) => s.post_id);
         if (lids.length) {
-          const { data } = await supabase.from("posts").select("id, media_url, media_type").in("id", lids);
+          const { data } = await supabase.from("posts").select("id, media_url, media_type, caption").in("id", lids);
           likedPosts = data ?? [];
         }
         if (sids.length) {
-          const { data } = await supabase.from("posts").select("id, media_url, media_type").in("id", sids);
+          const { data } = await supabase.from("posts").select("id, media_url, media_type, caption").in("id", sids);
           savedPosts = data ?? [];
         }
       }
@@ -630,13 +630,20 @@ function PostGrid({ posts, empty, username }: { posts: any[]; empty: string; use
             : { to: "/p/$id" as const, params: { id: p.id } })}
           className="group relative aspect-square overflow-hidden rounded-md bg-[color:var(--surface-2)] ring-1 ring-border/60 transition duration-200 hover:ring-primary/20 active:scale-[0.98] md:rounded-lg"
         >
-          <SignedMediaThumb
-            bucket="posts"
-            path={p.media_url}
-            mediaType={p.media_type}
-            alt=""
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          {p.media_url ? (
+            <SignedMediaThumb
+              bucket="posts"
+              path={p.media_url}
+              mediaType={p.media_type}
+              alt=""
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col justify-between bg-gradient-to-br from-[color:var(--surface-2)] to-primary/15 p-2.5">
+              <MessageCircle className="h-3.5 w-3.5 text-primary" />
+              <p className="line-clamp-4 text-[11px] font-medium leading-snug text-foreground">{p.caption || "Publicação"}</p>
+            </div>
+          )}
         </Link>
       ))}
     </div>

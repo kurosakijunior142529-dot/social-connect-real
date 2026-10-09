@@ -102,7 +102,14 @@ function onPos(pos: GeolocationPosition) {
   if (!state || state.status !== "running") return;
   const { latitude: lat, longitude: lng, accuracy } = pos.coords;
   set({ gpsAccuracy: accuracy });
-  if (accuracy > 35) return; // filtra ruído
+  // primeiro ponto aceita sinal moderado para o mapa aparecer logo
+  if (!last) {
+    if (accuracy > 150) return;
+    last = { lat, lng, t: pos.timestamp };
+    set({ me: { ...state.me, path: [...state.me.path, [lat, lng]] } });
+    return;
+  }
+  if (accuracy > 50) return; // filtra ruído
   const now = pos.timestamp;
   const me = { ...state.me };
   const prevLead = state.other ? me.meters >= state.other.meters : true;

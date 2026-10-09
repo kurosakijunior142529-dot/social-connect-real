@@ -97,7 +97,6 @@ export function MobileMoreSheet({ onSignOut }: { onSignOut: () => void }) {
     { to: "/watch", label: t("nav.watch"), hint: t("more.watchHint"), icon: <Tv className={icon} />, isNew: true },
     { to: "/explore", label: t("nav.explore"), hint: t("more.exploreHint"), icon: <Compass className={icon} /> },
     { to: "/lives", label: t("nav.lives"), hint: t("more.livesHint"), icon: <Radio className={icon} /> },
-    { to: "/marketplace", label: t("nav.marketplace"), hint: t("more.marketplaceHint"), icon: <Store className={icon} /> },
   ];
 
   const create: Entry[] = [

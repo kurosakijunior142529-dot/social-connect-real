@@ -1,3 +1,4 @@
+import { appConfirm, appPrompt, appAlert } from "@/components/app-dialog";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { VerifiedName } from "@/components/verified-badge";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
@@ -457,7 +458,7 @@ function ConversationPage() {
   }
 
   async function deleteMessage(id: string) {
-    if (!confirm("Apagar para todos?")) return;
+    if (!(await appConfirm("Apagar para todos?"))) return;
     const { error } = await (supabase as any).from("messages").delete().eq("id", id);
     if (error) toast.error(error.message);
   }

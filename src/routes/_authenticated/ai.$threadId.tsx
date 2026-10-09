@@ -1,3 +1,4 @@
+import { appConfirm, appPrompt } from "@/components/app-dialog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -381,9 +382,9 @@ function AIThread() {
               <MessageSquare className={cn("h-4 w-4 shrink-0", t.id === threadId ? "text-primary" : "text-muted-foreground")} />
               <span className="flex-1 truncate">{t.title}</span>
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  const title = prompt("Novo nome da conversa", t.title)?.trim();
+                  const title = (await appPrompt("Novo nome da conversa", t.title))?.trim();
                   if (title) {
                     rename({ data: { id: t.id, title: title.slice(0, 120) } })
                       .then(() => qc.invalidateQueries({ queryKey: ["ai-threads"] }))
@@ -396,7 +397,7 @@ function AIThread() {
                 <Pencil className="h-3.5 w-3.5" />
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); if (confirm("Excluir conversa?")) removeThread.mutate(t.id); }}
+                onClick={async (e) => { e.stopPropagation(); if (await appConfirm("Excluir conversa?")) removeThread.mutate(t.id); }}
                 className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400"
                 aria-label="Excluir"
               >

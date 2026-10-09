@@ -1,3 +1,4 @@
+import { appAlert } from "@/components/app-dialog";
 import {
   Component,
   createContext,
@@ -586,7 +587,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           : err?.name === "NotFoundError"
             ? "Microfone não encontrado neste dispositivo."
             : "Não foi possível acessar microfone/câmera.";
-        alert(msg);
+        void appAlert(msg);
         return;
       }
       const { data, error } = await supabase
@@ -599,7 +600,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         localStreamRef.current = null;
         setLocalStream(null);
         console.error("start call failed", error);
-        alert("Não foi possível iniciar a chamada.");
+        void appAlert("Não foi possível iniciar a chamada.");
         return;
       }
       setActive({ id: data.id, type, role: "caller", other, status: "ringing" });
@@ -621,7 +622,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       await setupPeer(inc.id, inc.type, "callee", user.id);
     } catch (e) {
       console.error(e);
-      alert("Não foi possível acessar câmera/microfone.");
+      void appAlert("Não foi possível acessar câmera/microfone.");
       await supabase
         .from("calls")
         .update({ status: "ended", ended_at: new Date().toISOString() })
@@ -656,7 +657,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       setLocalStream(new MediaStream(stream.getTracks()));
     } catch (err) {
       console.warn("switch camera failed", err);
-      alert("Não foi possível alternar a câmera neste dispositivo.");
+      void appAlert("Não foi possível alternar a câmera neste dispositivo.");
     }
   }, []);
 

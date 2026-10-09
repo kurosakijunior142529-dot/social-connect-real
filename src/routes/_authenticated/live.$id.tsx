@@ -1,3 +1,4 @@
+import { appConfirm, appPrompt, appAlert } from "@/components/app-dialog";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -548,7 +549,7 @@ function LiveRoom() {
   };
 
   const finish = async () => {
-    if (!confirm("Encerrar a transmissão agora?")) return;
+    if (!(await appConfirm("Encerrar a transmissão agora?"))) return;
     try {
       await doEnd({ data: { liveId } });
       if (room) try { await room.disconnect(); } catch { /* noop */ }

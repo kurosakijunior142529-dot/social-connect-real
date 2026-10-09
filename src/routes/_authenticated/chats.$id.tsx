@@ -1,3 +1,4 @@
+import { appConfirm, appPrompt, appAlert } from "@/components/app-dialog";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -256,7 +257,7 @@ function ChatPage() {
   }
 
   async function deleteChannel() {
-    if (!confirm("Excluir este canal para sempre? Todas as publicações serão apagadas.")) return;
+    if (!(await appConfirm("Excluir este canal para sempre? Todas as publicações serão apagadas."))) return;
     await (supabase as any).from("chat_messages").delete().eq("chat_id", id);
     const { error } = await (supabase as any).from("chats").delete().eq("id", id);
     if (error) return toast.error("Não foi possível excluir o canal");
@@ -266,7 +267,7 @@ function ChatPage() {
   }
 
   async function leave() {
-    if (!confirm("Sair deste chat?")) return;
+    if (!(await appConfirm("Sair deste chat?"))) return;
     const { error } = await (supabase as any).from("chat_members").delete().eq("chat_id", id).eq("user_id", user.id);
     if (error) return toast.error(error.message);
     toast.success("Você saiu");
@@ -274,7 +275,7 @@ function ChatPage() {
   }
 
   async function deleteMessage(mid: string) {
-    if (!confirm("Apagar para todos?")) return;
+    if (!(await appConfirm("Apagar para todos?"))) return;
     const { error } = await (supabase as any).from("chat_messages").delete().eq("id", mid);
     if (error) return toast.error(error.message);
   }
@@ -514,7 +515,7 @@ function MembersDialog({
 
   async function remove(uid: string) {
     if (uid === currentUserId) return;
-    if (!confirm("Remover membro?")) return;
+    if (!(await appConfirm("Remover membro?"))) return;
     const { error } = await (supabase as any).from("chat_members").delete().eq("chat_id", chatId).eq("user_id", uid);
     if (error) return toast.error(error.message);
     queryClient.invalidateQueries({ queryKey: ["chat-members", chatId] });

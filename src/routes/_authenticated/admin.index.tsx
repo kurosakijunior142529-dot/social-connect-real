@@ -1,3 +1,4 @@
+import { appPrompt } from "@/components/app-dialog";
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -125,7 +126,7 @@ function AdminHome() {
   });
 
   async function moderateUser(userId: string, action: string) {
-    const reason = window.prompt("Motivo da ação (obrigatório):");
+    const reason = await appPrompt("Motivo da ação (obrigatório):");
     if (!reason?.trim()) return;
     const { data, error } = await supabase.rpc("admin_moderate", {
       _user_id: userId,
@@ -140,7 +141,7 @@ function AdminHome() {
   }
 
   async function removeContent(id: string, contentKind: string) {
-    const reason = window.prompt("Motivo da remoção (obrigatório):");
+    const reason = await appPrompt("Motivo da remoção (obrigatório):");
     if (!reason?.trim()) return;
     const { error } = await supabase.rpc("admin_delete_content", {
       _kind: contentKind,

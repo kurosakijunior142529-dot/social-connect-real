@@ -1,3 +1,4 @@
+import { appConfirm, appPrompt, appAlert } from "@/components/app-dialog";
 import { useState } from "react";
 import { MoreVertical, Search, Pin, Bell, BellOff, Ban, Flag, Palette, Sparkles, Languages, Check } from "lucide-react";
 import {
@@ -69,7 +70,7 @@ export function ConversationMenu({
 
   async function block() {
     if (!otherUserId) return;
-    if (!confirm("Bloquear este usuário?")) return;
+    if (!(await appConfirm("Bloquear este usuário?"))) return;
     const { error } = await (supabase as any)
       .from("blocks")
       .insert({ blocker_id: currentUserId, blocked_id: otherUserId });

@@ -28,6 +28,8 @@ let tick: ReturnType<typeof setInterval> | null = null;
 let channel: ReturnType<typeof supabase.channel> | null = null;
 let last: { lat: number; lng: number; t: number } | null = null;
 let onFinish: ((s: RunState) => void) | null = null;
+let globalFinish: ((s: RunState) => void) | null = null;
+export function setRunFinishHandler(f: (s: RunState) => void) { globalFinish = f; }
 
 function haversine(a: [number, number], b: [number, number]) {
   const R = 6371000, r = Math.PI / 180;
@@ -123,7 +125,7 @@ export function finishRun() {
   broadcast();
   const s = state;
   stopInternal();
-  onFinish?.(s);
+  (onFinish ?? globalFinish)?.(s);
 }
 export function closeRun() { stopInternal(); state = null; emit(); }
 export function setMinimized(m: boolean) { set({ minimized: m }); }

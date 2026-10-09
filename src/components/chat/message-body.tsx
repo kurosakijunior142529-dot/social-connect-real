@@ -11,6 +11,7 @@ import { EphemeralBody } from "@/components/chat/ephemeral-body";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Star } from "lucide-react";
 import { useFavorites } from "@/lib/expression-store";
+import { RunInviteBody } from "@/components/chat/vibe-run";
 
 type Msg = {
   id: string;
@@ -55,6 +56,7 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   if (kind === "video") return <VideoBody msg={msg} />;
   if (kind === "audio") return <AudioBody msg={msg} mine={mine} />;
   if (kind === "document") return <DocBody msg={msg} mine={mine} />;
+  if (kind === "run") return <RunInviteBody msg={msg} mine={mine} />;
   if (kind === "location") return <LocationBody msg={msg} />;
   return <EmojiText text={msg.content ?? ""} />;
 }

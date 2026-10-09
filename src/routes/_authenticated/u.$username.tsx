@@ -280,15 +280,32 @@ function ProfileContent() {
   });
 
   const toggleFollow = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (wasFollowing: boolean) => {
       if (!profile || isMe) return;
-      if (stats.data?.isFollowing) {
-        await supabase.from("follows").delete().match({ follower_id: user.id, following_id: profile.id });
-      } else {
-        await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
-      }
+      const { error } = wasFollowing
+        ? await supabase.from("follows").delete().match({ follower_id: user.id, following_id: profile.id })
+        : await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
+      if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["profile-stats", profile?.id, user.id] }),
+    onMutate: async (wasFollowing: boolean) => {
+      const key = ["profile-stats", profile?.id, user.id];
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData<any>(key);
+      if (prev) {
+        queryClient.setQueryData(key, {
+          ...prev,
+          isFollowing: !wasFollowing,
+          followers: Math.max(0, (prev.followers ?? 0) + (wasFollowing ? -1 : 1)),
+        });
+      }
+      try { navigator.vibrate?.(8); } catch {}
+      return { prev, key };
+    },
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.prev) queryClient.setQueryData(ctx.key, ctx.prev);
+      toast.error("Não foi possível atualizar");
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["follows-list"] }),
   });
 
   async function openChat() {
@@ -455,7 +472,7 @@ function ProfileContent() {
               </Link>
             ) : (
               <>
-                <Button onClick={() => toggleFollow.mutate()} disabled={toggleFollow.isPending} className="h-11 min-w-0 rounded-xl sm:w-44" variant={stats.data?.isFollowing ? "outline" : "default"}>
+                <Button onClick={() => toggleFollow.mutate(!!stats.data?.isFollowing)} className="h-11 min-w-0 rounded-xl sm:w-44" variant={stats.data?.isFollowing ? "outline" : "default"}>
                   {stats.data?.isFollowing ? "Seguindo" : "Seguir"}
                 </Button>
                 <Button onClick={openChat} variant="outline" className="h-11 shrink-0 gap-2 rounded-xl"><MessageCircle className="h-4 w-4" /> <span className="hidden min-[370px]:inline">Mensagem</span></Button>

@@ -342,9 +342,10 @@ export function LiveRunHost({ conversationId, otherName }: { conversationId: str
       {run.status === "countdown" ? (
         <Countdown startedAt={run.startedAt} />
       ) : (
-        <div className="mt-4 flex flex-1 flex-col gap-3 overflow-y-auto px-5">
+        <>
+          <div className="mt-3 shrink-0 px-5">
           {run.status === "finished" ? (
-            <div className="rounded-3xl bg-primary/15 p-4 text-center">
+            <div className="mb-3 rounded-3xl bg-primary/15 p-4 text-center">
               <Trophy className="mx-auto h-8 w-8 text-primary" />
               <div className="mt-1 text-lg font-bold">{leading ? "Você venceu! 🎉" : `${otherName} venceu!`}</div>
               <div className="text-xs text-muted-foreground">O resumo foi enviado na conversa</div>
@@ -352,13 +353,17 @@ export function LiveRunHost({ conversationId, otherName }: { conversationId: str
           ) : null}
 
           <div className="relative overflow-hidden rounded-3xl ring-1 ring-[color:var(--hairline)]">
-            <RunMap paths={mapPaths} height={230} />
+            <RunMap paths={mapPaths} height={260} />
             {apart ? (
               <button type="button" onClick={() => setViewOther((v) => !v)}
                 className="absolute left-2 top-2 rounded-full bg-background/85 px-3 py-1 text-[11px] font-semibold shadow backdrop-blur">
                 {viewOther ? "Ver meu percurso" : `Ver percurso de ${otherName}`}
               </button>
             ) : null}
+            <div className="pointer-events-none absolute bottom-2 left-2 flex gap-1.5 text-[11px] font-bold">
+              <span className="rounded-full bg-background/85 px-2.5 py-1 backdrop-blur">{(me.meters / 1000).toFixed(2)} km</span>
+              <span className="rounded-full bg-background/85 px-2.5 py-1 tabular-nums backdrop-blur">{fmtTime(me.ms)}</span>
+            </div>
             {showOvertake ? (
               <div className="pointer-events-none absolute inset-0 grid place-items-center bg-primary/20 animate-in fade-in zoom-in-90">
                 <div className="rounded-2xl bg-background/90 px-4 py-2 text-center text-lg font-black text-primary shadow-xl">
@@ -367,6 +372,8 @@ export function LiveRunHost({ conversationId, otherName }: { conversationId: str
               </div>
             ) : null}
           </div>
+          </div>
+        <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5">
 
           <div className={cn("space-y-3 rounded-3xl bg-[color:var(--surface)] p-4 ring-1 transition", turbo ? "ring-primary shadow-[0_0_30px_-8px_var(--primary)]" : "ring-[color:var(--hairline)]")}>
             <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
@@ -391,6 +398,7 @@ export function LiveRunHost({ conversationId, otherName }: { conversationId: str
           </div>
           {run.gpsError ? <div className="rounded-2xl bg-destructive/15 p-3 text-sm text-destructive">{run.gpsError}. Libere a localização para medir sua distância.</div> : null}
         </div>
+        </>
       )}
 
       {run.status === "running" ? (

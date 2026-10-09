@@ -407,6 +407,13 @@
       "when": 1791590203479,
       "tag": "0057_restrict_likes_follows_creator_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1791590348771,
+      "tag": "0058_close_internal_ranking_reads",
+      "breakpoints": true
     }
   ]
 }

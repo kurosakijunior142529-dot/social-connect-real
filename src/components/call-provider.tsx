@@ -21,6 +21,7 @@ import { translateText, translateBatch } from "@/lib/ai.functions";
 import { transcribeCallClip } from "@/lib/call-transcribe.functions";
 import { startSttFallback, type SttFallbackHandle } from "@/lib/call-stt-fallback";
 import { speakCallTranslation } from "@/lib/call-speech.functions";
+import { getCallVoice, deviceVoicesFor } from "@/lib/call-voice";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getCallAccess } from "@/lib/calls.functions";
@@ -1223,14 +1224,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
       // Keep the microphone capture paused while we speak so the translation is
       // never transcribed back as the user's own voice.
       ttsBusyUntilRef.current = Date.now() + 2_000;
-      // Free path: the device's own voice. AI voice only when unavailable.
+      // Free path: the device's own voice. AI voice when chosen or unavailable.
+      const pref = getCallVoice();
+      const aiVoice = pref.startsWith("ai:") ? pref.slice(3) : "nova";
       const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
-      if (synth && typeof SpeechSynthesisUtterance !== "undefined") {
+      if (!pref.startsWith("ai:") && synth && typeof SpeechSynthesisUtterance !== "undefined") {
         try {
           const utter = new SpeechSynthesisUtterance(clean.slice(0, 600));
           const lang = translationLanguageRef.current;
           utter.lang = lang === "pt-BR" ? "pt-BR" : lang;
-          const voice = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang.split("-")[0]!.toLowerCase()));
+          const list = deviceVoicesFor(lang);
+          const chosen = pref.startsWith("device:") ? synth.getVoices().find((v) => v.voiceURI === pref.slice(7)) : undefined;
+          const voice = chosen ?? list[0];
           if (voice) utter.voice = voice;
           ttsBusyUntilRef.current = Date.now() + 20_000;
           utter.onend = () => { ttsBusyUntilRef.current = Date.now() + 400; };
@@ -1241,7 +1246,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           console.warn("[call-translation] native speech failed", error);
         }
       }
-      void speak({ data: { text: clean.slice(0, 600), voice: "alloy" } })
+      void speak({ data: { text: clean.slice(0, 600), voice: aiVoice } })
         .then((result: { audio: string; mime: string }) => {
           if (!speakTranslationsRef.current) return;
           const audio = ttsAudioRef.current ?? new Audio();

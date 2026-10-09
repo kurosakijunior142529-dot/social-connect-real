@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
+import { CallVoicePicker } from "@/components/call-voice-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CALL_LANGUAGES, useAudioLevel } from "@/components/call-audio-level";
 import type { CallCaption } from "@/components/call-provider";
@@ -516,6 +517,9 @@ export function CallScreen({
                       {speakTranslations ? "Ligado" : "Desligado"}
                     </span>
                   </button>
+                ) : null}
+                {onToggleSpeakTranslations && speakTranslations ? (
+                  <CallVoicePicker language={translationLanguage} />
                 ) : null}
 
                 {onToggleShowTranscript ? (

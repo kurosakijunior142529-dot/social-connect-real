@@ -164,3 +164,17 @@ export async function createSignedUrl(
   return url;
 }
 
+
+/** Duração total (segundos) de um GIF animado, lendo os atrasos de cada quadro. */
+export async function gifDurationSeconds(file: File): Promise<number> {
+  const b = new Uint8Array(await file.arrayBuffer());
+  let cs = 0;
+  for (let i = 0; i < b.length - 5; i++) {
+    // Graphic Control Extension: 21 F9 04 ... delay (LE, centésimos)
+    if (b[i] === 0x21 && b[i + 1] === 0xf9 && b[i + 2] === 0x04) {
+      const d = b[i + 4] | (b[i + 5] << 8);
+      cs += d < 2 ? 10 : d; // navegadores tratam 0/1 como ~100ms
+    }
+  }
+  return cs / 100;
+}

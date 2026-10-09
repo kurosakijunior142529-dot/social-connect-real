@@ -851,3 +851,7 @@ img, video {
 }
 .vibely-toast-success .vibely-toast-icon { color: var(--primary); }
 .vibely-toast-error .vibely-toast-icon { color: var(--destructive); }
+
+/* Fluidez: toques sem atraso e imagens decodificadas fora da thread principal */
+a, button, [role="button"], input, label, select, textarea { touch-action: manipulation; }
+img { content-visibility: auto; }

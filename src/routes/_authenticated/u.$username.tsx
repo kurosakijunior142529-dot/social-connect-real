@@ -730,7 +730,7 @@ function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void 
     if (f.size > 15 * 1024 * 1024) return toast.error("Arquivo maior que 15MB");
     if (f.type === "image/gif") {
       const secs = await gifDurationSeconds(f);
-      if (secs > 15) return toast.error(`Esse GIF tem ${Math.round(secs)}s. Escolha um de até 15 segundos`);
+      if (secs > 30) return toast.error(`Esse GIF tem ${Math.round(secs)}s. Escolha um de até 30 segundos`);
       return upload(f); // envia sem cortar, para manter a animação
     }
     setPending(f);

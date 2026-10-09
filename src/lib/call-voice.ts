@@ -1,0 +1,35 @@
+// Voice preference for spoken call translations (device-local).
+const KEY = "vibely-call-voice";
+
+export const AI_VOICES = [
+  { id: "nova", label: "Nova", desc: "Feminina, suave" },
+  { id: "shimmer", label: "Shimmer", desc: "Feminina, clara" },
+  { id: "coral", label: "Coral", desc: "Feminina, calorosa" },
+  { id: "sage", label: "Sage", desc: "Feminina, calma" },
+  { id: "alloy", label: "Alloy", desc: "Neutra, equilibrada" },
+  { id: "verse", label: "Verse", desc: "Neutra, expressiva" },
+  { id: "ash", label: "Ash", desc: "Masculina, firme" },
+  { id: "echo", label: "Echo", desc: "Masculina, jovem" },
+  { id: "onyx", label: "Onyx", desc: "Masculina, grave" },
+  { id: "fable", label: "Fable", desc: "Masculina, narrador" },
+  { id: "ballad", label: "Ballad", desc: "Masculina, macia" },
+] as const;
+
+/** "auto" | "device:<voiceURI>" | "ai:<id>" */
+export function getCallVoice(): string {
+  try { return localStorage.getItem(KEY) || "auto"; } catch { return "auto"; }
+}
+export function setCallVoice(v: string) {
+  try { localStorage.setItem(KEY, v); } catch { /* noop */ }
+}
+
+const QUALITY = /(natural|neural|enhanced|premium|siri|google|online)/i;
+
+export function deviceVoicesFor(lang: string): SpeechSynthesisVoice[] {
+  if (typeof window === "undefined" || !window.speechSynthesis) return [];
+  const base = lang.split("-")[0]!.toLowerCase();
+  return window.speechSynthesis
+    .getVoices()
+    .filter((v) => v.lang.toLowerCase().startsWith(base))
+    .sort((a, b) => Number(QUALITY.test(b.name)) - Number(QUALITY.test(a.name)));
+}

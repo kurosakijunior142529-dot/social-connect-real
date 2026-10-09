@@ -400,6 +400,13 @@
       "when": 1791590101722,
       "tag": "0056_security_tighten_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1791590203479,
+      "tag": "0057_restrict_likes_follows_creator_stats",
+      "breakpoints": true
     }
   ]
 }

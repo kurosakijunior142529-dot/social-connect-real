@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createRouter } from "@tanstack/react-router";
+import { createRouter, useRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
@@ -34,8 +34,41 @@ export const getRouter = () => {
     defaultStructuralSharing: true,
     defaultPendingMs: 1500,
     defaultPendingMinMs: 0,
-    defaultPendingComponent: () => <div className="min-h-[60vh] bg-background" />,
+    defaultPendingComponent: PendingScreen,
+    // Qualquer tela que quebrar mostra "Tentar de novo" no lugar de ficar branca,
+    // e o resto do app (menu, conversas) continua funcionando.
+    defaultErrorComponent: RouteErrorScreen,
   });
 
   return router;
 };
+
+function PendingScreen() {
+  return (
+    <div className="grid min-h-[60vh] place-items-center bg-background">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" />
+    </div>
+  );
+}
+
+function RouteErrorScreen({ error, reset }: { error: unknown; reset: () => void }) {
+  const router = useRouter();
+  if (typeof console !== "undefined") console.error(error);
+  return (
+    <div className="grid min-h-[60vh] place-items-center bg-background px-6">
+      <div className="max-w-sm text-center">
+        <p className="text-base font-semibold text-foreground">Essa tela não carregou</p>
+        <p className="mt-1 text-sm text-muted-foreground">Pode ter sido a internet. Toque para tentar de novo.</p>
+        <button
+          onClick={() => {
+            reset();
+            void router.invalidate();
+          }}
+          className="mt-5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground active:scale-95"
+        >
+          Tentar de novo
+        </button>
+      </div>
+    </div>
+  );
+}

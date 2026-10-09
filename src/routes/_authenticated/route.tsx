@@ -24,7 +24,10 @@ export const Route = createFileRoute("/_authenticated")({
     const user = error ? null : (data.session?.user ?? null);
     if (user) {
       void supabase.auth.getUser().then(({ data: fresh, error: freshError }) => {
-        if (freshError || !fresh.user) void supabase.auth.signOut();
+        // Só desloga se o servidor recusar o login de verdade (401/403).
+        // Falha de rede/oscilação não pode derrubar a pessoa para uma tela vazia.
+        const status = (freshError as { status?: number } | null)?.status;
+        if (freshError && (status === 401 || status === 403)) void supabase.auth.signOut();
       });
     }
     return { user: user as any };

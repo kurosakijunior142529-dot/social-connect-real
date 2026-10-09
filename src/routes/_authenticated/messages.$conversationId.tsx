@@ -44,6 +44,7 @@ import { CallEvent } from "@/components/chat/call-event";
 import { useChatPrefs } from "@/lib/bubble-themes";
 import { ChatCustomizeSheet } from "@/components/chat/chat-customize-sheet";
 import { parseVibelyMention } from "@/lib/vibely-mention";
+import { useKeyboardViewport, scrollListToBottom, KEYBOARD_SAFE_CLASS } from "@/hooks/use-keyboard-viewport";
 import vibelyMascot from "@/assets/vibely-mascot.png";
 
 export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
@@ -64,6 +65,8 @@ function ConversationPage() {
   const queryClient = useQueryClient();
   const { dim } = useWallpaperDimming(conversationId);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  useKeyboardViewport(listRef);
   const typingTimer = useRef<number | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -246,7 +249,7 @@ function ConversationPage() {
     if (skipScroll.current) { skipScroll.current = false; return; }
     const behavior = firstScroll.current ? "auto" : "smooth";
     firstScroll.current = false;
-    bottomRef.current?.scrollIntoView({ behavior: behavior as ScrollBehavior, block: "end" });
+    scrollListToBottom(listRef.current, behavior === "smooth");
   }, [messages.data?.length]);
 
 
@@ -598,7 +601,7 @@ function ConversationPage() {
 
 
   return (
-    <div className="flex flex-col h-[100dvh] md:h-[calc(100vh-4rem)] overflow-hidden md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
+    <div className={cn("flex flex-col h-[100dvh] md:h-[calc(100vh-4rem)] overflow-hidden md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]", KEYBOARD_SAFE_CLASS)}>
       <header className="relative flex items-center gap-2 px-3 h-16 sticky top-0 z-10 bg-background/85 backdrop-blur-md border-b border-border/40">
         <Link
           to="/messages"
@@ -734,8 +737,9 @@ function ConversationPage() {
       ) : null}
 
       <div
+        ref={listRef}
         className={cn(
-          "relative flex-1 overflow-y-auto overscroll-contain px-4 py-4 [content-visibility:auto] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]",
+          "relative flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]",
           chatFont.className,
           "bg-background",
         )}

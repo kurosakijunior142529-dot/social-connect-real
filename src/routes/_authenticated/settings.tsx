@@ -414,7 +414,6 @@ function SettingsPage() {
           <SettingsShortcut to="/notifications" icon={<Bell className="h-4 w-4" />} label="Notificações" />
           <SettingsShortcut to="/saved" icon={<Bookmark className="h-4 w-4" />} label="Salvos" />
           <SettingsShortcut to="/watch" icon={<Tv className="h-4 w-4" />} label="Streaming" />
-          <SettingsShortcut to="/marketplace" icon={<Store className="h-4 w-4" />} label="Marketplace" />
         </div>
       </section>
 
@@ -599,7 +598,6 @@ function SettingsShortcut({
     | "/notifications"
     | "/saved"
     | "/watch"
-    | "/marketplace"
     | "/account/privacy"
     | "/account/security"
     | "/account/blocked"

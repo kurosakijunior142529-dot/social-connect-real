@@ -87,7 +87,11 @@ export function startRun(opts: { runId: string; conversationId: string; goal: Ru
     if (!state || state.runId !== opts.runId) return;
     set({ status: "running", startedAt: Date.now() });
     if (!("geolocation" in navigator)) { set({ gpsError: "GPS não disponível neste aparelho" }); }
-    else watchId = navigator.geolocation.watchPosition(onPos, (e) => set({ gpsError: e.message || "Sem acesso ao GPS" }), { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+    else {
+      const err = (e: GeolocationPositionError) => set({ gpsError: e.code === 1 ? "Sem acesso ao GPS" : null });
+      navigator.geolocation.getCurrentPosition(onPos, err, { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 });
+      watchId = navigator.geolocation.watchPosition(onPos, err, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+    }
     tick = setInterval(() => {
       if (!state || state.status !== "running") return;
       const ms = Date.now() - state.startedAt;
@@ -102,7 +106,14 @@ function onPos(pos: GeolocationPosition) {
   if (!state || state.status !== "running") return;
   const { latitude: lat, longitude: lng, accuracy } = pos.coords;
   set({ gpsAccuracy: accuracy });
-  if (accuracy > 35) return; // filtra ruído
+  // primeiro ponto aceita sinal moderado para o mapa aparecer logo
+  if (!last) {
+    if (accuracy > 150) return;
+    last = { lat, lng, t: pos.timestamp };
+    set({ me: { ...state.me, path: [...state.me.path, [lat, lng]] } });
+    return;
+  }
+  if (accuracy > 50) return; // filtra ruído
   const now = pos.timestamp;
   const me = { ...state.me };
   const prevLead = state.other ? me.meters >= state.other.meters : true;

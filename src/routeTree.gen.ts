@@ -45,9 +45,6 @@ import { Route as AuthenticatedCreateVideoRouteImport } from './routes/_authenti
 import { Route as AuthenticatedLiveIdRouteImport } from './routes/_authenticated/live.$id'
 import { Route as AuthenticatedLivesIndexRouteImport } from './routes/_authenticated/lives.index'
 import { Route as AuthenticatedLivesNewRouteImport } from './routes/_authenticated/lives.new'
-import { Route as AuthenticatedMarketplaceIndexRouteImport } from './routes/_authenticated/marketplace.index'
-import { Route as AuthenticatedMarketplaceIdRouteImport } from './routes/_authenticated/marketplace.$id'
-import { Route as AuthenticatedMarketplaceNewRouteImport } from './routes/_authenticated/marketplace.new'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages.$conversationId'
 import { Route as AuthenticatedPIdRouteImport } from './routes/_authenticated/p.$id'
@@ -254,24 +251,6 @@ const AuthenticatedLivesNewRoute = AuthenticatedLivesNewRouteImport.update({
   path: '/lives/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedMarketplaceIndexRoute =
-  AuthenticatedMarketplaceIndexRouteImport.update({
-    id: '/marketplace/',
-    path: '/marketplace/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedMarketplaceIdRoute =
-  AuthenticatedMarketplaceIdRouteImport.update({
-    id: '/marketplace/$id',
-    path: '/marketplace/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedMarketplaceNewRoute =
-  AuthenticatedMarketplaceNewRouteImport.update({
-    id: '/marketplace/new',
-    path: '/marketplace/new',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedMessagesIndexRoute =
   AuthenticatedMessagesIndexRouteImport.update({
     id: '/messages/',
@@ -381,8 +360,6 @@ export interface FileRoutesByFullPath {
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/live/$id': typeof AuthenticatedLiveIdRoute
   '/lives/new': typeof AuthenticatedLivesNewRoute
-  '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
-  '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
   '/posts/$username': typeof AuthenticatedPostsUsernameRoute
@@ -396,7 +373,6 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/ai/': typeof AuthenticatedAiIndexRoute
   '/lives/': typeof AuthenticatedLivesIndexRoute
-  '/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
   '/watch/': typeof AuthenticatedWatchIndexRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -435,8 +411,6 @@ export interface FileRoutesByTo {
   '/create/video': typeof AuthenticatedCreateVideoRoute
   '/live/$id': typeof AuthenticatedLiveIdRoute
   '/lives/new': typeof AuthenticatedLivesNewRoute
-  '/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
-  '/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/p/$id': typeof AuthenticatedPIdRoute
   '/posts/$username': typeof AuthenticatedPostsUsernameRoute
@@ -450,7 +424,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/ai': typeof AuthenticatedAiIndexRoute
   '/lives': typeof AuthenticatedLivesIndexRoute
-  '/marketplace': typeof AuthenticatedMarketplaceIndexRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
   '/watch': typeof AuthenticatedWatchIndexRoute
   '/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -491,8 +464,6 @@ export interface FileRoutesById {
   '/_authenticated/create_/video': typeof AuthenticatedCreateVideoRoute
   '/_authenticated/live/$id': typeof AuthenticatedLiveIdRoute
   '/_authenticated/lives/new': typeof AuthenticatedLivesNewRoute
-  '/_authenticated/marketplace/$id': typeof AuthenticatedMarketplaceIdRoute
-  '/_authenticated/marketplace/new': typeof AuthenticatedMarketplaceNewRoute
   '/_authenticated/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/_authenticated/p/$id': typeof AuthenticatedPIdRoute
   '/_authenticated/posts/$username': typeof AuthenticatedPostsUsernameRoute
@@ -506,7 +477,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/ai/': typeof AuthenticatedAiIndexRoute
   '/_authenticated/lives/': typeof AuthenticatedLivesIndexRoute
-  '/_authenticated/marketplace/': typeof AuthenticatedMarketplaceIndexRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
   '/_authenticated/watch/': typeof AuthenticatedWatchIndexRoute
   '/_authenticated/u/$username/follows': typeof AuthenticatedUUsernameFollowsRoute
@@ -547,8 +517,6 @@ export interface FileRouteTypes {
     | '/create/video'
     | '/live/$id'
     | '/lives/new'
-    | '/marketplace/$id'
-    | '/marketplace/new'
     | '/messages/$conversationId'
     | '/p/$id'
     | '/posts/$username'
@@ -562,7 +530,6 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/ai/'
     | '/lives/'
-    | '/marketplace/'
     | '/messages/'
     | '/watch/'
     | '/u/$username/follows'
@@ -601,8 +568,6 @@ export interface FileRouteTypes {
     | '/create/video'
     | '/live/$id'
     | '/lives/new'
-    | '/marketplace/$id'
-    | '/marketplace/new'
     | '/messages/$conversationId'
     | '/p/$id'
     | '/posts/$username'
@@ -616,7 +581,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/ai'
     | '/lives'
-    | '/marketplace'
     | '/messages'
     | '/watch'
     | '/u/$username/follows'
@@ -656,8 +620,6 @@ export interface FileRouteTypes {
     | '/_authenticated/create_/video'
     | '/_authenticated/live/$id'
     | '/_authenticated/lives/new'
-    | '/_authenticated/marketplace/$id'
-    | '/_authenticated/marketplace/new'
     | '/_authenticated/messages/$conversationId'
     | '/_authenticated/p/$id'
     | '/_authenticated/posts/$username'
@@ -671,7 +633,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/ai/'
     | '/_authenticated/lives/'
-    | '/_authenticated/marketplace/'
     | '/_authenticated/messages/'
     | '/_authenticated/watch/'
     | '/_authenticated/u/$username/follows'
@@ -945,27 +906,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLivesNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/marketplace/': {
-      id: '/_authenticated/marketplace/'
-      path: '/marketplace'
-      fullPath: '/marketplace/'
-      preLoaderRoute: typeof AuthenticatedMarketplaceIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/marketplace/$id': {
-      id: '/_authenticated/marketplace/$id'
-      path: '/marketplace/$id'
-      fullPath: '/marketplace/$id'
-      preLoaderRoute: typeof AuthenticatedMarketplaceIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/marketplace/new': {
-      id: '/_authenticated/marketplace/new'
-      path: '/marketplace/new'
-      fullPath: '/marketplace/new'
-      preLoaderRoute: typeof AuthenticatedMarketplaceNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/messages/': {
       id: '/_authenticated/messages/'
       path: '/messages'
@@ -1109,8 +1049,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCreateVideoRoute: typeof AuthenticatedCreateVideoRoute
   AuthenticatedLiveIdRoute: typeof AuthenticatedLiveIdRoute
   AuthenticatedLivesNewRoute: typeof AuthenticatedLivesNewRoute
-  AuthenticatedMarketplaceIdRoute: typeof AuthenticatedMarketplaceIdRoute
-  AuthenticatedMarketplaceNewRoute: typeof AuthenticatedMarketplaceNewRoute
   AuthenticatedMessagesConversationIdRoute: typeof AuthenticatedMessagesConversationIdRoute
   AuthenticatedPIdRoute: typeof AuthenticatedPIdRoute
   AuthenticatedPostsUsernameRoute: typeof AuthenticatedPostsUsernameRoute
@@ -1122,7 +1060,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAiIndexRoute: typeof AuthenticatedAiIndexRoute
   AuthenticatedLivesIndexRoute: typeof AuthenticatedLivesIndexRoute
-  AuthenticatedMarketplaceIndexRoute: typeof AuthenticatedMarketplaceIndexRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
   AuthenticatedWatchIndexRoute: typeof AuthenticatedWatchIndexRoute
 }
@@ -1156,8 +1093,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCreateVideoRoute: AuthenticatedCreateVideoRoute,
   AuthenticatedLiveIdRoute: AuthenticatedLiveIdRoute,
   AuthenticatedLivesNewRoute: AuthenticatedLivesNewRoute,
-  AuthenticatedMarketplaceIdRoute: AuthenticatedMarketplaceIdRoute,
-  AuthenticatedMarketplaceNewRoute: AuthenticatedMarketplaceNewRoute,
   AuthenticatedMessagesConversationIdRoute:
     AuthenticatedMessagesConversationIdRoute,
   AuthenticatedPIdRoute: AuthenticatedPIdRoute,
@@ -1170,7 +1105,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAiIndexRoute: AuthenticatedAiIndexRoute,
   AuthenticatedLivesIndexRoute: AuthenticatedLivesIndexRoute,
-  AuthenticatedMarketplaceIndexRoute: AuthenticatedMarketplaceIndexRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
   AuthenticatedWatchIndexRoute: AuthenticatedWatchIndexRoute,
 }

@@ -99,7 +99,7 @@ export function startRun(opts: { runId: string; conversationId: string; goal: Ru
       broadcast();
       checkGoal();
     }, 1000);
-  }, 3000);
+  }, 4000);
 }
 
 function onPos(pos: GeolocationPosition) {

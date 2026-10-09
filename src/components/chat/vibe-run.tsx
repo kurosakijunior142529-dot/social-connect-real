@@ -1,3 +1,4 @@
+import { appConfirm } from "@/components/app-dialog";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -336,7 +337,7 @@ export function LiveRunHost({ conversationId, otherName }: { conversationId: str
           {run.status !== "finished" ? (
             <button type="button" aria-label="Minimizar" onClick={() => setMinimized(true)} className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--surface-2)]"><Minimize2 className="h-4 w-4" /></button>
           ) : null}
-          <button type="button" aria-label="Fechar" onClick={() => { if (run.status === "finished" || confirm("Sair da corrida?")) closeRun(); }} className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--surface-2)]"><X className="h-4 w-4" /></button>
+          <button type="button" aria-label="Fechar" onClick={async () => { if (run.status === "finished" || (await appConfirm("Sair da corrida?"))) closeRun(); }} className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--surface-2)]"><X className="h-4 w-4" /></button>
         </div>
       </div>
 

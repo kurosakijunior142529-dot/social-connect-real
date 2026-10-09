@@ -1,3 +1,4 @@
+import { appConfirm } from "@/components/app-dialog";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -71,7 +72,7 @@ function AiMemoryPage() {
             variant="ghost"
             size="sm"
             className="text-red-400"
-            onClick={() => { if (confirm("Apagar todas as memórias?")) wipe.mutate(); }}
+            onClick={async () => { if (await appConfirm("Apagar todas as memórias?")) wipe.mutate(); }}
           >
             Apagar tudo
           </Button>

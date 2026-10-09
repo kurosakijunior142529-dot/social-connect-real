@@ -1,3 +1,4 @@
+import { AppDialogHost } from "@/components/app-dialog";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -211,6 +212,7 @@ function RootComponent() {
         <ConnectionIndicator />
         <Outlet />
         <Toaster position="top-center" richColors />
+        <AppDialogHost />
       </I18nProvider>
     </QueryClientProvider>
   );

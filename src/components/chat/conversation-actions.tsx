@@ -1,3 +1,4 @@
+import { appConfirm, appPrompt, appAlert } from "@/components/app-dialog";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
@@ -249,7 +250,7 @@ export function VaultPinSheet({ open, onOpenChange, userId, onUnlocked }: { open
   };
 
   const forgot = async () => {
-    if (!confirm("Redefinir o Cofre? As conversas guardadas voltam para a lista normal e você cria um PIN novo.")) return;
+    if (!(await appConfirm("Redefinir o Cofre? As conversas guardadas voltam para a lista normal e você cria um PIN novo."))) return;
     await supabase.from("conversation_prefs").update({ hidden: false }).eq("user_id", userId).eq("hidden", true);
     await supabase.from("chat_vault").delete().eq("user_id", userId);
     toast.success("Cofre redefinido. Crie um PIN novo.");

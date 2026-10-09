@@ -127,6 +127,7 @@ export function AppShell({
     pathname === "/saved";
   const isProfile = pathname.startsWith("/u/");
   const isReels = pathname === "/reels";
+  const isConversation = /^\/(messages|chats)\/.+/.test(pathname) && pathname !== "/chats/new";
   const [dockHidden, setDockHidden] = useState(false);
   useEffect(() => {
     let last = window.scrollY;
@@ -261,7 +262,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className={cn("pb-24 md:pl-64 md:pb-8", isProfile && "pb-28", isReels && "pb-0 md:pb-0")}>
+      <main className={cn("pb-24 md:pl-64 md:pb-8", isProfile && "pb-28", isReels && "pb-0 md:pb-0", isConversation && "pb-0")}>
         <div className={cn("mx-auto md:px-5 md:pt-6", pathname.startsWith("/u/") ? "max-w-6xl" : "max-w-2xl", isReels && "md:pt-6")}>{content}</div>
       </main>
 
@@ -285,7 +286,7 @@ export function AppShell({
 
 
       {/* Mobile bottom nav — Dynamic Dock */}
-      <nav className={cn("md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)]", dockHidden && "translate-y-[calc(100%+4px)]")}>
+      <nav className={cn("md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)]", dockHidden && "translate-y-[calc(100%+4px)]", isConversation && "hidden")}>
         <div className={cn("pointer-events-auto mx-3 mb-3 overflow-visible rounded-[26px] dock-glass", isProfile && "shadow-[0_18px_48px_-22px_color-mix(in_oklab,var(--primary)_28%,transparent)]")}>
           <div className={cn("flex items-center justify-between px-2 py-2", isProfile && "min-h-16")}>
             {mobileItems.map(({ to, label, Icon }) => {

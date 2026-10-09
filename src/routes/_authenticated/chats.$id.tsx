@@ -294,7 +294,7 @@ function ChatPage() {
   if (!chatData) return <div className="text-center py-12">Chat não encontrado.</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
+    <div className="flex flex-col h-[100dvh] md:h-[calc(100vh-4rem)] overflow-hidden md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
       <header className="flex items-center gap-3 px-3 h-14 glass-heavy hairline-b sticky top-0 z-10">
         <Link to="/messages" className="p-2 -ml-1 rounded-full active:bg-[color:var(--surface-2)] md:hidden" aria-label="Voltar">
           <ArrowLeft className="h-5 w-5" strokeWidth={1.8} />

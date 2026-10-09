@@ -598,7 +598,7 @@ function ConversationPage() {
 
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-4rem)] md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
+    <div className="flex flex-col h-[100dvh] md:h-[calc(100vh-4rem)] overflow-hidden md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]">
       <header className="relative flex items-center gap-2 px-3 h-16 sticky top-0 z-10 bg-background/85 backdrop-blur-md border-b border-border/40">
         <Link
           to="/messages"

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Flag, Flame, Footprints, Gauge, Minimize2, RotateCcw, Timer, Trophy, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   closeRun, finishRun, fmtPace, fmtTime, goalLabel, setMinimized, startRun, useRun,
   type RunGoal, type RunState,
@@ -85,19 +86,13 @@ function useRunPeople(conversationId: string, senderId: string) {
 const firstName = (n?: string | null) => (n ?? "").trim().split(/\s+/)[0] || "Amigo";
 
 function Avatar({ person, accent, crown }: { person: Person | null; accent?: boolean; crown?: boolean }) {
-  const name = person?.name ?? "?";
+  const name = person?.name ?? "";
   return (
     <div className="flex w-20 flex-col items-center gap-1">
       <div className="relative">
         {crown ? <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-base">👑</span> : null}
-        {person?.avatar ? (
-          <img src={person.avatar} alt={name} className={cn("h-12 w-12 rounded-full object-cover ring-2", accent ? "ring-primary" : "ring-[color:var(--hairline)]")} />
-        ) : (
-          <div className={cn("grid h-12 w-12 place-items-center rounded-full text-lg font-bold ring-2",
-            accent ? "bg-primary/20 text-primary ring-primary" : "bg-[color:var(--surface-2)] ring-[color:var(--hairline)]")}>
-            {(name.trim()[0] ?? "?").toUpperCase()}
-          </div>
-        )}
+        <UserAvatar avatarPath={person?.avatar ?? null} displayName={person?.name ?? "Amigo"}
+          className={cn("h-12 w-12 ring-2", accent ? "ring-primary" : "ring-[color:var(--hairline)]")} />
       </div>
       <span className="max-w-full truncate text-[11px] font-semibold">{firstName(name)}</span>
     </div>
@@ -380,6 +375,7 @@ export function LiveRunHost({ conversationId, otherName }: { conversationId: str
             </div>
             <Track label="Você" initial="Eu" m={me.meters} total={total} me turbo={turbo} />
             <Track label={otherName} initial={initialOther} m={other?.meters ?? 0} total={total} waiting={!other} turbo={!!other && other.speed * 3.6 > 10} />
+            {run.goal.type === "time" ? <div className="flex items-center justify-end gap-1 text-[11px] text-muted-foreground"><Timer className="h-3 w-3" /> faltam {fmtTime(Math.max(0, run.goal.min * 60000 - me.ms))}</div> : null}
             {goalM ? <div className="flex items-center justify-end gap-1 text-[11px] text-muted-foreground"><Flag className="h-3 w-3" /> faltam {Math.max(0, (goalM - Math.max(me.meters, other?.meters ?? 0)) / 1000).toFixed(2)} km</div> : null}
           </div>
 
@@ -410,7 +406,7 @@ function Countdown({ startedAt }: { startedAt: number }) {
   const [, f] = useState(0);
   useEffect(() => { const t = setInterval(() => f((x) => x + 1), 150); return () => clearInterval(t); }, []);
   const left = startedAt - Date.now();
-  const n = Math.ceil(left / 1000);
+  const n = Math.ceil((left - 1000) / 1000);
   return (
     <div className="grid flex-1 place-items-center">
       <div key={n} className="text-9xl font-black text-primary animate-in zoom-in-50 fade-in duration-300">{n > 0 ? n : "VAI!"}</div>

@@ -69,7 +69,7 @@ export function startRun(opts: { runId: string; conversationId: string; goal: Ru
   if (state && state.runId === opts.runId) { set({ minimized: false }); return; }
   stopInternal();
   onFinish = opts.onFinish ?? null;
-  state = { ...opts, me: empty(), other: null, status: "countdown", startedAt: Date.now() + 3000, minimized: false, gpsError: null, gpsAccuracy: null, overtakeAt: 0 };
+  state = { ...opts, me: empty(), other: null, status: "countdown", startedAt: Date.now() + 4000, minimized: false, gpsError: null, gpsAccuracy: null, overtakeAt: 0 };
   countdownBeeps();
   emit();
 

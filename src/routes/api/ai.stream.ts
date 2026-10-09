@@ -4,7 +4,7 @@ import { SYSTEM_PROMPT } from "@/lib/ai-chat.functions";
 import { AI_TOOLS, runAiTool } from "@/lib/ai-tools";
 
 /**
- * Resposta da Vibely AI em streaming (SSE) com Gemini.
+ * Resposta da Vibely AI em streaming (SSE).
  * Contexto = instrução do Vibely + memórias + resumo do histórico + mensagens recentes + anexos.
  */
 

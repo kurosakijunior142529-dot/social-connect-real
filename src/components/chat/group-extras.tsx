@@ -76,55 +76,90 @@ export function VibeStrip({
 }
 
 /* ---------------- Sala de voz do grupo ---------------- */
+function VoiceBars({ active }: { active: boolean }) {
+  return (
+    <span className="flex h-3 items-end gap-[2px]" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className={cn("w-[3px] rounded-full bg-primary", active ? "voice-bar" : "h-1 opacity-40")}
+          style={active ? { height: "100%", animationDelay: `${i * 0.15}s` } : undefined}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function GroupVoiceBar({ groupId, title }: { groupId: string; title: string }) {
   const voice = useVoice();
   const here = voice.channel?.id === groupId && voice.status !== "idle";
   if (!here) {
     return (
-      <div className="px-3 pt-2">
-        <button
-          onClick={() => voice.join({ id: groupId, name: title, emoji: "🎧" }).catch(() => toast.error("Não foi possível entrar na sala"))}
-          className="flex w-full items-center gap-3 rounded-2xl border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2.5 text-left transition active:scale-[0.99]"
-        >
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)]">
-            <Headphones className="h-4 w-4" strokeWidth={1.8} />
+      <div className="px-4 pb-2 pt-1">
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[color:var(--surface)] px-5 py-7 text-center">
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-primary/12 text-primary">
+            <Headphones className="h-7 w-7" strokeWidth={1.8} />
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-semibold">Sala de voz do grupo</span>
-            <span className="block text-[11px] text-muted-foreground">Toque para entrar e conversar ao vivo</span>
-          </span>
-          <span className="rounded-full bg-primary px-3 py-1 text-[12px] font-semibold text-primary-foreground">Entrar</span>
-        </button>
+          <div>
+            <p className="text-[15px] font-semibold">Ninguém falando ainda</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">Entre e chame a turma de {title} para conversar ao vivo</p>
+          </div>
+          <button
+            onClick={() => voice.join({ id: groupId, name: title, emoji: "🎧" }).catch(() => toast.error("Não foi possível entrar na sala"))}
+            className="mt-1 h-11 w-full rounded-full bg-primary text-[14px] font-semibold text-primary-foreground transition active:scale-[0.98]"
+          >
+            Entrar na sala
+          </button>
+        </div>
       </div>
     );
   }
+  const connecting = voice.status === "connecting";
   return (
-    <div className="px-3 pt-2">
-      <div className="rounded-2xl border border-primary/30 bg-[color:var(--surface)] px-3 py-2.5">
-        <div className="flex items-center gap-2">
-          <Radio className="h-4 w-4 text-primary" strokeWidth={1.8} />
-          <span className="flex-1 text-[13px] font-semibold">
-            {voice.status === "connecting" ? "Conectando…" : `Na sala · ${voice.members.length}`}
-          </span>
-          <button onClick={voice.toggleMic} aria-label="Microfone" className="grid h-9 w-9 place-items-center rounded-full bg-[color:var(--surface-2)] active:scale-90">
-            {voice.micEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4 text-muted-foreground" />}
-          </button>
-          <button onClick={voice.leave} aria-label="Sair da sala" className="grid h-9 w-9 place-items-center rounded-full bg-destructive text-destructive-foreground active:scale-90">
-            <PhoneOff className="h-4 w-4" />
-          </button>
-        </div>
-        {voice.members.length ? (
-          <div className="mt-2 flex gap-2 overflow-x-auto">
-            {voice.members.map((m) => (
-              <div key={m.identity} className="flex w-12 shrink-0 flex-col items-center gap-1">
-                <div className={cn("rounded-full p-0.5 transition", m.speaking ? "ring-2 ring-primary" : "ring-1 ring-[color:var(--hairline)]")}>
-                  <UserAvatar avatarPath={m.avatarUrl} displayName={m.name} className="h-9 w-9" />
-                </div>
-                <span className="w-full truncate text-center text-[10px] text-muted-foreground">{m.isLocal ? "Você" : m.name}</span>
+    <div className="px-4 pb-2 pt-1">
+      <div className="mb-3 flex items-center gap-2 text-[12px] text-muted-foreground">
+        <Radio className={cn("h-3.5 w-3.5", connecting ? "animate-pulse" : "text-primary")} />
+        {connecting ? "Conectando…" : `Ao vivo · ${voice.members.length} ${voice.members.length === 1 ? "pessoa" : "pessoas"}`}
+      </div>
+      <div className="grid max-h-[46vh] grid-cols-3 gap-4 overflow-y-auto py-2">
+        {voice.members.map((m) => {
+          const muted = m.isLocal && !voice.micEnabled;
+          return (
+            <div key={m.identity} className="flex flex-col items-center gap-1.5">
+              <div className={cn("relative rounded-full p-1 transition", m.speaking ? "voice-speaking ring-2 ring-primary" : "ring-1 ring-[color:var(--hairline)]")}>
+                <UserAvatar avatarPath={m.avatarUrl} displayName={m.name} className="h-16 w-16" />
+                {muted ? (
+                  <span className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full bg-background shadow">
+                    <MicOff className="h-3 w-3 text-destructive" />
+                  </span>
+                ) : null}
               </div>
-            ))}
-          </div>
-        ) : null}
+              <span className="w-full truncate text-center text-[12px] font-medium">{m.isLocal ? "Você" : m.name}</span>
+              <span className="flex h-3 items-center text-[10px] text-muted-foreground">
+                {m.speaking ? <VoiceBars active /> : muted ? "Mudo" : "Ouvindo"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex items-center justify-center gap-6">
+        <button
+          onClick={voice.toggleMic}
+          aria-label={voice.micEnabled ? "Desligar microfone" : "Ligar microfone"}
+          className={cn(
+            "grid h-14 w-14 place-items-center rounded-full transition active:scale-90",
+            voice.micEnabled ? "bg-[color:var(--surface-2)]" : "bg-foreground text-background",
+          )}
+        >
+          {voice.micEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
+        </button>
+        <button
+          onClick={voice.leave}
+          aria-label="Sair da sala"
+          className="grid h-14 w-14 place-items-center rounded-full bg-destructive text-destructive-foreground transition active:scale-90"
+        >
+          <PhoneOff className="h-6 w-6" />
+        </button>
       </div>
     </div>
   );

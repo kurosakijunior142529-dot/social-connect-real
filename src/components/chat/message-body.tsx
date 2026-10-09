@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 import { EmojiText } from "@/components/chat/app-emoji";
 import { VideoPlayer } from "@/components/media/video-player";
 import { EphemeralBody } from "@/components/chat/ephemeral-body";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Star } from "lucide-react";
+import { useFavorites } from "@/lib/expression-store";
 
 type Msg = {
   id: string;
@@ -142,14 +145,51 @@ function StickerBody({ msg }: { msg: Msg }) {
   const isAbsolute = !!msg.media_url && !msg.media_bucket;
   const signed = useChatSigned(msg.media_bucket, isAbsolute ? null : msg.media_url);
   const src = isAbsolute ? msg.media_url : signed.data;
-  if (!src) return <div className="h-32 w-32 animate-pulse rounded-xl bg-black/10" />;
+  const favs = useFavorites();
+  const [open, setOpen] = useState(false);
+  const name = msg.content ?? "Figurinha";
+  const favId = `sticker:${msg.meta?.sticker_id ?? msg.media_url ?? msg.id}`;
+  const isFav = favs.has(favId);
+  if (!src) return <div className="h-40 w-40 animate-pulse rounded-3xl bg-muted/40" />;
   return (
-    <img
-      src={src}
-      alt={msg.content ?? "figurinha"}
-      loading="lazy"
-      className="h-32 w-32 object-contain"
-    />
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Ver ${name}`}
+        className="block transition-transform duration-200 active:scale-95"
+      >
+        <img
+          src={src}
+          alt={name}
+          loading="lazy"
+          decoding="async"
+          className="h-40 w-40 object-contain drop-shadow-[0_6px_14px_var(--sticker-shadow)] animate-in zoom-in-90 duration-300"
+        />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-[320px] rounded-3xl border-border/60 p-6">
+          <DialogTitle className="sr-only">{name}</DialogTitle>
+          <div className="flex flex-col items-center gap-4">
+            <img src={src} alt={name} className="h-52 w-52 object-contain drop-shadow-[0_10px_24px_var(--sticker-shadow)]" />
+            <p className="text-sm font-medium">{name}</p>
+            <button
+              type="button"
+              onClick={() =>
+                favs.toggle({ kind: "sticker", id: favId, url: src, name, path: undefined })
+              }
+              className={cn(
+                "flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold transition active:scale-[0.98]",
+                isFav ? "bg-muted text-foreground" : "bg-primary text-primary-foreground",
+              )}
+            >
+              <Star className={cn("h-4 w-4", isFav && "fill-primary text-primary")} />
+              {isFav ? "Nas suas favoritas" : "Adicionar às favoritas"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

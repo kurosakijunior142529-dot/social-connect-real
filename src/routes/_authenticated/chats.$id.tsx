@@ -347,8 +347,8 @@ function ChatPage() {
                     borderBottomRightRadius: prefs.radius,
                     borderBottomLeftRadius: prefs.radius,
                   }}
-                  className={cn("px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
-                  mine ? bubbleTheme.mine : bubbleTheme.theirs)}>
+                  className={cn(m.kind === "sticker" ? "bg-transparent p-0" : cn("px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
+                  mine ? bubbleTheme.mine : bubbleTheme.theirs))}>
                   {replied ? <ReplyQuote text={replied.content} /> : null}
                   {m.kind && m.kind !== "text" ? (
                     <div className="space-y-1">

@@ -1092,8 +1092,12 @@ const MessageRow = memo(
                   borderBottomLeftRadius: mine ? bigRadius : tail,
                 }}
                 className={cn(
-                  "px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
-                  mine ? p.bubbleMine : p.bubbleTheirs,
+                  m.kind === "sticker"
+                    ? "bg-transparent p-0"
+                    : cn(
+                        "px-3.5 py-2 text-[14px] leading-snug break-words transition-[border-radius] duration-200",
+                        mine ? p.bubbleMine : p.bubbleTheirs,
+                      ),
                 )}
               >
                 {p.replied ? <ReplyQuote text={p.replied.content} /> : null}

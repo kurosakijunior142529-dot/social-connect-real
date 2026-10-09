@@ -114,7 +114,10 @@ function AIThread() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.data, streamText, sending]);
 
-  useEffect(() => { inputRef.current?.focus(); }, [threadId]);
+  // No celular, abrir o teclado sozinho faz a tela pular e fechar; só foca no computador.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches) inputRef.current?.focus();
+  }, [threadId]);
 
   // Realtime apenas para reconciliação (outros dispositivos)
   useEffect(() => {

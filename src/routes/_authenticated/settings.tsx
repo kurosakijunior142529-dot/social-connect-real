@@ -136,7 +136,7 @@ function SettingsPage() {
     if (kind === "cover" && file.type === "image/gif") {
       const { gifDurationSeconds } = await import("@/lib/media");
       const secs = await gifDurationSeconds(file);
-      if (secs > 15) return toast.error(`Esse GIF tem ${Math.round(secs)}s. Escolha um de até 15 segundos`);
+      if (secs > 30) return toast.error(`Esse GIF tem ${Math.round(secs)}s. Escolha um de até 30 segundos`);
     }
     if (kind === "avatar") {
       setAvatarFile(file);

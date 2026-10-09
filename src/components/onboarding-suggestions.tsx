@@ -54,12 +54,16 @@ export function OnboardingSuggestions({ currentUserId }: { currentUserId: string
   });
 
   async function follow(id: string) {
-    setPending(id);
-    const { error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: id });
-    setPending(null);
-    if (error) return toast.error("Não foi possível seguir agora");
     setFollowed((f) => [...f, id]);
+    navigator.vibrate?.(8);
+    const { error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: id });
+    if (error && error.code !== "23505") {
+      setFollowed((f) => f.filter((x) => x !== id));
+      return toast.error("Não foi possível seguir agora");
+    }
+    void setPending;
     queryClient.invalidateQueries({ queryKey: ["feed", currentUserId] });
+    queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
   }
 
   function dismiss() {

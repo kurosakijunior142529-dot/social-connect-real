@@ -16,16 +16,21 @@ export function useKeyboardViewport(scrollRef?: RefObject<HTMLElement | null>) {
     document.body.style.overflow = "hidden";
 
     let raf = 0;
+    let lastH = -1;
+    let lastT = -1;
     const apply = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const h = vv?.height ?? window.innerHeight;
-        const top = vv?.offsetTop ?? 0;
+        const h = Math.round(vv?.height ?? window.innerHeight);
+        const top = Math.round(vv?.offsetTop ?? 0);
+        // Ignora oscilações de 1-2px durante a animação do teclado (causavam tremedeira).
+        if (Math.abs(h - lastH) < 3 && Math.abs(top - lastT) < 3) return;
+        lastH = h;
+        lastT = top;
         const el = scrollRef?.current;
         const nearBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight < 160 : false;
-        root.style.setProperty("--app-vh", `${Math.round(h)}px`);
-        root.style.setProperty("--app-vt", `${Math.round(top)}px`);
-        if (window.scrollY !== 0) window.scrollTo(0, 0);
+        root.style.setProperty("--app-vh", `${h}px`);
+        root.style.setProperty("--app-vt", `${top}px`);
         if (el && nearBottom) el.scrollTop = el.scrollHeight;
       });
     };

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +18,8 @@ export function FollowSuggestionsRail({ currentUserId }: { currentUserId: string
   });
   const [removed, setRemoved] = useState<string[]>([]);
   const [followed, setFollowed] = useState<string[]>([]);
-  const [pending, setPending] = useState<string | null>(null);
+  const pending: string | null = null;
+  const queryClient = useQueryClient();
 
   const q = useQuery({
     queryKey: ["follow-suggestions", currentUserId],
@@ -45,11 +46,15 @@ export function FollowSuggestionsRail({ currentUserId }: { currentUserId: string
   });
 
   async function follow(id: string) {
-    setPending(id);
-    const { error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: id });
-    setPending(null);
-    if (error) return toast.error("Não foi possível seguir agora");
     setFollowed((f) => [...f, id]);
+    navigator.vibrate?.(8);
+    const { error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: id });
+    if (error && error.code !== "23505") {
+      setFollowed((f) => f.filter((x) => x !== id));
+      return toast.error("Não foi possível seguir agora");
+    }
+    void queryClient.invalidateQueries({ queryKey: ["profile-stats"] });
+    void queryClient.invalidateQueries({ queryKey: ["feed", currentUserId] });
   }
 
   function hideAll() {

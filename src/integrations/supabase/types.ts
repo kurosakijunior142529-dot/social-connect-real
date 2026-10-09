@@ -4290,6 +4290,8 @@ export type Database = {
         Args: { _owner: string; _viewer: string }
         Returns: boolean
       }
+      is_live_host: { Args: { _live_id: string }; Returns: boolean }
+      is_live_moderator: { Args: { _live_id: string }; Returns: boolean }
       is_supporter: { Args: { _user: string }; Returns: boolean }
       is_watch_host: {
         Args: { _room: string; _user: string }

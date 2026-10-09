@@ -393,6 +393,13 @@
       "when": 1791588703499,
       "tag": "0055_allow_username_change",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791590101722,
+      "tag": "0056_security_tighten_reads",
+      "breakpoints": true
     }
   ]
 }

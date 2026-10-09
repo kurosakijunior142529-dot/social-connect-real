@@ -77,7 +77,13 @@ export function startRun(opts: { runId: string; conversationId: string; goal: Ru
   channel.on("broadcast", { event: "stats" }, ({ payload }) => {
     if (!state) return;
     const prevLead = state.me.meters >= (state.other?.meters ?? 0);
-    const other = payload as RunStats;
+    const p = (payload ?? {}) as Partial<RunStats>;
+    const num = (v: unknown) => (typeof v === "number" && isFinite(v) ? v : 0);
+    const other: RunStats = {
+      meters: num(p.meters), ms: num(p.ms), kcal: num(p.kcal), speed: num(p.speed), maxSpeed: num(p.maxSpeed),
+      pace: typeof p.pace === "number" && isFinite(p.pace) ? p.pace : null,
+      path: Array.isArray(p.path) ? p.path.filter((x) => Array.isArray(x) && isFinite(x[0]) && isFinite(x[1])) as [number, number][] : [],
+    };
     set({ other });
     leadCheck(prevLead);
     checkGoal();

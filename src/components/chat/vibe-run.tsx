@@ -134,7 +134,7 @@ export function RunInviteBody({ msg, mine, onFinish }: { msg: any; mine: boolean
 }
 
 function RunResultBody({ meta, mine, sender: senderP, other: otherP }: { meta: any; mine: boolean; sender: Person | null; other: Person | null }) {
-  const r = meta.result;
+  const r = meta.result ?? {};
   // r.me = quem enviou o resumo
   const sender = r.me, partner = r.other;
   const you = mine ? sender : partner, them = mine ? partner : sender;
@@ -205,8 +205,9 @@ const lat2y = (lat: number, z: number) => {
 
 type MapPath = { path: [number, number][]; me: boolean; label?: string };
 
-function RunMap({ paths, height = 220, showFlags }: { paths: MapPath[]; height?: number; showFlags?: boolean }) {
+function RunMap({ paths: rawPaths, height = 220, showFlags }: { paths: MapPath[]; height?: number; showFlags?: boolean }) {
   const W = 360, H = height;
+  const paths = rawPaths.map((p) => ({ ...p, path: (Array.isArray(p.path) ? p.path : []).filter((x) => Array.isArray(x) && isFinite(x[0]) && isFinite(x[1]) && Math.abs(x[0]) < 85) }));
   const all = paths.flatMap((p) => p.path);
   if (all.length === 0) {
     return (

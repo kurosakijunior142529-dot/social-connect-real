@@ -35,7 +35,7 @@ const CATEGORIES = [
   "Notícias",
   "Educação",
   "Tecnologia",
-  "Lifestyle",
+  "Estilo de vida",
   "Viagem",
 ];
 
@@ -194,9 +194,9 @@ function NewLive() {
               className="w-full h-10 rounded-md bg-background border border-input px-3 text-sm"
             >
               <option value="pt-BR">Português (BR)</option>
-              <option value="en">English</option>
-              <option value="es">Español</option>
-              <option value="fr">Français</option>
+              <option value="en">Inglês</option>
+              <option value="es">Espanhol</option>
+              <option value="fr">Francês</option>
             </select>
           </div>
         </div>
@@ -206,7 +206,7 @@ function NewLive() {
           <Input
             value={form.tags}
             onChange={(e) => setForm({ ...form, tags: e.target.value })}
-            placeholder="gaming, fifa, brasil"
+            placeholder="jogos, futebol, brasil"
           />
         </div>
 

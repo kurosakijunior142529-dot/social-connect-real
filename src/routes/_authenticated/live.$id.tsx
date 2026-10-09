@@ -68,11 +68,11 @@ const QUICK_REACTIONS = ["❤️", "🔥", "👏", "😂", "🎉", "😮"];
 /** Presets de captura da câmera — até 4K e 120 fps quando o aparelho permitir. */
 type QualityKey = "720p30" | "1080p60" | "1440p60" | "4k60" | "4k120";
 const QUALITY_PRESETS: Record<QualityKey, { label: string; width: number; height: number; frameRate: number }> = {
-  "720p30": { label: "HD 720p · 30fps", width: 1280, height: 720, frameRate: 30 },
-  "1080p60": { label: "Full HD 1080p · 60fps", width: 1920, height: 1080, frameRate: 60 },
-  "1440p60": { label: "QHD 1440p · 60fps", width: 2560, height: 1440, frameRate: 60 },
-  "4k60": { label: "4K · 60fps", width: 3840, height: 2160, frameRate: 60 },
-  "4k120": { label: "4K · 120fps", width: 3840, height: 2160, frameRate: 120 },
+  "720p30": { label: "Econômica · 720p", width: 1280, height: 720, frameRate: 30 },
+  "1080p60": { label: "Alta definição · 1080p", width: 1920, height: 1080, frameRate: 60 },
+  "1440p60": { label: "Super nítida · 1440p", width: 2560, height: 1440, frameRate: 60 },
+  "4k60": { label: "Ultra · 4K", width: 3840, height: 2160, frameRate: 60 },
+  "4k120": { label: "Ultra fluida · 4K", width: 3840, height: 2160, frameRate: 120 },
 };
 
 function LiveRoom() {
@@ -92,7 +92,7 @@ function LiveRoom() {
   const [screenOn, setScreenOn] = useState(false);
   const [arTray, setArTray] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
-  const [videoQuality, setVideoQuality] = useState<QualityKey>("1080p60");
+  const [videoQuality, setVideoQuality] = useState<QualityKey>("720p30");
   const [quality, setQuality] = useState<ConnectionQuality>(ConnectionQuality.Unknown);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [elapsed, setElapsed] = useState("00:00");
@@ -121,7 +121,7 @@ function LiveRoom() {
       if (error) throw error;
       return (data ?? null) as Live | null;
     },
-    refetchInterval: 30000,
+    refetchInterval: (q: any) => (q.state.data?.status === "preparing" ? 4000 : 30000),
   });
 
   const hostProfileQ = useQuery({
@@ -324,6 +324,7 @@ function LiveRoom() {
   // Connect LiveKit room
   const connect = useCallback(async () => {
     if (!live) return;
+    if (live.status === "ended") return;
     if (room) return;
     try {
       const t = await getToken({ data: { liveId } });
@@ -380,12 +381,15 @@ function LiveRoom() {
               video: { facingMode, resolution: { width: preset.width, height: preset.height, frameRate: preset.frameRate } },
             });
           } catch {
-            // Aparelho não suporta o preset escolhido: cai para Full HD.
-            tracks = await createLocalTracks({
-              audio,
-              video: { facingMode, resolution: { width: 1920, height: 1080, frameRate: 30 } },
-            });
-            toast.message("Seu aparelho não suporta essa qualidade. Usando Full HD.");
+            // Aparelho não suporta o preset: tenta 720p e depois o padrão da câmera.
+            try {
+              tracks = await createLocalTracks({
+                audio,
+                video: { facingMode, resolution: { width: 1280, height: 720, frameRate: 30 } },
+              });
+            } catch {
+              tracks = await createLocalTracks({ audio: true, video: { facingMode } });
+            }
           }
           for (const tr of tracks) {
             await r.localParticipant.publishTrack(tr, {
@@ -400,13 +404,13 @@ function LiveRoom() {
             camPub.track.attach(videoRef.current);
           }
         } catch (err: any) {
-          toast.error("Não foi possível acessar câmera/microfone: " + (err?.message ?? ""));
+          toast.error("Libere a câmera e o microfone para transmitir.");
         }
       }
     } catch (err: any) {
-      toast.error(err?.message ?? "Falha ao entrar na sala");
+      toast.error("Não foi possível entrar na live agora. Tente de novo em instantes.");
     }
-  }, [live, room, liveId, getToken, user.id, facingMode]);
+  }, [live?.id, live?.status, room, liveId, getToken, user.id, facingMode]);
 
   useEffect(() => {
     return () => {
@@ -496,7 +500,7 @@ function LiveRoom() {
     const ok = await liveAr.start();
     if (ok) {
       setArTray(true);
-      if (!liveAr.lenses) toast.message("Efeitos AR ainda não configurados — transmitindo no modo Normal.");
+      if (!liveAr.lenses) toast.message("Efeitos ainda indisponíveis — transmitindo com a câmera normal.");
     } else toast.error("Seu aparelho não aguentou os efeitos. Voltamos para a câmera normal.");
   };
   const toggleScreen = async () => {
@@ -665,9 +669,9 @@ function LiveRoom() {
           <UserAvatar avatarPath={v.profile?.avatar_url ?? null} displayName={v.profile?.display_name ?? v.profile?.username ?? "?"} className="h-8 w-8" />
           <div className="text-sm flex-1 min-w-0 truncate">
             {v.profile?.display_name ?? v.profile?.username ?? "Espectador"}
-            {v.user_id === live.host_id && <span className="ml-1 text-[10px] text-primary font-semibold">HOST</span>}
+            {v.user_id === live.host_id && <span className="ml-1 text-[10px] text-primary font-semibold">Criador</span>}
             {(modsQ.data ?? []).includes(v.user_id) && v.user_id !== live.host_id && (
-              <span className="ml-1 text-[10px] text-amber-400 font-semibold">MOD</span>
+              <span className="ml-1 text-[10px] text-amber-400 font-semibold">Moderador</span>
             )}
           </div>
           {canModerate && v.user_id !== live.host_id && v.user_id !== user.id && (
@@ -791,7 +795,7 @@ function LiveRoom() {
             <div className="flex items-center gap-1.5 shrink-0">
               {live.status === "live" && (
                 <span className="inline-flex items-center gap-1 rounded-md bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-1.5 py-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Live
+                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Ao vivo
                 </span>
               )}
               <span className="rounded-md bg-black/60 text-white text-[11px] px-2 py-1 flex items-center gap-1">
@@ -814,7 +818,7 @@ function LiveRoom() {
             <div className="mt-2 flex items-start gap-2 rounded-xl bg-primary/15 border border-primary/30 px-2.5 py-1.5 text-white text-[12px] backdrop-blur-md">
               <Pin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
               <span className="min-w-0">
-                <b className="mr-1">{pinned.profile?.display_name ?? pinned.profile?.username ?? "user"}</b>
+                <b className="mr-1">{pinned.profile?.display_name ?? pinned.profile?.username ?? "Alguém"}</b>
                 {pinned.content}
               </span>
             </div>
@@ -831,6 +835,16 @@ function LiveRoom() {
               <Button onClick={goLive} className="rounded-full h-11 px-8 shadow-elegant" disabled={!connected}>
                 <Radio className="h-4 w-4 mr-2" /> Iniciar transmissão
               </Button>
+            </div>
+          </div>
+        )}
+
+        {!isHost && live.status === "preparing" && (
+          <div className="absolute inset-0 grid place-items-center bg-black/70 backdrop-blur-sm">
+            <div className="text-center space-y-3 px-6">
+              <UserAvatar avatarPath={hostProfileQ.data?.avatar_url ?? null} displayName={hostProfileQ.data?.display_name ?? "?"} className="h-20 w-20 mx-auto ring-2 ring-primary animate-pulse" />
+              <h2 className="text-white text-lg font-bold">A transmissão começa em breve</h2>
+              <p className="text-white/70 text-sm">Fique por aqui — você entra automaticamente.</p>
             </div>
           </div>
         )}
@@ -939,7 +953,7 @@ function LiveRoom() {
                 <Gift className="h-5 w-5" />
               </button>
               {isHost && (
-                <button onClick={toggleAr} aria-label="Efeitos AR" className={cn("h-11 w-11 rounded-full backdrop-blur-md text-white grid place-items-center", liveAr.active ? "bg-primary/30 ring-1 ring-primary" : "bg-white/12")}>
+                <button onClick={toggleAr} aria-label="Efeitos" className={cn("h-11 w-11 rounded-full backdrop-blur-md text-white grid place-items-center", liveAr.active ? "bg-primary/30 ring-1 ring-primary" : "bg-white/12")}>
                   <Sparkles className="h-5 w-5" />
                 </button>
               )}
@@ -964,8 +978,8 @@ function LiveRoom() {
                 <>
                   <IconBtn onClick={toggleMic} active={micOn} Icon={micOn ? Mic : MicOff} label={micOn ? "Mudo" : "Ativar"} />
                   <IconBtn onClick={toggleCam} active={camOn} Icon={camOn ? Video : VideoOff} label={camOn ? "Câmera" : "Ligar câmera"} />
-                  <IconBtn onClick={flipCam} Icon={RefreshCcw} label="Flip" />
-                  <IconBtn onClick={toggleAr} active={liveAr.active} Icon={Sparkles} label={liveAr.busy ? "Carregando…" : "Efeitos AR"} />
+                  <IconBtn onClick={flipCam} Icon={RefreshCcw} label="Virar câmera" />
+                  <IconBtn onClick={toggleAr} active={liveAr.active} Icon={Sparkles} label={liveAr.busy ? "Carregando…" : "Efeitos"} />
                   <IconBtn onClick={toggleScreen} active={screenOn} Icon={screenOn ? MonitorOff : MonitorUp} label={screenOn ? "Parar tela" : "Compartilhar tela"} />
                   <IconBtn onClick={() => setTab("gifts")} Icon={Gift} label="Presentes recebidos" />
                   <IconBtn onClick={share} Icon={Share2} label="Compartilhar" />
@@ -992,7 +1006,7 @@ function LiveRoom() {
       {/* SIDE PANEL (desktop) */}
       <aside className="hidden md:flex md:w-[380px] flex-col rounded-3xl overflow-hidden bg-[color:var(--surface)] border border-[color:var(--hairline)]">
         <div className="flex hairline-b">
-          <TabBtn active={tab === "chat"} onClick={() => setTab("chat")} Icon={MessageCircle}>Chat</TabBtn>
+          <TabBtn active={tab === "chat"} onClick={() => setTab("chat")} Icon={MessageCircle}>Bate-papo</TabBtn>
           <TabBtn active={tab === "people"} onClick={() => setTab("people")} Icon={Users}>Pessoas ({viewersQ.data?.length ?? 0})</TabBtn>
           <TabBtn active={tab === "gifts"} onClick={() => setTab("gifts")} Icon={Gift}>Presentes</TabBtn>
         </div>

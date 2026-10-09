@@ -16,6 +16,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { fetchVirFeed, virNotInterested } from "@/lib/vir";
 import { fetchPostMedia, fetchRepostContext } from "@/lib/reels/carousel";
+import { useBroadcastReel } from "@/lib/reels-presence";
 
 export const Route = createFileRoute("/_authenticated/reels")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -212,6 +213,8 @@ function ReelsPage() {
     },
     [feed, posts, tab],
   );
+  const firstId = posts[0]?.id ?? null;
+  useBroadcastReel(user.id, watchingId ?? firstId);
 
   return (
     <div className="relative h-dvh min-h-dvh w-full md:-mx-4 md:-mt-6 md:w-[calc(100%+2rem)]">

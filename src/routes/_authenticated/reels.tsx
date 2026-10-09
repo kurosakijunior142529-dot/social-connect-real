@@ -16,6 +16,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { fetchVirFeed, virNotInterested } from "@/lib/vir";
 import { fetchPostMedia, fetchRepostContext } from "@/lib/reels/carousel";
+import { useBroadcastReel } from "@/lib/reels-presence";
 
 export const Route = createFileRoute("/_authenticated/reels")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -49,6 +50,7 @@ function ReelsPage() {
   const [peers, setPeers] = useState(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const currentRef = useRef<string | null>(null);
+  const [watchingId, setWatchingId] = useState<string | null>(startPostId ?? null);
   const remoteRef = useRef(false);
   useEffect(() => {
     if (!code) return;
@@ -201,6 +203,7 @@ function ReelsPage() {
         const id = posts[idx]?.id;
         if (id && id !== currentRef.current && Math.abs(el.scrollTop - idx * el.clientHeight) < 4) {
           currentRef.current = id;
+          setWatchingId(id);
           if (remoteRef.current) remoteRef.current = false;
           else void channelRef.current?.send({ type: "broadcast", event: "goto", payload: { postId: id } });
         }
@@ -210,6 +213,8 @@ function ReelsPage() {
     },
     [feed, posts, tab],
   );
+  const firstId = posts[0]?.id ?? null;
+  useBroadcastReel(user.id, watchingId ?? firstId);
 
   return (
     <div className="relative h-dvh min-h-dvh w-full md:-mx-4 md:-mt-6 md:w-[calc(100%+2rem)]">

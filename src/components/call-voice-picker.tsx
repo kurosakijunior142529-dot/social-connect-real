@@ -20,6 +20,7 @@ type Item = { value: string; label: string; desc?: string };
 export function CallVoicePicker({ language }: { language: string }) {
   const [value, setValue] = useState("auto");
   const [tab, setTab] = useState<"ai" | "device">("device");
+  const [gender, setGender] = useState<"all" | "m" | "f">("all");
   const [devices, setDevices] = useState<DeviceVoice[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -102,7 +103,7 @@ export function CallVoicePicker({ language }: { language: string }) {
 
   const items: Item[] =
     tab === "ai"
-      ? AI_VOICES.map((v) => ({ value: `ai:${v.id}`, label: v.label, desc: v.desc }))
+      ? AI_VOICES.filter((v) => gender === "all" || v.g === gender).map((v) => ({ value: `ai:${v.id}`, label: v.label, desc: v.desc }))
       : [
           { value: "auto", label: "Melhor voz do aparelho", desc: "Grátis" },
           ...devices.map((v) => ({ value: `device:${v.uri}`, label: v.name, desc: "Grátis" })),
@@ -125,6 +126,23 @@ export function CallVoicePicker({ language }: { language: string }) {
           </button>
         ))}
       </div>
+      {tab === "ai" ? (
+        <div className="flex gap-1.5">
+          {([["all", "Todas"], ["m", "👨 Masculinas"], ["f", "👩 Femininas"]] as const).map(([k, l]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setGender(k)}
+              className={cn(
+                "rounded-full px-3 py-1 text-[12px] transition",
+                gender === k ? "bg-white/[0.12] font-semibold text-white" : "text-white/50",
+              )}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="max-h-64 space-y-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
         {items.map((it) => {
           const selected = value === it.value;

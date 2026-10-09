@@ -10,12 +10,31 @@ import { AI_TOOLS, runAiTool } from "@/lib/ai-tools";
 
 const MODEL = "google/gemini-3.7-flash";
 const SUMMARY_MODEL = "google/gemini-3.6-flash";
-const RECENT_MESSAGES = 16;
-const SUMMARIZE_AFTER = 30;
+const RECENT_MESSAGES = 10;
+const SUMMARIZE_AFTER = 24;
 const MAX_TOKENS = 2048;
 
 function sse(obj: unknown) {
   return `data: ${JSON.stringify(obj)}\n\n`;
+}
+
+/** Mensagens curtas e comuns respondidas na hora, sem gastar IA. */
+function quickReply(text: string): string | null {
+  const t = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[!?.,;:~\s]+/g, " ")
+    .trim();
+  if (t.length > 25) return null;
+  if (/^(oi+|ola|eae+|e ai|opa|salve|hey|hello|hi|bom dia|boa tarde|boa noite)( vibely)?$/.test(t))
+    return "Oi! 👋 Como posso te ajudar hoje? Posso criar legendas, ideias de Reels, enquetes ou responder suas dúvidas.";
+  if (/^(obrigad[oa]|vlw|valeu|brigad[oa]|thanks|obg|tmj)( demais)?$/.test(t))
+    return "De nada! 💚 Se precisar de mais alguma coisa, é só chamar.";
+  if (/^(ok|blz|beleza|certo|entendi|show|top|perfeito|massa|legal)$/.test(t))
+    return "Fechou! 👍 Quer que eu faça mais alguma coisa?";
+  if (/^(tchau|ate mais|flw|falou|bye)$/.test(t)) return "Até mais! 👋";
+  return null;
 }
 
 async function gateway(key: string, body: unknown) {
@@ -184,7 +203,7 @@ export const Route = createFileRoute("/api/ai/stream")({
             .select("id, memory")
             .eq("user_id", userId)
             .order("updated_at", { ascending: false })
-            .limit(30),
+            .limit(15),
           supabase.from("ai_summaries").select("summary").eq("thread_id", threadId).maybeSingle(),
         ]);
 
@@ -213,7 +232,11 @@ export const Route = createFileRoute("/api/ai/stream")({
 
         const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
         if (contextBlocks.length) messages.push({ role: "system", content: contextBlocks.join("\n\n") });
-        for (const m of ordered) messages.push({ role: m.role, content: m.content });
+        ordered.forEach((m: any, i: number) => {
+          const isLast = i === ordered.length - 1;
+          const c = String(m.content ?? "");
+          messages.push({ role: m.role, content: isLast ? c : c.slice(0, 1500) });
+        });
 
         if (images.length) {
           messages[messages.length - 1] = {
@@ -248,10 +271,22 @@ export const Route = createFileRoute("/api/ai/stream")({
             try {
               push({ type: "user", message: userMsg });
 
-              for (let step = 0; step < 4; step++) {
+              // Respostas instantâneas e grátis para mensagens simples (não chama a IA)
+              const quick = !images.length && !docs.length ? quickReply(content) : null;
+              if (quick) {
+                push({ type: "delta", text: quick });
+                const { data: aiMsg } = await supabase
+                  .from("ai_messages")
+                  .insert({ thread_id: threadId, user_id: userId, role: "assistant", content: quick })
+                  .select("id, role, content, image_url, attachments, created_at")
+                  .single();
+                push({ type: "done", message: aiMsg });
+                return;
+              }
+
+              for (let step = 0; step < 3; step++) {
                 const res = await gateway(key, {
                   model: MODEL,
-                  service_tier: "priority",
                   stream: true,
                   max_tokens: MAX_TOKENS,
                   messages,

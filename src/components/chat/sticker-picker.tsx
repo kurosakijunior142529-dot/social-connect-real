@@ -148,7 +148,7 @@ export function StickerGrid({
             key={s.id}
             type="button"
             onClick={() => onPick(s)}
-            className="rounded-xl p-1 hover:bg-white/10"
+            className="sticker-cell aspect-square rounded-2xl p-1.5"
             aria-label={s.name}
           >
             <img src={s.url} alt={s.name} loading="lazy" className="h-full w-full object-contain" />
@@ -178,7 +178,7 @@ export function StickerGrid({
                 <button
                   type="button"
                   onClick={() => onPick(s)}
-                  className="w-full rounded-xl p-1 hover:bg-white/10"
+                  className="sticker-cell aspect-square w-full rounded-2xl p-1.5"
                   aria-label={s.name}
                 >
                   <img src={s.url} alt={s.name} loading="lazy" className="h-full w-full object-contain" />
@@ -187,7 +187,7 @@ export function StickerGrid({
                   type="button"
                   onClick={() => removeOwn(s)}
                   aria-label="Remover figurinha"
-                  className="absolute -right-1 -top-1 rounded-full bg-black/70 p-1 opacity-0 transition group-hover:opacity-100"
+                  className="absolute -right-1 -top-1 rounded-full bg-background/90 p-1 shadow"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
@@ -229,7 +229,7 @@ export function StickerPicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent side="top" align="start" className="glass w-[320px] border-white/10 p-2">
+      <PopoverContent side="top" align="start" className="w-[320px] rounded-2xl border-border bg-popover p-2">
         <StickerGrid
           userId={userId}
           onPick={(s) => {

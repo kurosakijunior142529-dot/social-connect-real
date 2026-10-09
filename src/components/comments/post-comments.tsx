@@ -157,7 +157,7 @@ export function PostComments({
     const { error } = await supabase.from("comments").insert({
       post_id: postId,
       author_id: currentUserId,
-      content: "",
+      content: null,
       sticker_url: s.url,
       ...(parentId ? { parent_id: parentId } : {}),
     } as any);
@@ -259,7 +259,7 @@ export function PostComments({
               </button>
             </form>
           ) : c.sticker_url ? (
-            <img src={c.sticker_url} alt="figurinha" loading="lazy" className="mt-1 h-24 w-24 object-contain" />
+            <img src={c.sticker_url} alt="figurinha" loading="lazy" decoding="async" className="sticker-pop mt-1 h-28 w-28 object-contain drop-shadow-[0_4px_10px_var(--sticker-shadow)]" />
           ) : (
             <CommentBody content={c.content} edited={!!c.edited_at} />
           )}

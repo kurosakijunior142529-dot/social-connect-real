@@ -594,14 +594,14 @@ function StickerTab({
                       recents.push({ id: s.id, url: s.url, name: s.name, path: s.path, own: s.own });
                       onSticker(s);
                     }}
-                    className="aspect-square w-full rounded-2xl bg-muted/30 p-1.5 transition duration-200 hover:bg-muted/60 active:scale-90"
+                    className="sticker-cell aspect-square w-full rounded-2xl p-1.5"
                   >
                     <img
                       src={s.url}
                       alt={s.name}
                       loading="lazy"
                       decoding="async"
-                      className="h-full w-full object-contain drop-shadow-[0_3px_6px_var(--sticker-shadow)]"
+                      className="sticker-img h-full w-full object-contain"
                     />
                   </button>
                   <button

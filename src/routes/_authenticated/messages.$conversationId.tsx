@@ -381,9 +381,15 @@ function ConversationPage() {
   useEffect(() => {
     setRunFinishHandler((r) => {
       if (r.conversationId !== conversationId) return;
-      const slim = (x: any) => x && { meters: Math.round(x.meters), ms: x.ms, kcal: x.kcal, pace: x.pace, path: (x.path ?? []).filter((_: any, i: number, a: any[]) => i % Math.ceil(a.length / 80 || 1) === 0) };
+      const slim = (x: any) => x && { meters: Math.round(x.meters), ms: x.ms, kcal: x.kcal, pace: x.pace, maxSpeed: x.maxSpeed ?? 0, path: (x.path ?? []).filter((_: any, i: number, a: any[]) => i % Math.ceil(a.length / 80 || 1) === 0) };
       void sendPayload({ kind: "run", content: "🏁 Resumo da Corrida em Dupla", meta: { runId: r.runId, goal: r.goal, result: { me: slim(r.me), other: slim(r.other) } } });
     });
+    const onRematch = (e: Event) => {
+      const goal = (e as CustomEvent).detail;
+      void sendPayload({ kind: "run", content: "🏃 Revanche na Corrida em Dupla", meta: { runId: crypto.randomUUID(), goal } });
+    };
+    window.addEventListener("vibe-run-rematch", onRematch);
+    return () => window.removeEventListener("vibe-run-rematch", onRematch);
   });
 
   async function handleLocation(coords: { lat: number; lng: number }) {

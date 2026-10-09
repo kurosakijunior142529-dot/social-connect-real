@@ -132,7 +132,12 @@ function SettingsPage() {
 
   async function onPick(kind: "avatar" | "cover", file: File | null) {
     if (!file) return;
-    if (file.size > 8 * 1024 * 1024) return toast.error("Imagem maior que 8MB");
+    if (file.size > (kind === "cover" ? 15 : 8) * 1024 * 1024) return toast.error(kind === "cover" ? "Arquivo maior que 15MB" : "Imagem maior que 8MB");
+    if (kind === "cover" && file.type === "image/gif") {
+      const { gifDurationSeconds } = await import("@/lib/media");
+      const secs = await gifDurationSeconds(file);
+      if (secs > 15) return toast.error(`Esse GIF tem ${Math.round(secs)}s. Escolha um de até 15 segundos`);
+    }
     if (kind === "avatar") {
       setAvatarFile(file);
       setEditorOpen(true);

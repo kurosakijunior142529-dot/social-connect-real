@@ -43,7 +43,7 @@ import { InterestsEditor } from "@/components/profile/interests-editor";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { UserActionsMenu } from "@/components/user-actions-menu";
 import { useBlocks } from "@/hooks/use-blocks";
-import { uploadMedia } from "@/lib/media";
+import { uploadMedia, gifDurationSeconds } from "@/lib/media";
 
 import { VibeCollections } from "@/components/profile/vibe-collections";
 
@@ -725,9 +725,14 @@ function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void 
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<File | null>(null);
-  function onPick(f: File) {
-    if (!f.type.startsWith("image/")) return toast.error("Selecione uma imagem");
-    if (f.size > 15 * 1024 * 1024) return toast.error("Imagem maior que 15MB");
+  async function onPick(f: File) {
+    if (!f.type.startsWith("image/")) return toast.error("Selecione uma imagem ou GIF");
+    if (f.size > 15 * 1024 * 1024) return toast.error("Arquivo maior que 15MB");
+    if (f.type === "image/gif") {
+      const secs = await gifDurationSeconds(f);
+      if (secs > 15) return toast.error(`Esse GIF tem ${Math.round(secs)}s. Escolha um de até 15 segundos`);
+      return upload(f); // envia sem cortar, para manter a animação
+    }
     setPending(f);
   }
   async function upload(f: File) {
@@ -736,7 +741,7 @@ function CoverUploader({ userId, onDone }: { userId: string; onDone: () => void 
       const path = await uploadMedia("covers", userId, f);
       const { error } = await supabase.from("profiles").update({ cover_url: path }).eq("id", userId);
       if (error) throw error;
-      toast.success("Capa atualizada");
+      toast.success(f.type === "image/gif" ? "Capa animada atualizada" : "Capa atualizada");
       setPending(null);
       onDone();
     } catch (err: any) {

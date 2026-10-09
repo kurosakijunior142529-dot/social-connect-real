@@ -96,7 +96,7 @@ function AuthPage() {
     const parsed = signUpSchema.safeParse(Object.fromEntries(form));
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
@@ -109,8 +109,12 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) return toast.error(error.message);
+    // Só entra quando a sessão já existe; senão a tela inicial abria vazia.
+    if (!signUpData.session) {
+      return toast.success("Conta criada! Confirme pelo link enviado ao seu email para entrar.");
+    }
     toast.success("Conta criada! Você já está dentro.");
-    navigate({ to: "/" });
+    navigate({ to: "/", replace: true });
   }
 
   async function handleGoogle() {

@@ -404,7 +404,8 @@ export function usePostsQuery(opts: {
   const hidden = blocks.data?.hidden;
   return useQuery({
     queryKey: [...opts.key, "blocks", hidden ? hidden.size : 0],
-    enabled: !opts.currentUserId || !!blocks.data,
+    // Não espera para sempre: se a lista de bloqueios falhar, o feed abre mesmo assim.
+    enabled: !opts.currentUserId || !!blocks.data || blocks.isError || (!blocks.isLoading && !blocks.isFetching),
     staleTime: 30_000,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,

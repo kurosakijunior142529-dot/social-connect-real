@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
-import { Plus, Image as ImageIcon, Film, FileText, MapPin, Sticker, Camera, X, Send } from "lucide-react";
+import { Plus, Image as ImageIcon, Film, FileText, MapPin, Sticker, Camera, X, Send, Footprints } from "lucide-react";
 import { toast } from "sonner";
 
 const MAX_MB = 50;
@@ -14,11 +14,13 @@ export function AttachMenu({
   onFile,
   onLocation,
   onOpenGifs,
+  onRun,
   disabled,
 }: {
   onFile: (file: File, caption?: string) => void | Promise<void>;
   onLocation: (coords: { lat: number; lng: number }) => void | Promise<void>;
   onOpenGifs?: () => void;
+  onRun?: () => void;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -93,6 +95,7 @@ export function AttachMenu({
     { label: "Vídeo", hint: `Até ${MAX_MB}MB`, icon: <Film className="h-5 w-5" />, onClick: () => pick(video) },
     { label: "Documento", hint: "PDF, planilhas…", icon: <FileText className="h-5 w-5" />, onClick: () => pick(doc) },
     { label: "Localização", hint: "Com mapa", icon: <MapPin className="h-5 w-5" />, onClick: shareLocation },
+    ...(onRun ? [{ label: "Corrida", hint: "Em dupla", icon: <Footprints className="h-5 w-5" />, onClick: () => { setOpen(false); onRun(); } }] : []),
     ...(onOpenGifs
       ? [{ label: "GIF", hint: "Animados", icon: <Sticker className="h-5 w-5" />, onClick: () => { setOpen(false); onOpenGifs(); } }]
       : []),

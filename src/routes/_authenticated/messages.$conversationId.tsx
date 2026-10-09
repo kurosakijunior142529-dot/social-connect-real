@@ -23,6 +23,8 @@ import { useAiActions } from "@/hooks/use-ai-actions";
 import { useAutoTranslateEnabled } from "@/lib/chat-settings";
 import { toast } from "sonner";
 import { AttachMenu } from "@/components/chat/attach-menu";
+import { LiveRunHost, RunInviteDrawer } from "@/components/chat/vibe-run";
+import { setRunFinishHandler } from "@/lib/vibe-run";
 import { AudioRecorder } from "@/components/chat/audio-recorder";
 import { MessageBody } from "@/components/chat/message-body";
 import { ConversationMenu } from "@/components/chat/conversation-menu";
@@ -376,6 +378,14 @@ function ConversationPage() {
     }
   }
 
+  useEffect(() => {
+    setRunFinishHandler((r) => {
+      if (r.conversationId !== conversationId) return;
+      const slim = (x: any) => x && { meters: Math.round(x.meters), ms: x.ms, kcal: x.kcal, pace: x.pace, path: (x.path ?? []).filter((_: any, i: number, a: any[]) => i % Math.ceil(a.length / 80 || 1) === 0) };
+      void sendPayload({ kind: "run", content: "🏁 Resumo da Corrida em Dupla", meta: { runId: r.runId, goal: r.goal, result: { me: slim(r.me), other: slim(r.other) } } });
+    });
+  });
+
   async function handleLocation(coords: { lat: number; lng: number }) {
     if (isBlockedPair) return;
     await sendPayload({ kind: "location", meta: coords });
@@ -461,6 +471,7 @@ function ConversationPage() {
 
   const other = conv.data?.other ?? null;
   const otherId = other?.id ?? null;
+  const [runOpen, setRunOpen] = useState(false);
   const isBlockedPair = otherId ? blocks.data?.hidden.has(otherId) ?? false : false;
   const iBlocked = otherId ? blocks.data?.blocked.has(otherId) ?? false : false;
 
@@ -762,6 +773,7 @@ function ConversationPage() {
       </div>
 
       <TypingIndicator state={presence.others} name={other?.display_name} />
+      <LiveRunHost conversationId={conversationId} otherName={other?.display_name ?? other?.username ?? "Amigo"} />
 
       {!isBlockedPair ? (
         <SmartReplyBar scope="dm" id={conversationId} onPick={(s) => setDraft(s)} />
@@ -866,7 +878,8 @@ function ConversationPage() {
           ) : null}
           {!draft.trim() ? (
             <div className="text-muted-foreground">
-              <AttachMenu onFile={handleFile} onLocation={handleLocation} disabled={isBlockedPair} />
+              <AttachMenu onFile={handleFile} onLocation={handleLocation} onRun={() => setRunOpen(true)} disabled={isBlockedPair} />
+              <RunInviteDrawer open={runOpen} onOpenChange={setRunOpen} onSend={(goal) => void sendPayload({ kind: "run", content: "🏃 Convite para Corrida em Dupla", meta: { runId: crypto.randomUUID(), goal } })} />
             </div>
           ) : null}
         </div>

@@ -16,6 +16,7 @@ import { CallScreen } from "@/components/call-screen";
 import { CallMiniBar } from "@/components/call-mini-bar";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
 import { getCameraTrack, getLocalMedia, stopStream } from "@/lib/webrtc";
+import { studioVoice, resumeStudioVoice, releaseStudioVoice } from "@/lib/call-audio-dsp";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { translateText, translateBatch } from "@/lib/ai.functions";
 import { transcribeCallClip } from "@/lib/call-transcribe.functions";
@@ -1092,18 +1093,18 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const stream = remoteStream;
     if (stream && stream.getAudioTracks().length > 0) {
       stream.getAudioTracks().forEach((t) => (t.enabled = true));
-      if (el.srcObject !== stream) el.srcObject = stream;
+      const processed = studioVoice(stream);
+      if (el.srcObject !== processed) el.srcObject = processed;
       el.muted = false;
       el.volume = 1;
-        const tryPlay = () => {
+      const tryPlay = () => {
+        resumeStudioVoice();
         const p = el.play();
-          if (p && typeof p.catch === "function") {
-            p.then(() => setConnectionLabel("Áudio reproduzindo"), () => setConnectionLabel("Toque na tela para liberar o áudio"));
-          }
+        if (p && typeof p.catch === "function") {
+          p.then(() => setConnectionLabel("Áudio reproduzindo"), () => setConnectionLabel("Toque na tela para liberar o áudio"));
+        }
       };
       tryPlay();
-      // Autoplay can still be blocked (no prior gesture on this document):
-      // retry on the next user interaction and shortly after negotiation.
       const retry = () => tryPlay();
       document.addEventListener("pointerdown", retry);
       document.addEventListener("touchstart", retry);
@@ -1114,7 +1115,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
         clearTimeout(t);
       };
     }
-    if (!stream) el.srcObject = null;
+    if (!stream) {
+      el.srcObject = null;
+      releaseStudioVoice();
+    }
   }, [remoteStream, trackUpdate]);
 
   // Track when the call became active (used by the floating mini bar timer).

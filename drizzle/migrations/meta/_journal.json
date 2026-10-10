@@ -435,6 +435,13 @@
       "when": 1791592955096,
       "tag": "0061_watch_rooms_close_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1791593109026,
+      "tag": "0062_watch_rooms_realtime",
+      "breakpoints": true
     }
   ]
 }

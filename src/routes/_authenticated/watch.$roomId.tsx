@@ -32,6 +32,7 @@ import { ForwardDialog } from "@/components/chat/forward-dialog";
 import { WatchQueue } from "@/components/watch/watch-queue";
 import { useVoice } from "@/components/voice/voice-provider";
 import { appConfirm } from "@/components/app-dialog";
+import { useBroadcastWatching } from "@/lib/watch/presence";
 import { ListVideo, Mic, MicOff, Power, RectangleHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isWatchSessionExpired, requireFreshWatchUser } from "@/lib/watch/auth";
@@ -184,6 +185,7 @@ function WatchRoomPage() {
   const room = roomQuery.data;
   const isHost = !!room && room.host_id === user.id;
 
+  useBroadcastWatching(user.id, room && !room.closed_at ? { roomId, title: room.title } : null);
   const voice = useVoice();
   const inVoice = voice.channel?.id === roomId && voice.status !== "idle";
   const [theater, setTheater] = useState(false);

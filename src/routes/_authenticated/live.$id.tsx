@@ -31,7 +31,7 @@ import {
   Mic, MicOff, Video, VideoOff, MonitorUp, MonitorOff,
   Heart, Send, MessageCircle, Users, DoorOpen, Gift, Share2, Radio, Signal,
   RefreshCcw, X, Pin, Trash2, ShieldBan, ShieldPlus, MoreVertical, Crown,
-  BarChart3, Flag, UserPlus, Check, Sparkles,
+  BarChart3, Flag, UserPlus, Check, Sparkles, Maximize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,7 @@ type Live = {
   peak_viewer_count: number;
   like_count: number;
   audience: string;
+  orientation?: string | null;
 };
 
 const QUICK_REACTIONS = ["❤️", "🔥", "👏", "😂", "🎉", "😮"];
@@ -128,7 +129,7 @@ function LiveRoom() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("lives")
-        .select("id, host_id, title, description, category, thumbnail_url, status, started_at, ended_at, viewer_count, peak_viewer_count, like_count, audience")
+        .select("*")
         .eq("id", liveId)
         .maybeSingle();
       if (error) throw error;
@@ -834,12 +835,29 @@ function LiveRoom() {
       <div className="relative flex-1 min-w-0 md:rounded-3xl overflow-hidden bg-black md:border md:border-white/10">
         <video
           ref={videoRef}
-          className={cn("w-full h-full bg-black", isHost ? "object-cover" : "object-contain", isHost && facingMode === "user" && "-scale-x-100")}
+          className={cn("w-full h-full bg-black", isHost && liveQ.data?.orientation !== "landscape" ? "object-cover" : "object-contain", isHost && facingMode === "user" && "-scale-x-100")}
           autoPlay
           playsInline
           muted={isHost}
         />
         {!isHost && <audio ref={audioRef} autoPlay className="hidden" />}
+        {liveQ.data?.orientation === "landscape" && (
+          <button
+            type="button"
+            aria-label="Tela cheia deitada"
+            onClick={async () => {
+              try {
+                const el = videoRef.current?.parentElement as any;
+                if (document.fullscreenElement) { await document.exitFullscreen(); return; }
+                await el?.requestFullscreen?.();
+                await (screen.orientation as any)?.lock?.("landscape");
+              } catch { /* nem todo aparelho permite girar automaticamente */ }
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur-md border border-white/15 text-white"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        )}
 
         {/* Floating reactions */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">

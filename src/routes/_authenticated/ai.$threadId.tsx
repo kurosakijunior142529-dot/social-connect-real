@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText, Gem, Video, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText, Gem, Video, Upload, Globe } from "lucide-react";
 import {
   listThreads, listMessages, generateImage,
   createThread, deleteThread, renameThread, truncateFrom,
@@ -90,6 +90,8 @@ function AIThread() {
   const [expert, setExpert] = useState<ExpertId>("geral");
   const [deep, setDeep] = useState(false);
   const [web, setWeb] = useState(false);
+  const expertRef = useRef<ExpertId>("geral");
+  expertRef.current = expert;
   useEffect(() => {
     try {
       const s = JSON.parse(localStorage.getItem("vibely-ai-modes") ?? "{}");
@@ -244,7 +246,7 @@ function AIThread() {
           signal: controller.signal,
           body: JSON.stringify({
             threadId,
-            expert,
+            expert: expertRef.current,
             deep,
             web,
             content: text || "Analise o anexo.",
@@ -467,7 +469,7 @@ function AIThread() {
           {msgs.length === 0 && !sending ? (
             <EmptyState
               expert={expert}
-              onPick={(prompt, ex) => { if (ex) setExpert(ex); submit(prompt); }}
+              onPick={(prompt, ex) => { if (ex) { setExpert(ex); expertRef.current = ex; } submit(prompt); }}
             />
           ) : null}
           {msgs.map((m, i) => (
@@ -836,34 +838,45 @@ const QUICK = [
   { label: "🎨 Gerar imagem", prompt: "/imagem paisagem neon futurista, ultra detalhada" },
 ];
 
-const EXAMPLES = [
-  { icon: "💡", label: "Explique um conceito", prompt: "Me explique como funciona o WebRTC de forma simples" },
-  { icon: "✍️", label: "Escreva um texto", prompt: "Escreva uma legenda criativa para uma foto de pôr do sol" },
-  { icon: "🎨", label: "Gere uma imagem", prompt: "/imagem gato astronauta no espaço, arte digital vibrante" },
-  { icon: "🔥", label: "Ver o que bomba", prompt: "Quais são as publicações do momento no Vibely?" },
+type ExpertId = "geral" | "nutricao" | "estudos";
+
+const EXPERTS: { id: ExpertId; icon: string; label: string }[] = [
+  { id: "geral", icon: "💬", label: "Geral" },
+  { id: "nutricao", icon: "🥗", label: "Nutrição" },
+  { id: "estudos", icon: "📚", label: "Estudos" },
 ];
 
-function EmptyState({ onPick }: { onPick: (prompt: string) => void }) {
+const EXAMPLES: { icon: string; label: string; prompt: string; expert?: ExpertId }[] = [
+  { icon: "🥗", label: "Monte minha dieta", prompt: "Quero montar uma dieta personalizada para o meu objetivo. Me faça as perguntas necessárias.", expert: "nutricao" },
+  { icon: "📚", label: "Plano de estudos", prompt: "Crie um plano de estudos personalizado para mim. Pergunte meu objetivo e meu tempo livre.", expert: "estudos" },
+  { icon: "✍️", label: "Legenda criativa", prompt: "Escreva 3 legendas criativas para uma foto de pôr do sol", expert: "geral" },
+  { icon: "🔥", label: "O que está bombando", prompt: "Quais são as publicações do momento no Vibely?", expert: "geral" },
+];
+
+function EmptyState({ onPick, expert }: { onPick: (prompt: string, expert?: ExpertId) => void; expert: ExpertId }) {
+  const hint =
+    expert === "nutricao" ? "Modo Nutrição ativo: planos, calorias e refeições feitas para você."
+    : expert === "estudos" ? "Modo Estudos ativo: explicações, cronogramas e exercícios no seu nível."
+    : "Ideias, textos, pesquisas, nutrição, estudos e muito mais.";
   return (
-    <div className="flex flex-col items-center gap-6 pt-6">
-      <div className="relative grid h-28 w-28 place-items-center">
-        <div className="absolute inset-0 rounded-full bg-primary/15 blur-2xl" />
-        <Mascot className="relative h-28 w-28" />
+    <div className="flex flex-col items-center gap-5 pt-2">
+      <div className="relative grid h-24 w-24 place-items-center">
+        <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" />
+        <Mascot className="relative h-24 w-24" />
       </div>
       <div className="text-center">
-        <h2 className="text-2xl font-display font-semibold">Oi! Eu sou o Vibely AI</h2>
-        <p className="text-sm text-muted-foreground mt-1">Peça ideias, textos, enquetes, imagens ou publique direto por aqui.</p>
+        <h2 className="text-2xl font-display font-semibold">Como posso ajudar?</h2>
+        <p className="text-sm text-muted-foreground mt-1 max-w-xs">{hint}</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
+      <div className="grid grid-cols-2 gap-2 w-full max-w-lg">
         {EXAMPLES.map((e) => (
           <button
             key={e.label}
-            onClick={() => onPick(e.prompt)}
-            className="text-left rounded-2xl bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] ring-1 ring-transparent hover:ring-primary/25 p-3 transition-all"
+            onClick={() => onPick(e.prompt, e.expert)}
+            className="text-left rounded-2xl bg-[color:var(--surface)] ring-1 ring-[color:var(--hairline)] hover:ring-primary/40 active:scale-[0.98] p-3 transition-all"
           >
-            <div className="text-lg">{e.icon}</div>
-            <div className="text-sm font-medium mt-1">{e.label}</div>
-            <div className="text-[11px] text-muted-foreground truncate">{e.prompt}</div>
+            <div className="text-xl leading-none">{e.icon}</div>
+            <div className="text-[13px] font-semibold mt-2">{e.label}</div>
           </button>
         ))}
       </div>

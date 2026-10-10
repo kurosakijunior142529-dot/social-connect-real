@@ -473,44 +473,15 @@ export function CallScreen({
                   {translationEnabled ? "Tradução ligada" : "Ligar tradução"}
                 </button>
 
-                <div className="space-y-1.5">
-                  <span className="text-[12px] text-white/45">Traduzir para</span>
-                  <Select value={translationLanguage} onValueChange={onTranslationLanguageChange}>
-                    <SelectTrigger
-                      className="h-12 w-full rounded-2xl border-white/10 bg-white/[0.06] text-white"
-                      aria-label="Idioma da tradução"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="z-[130]">
-                      {CALL_LANGUAGES.map((lang) => (
-                        <SelectItem key={lang.value} value={lang.value}>
-                          {lang.flag} {lang.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2">
+                  <span className="text-[12px] font-medium text-white/50">Traduzir para</span>
+                  <LangGrid value={translationLanguage} onChange={onTranslationLanguageChange} />
                 </div>
 
                 {onSpokenLanguageChange ? (
-                  <div className="space-y-1.5">
-                    <span className="text-[12px] text-white/45">Idioma que eu falo</span>
-                    <Select value={spokenLanguage} onValueChange={onSpokenLanguageChange}>
-                      <SelectTrigger
-                        className="h-12 w-full rounded-2xl border-white/10 bg-white/[0.06] text-white"
-                        aria-label="Idioma falado"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[130]">
-                        <SelectItem value="auto">✨ Detectar automaticamente</SelectItem>
-                        {CALL_LANGUAGES.map((lang) => (
-                          <SelectItem key={lang.value} value={lang.value}>
-                            {lang.flag} {lang.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-2">
+                    <span className="text-[12px] font-medium text-white/50">Idioma que eu falo</span>
+                    <LangGrid value={spokenLanguage} onChange={onSpokenLanguageChange} withAuto />
                   </div>
                 ) : null}
 
@@ -521,8 +492,18 @@ export function CallScreen({
                     className="flex w-full items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 text-[14px] text-white/80 transition active:scale-[0.99]"
                   >
                     Ouvir a tradução em voz alta
-                    <span className={cn("text-[13px] font-semibold", speakTranslations ? "text-primary" : "text-white/40")}>
-                      {speakTranslations ? "Ligado" : "Desligado"}
+                    <span
+                      className={cn(
+                        "relative h-6 w-11 rounded-full transition",
+                        speakTranslations ? "bg-primary" : "bg-white/15",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all",
+                          speakTranslations ? "left-[22px]" : "left-0.5",
+                        )}
+                      />
                     </span>
                   </button>
                 ) : null}

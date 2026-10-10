@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText, Gem, Video, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Send, Trash2, Image as ImageIcon, Loader2, MessageSquare, X, Copy, RefreshCcw, Check, Paperclip, Brain, Square, Pencil, FileText, Gem, Video, Upload, Globe } from "lucide-react";
 import {
   listThreads, listMessages, generateImage,
   createThread, deleteThread, renameThread, truncateFrom,
@@ -87,6 +87,22 @@ function AIThread() {
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
   const [mode, setMode] = useState<"chat" | "image" | "video">("chat");
+  const [expert, setExpert] = useState<ExpertId>("geral");
+  const [deep, setDeep] = useState(false);
+  const [web, setWeb] = useState(false);
+  const expertRef = useRef<ExpertId>("geral");
+  expertRef.current = expert;
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem("vibely-ai-modes") ?? "{}");
+      if (s.expert) setExpert(s.expert);
+      setDeep(!!s.deep);
+      setWeb(!!s.web);
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("vibely-ai-modes", JSON.stringify({ expert, deep, web })); } catch { /* ignore */ }
+  }, [expert, deep, web]);
   const [videoProgress, setVideoProgress] = useState<string | null>(null);
 
   const [input, setInput] = useState("");
@@ -230,6 +246,9 @@ function AIThread() {
           signal: controller.signal,
           body: JSON.stringify({
             threadId,
+            expert: expertRef.current,
+            deep,
+            web,
             content: text || "Analise o anexo.",
             attachments: files.map((f) => ({
               name: f.name,
@@ -285,7 +304,7 @@ function AIThread() {
       sendingRef.current = false;
       inputRef.current?.focus();
     }
-  }, [attachments, genImg, input, mode, qc, saveFile, startVid, checkVid, threadId, user?.id]);
+  }, [attachments, genImg, input, mode, qc, saveFile, startVid, checkVid, threadId, user?.id, expert, deep, web]);
 
   function stopGeneration() {
     abortRef.current?.abort();
@@ -424,7 +443,7 @@ function AIThread() {
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">Vibely AI</div>
             <div className="text-[11px] text-muted-foreground truncate">
-              {videoProgress ?? (sending ? "digitando…" : "textos, imagens, vídeos e publicações")}
+              {videoProgress ?? (sending ? (deep ? "pensando a fundo…" : web ? "pesquisando…" : "digitando…") : `${EXPERTS.find((e) => e.id === expert)?.label ?? "Geral"}${deep ? " · pensar mais" : ""}${web ? " · buscar mais" : ""}`)}
             </div>
           </div>
           <button
@@ -448,7 +467,10 @@ function AIThread() {
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
           {msgs.length === 0 && !sending ? (
-            <EmptyState onPick={(prompt) => submit(prompt)} />
+            <EmptyState
+              expert={expert}
+              onPick={(prompt, ex) => { if (ex) { setExpert(ex); expertRef.current = ex; } submit(prompt); }}
+            />
           ) : null}
           {msgs.map((m, i) => (
             <MsgBubble
@@ -494,18 +516,43 @@ function AIThread() {
               </button>
             ))}
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            {QUICK.map((q) => (
+          {mode === "chat" ? (
+            <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
+              {EXPERTS.map((ex) => (
+                <button
+                  key={ex.id}
+                  onClick={() => setExpert(ex.id)}
+                  className={cn(
+                    "shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                    expert === ex.id
+                      ? "bg-primary/15 text-foreground ring-1 ring-primary/40"
+                      : "bg-[color:var(--surface)] text-muted-foreground",
+                  )}
+                >
+                  <span>{ex.icon}</span>{ex.label}
+                </button>
+              ))}
+              <span className="mx-0.5 w-px shrink-0 self-stretch bg-[color:var(--hairline)]" />
               <button
-                key={q.label}
-                onClick={() => submit(q.prompt)}
-                disabled={sending}
-                className="shrink-0 rounded-full bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+                onClick={() => setDeep((v) => !v)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                  deep ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface)] text-muted-foreground",
+                )}
               >
-                {q.label}
+                <Brain className="h-3.5 w-3.5" /> Pensar mais
               </button>
-            ))}
-          </div>
+              <button
+                onClick={() => setWeb((v) => !v)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                  web ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface)] text-muted-foreground",
+                )}
+              >
+                <Globe className="h-3.5 w-3.5" /> Buscar mais
+              </button>
+            </div>
+          ) : null}
           {attachments.length ? (
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((f, i) => (
@@ -791,34 +838,45 @@ const QUICK = [
   { label: "🎨 Gerar imagem", prompt: "/imagem paisagem neon futurista, ultra detalhada" },
 ];
 
-const EXAMPLES = [
-  { icon: "💡", label: "Explique um conceito", prompt: "Me explique como funciona o WebRTC de forma simples" },
-  { icon: "✍️", label: "Escreva um texto", prompt: "Escreva uma legenda criativa para uma foto de pôr do sol" },
-  { icon: "🎨", label: "Gere uma imagem", prompt: "/imagem gato astronauta no espaço, arte digital vibrante" },
-  { icon: "🔥", label: "Ver o que bomba", prompt: "Quais são as publicações do momento no Vibely?" },
+type ExpertId = "geral" | "nutricao" | "estudos";
+
+const EXPERTS: { id: ExpertId; icon: string; label: string }[] = [
+  { id: "geral", icon: "💬", label: "Geral" },
+  { id: "nutricao", icon: "🥗", label: "Nutrição" },
+  { id: "estudos", icon: "📚", label: "Estudos" },
 ];
 
-function EmptyState({ onPick }: { onPick: (prompt: string) => void }) {
+const EXAMPLES: { icon: string; label: string; prompt: string; expert?: ExpertId }[] = [
+  { icon: "🥗", label: "Monte minha dieta", prompt: "Quero montar uma dieta personalizada para o meu objetivo. Me faça as perguntas necessárias.", expert: "nutricao" },
+  { icon: "📚", label: "Plano de estudos", prompt: "Crie um plano de estudos personalizado para mim. Pergunte meu objetivo e meu tempo livre.", expert: "estudos" },
+  { icon: "✍️", label: "Legenda criativa", prompt: "Escreva 3 legendas criativas para uma foto de pôr do sol", expert: "geral" },
+  { icon: "🔥", label: "O que está bombando", prompt: "Quais são as publicações do momento no Vibely?", expert: "geral" },
+];
+
+function EmptyState({ onPick, expert }: { onPick: (prompt: string, expert?: ExpertId) => void; expert: ExpertId }) {
+  const hint =
+    expert === "nutricao" ? "Modo Nutrição ativo: planos, calorias e refeições feitas para você."
+    : expert === "estudos" ? "Modo Estudos ativo: explicações, cronogramas e exercícios no seu nível."
+    : "Ideias, textos, pesquisas, nutrição, estudos e muito mais.";
   return (
-    <div className="flex flex-col items-center gap-6 pt-6">
-      <div className="relative grid h-28 w-28 place-items-center">
-        <div className="absolute inset-0 rounded-full bg-primary/15 blur-2xl" />
-        <Mascot className="relative h-28 w-28" />
+    <div className="flex flex-col items-center gap-5 pt-2">
+      <div className="relative grid h-24 w-24 place-items-center">
+        <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" />
+        <Mascot className="relative h-24 w-24" />
       </div>
       <div className="text-center">
-        <h2 className="text-2xl font-display font-semibold">Oi! Eu sou o Vibely AI</h2>
-        <p className="text-sm text-muted-foreground mt-1">Peça ideias, textos, enquetes, imagens ou publique direto por aqui.</p>
+        <h2 className="text-2xl font-display font-semibold">Como posso ajudar?</h2>
+        <p className="text-sm text-muted-foreground mt-1 max-w-xs">{hint}</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
+      <div className="grid grid-cols-2 gap-2 w-full max-w-lg">
         {EXAMPLES.map((e) => (
           <button
             key={e.label}
-            onClick={() => onPick(e.prompt)}
-            className="text-left rounded-2xl bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] ring-1 ring-transparent hover:ring-primary/25 p-3 transition-all"
+            onClick={() => onPick(e.prompt, e.expert)}
+            className="text-left rounded-2xl bg-[color:var(--surface)] ring-1 ring-[color:var(--hairline)] hover:ring-primary/40 active:scale-[0.98] p-3 transition-all"
           >
-            <div className="text-lg">{e.icon}</div>
-            <div className="text-sm font-medium mt-1">{e.label}</div>
-            <div className="text-[11px] text-muted-foreground truncate">{e.prompt}</div>
+            <div className="text-xl leading-none">{e.icon}</div>
+            <div className="text-[13px] font-semibold mt-2">{e.label}</div>
           </button>
         ))}
       </div>

@@ -225,10 +225,11 @@ function NewLive() {
           </select>
         </div>
 
+        <p className="text-xs text-muted-foreground -mb-2">Desligue “Salvar gravação” se não quiser que a live fique disponível para assistir depois.</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <ToggleRow label="Conteúdo adulto" checked={form.age_restricted} onChange={(v) => setForm({ ...form, age_restricted: v })} />
           <ToggleRow label="Permitir convidados" checked={form.allow_guests} onChange={(v) => setForm({ ...form, allow_guests: v })} />
-          <ToggleRow label="Gravar automaticamente" checked={form.auto_record} onChange={(v) => setForm({ ...form, auto_record: v })} />
+          <ToggleRow label="Salvar gravação da live" checked={form.auto_record} onChange={(v) => setForm({ ...form, auto_record: v })} />
         </div>
 
         <Button type="submit" disabled={busy} className="w-full rounded-full h-11 gap-2 shadow-elegant">

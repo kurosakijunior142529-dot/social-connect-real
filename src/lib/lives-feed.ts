@@ -59,6 +59,8 @@ export async function fetchPastLives(limit = 20): Promise<LiveFeedRow[]> {
     .from("lives")
     .select("id, host_id, title, category, tags, thumbnail_url, viewer_count, peak_viewer_count, started_at, ended_at")
     .eq("status", "ended")
+    .eq("auto_record", true)
+    .not("started_at", "is", null)
     .order("ended_at", { ascending: false })
     .limit(limit);
   return attachHosts((data ?? []) as any[]);

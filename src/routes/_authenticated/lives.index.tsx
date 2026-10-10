@@ -294,8 +294,9 @@ function LiveBadge() {
 }
 
 function Cover({ r, className }: { r: LiveFeedRow; className?: string }) {
-  return r.thumbnail_url ? (
-    <img src={r.thumbnail_url} alt={r.title} loading="lazy" className={cn("w-full h-full object-cover", className)} />
+  const [broken, setBroken] = useState(false);
+  return r.thumbnail_url && !broken ? (
+    <img src={r.thumbnail_url} alt={r.title} loading="lazy" onError={() => setBroken(true)} className={cn("w-full h-full object-cover", className)} />
   ) : (
     <div className="w-full h-full bg-gradient-to-br from-primary/25 via-primary/5 to-black grid place-items-center">
       <Radio className="h-10 w-10 text-primary/70" />

@@ -21,8 +21,9 @@ export function GiftAnimation({ event, onDone }: Props) {
   useEffect(() => {
     if (!event) return;
     setPhase("in");
-    const outT = setTimeout(() => setPhase("out"), 2400);
-    const doneT = setTimeout(onDone, 3200);
+    const outT = setTimeout(() => setPhase("out"), 2800);
+    const doneT = setTimeout(onDone, 3500);
+    try { navigator.vibrate?.(getGiftMeta(event.name).rarity === "common" ? 20 : [30, 40, 60]); } catch { /* noop */ }
     playGiftSound(getGiftMeta(event.name).rarity);
     return () => { clearTimeout(outT); clearTimeout(doneT); };
   }, [event, onDone]);
@@ -50,6 +51,18 @@ export function GiftAnimation({ event, onDone }: Props) {
           }}
         />
       ) : null}
+
+      {/* Ondas de choque + raios de luz */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        {[0, 0.25, 0.5].map((d) => (
+          <span key={d} className="gift-ring absolute left-1/2 top-1/2 block h-40 w-40 rounded-full border-2"
+            style={{ borderColor: meta.color, animationDelay: `${d}s`, boxShadow: `0 0 40px ${meta.color}` }} />
+        ))}
+        {meta.rarity !== "common" && (
+          <span className="gift-rays absolute left-1/2 top-1/2 block h-[140vmax] w-[140vmax]"
+            style={{ background: `repeating-conic-gradient(from 0deg, ${meta.color}33 0deg 6deg, transparent 6deg 18deg)`, maskImage: "radial-gradient(circle, black 0%, transparent 60%)", WebkitMaskImage: "radial-gradient(circle, black 0%, transparent 60%)" }} />
+        )}
+      </div>
 
       {/* Particles */}
       {Array.from({ length: count }).map((_, i) => {
@@ -104,7 +117,7 @@ export function GiftAnimation({ event, onDone }: Props) {
           }}
         >
           <div
-            className="text-6xl leading-none animate-[gift-hero_1.6s_ease-out_infinite]"
+            className="text-7xl leading-none gift-pop"
             style={{ filter: `drop-shadow(0 0 12px ${meta.color})` }}
           >
             {event.emoji}

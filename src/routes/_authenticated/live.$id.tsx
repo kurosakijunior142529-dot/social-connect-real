@@ -92,6 +92,19 @@ function LiveRoom() {
   const [screenOn, setScreenOn] = useState(false);
   const [arTray, setArTray] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [kbInset, setKbInset] = useState(0);
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return;
+    const on = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKbInset(inset > 80 ? inset : 0);
+      if (inset > 80) window.scrollTo(0, 0);
+    };
+    vv.addEventListener("resize", on);
+    vv.addEventListener("scroll", on);
+    return () => { vv.removeEventListener("resize", on); vv.removeEventListener("scroll", on); };
+  }, []);
   const [videoQuality, setVideoQuality] = useState<QualityKey>("720p30");
   const [quality, setQuality] = useState<ConnectionQuality>(ConnectionQuality.Unknown);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
@@ -219,6 +232,16 @@ function LiveRoom() {
   const live = liveQ.data;
   const hostId = live?.host_id;
   const amHostUser = !!hostId && hostId === user.id;
+  const coinsQ = useQuery({
+    queryKey: ["my-coins", user.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("user_coins").select("balance").eq("user_id", user.id).maybeSingle();
+      return (data?.balance as number | undefined) ?? 0;
+    },
+    staleTime: 15000,
+  });
+  const setGiftQueueLocal = (gift: any) =>
+    setGiftQueue((q) => [...q, { id: reactionCounter.current++, name: gift.name, emoji: gift.emoji, senderName: "Você" }]);
   const canModerate = amHostUser || (modsQ.data ?? []).includes(user.id);
 
   const followQ = useQuery({
@@ -266,7 +289,7 @@ function LiveRoom() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "live_gifts", filter: `live_id=eq.${liveId}` }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["live-supporters", liveId] });
         const gift = giftCatalogQ.data?.find((g: any) => g.id === payload.new?.gift_id);
-        if (gift) {
+        if (gift && payload.new?.sender_id !== user.id) {
           setGiftQueue((q) => [...q, {
             id: reactionCounter.current++,
             name: gift.name,
@@ -278,7 +301,7 @@ function LiveRoom() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [liveId, qc, giftCatalogQ.data]);
+  }, [liveId, qc, giftCatalogQ.data, user.id]);
 
   // Drain gift queue one at a time so back-to-back gifts play sequentially.
   useEffect(() => {
@@ -465,10 +488,17 @@ function LiveRoom() {
     try {
       const camPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
       if (camPub?.track) {
-        await (camPub.track as any).restartTrack({ facingMode: next });
+        const p = QUALITY_PRESETS[videoQuality];
+        try {
+          await (camPub.track as any).restartTrack({ facingMode: { exact: next }, resolution: { width: p.width, height: p.height, frameRate: p.frameRate } });
+        } catch {
+          await (camPub.track as any).restartTrack({ facingMode: { exact: next } });
+        }
+        if (videoRef.current) camPub.track.attach(videoRef.current);
       }
     } catch {
-      toast.error("Este dispositivo não permite alternar câmera.");
+      setFacingMode(facingMode);
+      toast.error("Este aparelho não tem outra câmera disponível.");
     }
   };
   /** Troca a qualidade da câmera durante a transmissão, sem encerrar a live. */
@@ -578,16 +608,27 @@ function LiveRoom() {
 
   const sendGift = async (gift: any) => {
     if (!live) return;
+    if (amHostUser) { toast("Você não pode enviar presente para a própria live."); return; }
+    const bal = coinsQ.data ?? 0;
+    if (bal < (gift.cost_coins ?? 0)) {
+      toast.error(`Você tem ${bal} 🪙. Esse presente custa ${gift.cost_coins} 🪙.`, {
+        action: { label: "Pegar moedas", onClick: () => navigate({ to: "/wallet" }) },
+      });
+      return;
+    }
+    // Mostra o efeito na hora para quem enviou (o realtime confirma para os demais).
+    setGiftQueueLocal(gift);
     const { error } = await supabase.rpc("send_live_gift", {
       _live_id: liveId,
       _gift_id: gift.id,
       _message: `${gift.name} ${gift.emoji}`,
     });
     if (error) {
-      toast.error(error.message || "Não foi possível enviar o presente");
+      const m = String(error.message || "");
+      toast.error(/saldo/i.test(m) ? "Saldo insuficiente para esse presente." : /muitos/i.test(m) ? "Calma! Muitos presentes em pouco tempo." : /acesso|restrita/i.test(m) ? m : "Não foi possível enviar o presente. Tente de novo.");
       return;
     }
-    toast.success(`${gift.emoji} ${gift.name} enviado!`);
+    void qc.invalidateQueries({ queryKey: ["my-coins", user.id] });
   };
 
   // ---- Moderação ----
@@ -715,6 +756,12 @@ function LiveRoom() {
           </div>
         </div>
       )}
+      {!amHostUser && (
+        <div className="mb-3 flex items-center justify-between rounded-2xl bg-[color:var(--surface-2)] px-3 py-2">
+          <span className="text-sm">Seu saldo: <b className="text-primary">{coinsQ.data ?? 0} 🪙</b></span>
+          <Link to="/wallet" className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Pegar moedas</Link>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2">
         {giftCatalogQ.data?.map((g) => {
           const meta = getGiftMeta(g.name);
@@ -751,7 +798,7 @@ function LiveRoom() {
       <div className="relative flex-1 min-w-0 md:rounded-3xl overflow-hidden bg-black md:border md:border-white/10">
         <video
           ref={videoRef}
-          className="w-full h-full object-contain bg-black"
+          className={cn("w-full h-full bg-black", isHost ? "object-cover" : "object-contain", isHost && facingMode === "user" && "-scale-x-100")}
           autoPlay
           playsInline
           muted={isHost}
@@ -885,7 +932,7 @@ function LiveRoom() {
 
         {/* Comentários flutuantes (mobile) */}
         {live.status !== "ended" && (
-          <div className="md:hidden pointer-events-none absolute bottom-[6.5rem] left-3 right-20 space-y-1.5">
+          <div className="md:hidden pointer-events-none absolute left-3 right-20 space-y-1.5" style={{ bottom: `calc(6.5rem + ${kbInset}px)` }}>
             {lastMessages.map((m: any) => (
                <div key={m.id} className={cn("flex items-start gap-1.5 text-[12px] text-white drop-shadow", m.profile?.is_verified && "verified-social-highlight rounded-r-xl")}>
                  <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? "?"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} className="h-5 w-5" />
@@ -934,7 +981,7 @@ function LiveRoom() {
 
         {/* Barra inferior */}
         {live.status !== "ended" && (
-          <div className="absolute bottom-0 inset-x-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 to-transparent">
+          <div className="absolute inset-x-0 z-30 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 to-transparent transition-[bottom] duration-150" style={{ bottom: kbInset }}>
             {/* Mobile: comentar + controles do host */}
             <div className="md:hidden flex items-center gap-2">
               <form onSubmit={sendChat} className="flex-1 flex items-center gap-2">

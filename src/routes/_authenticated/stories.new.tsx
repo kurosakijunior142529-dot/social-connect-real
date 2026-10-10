@@ -227,21 +227,20 @@ function NewStoryPage() {
     (async () => {
       // Pede o sensor já na proporção da tela: evita o recorte agressivo que
       // dava sensação de zoom gigante e perda de nitidez.
-      const screenRatio = typeof window !== "undefined" && window.innerWidth > 0 ? window.innerHeight / window.innerWidth : 16 / 9;
-      const ideal: MediaTrackConstraints = {
-        facingMode: { ideal: facing },
-        aspectRatio: { ideal: 1 / screenRatio },
-        width: { ideal: 1440 },
-        height: { ideal: Math.round(1440 * screenRatio) },
-        frameRate: { ideal: 30 },
-        resizeMode: "none",
-      } as MediaTrackConstraints;
+      // Pede o sensor em retrato, alta resolução, sem recorte forçado
+      // (o recorte anterior dava zoom gigante e baixa nitidez).
       const open = async () => {
-        try {
-          return await navigator.mediaDevices.getUserMedia({ video: ideal, audio: true });
-        } catch {
-          return await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: true });
+        const attempts: MediaTrackConstraints[] = [
+          { facingMode: { exact: facing }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } },
+          { facingMode: { exact: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          { facingMode: { exact: facing } },
+          { facingMode: facing },
+        ];
+        let last: unknown;
+        for (const video of attempts) {
+          try { return await navigator.mediaDevices.getUserMedia({ video, audio: true }); } catch (e) { last = e; }
         }
+        throw last;
       };
       try {
         const s = await open();

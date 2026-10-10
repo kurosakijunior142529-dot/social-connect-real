@@ -491,7 +491,7 @@ function WatchRoomPage() {
   async function playVideo(videoId: string) {
     if (!isHost) return;
     const { error } = await (supabase as any).from("watch_rooms").update({ video_id: videoId, provider: "youtube" }).eq("id", roomId);
-    if (error) return toast.error("Não foi possível trocar o vídeo.");
+    if (error) { toast.error("Não foi possível trocar o vídeo."); return; }
     await (supabase as any).from("watch_room_state").upsert(
       { room_id: roomId, playing: true, position_sec: 0, video_id: videoId, updated_at: new Date().toISOString(), updated_by: user.id },
       { onConflict: "room_id" },

@@ -58,7 +58,54 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   if (kind === "document") return <DocBody msg={msg} mine={mine} />;
   if (kind === "run") return <RunInviteBody msg={msg} mine={mine} />;
   if (kind === "location") return <LocationBody msg={msg} />;
+  const watchMatch = (msg.content ?? "").match(/https?:\/\/\S+\/watch\?code=([A-Za-z0-9_-]+)(?:&v=([A-Za-z0-9_-]{6,20}))?/);
+  if (watchMatch) return <WatchInviteBody text={msg.content ?? ""} code={watchMatch[1]} videoId={watchMatch[2]} />;
   return <EmojiText text={msg.content ?? ""} />;
+}
+
+/** Convite do Streaming Amigo — prévia com capa do vídeo e botão Entrar. */
+function WatchInviteBody({ text, code, videoId }: { text: string; code: string; videoId?: string }) {
+  const title = text.match(/"([^"]+)"/)?.[1] ?? "Sala do Streaming Amigo";
+  const [broken, setBroken] = useState(false);
+  return (
+    <div className="w-64 max-w-full overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+      <div className="relative aspect-video w-full bg-gradient-to-br from-primary/30 via-black/40 to-black">
+        {videoId && !broken ? (
+          <img
+            src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+            alt=""
+            loading="lazy"
+            onError={() => setBroken(true)}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-4xl">🎬</div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" /> Streaming Amigo
+        </span>
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-black/50 ring-1 ring-white/25 backdrop-blur-md">
+            <Play className="h-5 w-5 text-white" fill="currentColor" strokeWidth={0} />
+          </span>
+        </span>
+      </div>
+      <div className="space-y-2 p-3">
+        <div>
+          <p className="line-clamp-2 text-[13px] font-semibold leading-snug">{title}</p>
+          <p className="text-[11px] text-muted-foreground">Convite para assistir junto · código <span className="font-mono">{code}</span></p>
+        </div>
+        <Link
+          to="/watch"
+          search={{ code }}
+          className="flex h-9 w-full items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground active:scale-[0.98] transition"
+        >
+          Entrar na sala
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 /** Publicação compartilhada — vídeo toca dentro do chat; "Ver publicação" abre o post. */

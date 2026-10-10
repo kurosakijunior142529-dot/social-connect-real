@@ -348,20 +348,28 @@ export function CallScreen({
           <button
             type="button"
             onClick={() => setSheet("captions")}
-            className="absolute inset-x-4 bottom-4 mx-auto max-w-md space-y-1 rounded-2xl bg-black/55 px-4 py-3 text-left backdrop-blur-md transition active:scale-[0.99]"
+            className="absolute inset-x-3 bottom-4 mx-auto flex max-w-md flex-col gap-2 text-left transition active:scale-[0.99]"
           >
-            {live.map((caption) => (
-              <p key={caption.id} className="text-[15px] leading-snug">
-                <span className={cn("mr-1.5 text-[11px] font-semibold uppercase tracking-wide", caption.speaker === "me" ? "text-white/45" : "text-primary")}>
-                  {caption.speaker === "me" ? "Você" : displayName}
-                </span>
-                <span className={caption.status === "pending" ? "text-white/50" : "text-white"}>
-                  {caption.status === "failed"
-                    ? caption.original
-                    : (caption.translated ?? caption.original)}
-                </span>
-              </p>
-            ))}
+            {live.map((caption) => {
+              const mine = caption.speaker === "me";
+              return (
+                <div key={caption.id} className={cn("flex w-full", mine ? "justify-end" : "justify-start")}>
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-3.5 py-2 backdrop-blur-md",
+                      mine ? "rounded-br-md bg-primary/25 border border-primary/30" : "rounded-bl-md bg-black/65 border border-white/10",
+                    )}
+                  >
+                    <span className={cn("block text-[10px] font-semibold uppercase tracking-wide", mine ? "text-primary text-right" : "text-white/60")}>
+                      {mine ? "Você" : displayName}
+                    </span>
+                    <span className={cn("block text-[15px] leading-snug break-words", caption.status === "pending" ? "text-white/50" : "text-white", mine && "text-right")}>
+                      {caption.status === "failed" ? caption.original : (caption.translated ?? caption.original)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </button>
         ) : translationEnabled ? (
           <p className="absolute inset-x-0 bottom-6 text-center text-[12px] text-white/35">
@@ -575,15 +583,17 @@ export function CallScreen({
                     <div
                       key={caption.id}
                       className={cn(
-                        "rounded-2xl px-3.5 py-2.5",
-                        caption.speaker === "me" ? "bg-white/[0.05]" : "bg-primary/10",
+                        "w-fit max-w-[85%] break-words rounded-2xl px-3.5 py-2.5",
+                        caption.speaker === "me"
+                          ? "ml-auto rounded-br-md border border-primary/25 bg-primary/15"
+                          : "mr-auto rounded-bl-md border border-white/[0.08] bg-white/[0.05]",
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span
                           className={cn(
                             "text-[10px] font-semibold uppercase tracking-wide",
-                            caption.speaker === "me" ? "text-white/45" : "text-primary",
+                            caption.speaker === "me" ? "text-primary" : "text-white/60",
                           )}
                         >
                           {caption.speaker === "me" ? "Você" : displayName}

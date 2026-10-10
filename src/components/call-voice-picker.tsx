@@ -72,6 +72,7 @@ export function CallVoicePicker({ language }: { language: string }) {
   }
 
   function test(v: string) {
+    if (busy) { stopAll(); setBusy(null); if (busy === v) return; }
     stopAll();
     choose(v);
     if (v.startsWith("ai:")) {

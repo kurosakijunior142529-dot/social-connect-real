@@ -995,12 +995,13 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
     spokenLangRef.current = navigator.language || "pt-BR";
     translationEnabledRef.current = true;
+    // Optimistic: flip the switch immediately so the screen never feels frozen.
+    setTranslationEnabled(true);
     if (!sttFallbackRef.current && !(await startCallTranscription())) {
       translationEnabledRef.current = false;
       setTranslationEnabled(false);
       return;
     }
-    setTranslationEnabled(true);
     // Ask the other phone to send captions of what they say.
     void sendSignalRef.current?.("caption", { control: "start" }).catch(() => {});
   }, [startCallTranscription]);

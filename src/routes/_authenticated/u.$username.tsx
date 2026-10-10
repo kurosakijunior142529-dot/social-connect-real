@@ -214,6 +214,7 @@ function ProfileContent() {
           .from("lives")
           .select("id, title, thumbnail_url, status, viewer_count, created_at")
           .eq("host_id", profile!.id)
+          .or("status.eq.live,auto_record.eq.true")
           .order("created_at", { ascending: false })
           .limit(24),
       ]);

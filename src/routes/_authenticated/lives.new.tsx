@@ -56,7 +56,7 @@ function NewLive() {
     audience: "public" as "public" | "followers" | "friends" | "private" | "subs_only",
     age_restricted: false,
     allow_guests: true,
-    auto_record: true,
+    auto_record: false,
   });
 
   const onPickThumb = (f: File | null) => {

@@ -150,7 +150,7 @@ function LivesFeed() {
         </div>
       </header>
 
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+      <div className="-mx-4 px-4 flex gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none]">
         {TOPICS.map((t) => {
           const count = t.id === "all" ? (live.data ?? []).length : (live.data ?? []).filter((r) => r.category === t.id).length;
           const active = cat === t.id;
@@ -159,15 +159,17 @@ function LivesFeed() {
               key={t.id}
               onClick={() => { setCat(t.id); setFmt("all"); }}
               className={cn(
-                "relative overflow-hidden rounded-2xl border p-3 text-left transition active:scale-[0.97]",
+                "shrink-0 inline-flex items-center gap-1.5 h-9 rounded-full border px-3.5 text-[13px] font-semibold transition active:scale-[0.96]",
                 active
-                  ? "border-primary/60 bg-primary/12 shadow-elegant"
-                  : "border-[color:var(--hairline)] bg-[color:var(--surface)] hover:border-primary/30",
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-[color:var(--hairline)] bg-[color:var(--surface)] text-foreground",
               )}
             >
-              <span className="text-2xl leading-none">{t.emoji}</span>
-              <p className="mt-2 text-[12.5px] font-semibold truncate">{t.label}</p>
-              <p className="text-[10.5px] text-muted-foreground">{count > 0 ? `${count} ao vivo` : "—"}</p>
+              <span className="text-base leading-none">{t.emoji}</span>
+              {t.label}
+              {count > 0 && t.id !== "all" && (
+                <span className={cn("text-[11px] tabular-nums", active ? "opacity-80" : "text-primary")}>{count}</span>
+              )}
             </button>
           );
         })}

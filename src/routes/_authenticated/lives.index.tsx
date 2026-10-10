@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Radio, Sparkles, Search, Users, Play, History, Flame, Heart, UserPlus, Grid3x3, Eye } from "lucide-react";
+import { Radio, Sparkles, Search, Users, Play, History, Flame, Heart, UserPlus, Grid3x3, Eye, MonitorPlay } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ function LivesFeed() {
   const { user } = useAuth();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
+  const [fmt, setFmt] = useState<string>("all");
 
   const live = useQuery({
     queryKey: ["lives-feed", "live"],
@@ -77,7 +78,8 @@ function LivesFeed() {
     r.host?.username?.toLowerCase().includes(q.toLowerCase()) ||
     (r.category ?? "").toLowerCase().includes(q.toLowerCase());
 
-  const allLives = (live.data ?? []).filter(matches);
+  const allLivesRaw = (live.data ?? []).filter(matches);
+  const allLives = fmt === "all" ? allLivesRaw : allLivesRaw.filter((r) => (r.orientation ?? "portrait") === fmt);
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const r of live.data ?? []) if (r.category) set.add(r.category);
@@ -99,24 +101,50 @@ function LivesFeed() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 pb-28 space-y-6">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-primary text-[11px] uppercase tracking-[0.2em] font-semibold">
-            <Radio className="h-3.5 w-3.5" /> Lives
+      <header className="relative overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-5 md:p-7">
+        <div className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-28 -left-10 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/12 border border-primary/30 px-2.5 py-1 text-primary text-[10.5px] uppercase tracking-[0.2em] font-bold">
+              <span className="relative flex h-2 w-2"><span className="absolute inset-0 rounded-full bg-primary animate-ping" /><span className="relative h-2 w-2 rounded-full bg-primary" /></span>
+              Lives
+            </div>
+            <h1 className="text-[26px] md:text-4xl font-bold mt-2 leading-tight tracking-tight">Central de transmissões</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {allLives.length > 0 ? `${allLives.length} transmitindo agora` : "Descubra criadores, reveja gravações ou comece a sua."}
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold mt-1">Central de transmissões</h1>
-          <p className="text-sm text-muted-foreground">
-            {allLives.length > 0
-              ? `${allLives.length} transmitindo agora`
-              : "Descubra criadores, reveja gravações ou comece a sua."}
-          </p>
+          <Link to="/lives/new" className="shrink-0">
+            <Button className="rounded-full gap-2 shadow-elegant h-11 px-5">
+              <Sparkles className="h-4 w-4" /> Ir ao vivo
+            </Button>
+          </Link>
         </div>
-        <Link to="/lives/new" className="shrink-0">
-          <Button className="rounded-full gap-2 shadow-elegant w-full md:w-auto h-11">
-            <Sparkles className="h-4 w-4" /> Ir ao vivo
-          </Button>
-        </Link>
+        <div className="relative mt-5 grid grid-cols-3 gap-2">
+          {[
+            { icon: <Radio className="h-4 w-4" />, v: allLives.length, l: "Ao vivo" },
+            { icon: <Users className="h-4 w-4" />, v: formatViewers(allLives.reduce((a, r) => a + (r.viewer_count ?? 0), 0)), l: "Assistindo" },
+            { icon: <MonitorPlay className="h-4 w-4" />, v: allLives.filter((r) => r.orientation === "landscape").length, l: "Jogos/Tela" },
+          ].map((k) => (
+            <div key={k.l} className="rounded-2xl bg-background/60 backdrop-blur border border-[color:var(--hairline)] px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">{k.icon}{k.l}</div>
+              <p className="text-lg font-bold tabular-nums mt-0.5">{k.v}</p>
+            </div>
+          ))}
+        </div>
       </header>
+
+      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">
+        {([
+          ["all", "Todos formatos"],
+          ["portrait", "Em pé"],
+          ["landscape", "Deitado · jogos"],
+          ["square", "Quadrado"],
+        ] as const).map(([id, label]) => (
+          <CatPill key={id} label={label} active={fmt === id} onClick={() => setFmt(id)} />
+        ))}
+      </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -358,7 +386,7 @@ function LiveCard({ r, live = false, compact = false }: { r: LiveFeedRow; live?:
       to="/live/$id"
       params={{ id: r.id }}
       search={{ host: undefined }}
-      className="group block rounded-2xl overflow-hidden bg-[color:var(--surface)] border border-[color:var(--hairline)] hover:border-primary/40 hover:shadow-elegant transition"
+      className="group block rounded-[20px] overflow-hidden bg-[color:var(--surface)] border border-[color:var(--hairline)] hover:border-primary/40 hover:shadow-elegant hover:-translate-y-0.5 active:scale-[0.98] transition duration-300"
     >
       <div className="relative aspect-video bg-black overflow-hidden">
         <Cover r={r} className="group-hover:scale-[1.03] transition duration-500" />
@@ -372,6 +400,9 @@ function LiveCard({ r, live = false, compact = false }: { r: LiveFeedRow; live?:
             Gravação
           </span>
         )}
+        {r.orientation === "landscape" ? (
+          <span className="absolute top-2 left-[4.6rem] rounded-md bg-primary/90 text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 flex items-center gap-1"><MonitorPlay className="h-3 w-3" />16:9</span>
+        ) : null}
         {r.category ? (
           <span className="absolute top-2 right-2 rounded-md bg-black/65 text-white/85 text-[10px] font-semibold px-1.5 py-0.5 capitalize">
             {r.category}

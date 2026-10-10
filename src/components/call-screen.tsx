@@ -377,6 +377,47 @@ export function CallScreen({
         ) : null}
       </div>
 
+      {/* Fixed translation dock: toggles, language and voice without leaving the call */}
+      {call.status === "accepted" ? (
+        <div className="relative z-10 mx-auto w-full max-w-md space-y-2 px-4 pt-2">
+          <div className="flex gap-2">
+            <DockToggle on={translationEnabled} onClick={onToggleTranslation} label="Tradução" />
+            {onToggleSpeakTranslations ? (
+              <DockToggle on={speakTranslations} onClick={onToggleSpeakTranslations} label="Voz alta" />
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setSheet("settings")}
+              className="h-9 rounded-full border border-white/10 bg-black/40 px-3 text-[12px] text-white/70 backdrop-blur-md active:scale-95"
+            >
+              Mais
+            </button>
+          </div>
+          {translationEnabled ? (
+            <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+              {CALL_LANGUAGES.map((l) => {
+                const on = translationLanguage === l.value;
+                return (
+                  <button
+                    key={l.value}
+                    type="button"
+                    onClick={() => { if (!on) onTranslationLanguageChange(l.value); }}
+                    className={cn(
+                      "flex h-9 shrink-0 items-center gap-1 rounded-full border px-3 text-[12px] backdrop-blur-md transition active:scale-95",
+                      on ? "border-primary bg-primary/20 font-semibold text-white" : "border-white/10 bg-black/40 text-white/70",
+                    )}
+                  >
+                    <span>{l.flag}</span>
+                    {l.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          {translationEnabled && speakTranslations ? <DockVoices /> : null}
+        </div>
+      ) : null}
+
       {/* Floating controls */}
       <div className="relative z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
         <div className="mx-auto flex max-w-md items-center justify-between gap-2 rounded-full border border-white/[0.08] bg-white/[0.06] px-3 py-3 backdrop-blur-2xl">

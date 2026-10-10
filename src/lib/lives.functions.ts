@@ -14,7 +14,7 @@ const CreateLiveInput = z.object({
   age_restricted: z.boolean().default(false),
   audience: AudienceEnum.default("public"),
   allow_guests: z.boolean().default(true),
-  auto_record: z.boolean().default(true),
+  auto_record: z.boolean().default(false),
 });
 
 export const createLive = createServerFn({ method: "POST" })

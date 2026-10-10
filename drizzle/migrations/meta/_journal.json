@@ -414,6 +414,13 @@
       "when": 1791590348771,
       "tag": "0058_close_internal_ranking_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1791592324510,
+      "tag": "0059_tighten_signed_in_read_policies",
+      "breakpoints": true
     }
   ]
 }

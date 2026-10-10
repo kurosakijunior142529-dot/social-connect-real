@@ -240,8 +240,24 @@ function LiveRoom() {
     },
     staleTime: 15000,
   });
-  const setGiftQueueLocal = (gift: any) =>
-    setGiftQueue((q) => [...q, { id: reactionCounter.current++, name: gift.name, emoji: gift.emoji, senderName: "Você" }]);
+  const activeGiftRef = useRef<GiftEvent | null>(null);
+  activeGiftRef.current = activeGift;
+  /** Junta presentes iguais da mesma pessoa em combo (x2, x3…) em vez de enfileirar. */
+  const pushGift = useCallback((gift: any, sender: { id?: string; name?: string; avatar?: string | null }) => {
+    const cur = activeGiftRef.current;
+    if (cur && cur.name === gift.name && cur.senderId === sender.id) {
+      setActiveGift({ ...cur, combo: (cur.combo ?? 1) + 1, bump: Date.now() });
+      return;
+    }
+    setGiftQueue((q) => {
+      const last = q[q.length - 1];
+      if (last && last.name === gift.name && last.senderId === sender.id) {
+        return [...q.slice(0, -1), { ...last, combo: (last.combo ?? 1) + 1 }];
+      }
+      return [...q.slice(-8), { id: reactionCounter.current++, name: gift.name, emoji: gift.emoji, senderId: sender.id, senderName: sender.name, senderAvatar: sender.avatar ?? null, combo: 1, bump: 0 }];
+    });
+  }, []);
+  const [replyTo, setReplyTo] = useState<{ name: string } | null>(null);
   const canModerate = amHostUser || (modsQ.data ?? []).includes(user.id);
 
   const followQ = useQuery({
@@ -289,19 +305,22 @@ function LiveRoom() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "live_gifts", filter: `live_id=eq.${liveId}` }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["live-supporters", liveId] });
         const gift = giftCatalogQ.data?.find((g: any) => g.id === payload.new?.gift_id);
-        if (gift && payload.new?.sender_id !== user.id) {
-          setGiftQueue((q) => [...q, {
-            id: reactionCounter.current++,
-            name: gift.name,
-            emoji: gift.emoji,
-          }]);
+        const sid = payload.new?.sender_id as string | undefined;
+        if (gift && sid && sid !== user.id) {
+          const cached = (qc.getQueryData(["live-viewers", liveId]) as any[] | undefined)?.find((v) => v.user_id === sid)?.profile;
+          if (cached) pushGift(gift, { id: sid, name: cached.display_name ?? cached.username, avatar: cached.avatar_url });
+          else {
+            void supabase.from("profiles").select("display_name, username, avatar_url").eq("id", sid).maybeSingle().then(({ data }) => {
+              pushGift(gift, { id: sid, name: data?.display_name ?? data?.username ?? "Alguém", avatar: data?.avatar_url ?? null });
+            });
+          }
         }
       })
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [liveId, qc, giftCatalogQ.data, user.id]);
+  }, [liveId, qc, giftCatalogQ.data, user.id, pushGift]);
 
   // Drain gift queue one at a time so back-to-back gifts play sequentially.
   useEffect(() => {
@@ -596,16 +615,20 @@ function LiveRoom() {
 
   const sendChat = async (e: React.FormEvent) => {
     e.preventDefault();
-    const content = chatInput.trim();
-    if (!content) return;
+    const text = chatInput.trim();
+    if (!text) return;
+    const content = replyTo && !text.startsWith(`@${replyTo.name}`) ? `@${replyTo.name} ${text}` : text;
     setChatInput("");
-    await (supabase as any).from("live_chat_messages").insert({ live_id: liveId, sender_id: user.id, content });
+    setReplyTo(null);
+    const { error } = await (supabase as any).from("live_chat_messages").insert({ live_id: liveId, sender_id: user.id, content: content.slice(0, 500) });
+    if (error) { setChatInput(text); toast.error("Não foi possível enviar o comentário."); }
   };
 
   const sendReaction = async (emoji = "❤️") => {
     await (supabase as any).from("live_reactions").insert({ live_id: liveId, user_id: user.id, emoji });
   };
 
+  const giftSending = useRef(false);
   const sendGift = async (gift: any) => {
     if (!live) return;
     if (amHostUser) { toast("Você não pode enviar presente para a própria live."); return; }
@@ -616,8 +639,8 @@ function LiveRoom() {
       });
       return;
     }
-    // Mostra o efeito na hora para quem enviou (o realtime confirma para os demais).
-    setGiftQueueLocal(gift);
+    if (giftSending.current) return;
+    giftSending.current = true;
     const { error } = await supabase.rpc("send_live_gift", {
       _live_id: liveId,
       _gift_id: gift.id,
@@ -626,9 +649,16 @@ function LiveRoom() {
     if (error) {
       const m = String(error.message || "");
       toast.error(/saldo/i.test(m) ? "Saldo insuficiente para esse presente." : /muitos/i.test(m) ? "Calma! Muitos presentes em pouco tempo." : /acesso|restrita/i.test(m) ? m : "Não foi possível enviar o presente. Tente de novo.");
+      giftSending.current = false;
       return;
     }
+    giftSending.current = false;
+    // Efeito na hora para quem enviou (o realtime mostra para os demais).
+    const me = (viewersQ.data ?? []).find((v: any) => v.user_id === user.id)?.profile;
+    pushGift(gift, { id: user.id, name: "Você", avatar: me?.avatar_url ?? null });
+    qc.setQueryData(["my-coins", user.id], (b: number | undefined) => Math.max(0, (b ?? 0) - (gift.cost_coins ?? 0)));
     void qc.invalidateQueries({ queryKey: ["my-coins", user.id] });
+    void qc.invalidateQueries({ queryKey: ["live-supporters", liveId] });
   };
 
   // ---- Moderação ----
@@ -636,6 +666,11 @@ function LiveRoom() {
     const { error } = await (supabase as any).from("live_chat_messages").update({ deleted: true }).eq("id", id);
     if (error) return toast.error("Não foi possível apagar o comentário.");
     qc.invalidateQueries({ queryKey: ["live-chat", liveId] });
+  };
+  const startReply = (m: any) => {
+    const name = m.profile?.username ?? m.profile?.display_name ?? "user";
+    setReplyTo({ name });
+    setTimeout(() => (document.querySelector<HTMLInputElement>("[data-live-input]"))?.focus(), 50);
   };
   const pinMessage = async (m: any) => {
     const { error } = await (supabase as any).from("live_chat_messages").update({ pinned: !m.pinned }).eq("id", m.id);
@@ -697,6 +732,7 @@ function LiveRoom() {
           onDelete={() => deleteMessage(m.id)}
           onBan={() => banUser(m.sender_id)}
           onMod={() => addModerator(m.sender_id)}
+          onReply={() => startReply(m)}
         />
       )) : <p className="text-sm text-muted-foreground text-center py-6">Seja o primeiro a comentar 👋</p>}
       <div ref={chatEndRef} />
@@ -932,15 +968,16 @@ function LiveRoom() {
 
         {/* Comentários flutuantes (mobile) */}
         {live.status !== "ended" && (
-          <div className="md:hidden pointer-events-none absolute left-3 right-20 space-y-1.5" style={{ bottom: `calc(6.5rem + ${kbInset}px)` }}>
+          <div className="md:hidden absolute left-3 right-20 space-y-1.5" style={{ bottom: `calc(6.5rem + ${kbInset}px)` }}>
             {lastMessages.map((m: any) => (
-               <div key={m.id} className={cn("flex items-start gap-1.5 text-[12px] text-white drop-shadow", m.profile?.is_verified && "verified-social-highlight rounded-r-xl")}>
+               <button type="button" key={m.id} onClick={() => startReply(m)} className={cn("flex w-full items-start gap-1.5 text-left text-[12px] text-white drop-shadow active:opacity-70", m.profile?.is_verified && "verified-social-highlight rounded-r-xl")}>
                  <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? "?"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} className="h-5 w-5" />
                  <span className="rounded-2xl bg-background/45 backdrop-blur-sm px-2 py-1">
                    <b className="text-primary mr-1"><VerifiedName name={m.profile?.display_name ?? m.profile?.username ?? "user"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} size={11} /></b>
+                  {m.sender_id === live.host_id && <span className="mr-1 rounded-full bg-primary px-1.5 py-px text-[9px] font-bold text-primary-foreground">CRIADOR</span>}
                   {m.content}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -983,12 +1020,19 @@ function LiveRoom() {
         {live.status !== "ended" && (
           <div className="absolute inset-x-0 z-30 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/85 to-transparent transition-[bottom] duration-150" style={{ bottom: kbInset }}>
             {/* Mobile: comentar + controles do host */}
+            {replyTo && (
+              <div className="md:hidden mb-2 flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-xs text-white backdrop-blur-md">
+                <span className="flex-1 truncate">Respondendo a <b className="text-primary">@{replyTo.name}</b></span>
+                <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancelar resposta" className="text-white/70">✕</button>
+              </div>
+            )}
             <div className="md:hidden flex items-center gap-2">
               <form onSubmit={sendChat} className="flex-1 flex items-center gap-2">
                 <input
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Comentar…"
+                  data-live-input
+                  placeholder={replyTo ? `Responder @${replyTo.name}…` : "Comentar…"}
                   maxLength={500}
                   className="flex-1 h-11 rounded-full bg-white/12 backdrop-blur-md px-4 text-sm text-white placeholder:text-white/50 outline-none focus:bg-white/20"
                 />
@@ -1062,7 +1106,7 @@ function LiveRoom() {
           <>
             {chatList}
             <form onSubmit={sendChat} className="flex gap-2 p-3 hairline-t">
-              <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Diga algo…" maxLength={500} className="rounded-full bg-background" />
+              <Input data-live-input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder={replyTo ? `Responder @${replyTo.name}…` : "Diga algo…"} maxLength={500} className="rounded-full bg-background" />
               <Button size="icon" type="submit" className="rounded-full"><Send className="h-4 w-4" /></Button>
             </form>
           </>
@@ -1171,17 +1215,19 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function ChatRow({
-  m, hostId, canModerate, amHostUser, onPin, onDelete, onBan, onMod,
+  m, hostId, canModerate, amHostUser, onPin, onDelete, onBan, onMod, onReply,
 }: {
   m: any; hostId: string; canModerate: boolean; amHostUser: boolean;
-  onPin: () => void; onDelete: () => void; onBan: () => void; onMod: () => void;
+  onPin: () => void; onDelete: () => void; onBan: () => void; onMod: () => void; onReply: () => void;
 }) {
   return (
     <div className={cn("group flex items-start gap-2 rounded-xl p-2", m.is_highlighted || m.pinned ? "bg-primary/10 ring-1 ring-primary/40" : "", m.profile?.is_verified && "verified-social-highlight")}>
       <UserAvatar avatarPath={m.profile?.avatar_url ?? null} displayName={m.profile?.display_name ?? m.profile?.username ?? "?"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} className="h-6 w-6" />
       <div className="text-[13px] min-w-0 flex-1">
         <span className="font-semibold text-primary mr-1.5"><VerifiedName name={m.profile?.display_name ?? m.profile?.username ?? "user"} verified={m.profile?.is_verified} badgeVariant={m.profile?.badge_variant} size={11} /></span>
+        {m.sender_id === hostId && <span className="mr-1 rounded-full bg-primary px-1.5 py-px text-[9px] font-bold text-primary-foreground">CRIADOR</span>}
         <span className="break-words">{m.content}</span>
+        <button type="button" onClick={onReply} className="ml-2 text-[11px] font-semibold text-muted-foreground hover:text-primary">Responder</button>
       </div>
       {canModerate && (
         <DropdownMenu>

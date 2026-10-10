@@ -102,8 +102,9 @@ function ConversationPage() {
         .from("conversations")
         .select("*")
         .eq("id", conversationId)
-        .single();
+        .maybeSingle();
       if (error) throw error;
+      if (!data) return null;
       const otherId = data.user_a === user.id ? data.user_b : data.user_a;
       const { data: prof } = await supabase
         .from("profiles")

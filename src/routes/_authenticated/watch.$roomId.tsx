@@ -616,17 +616,23 @@ function WatchRoomPage() {
       </div>
 
       {/* Chat + people pane */}
+      {!theater ? (
       <aside className="md:w-[390px] overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] flex flex-col md:h-full max-h-[70vh] md:max-h-none shadow-elegant">
         <div className="flex hairline-b bg-[color:var(--surface-2)]/55">
           <TabBtn active={tab === "chat"} onClick={() => setTab("chat")} icon={<MessageCircle className="h-4 w-4" />}>
             Chat
           </TabBtn>
+          <TabBtn active={tab === "queue"} onClick={() => setTab("queue")} icon={<ListVideo className="h-4 w-4" />}>
+            Fila
+          </TabBtn>
           <TabBtn active={tab === "people"} onClick={() => setTab("people")} icon={<Users className="h-4 w-4" />}>
-            Participantes ({membersQuery.data?.length ?? 0})
+            Pessoas ({membersQuery.data?.length ?? 0})
           </TabBtn>
         </div>
 
-        {tab === "chat" ? (
+        {tab === "queue" ? (
+          <WatchQueue roomId={roomId} userId={user.id} isHost={isHost} names={memberNames} onPlay={playVideo} />
+        ) : tab === "chat" ? (
           <>
             <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 min-h-[280px] ">
               {messagesQuery.data?.length ? (

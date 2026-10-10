@@ -538,7 +538,7 @@ function WatchRoomPage() {
   }
 
   const inviteLink = useMemo(
-    () => (room ? `${typeof window !== "undefined" ? window.location.origin : ""}/watch?code=${encodeURIComponent(room.invite_code)}` : ""),
+    () => (room ? `${typeof window !== "undefined" ? window.location.origin : ""}/watch?code=${encodeURIComponent(room.invite_code)}${room.video_id ? `&v=${encodeURIComponent(room.video_id)}` : ""}` : ""),
     [room],
   );
 

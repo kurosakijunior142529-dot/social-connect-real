@@ -593,15 +593,17 @@ function PostLinkBody({ text, postId }: { text: string; postId: string }) {
       const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await supabase
         .from("posts")
-        .select("id, caption, media_type, media_url, thumbnail_url, post_kind, author:profiles!posts_author_id_fkey(username, display_name)")
+        .select("id, caption, media_type, media_url, thumbnail_url, post_kind, author_id")
         .eq("id", postId)
         .maybeSingle();
-      return data as any;
+      if (!data) return null;
+      const { data: author } = await supabase.from("profiles").select("username").eq("id", data.author_id).maybeSingle();
+      return { ...data, author } as any;
     },
   });
   const p = q.data;
   const isVideo = p?.media_type === "video";
-  const cover = useSignedUrl("posts" as any, p?.thumbnail_url ?? (isVideo ? null : p?.media_url) ?? null);
+  const cover = useSignedUrl("posts" as any, p?.thumbnail_url ?? (isVideo ? null : p?.media_url) ?? null).data;
   const extra = text.replace(/\S*\/(?:p|reels?)\/[0-9a-f-]{36}\S*/i, "").trim();
   if (q.isLoading) return <div className="h-40 w-60 animate-pulse rounded-2xl bg-black/20" />;
   if (!p) return <EmojiText text={text} />;

@@ -33,6 +33,21 @@ export const Route = createFileRoute("/_authenticated/lives/")({
   component: LivesFeed,
 });
 
+const TOPICS = [
+  { id: "all", label: "Tudo", emoji: "✨" },
+  { id: "Jogos", label: "Jogos", emoji: "🎮" },
+  { id: "Bate-papo", label: "Bate-papo", emoji: "💬" },
+  { id: "Música", label: "Música", emoji: "🎵" },
+  { id: "Esportes", label: "Esportes", emoji: "⚽" },
+  { id: "Arte", label: "Arte", emoji: "🎨" },
+  { id: "Tecnologia", label: "Tecnologia", emoji: "💻" },
+  { id: "Educação", label: "Educação", emoji: "📚" },
+  { id: "Estilo de vida", label: "Estilo de vida", emoji: "🌿" },
+  { id: "Viagem", label: "Viagem", emoji: "✈️" },
+  { id: "Notícias", label: "Notícias", emoji: "📰" },
+  { id: "Outros", label: "Outros", emoji: "🔴" },
+] as const;
+
 function LivesFeed() {
   const { user } = useAuth();
   const [q, setQ] = useState("");
@@ -168,14 +183,6 @@ function LivesFeed() {
         />
       </div>
 
-      {categories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">
-          <CatPill label="Todas" active={cat === "all"} onClick={() => setCat("all")} />
-          {categories.map((c) => (
-            <CatPill key={c} label={c} active={cat === c} onClick={() => setCat(c)} />
-          ))}
-        </div>
-      )}
 
       {live.isLoading ? (
         <SkeletonGrid />

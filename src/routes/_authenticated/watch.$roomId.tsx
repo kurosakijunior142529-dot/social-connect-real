@@ -631,7 +631,7 @@ function WatchRoomPage() {
             <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 min-h-[280px] ">
               {messagesQuery.data?.length ? (
                 messagesQuery.data.map((m: any) => (
-                  <div key={m.id} className={cn("flex items-end gap-2", m.user_id === user.id && "flex-row-reverse")}>
+                  <div key={m.id} className={cn("flex items-end gap-2", m.sender_id === user.id && "flex-row-reverse")}>
                     <UserAvatar
                       avatarPath={m.profile?.avatar_url ?? null}
                       displayName={m.profile?.display_name ?? m.profile?.username ?? "?"}
@@ -639,7 +639,7 @@ function WatchRoomPage() {
                     />
                     <div className={cn(
                       "min-w-0 max-w-[80%] rounded-[18px] px-3 py-2",
-                      m.user_id === user.id ? "bg-primary/15 border border-primary/25 rounded-br-md" : "bg-background border border-[color:var(--hairline)] rounded-bl-md",
+                      m.sender_id === user.id ? "bg-primary/15 border border-primary/25 rounded-br-md" : "bg-background border border-[color:var(--hairline)] rounded-bl-md",
                     )}>
                       <div className="text-[12px] font-semibold truncate text-primary">
                         {m.profile?.display_name ?? m.profile?.username ?? "Usuário"}
@@ -686,7 +686,7 @@ function WatchRoomPage() {
                         <Crown className="h-3.5 w-3.5" />
                       </span>
                     ) : null}
-                    {m.user_id === user.id ? (
+                    {m.sender_id === user.id ? (
                       <span className="text-[10px] text-muted-foreground">(você)</span>
                     ) : null}
                   </div>

@@ -58,3 +58,34 @@ export function releaseStudioVoice() {
   void chain.ctx.close().catch(() => undefined);
   chain = null;
 }
+
+// ---- Tratamento para elementos <video>/<audio> (Reels, voz da IA) ----
+let mediaCtx: AudioContext | null = null;
+const enhanced = new WeakSet<HTMLMediaElement>();
+
+/** "voice": voz falada (IA). "post": áudio de post/Reel (voz + música, mais suave). */
+export function enhanceMediaElement(el: HTMLMediaElement, preset: "voice" | "post" = "post") {
+  try {
+    if (enhanced.has(el)) { void mediaCtx?.resume().catch(() => undefined); return; }
+    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    mediaCtx ??= new Ctor({ latencyHint: "playback" });
+    const ctx = mediaCtx;
+    const src = ctx.createMediaElementSource(el);
+    enhanced.add(el);
+    const v = preset === "voice";
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = v ? 85 : 35; hp.Q.value = 0.7;
+    const mud = ctx.createBiquadFilter(); mud.type = "peaking"; mud.frequency.value = 300; mud.Q.value = 1; mud.gain.value = v ? -2.5 : -1.2;
+    const pres = ctx.createBiquadFilter(); pres.type = "peaking"; pres.frequency.value = 3500; pres.Q.value = 0.9; pres.gain.value = v ? 3.5 : 1.8;
+    const air = ctx.createBiquadFilter(); air.type = "highshelf"; air.frequency.value = 9000; air.gain.value = v ? 1.5 : 1;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = v ? -22 : -18; comp.knee.value = 12; comp.ratio.value = v ? 3.5 : 2; comp.attack.value = 0.005; comp.release.value = 0.2;
+    const gain = ctx.createGain(); gain.gain.value = v ? 1.3 : 1.1;
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -1.5; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.05;
+    src.connect(hp).connect(mud).connect(pres).connect(air).connect(comp).connect(gain).connect(limiter).connect(ctx.destination);
+    void ctx.resume().catch(() => undefined);
+  } catch {
+    /* sem tratamento: o áudio segue tocando normalmente */
+  }
+}

@@ -13,6 +13,33 @@ const SUMMARY_MODEL = "google/gemini-3.6-flash";
 const RECENT_MESSAGES = 10;
 const SUMMARIZE_AFTER = 24;
 const MAX_TOKENS = 2048;
+const DEEP_MODEL = "google/gemini-3.1-pro-preview";
+
+const NUTRITION_PROMPT = `MODO NUTRIÇÃO E BEM-ESTAR (especialista)
+- Aja como nutricionista esportivo/clínico experiente, baseado em evidências (diretrizes da OMS, SBAN, ISSN, estudos revisados).
+- Antes de montar plano ou cardápio, entenda a pessoa: objetivo, idade, sexo, peso, altura, rotina, treino, sono, preferências, orçamento, alergias/intolerâncias e condições de saúde. Se faltar algo essencial, pergunte de forma objetiva (no máximo 4 perguntas) e já dê uma orientação inicial.
+- Calcule quando útil: TMB (Mifflin-St Jeor), gasto total, meta calórica, proteína (g/kg), água. Mostre os números.
+- Entregue planos práticos: refeições com alimentos acessíveis no Brasil, quantidades caseiras, trocas equivalentes e lista de compras.
+- Pesquise na internet (search_web) para dados recentes, tabela nutricional (TACO) ou suplementos, citando fontes.
+- Segurança: não diagnostique doenças; para gestantes, menores, diabetes, doença renal, transtornos alimentares ou dietas muito restritivas, recomende acompanhamento profissional. Nunca incentive menos de 1200 kcal sem supervisão.`;
+
+const STUDY_PROMPT = `MODO ESTUDOS E APRENDIZADO (professor particular)
+- Descubra o nível, o objetivo (escola, ENEM, vestibular, concurso, faculdade, idioma, programação) e o tempo disponível; adapte a explicação.
+- Ensine com clareza: ideia central primeiro, depois analogia simples, exemplo resolvido passo a passo e um erro comum a evitar.
+- Use técnicas comprovadas: recordação ativa, repetição espaçada, Feynman, intercalação. Ofereça cronogramas semanais realistas.
+- Termine com 2–3 perguntas rápidas de fixação (com gabarito escondido em uma seção "Respostas").
+- Para editais, datas de provas, conteúdo atualizado ou dados específicos, pesquise na internet (search_web) e cite as fontes.
+- Nunca faça a pessoa colar em provas; ajude a aprender de verdade.`;
+
+const DEEP_PROMPT = `MODO PENSAR MAIS (raciocínio profundo)
+- Analise o pedido com calma: identifique o objetivo real, restrições, hipóteses e possíveis armadilhas.
+- Compare alternativas, verifique contas e conclusões duas vezes e aponte incertezas.
+- Pode ser mais longo e completo que o normal, mas organizado: comece com "**Resposta curta**", depois "**Detalhes**" e, se útil, "**Próximos passos**".`;
+
+const WEB_PROMPT = `MODO BUSCAR MAIS (pesquisa global)
+- Faça SEMPRE de 2 a 4 pesquisas com search_web antes de responder, variando os termos (inclua buscas em inglês quando ajudar a achar fontes melhores).
+- Cruze as fontes, priorize sites confiáveis (órgãos oficiais, universidades, artigos científicos, veículos reconhecidos) e descarte o que for contraditório ou duvidoso.
+- Termine com uma seção "**Fontes**" listando os links usados.`;
 
 function sse(obj: unknown) {
   return `data: ${JSON.stringify(obj)}\n\n`;
@@ -230,7 +257,17 @@ export const Route = createFileRoute("/api/ai/stream")({
           );
         }
 
+        const expert = ["nutricao", "estudos"].includes(body?.expert) ? String(body.expert) : "geral";
+        const deep = body?.deep === true;
+        const web = body?.web === true;
+        const modePrompt: string[] = [];
+        if (expert === "nutricao") modePrompt.push(NUTRITION_PROMPT);
+        if (expert === "estudos") modePrompt.push(STUDY_PROMPT);
+        if (deep) modePrompt.push(DEEP_PROMPT);
+        if (web) modePrompt.push(WEB_PROMPT);
+
         const messages: any[] = [{ role: "system", content: SYSTEM_PROMPT }];
+        if (modePrompt.length) messages.push({ role: "system", content: modePrompt.join("\n\n") });
         if (contextBlocks.length) messages.push({ role: "system", content: contextBlocks.join("\n\n") });
         ordered.forEach((m: any, i: number) => {
           const isLast = i === ordered.length - 1;
@@ -284,11 +321,12 @@ export const Route = createFileRoute("/api/ai/stream")({
                 return;
               }
 
-              for (let step = 0; step < 3; step++) {
+              const maxSteps = deep || web || expert !== "geral" ? 6 : 3;
+              for (let step = 0; step < maxSteps; step++) {
                 const res = await gateway(key, {
-                  model: MODEL,
+                  model: deep ? DEEP_MODEL : MODEL,
                   stream: true,
-                  max_tokens: MAX_TOKENS,
+                  max_tokens: deep ? 6144 : expert !== "geral" ? 4096 : MAX_TOKENS,
                   messages,
                   tools: AI_TOOLS,
                 });

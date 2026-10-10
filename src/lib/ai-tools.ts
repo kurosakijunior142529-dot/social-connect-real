@@ -124,7 +124,7 @@ async function searchWeb(query: string) {
     const blockRe =
       /<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
     let m: RegExpExecArray | null;
-    while ((m = blockRe.exec(html)) && results.length < 5) {
+    while ((m = blockRe.exec(html)) && results.length < 8) {
       const strip = (s: string) =>
         s
           .replace(/<[^>]+>/g, "")

@@ -87,6 +87,20 @@ function AIThread() {
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
   const [mode, setMode] = useState<"chat" | "image" | "video">("chat");
+  const [expert, setExpert] = useState<ExpertId>("geral");
+  const [deep, setDeep] = useState(false);
+  const [web, setWeb] = useState(false);
+  useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem("vibely-ai-modes") ?? "{}");
+      if (s.expert) setExpert(s.expert);
+      setDeep(!!s.deep);
+      setWeb(!!s.web);
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("vibely-ai-modes", JSON.stringify({ expert, deep, web })); } catch { /* ignore */ }
+  }, [expert, deep, web]);
   const [videoProgress, setVideoProgress] = useState<string | null>(null);
 
   const [input, setInput] = useState("");
@@ -230,6 +244,9 @@ function AIThread() {
           signal: controller.signal,
           body: JSON.stringify({
             threadId,
+            expert,
+            deep,
+            web,
             content: text || "Analise o anexo.",
             attachments: files.map((f) => ({
               name: f.name,
@@ -285,7 +302,7 @@ function AIThread() {
       sendingRef.current = false;
       inputRef.current?.focus();
     }
-  }, [attachments, genImg, input, mode, qc, saveFile, startVid, checkVid, threadId, user?.id]);
+  }, [attachments, genImg, input, mode, qc, saveFile, startVid, checkVid, threadId, user?.id, expert, deep, web]);
 
   function stopGeneration() {
     abortRef.current?.abort();

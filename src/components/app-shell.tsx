@@ -127,7 +127,7 @@ export function AppShell({
     pathname === "/saved";
   const isProfile = pathname.startsWith("/u/");
   const isReels = pathname === "/reels";
-  const isConversation = /^\/(messages|chats)\/.+/.test(pathname) && pathname !== "/chats/new";
+  const isConversation = (/^\/(messages|chats)\/.+/.test(pathname) && pathname !== "/chats/new") || /^\/watch\/.+/.test(pathname);
   const [dockHidden, setDockHidden] = useState(false);
   useEffect(() => {
     let last = window.scrollY;

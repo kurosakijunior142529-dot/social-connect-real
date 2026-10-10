@@ -116,17 +116,6 @@ function VideoStudio() {
         }
         throw last;
       })();
-      const _unused = {
-
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: { ideal: 1 },
-          sampleRate: { ideal: 48000 },
-        } as MediaTrackConstraints,
-
-      });
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new DOMException("Tempo esgotado ao pedir permissão de câmera.", "TimeoutError")), 15000),
       );

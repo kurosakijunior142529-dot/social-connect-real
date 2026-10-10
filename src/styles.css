@@ -863,3 +863,9 @@ img { content-visibility: auto; }
 .gift-rays { animation: gift-rays-k 3s ease-out both; }
 @keyframes gift-pop-k { 0% { transform: scale(0) rotate(-25deg) } 45% { transform: scale(1.35) rotate(8deg) } 65% { transform: scale(.92) } 100% { transform: scale(1) } }
 .gift-pop { animation: gift-pop-k .8s cubic-bezier(.2,1.4,.4,1) both, gift-hero 1.6s ease-out .8s infinite; }
+
+/* Presentes estilo combo */
+@keyframes gift-slide-k { from { transform: translateX(-120%); } to { transform: translateX(0); } }
+.gift-slide { animation: gift-slide-k 260ms cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes gift-combo-k { 0% { transform: scale(2.2); opacity: 0; } 60% { transform: scale(.9); opacity: 1; } 100% { transform: scale(1); } }
+.gift-combo { display: inline-block; animation: gift-combo-k 320ms cubic-bezier(.2,1.6,.4,1) both; }

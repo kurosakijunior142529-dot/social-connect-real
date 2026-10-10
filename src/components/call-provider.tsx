@@ -16,7 +16,7 @@ import { CallScreen } from "@/components/call-screen";
 import { CallMiniBar } from "@/components/call-mini-bar";
 import { IncomingCallDialog } from "@/components/incoming-call-dialog";
 import { getCameraTrack, getLocalMedia, stopStream } from "@/lib/webrtc";
-import { studioVoice, resumeStudioVoice, releaseStudioVoice } from "@/lib/call-audio-dsp";
+import { studioVoice, resumeStudioVoice, releaseStudioVoice, enhanceMediaElement } from "@/lib/call-audio-dsp";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { translateText, translateBatch } from "@/lib/ai.functions";
 import { transcribeCallClip } from "@/lib/call-transcribe.functions";
@@ -1256,6 +1256,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           const audio = ttsAudioRef.current ?? new Audio();
           ttsAudioRef.current = audio;
           audio.src = `data:${result.mime};base64,${result.audio}`;
+          enhanceMediaElement(audio, "voice");
           audio.onended = () => {
             ttsBusyUntilRef.current = Date.now() + 400;
           };

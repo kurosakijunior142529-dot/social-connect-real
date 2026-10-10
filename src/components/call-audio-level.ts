@@ -33,13 +33,25 @@ export function useAudioLevel(stream: MediaStream | null): number {
     }
 
     const data = new Uint8Array(analyser.frequencyBinCount);
-    const tick = () => {
+    // Sample ~8x per second and only re-render on visible change: a 60fps
+    // setState here re-rendered the whole call screen and froze phones.
+    let smooth = 0;
+    let shown = 0;
+    let last = 0;
+    const tick = (now: number) => {
+      raf.current = requestAnimationFrame(tick);
+      if (now - last < 120) return;
+      last = now;
       analyser.getByteFrequencyData(data);
       let sum = 0;
       for (let i = 0; i < data.length; i += 1) sum += data[i] * data[i];
       const rms = Math.sqrt(sum / data.length) / 255;
-      setLevel((prev) => prev * 0.6 + Math.min(1, rms * 2.6) * 0.4);
-      raf.current = requestAnimationFrame(tick);
+      smooth = smooth * 0.5 + Math.min(1, rms * 2.6) * 0.5;
+      const q = Math.round(smooth * 10) / 10;
+      if (q !== shown) {
+        shown = q;
+        setLevel(q);
+      }
     };
     raf.current = requestAnimationFrame(tick);
 

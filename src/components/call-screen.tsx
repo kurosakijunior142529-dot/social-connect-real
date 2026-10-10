@@ -19,7 +19,6 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { CallVoicePicker } from "@/components/call-voice-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CALL_LANGUAGES, useAudioLevel } from "@/components/call-audio-level";
 import type { CallCaption } from "@/components/call-provider";
 
@@ -440,7 +439,7 @@ export function CallScreen({
       {sheet ? (
         <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/50" onClick={() => setSheet(null)}>
           <div
-            className="max-h-[70vh] overflow-hidden rounded-t-[28px] border-t border-white/10 bg-[#0b0b0c] pb-[max(1rem,env(safe-area-inset-bottom))] animate-in slide-in-from-bottom-6"
+            className="flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[28px] border-t border-white/10 bg-[#0b0b0c] pb-[max(1rem,env(safe-area-inset-bottom))] animate-in slide-in-from-bottom-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 px-5 py-4">
@@ -458,7 +457,7 @@ export function CallScreen({
             </div>
 
             {sheet === "settings" ? (
-              <div className="space-y-3 px-5 pb-5">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-5 [-webkit-overflow-scrolling:touch]">
                 <button
                   type="button"
                   onClick={onToggleTranslation}
@@ -473,44 +472,15 @@ export function CallScreen({
                   {translationEnabled ? "Tradução ligada" : "Ligar tradução"}
                 </button>
 
-                <div className="space-y-1.5">
-                  <span className="text-[12px] text-white/45">Traduzir para</span>
-                  <Select value={translationLanguage} onValueChange={onTranslationLanguageChange}>
-                    <SelectTrigger
-                      className="h-12 w-full rounded-2xl border-white/10 bg-white/[0.06] text-white"
-                      aria-label="Idioma da tradução"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="z-[130]">
-                      {CALL_LANGUAGES.map((lang) => (
-                        <SelectItem key={lang.value} value={lang.value}>
-                          {lang.flag} {lang.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2">
+                  <span className="text-[12px] font-medium text-white/50">Traduzir para</span>
+                  <LangGrid value={translationLanguage} onChange={onTranslationLanguageChange} />
                 </div>
 
                 {onSpokenLanguageChange ? (
-                  <div className="space-y-1.5">
-                    <span className="text-[12px] text-white/45">Idioma que eu falo</span>
-                    <Select value={spokenLanguage} onValueChange={onSpokenLanguageChange}>
-                      <SelectTrigger
-                        className="h-12 w-full rounded-2xl border-white/10 bg-white/[0.06] text-white"
-                        aria-label="Idioma falado"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="z-[130]">
-                        <SelectItem value="auto">✨ Detectar automaticamente</SelectItem>
-                        {CALL_LANGUAGES.map((lang) => (
-                          <SelectItem key={lang.value} value={lang.value}>
-                            {lang.flag} {lang.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-2">
+                    <span className="text-[12px] font-medium text-white/50">Idioma que eu falo</span>
+                    <LangGrid value={spokenLanguage} onChange={onSpokenLanguageChange} withAuto />
                   </div>
                 ) : null}
 
@@ -521,8 +491,18 @@ export function CallScreen({
                     className="flex w-full items-center justify-between rounded-2xl border border-white/[0.07] bg-white/[0.04] px-4 py-3 text-[14px] text-white/80 transition active:scale-[0.99]"
                   >
                     Ouvir a tradução em voz alta
-                    <span className={cn("text-[13px] font-semibold", speakTranslations ? "text-primary" : "text-white/40")}>
-                      {speakTranslations ? "Ligado" : "Desligado"}
+                    <span
+                      className={cn(
+                        "relative h-6 w-11 rounded-full transition",
+                        speakTranslations ? "bg-primary" : "bg-white/15",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all",
+                          speakTranslations ? "left-[22px]" : "left-0.5",
+                        )}
+                      />
                     </span>
                   </button>
                 ) : null}
@@ -661,5 +641,30 @@ function ControlButton({
     >
       {children}
     </button>
+  );
+}
+
+function LangGrid({ value, onChange, withAuto = false }: { value: string; onChange: (v: string) => void; withAuto?: boolean }) {
+  const opts = withAuto ? [{ value: "auto", label: "Automático", flag: "✨" }, ...CALL_LANGUAGES] : CALL_LANGUAGES;
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {opts.map((l) => {
+        const on = value === l.value;
+        return (
+          <button
+            key={l.value}
+            type="button"
+            onClick={() => { if (!on) onChange(l.value); }}
+            className={cn(
+              "flex h-16 flex-col items-center justify-center gap-0.5 rounded-2xl border text-[12px] transition active:scale-95",
+              on ? "border-primary bg-primary/15 font-semibold text-white" : "border-white/[0.07] bg-white/[0.04] text-white/70",
+            )}
+          >
+            <span className="text-xl leading-none">{l.flag}</span>
+            <span className="truncate px-1">{l.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

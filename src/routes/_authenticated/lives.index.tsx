@@ -135,15 +135,27 @@ function LivesFeed() {
         </div>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1">
-        {([
-          ["all", "Todos formatos"],
-          ["portrait", "Em pé"],
-          ["landscape", "Deitado · jogos"],
-          ["square", "Quadrado"],
-        ] as const).map(([id, label]) => (
-          <CatPill key={id} label={label} active={fmt === id} onClick={() => setFmt(id)} />
-        ))}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {TOPICS.map((t) => {
+          const count = t.id === "all" ? (live.data ?? []).length : (live.data ?? []).filter((r) => r.category === t.id).length;
+          const active = cat === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => { setCat(t.id); setFmt("all"); }}
+              className={cn(
+                "relative overflow-hidden rounded-2xl border p-3 text-left transition active:scale-[0.97]",
+                active
+                  ? "border-primary/60 bg-primary/12 shadow-elegant"
+                  : "border-[color:var(--hairline)] bg-[color:var(--surface)] hover:border-primary/30",
+              )}
+            >
+              <span className="text-2xl leading-none">{t.emoji}</span>
+              <p className="mt-2 text-[12.5px] font-semibold truncate">{t.label}</p>
+              <p className="text-[10.5px] text-muted-foreground">{count > 0 ? `${count} ao vivo` : "—"}</p>
+            </button>
+          );
+        })}
       </div>
 
       <div className="relative">

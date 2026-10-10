@@ -1,3 +1,4 @@
+import { enhanceMediaElement } from "@/lib/call-audio-dsp";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logPostView } from "@/lib/search";
 import { logVir, useVirWatch } from "@/lib/vir";
@@ -463,8 +464,11 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           className={`absolute inset-0 block h-full w-full ${fitCover ? "object-cover" : "object-contain"} [transform:translateZ(0)]`}
           loop
           playsInline
+          crossOrigin="anonymous"
           muted={muted}
           preload="none"
+          onPlay={(e) => { if (!e.currentTarget.muted) enhanceMediaElement(e.currentTarget, "post"); }}
+          onVolumeChange={(e) => { const v = e.currentTarget; if (!v.muted && !v.paused) enhanceMediaElement(v, "post"); }}
           onLoadedMetadata={(e) => {
             const v = e.currentTarget;
             if (v.videoWidth && v.videoHeight) setFitCover(v.videoWidth / v.videoHeight < 0.7);

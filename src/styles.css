@@ -855,3 +855,11 @@ img, video {
 /* Fluidez: toques sem atraso e imagens decodificadas fora da thread principal */
 a, button, [role="button"], input, label, select, textarea { touch-action: manipulation; }
 img { content-visibility: auto; }
+
+/* Efeitos premium de presentes */
+@keyframes gift-ring-k { 0% { transform: translate(-50%,-50%) scale(.2); opacity: .9 } 100% { transform: translate(-50%,-50%) scale(4); opacity: 0 } }
+.gift-ring { animation: gift-ring-k 1.4s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes gift-rays-k { 0% { transform: translate(-50%,-50%) rotate(0) scale(.6); opacity: 0 } 20% { opacity: 1 } 100% { transform: translate(-50%,-50%) rotate(60deg) scale(1); opacity: 0 } }
+.gift-rays { animation: gift-rays-k 3s ease-out both; }
+@keyframes gift-pop-k { 0% { transform: scale(0) rotate(-25deg) } 45% { transform: scale(1.35) rotate(8deg) } 65% { transform: scale(.92) } 100% { transform: scale(1) } }
+.gift-pop { animation: gift-pop-k .8s cubic-bezier(.2,1.4,.4,1) both, gift-hero 1.6s ease-out .8s infinite; }

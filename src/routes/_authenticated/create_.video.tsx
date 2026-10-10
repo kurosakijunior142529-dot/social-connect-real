@@ -97,16 +97,26 @@ function VideoStudio() {
         throw new Error("Câmera requer HTTPS. Abra o app publicado (não o preview http).");
       }
       // Race with a timeout so the button never appears frozen.
-      const screenRatio = typeof window !== "undefined" && window.innerWidth > 0 ? window.innerHeight / window.innerWidth : 16 / 9;
-      const gum = navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1440 },
-          height: { ideal: Math.round(1440 * screenRatio) },
-          aspectRatio: { ideal: 1 / screenRatio },
-          resizeMode: "none",
-          facingMode: { ideal: facing },
-          frameRate: { ideal: 30 },
-        } as MediaTrackConstraints,
+      const audioC = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: { ideal: 1 },
+        sampleRate: { ideal: 48000 },
+      } as MediaTrackConstraints;
+      const gum = (async () => {
+        const attempts: MediaTrackConstraints[] = [
+          { facingMode: { exact: facing }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } },
+          { facingMode: { exact: facing } },
+          { facingMode: facing },
+        ];
+        let last: unknown;
+        for (const video of attempts) {
+          try { return await navigator.mediaDevices.getUserMedia({ video, audio: audioC }); } catch (e) { last = e; if ((e as any)?.name === "NotAllowedError") break; }
+        }
+        throw last;
+      })();
+      const _unused = {
 
         audio: {
           echoCancellation: true,

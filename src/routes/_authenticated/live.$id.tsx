@@ -232,6 +232,16 @@ function LiveRoom() {
   const live = liveQ.data;
   const hostId = live?.host_id;
   const amHostUser = !!hostId && hostId === user.id;
+  const coinsQ = useQuery({
+    queryKey: ["my-coins", user.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("user_coins").select("balance").eq("user_id", user.id).maybeSingle();
+      return (data?.balance as number | undefined) ?? 0;
+    },
+    staleTime: 15000,
+  });
+  const setGiftQueueLocal = (gift: any) =>
+    setGiftQueue((q) => [...q, { id: reactionCounter.current++, name: gift.name, emoji: gift.emoji, senderName: "Você" }]);
   const canModerate = amHostUser || (modsQ.data ?? []).includes(user.id);
 
   const followQ = useQuery({
@@ -279,7 +289,7 @@ function LiveRoom() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "live_gifts", filter: `live_id=eq.${liveId}` }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["live-supporters", liveId] });
         const gift = giftCatalogQ.data?.find((g: any) => g.id === payload.new?.gift_id);
-        if (gift) {
+        if (gift && payload.new?.sender_id !== user.id) {
           setGiftQueue((q) => [...q, {
             id: reactionCounter.current++,
             name: gift.name,
@@ -291,7 +301,7 @@ function LiveRoom() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [liveId, qc, giftCatalogQ.data]);
+  }, [liveId, qc, giftCatalogQ.data, user.id]);
 
   // Drain gift queue one at a time so back-to-back gifts play sequentially.
   useEffect(() => {

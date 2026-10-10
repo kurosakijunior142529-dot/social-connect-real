@@ -94,6 +94,8 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
 
   const { data: url } = useSignedUrl("posts", post.media_url);
   const { data: posterUrl } = useSignedUrl("posts", (post as any).thumbnail_url ?? null);
+  // Vídeo em pé preenche a tela; deitado/quadrado aparece inteiro sobre fundo desfocado.
+  const [fitCover, setFitCover] = useState(true);
 
   // Dois níveis, como TikTok: "perto" prepara metadados, "ativo" baixa e toca.
   // O elemento <video> nunca é desmontado — só o `src` entra/sai — para que o
@@ -458,11 +460,15 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           poster={posterUrl ?? undefined}
           // `src` é anexado/desanexado pelo efeito — o elemento nunca desmonta,
           // então o decoder e o buffer sobrevivem à rolagem.
-          className="absolute inset-0 block h-full w-full object-cover [transform:translateZ(0)]"
+          className={`absolute inset-0 block h-full w-full ${fitCover ? "object-cover" : "object-contain"} [transform:translateZ(0)]`}
           loop
           playsInline
           muted={muted}
           preload="none"
+          onLoadedMetadata={(e) => {
+            const v = e.currentTarget;
+            if (v.videoWidth && v.videoHeight) setFitCover(v.videoWidth / v.videoHeight < 0.7);
+          }}
           onTimeUpdate={(e) => {
             const v = e.currentTarget;
             if (v.duration > 0) {

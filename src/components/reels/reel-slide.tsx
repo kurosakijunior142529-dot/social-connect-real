@@ -22,6 +22,7 @@ export function ReelSlide({ media, active, near, muted, paused, onVideoRef }: Pr
   const { data: poster } = useSignedUrl("posts", media.thumbnail_url ?? null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [ready, setReady] = useState(false);
+  const [fitCover, setFitCover] = useState(true);
   const isVideo = media.media_type === "video";
 
   useEffect(() => {
@@ -80,7 +81,8 @@ export function ReelSlide({ media, active, near, muted, paused, onVideoRef }: Pr
         <video
           ref={videoRef}
           poster={poster ?? undefined}
-          className="absolute inset-0 block h-full w-full object-cover [transform:translateZ(0)]"
+          className={`absolute inset-0 block h-full w-full ${fitCover ? "object-cover" : "object-contain"} [transform:translateZ(0)]`}
+          onLoadedMetadata={(e) => { const v = e.currentTarget; if (v.videoWidth && v.videoHeight) setFitCover(v.videoWidth / v.videoHeight < 0.7); }}
           loop
           playsInline
           muted={muted}
@@ -97,9 +99,10 @@ export function ReelSlide({ media, active, near, muted, paused, onVideoRef }: Pr
           decoding="async"
           onLoad={(e) => {
             const el = e.currentTarget;
+            if (el.naturalWidth && el.naturalHeight) setFitCover(el.naturalWidth / el.naturalHeight < 0.7);
             setReady(true);
           }}
-          className="absolute inset-0 block h-full w-full object-cover"
+          className={`absolute inset-0 block h-full w-full ${fitCover ? "object-cover" : "object-contain"}`}
         />
       ) : null}
 

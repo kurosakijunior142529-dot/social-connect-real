@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Radio, Sparkles, ArrowLeft } from "lucide-react";
+import { Radio, Sparkles, ArrowLeft, Smartphone, MonitorPlay, Square, Gamepad2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadMedia } from "@/lib/media";
 import { moderateMedia, moderateText } from "@/lib/moderation.functions";
@@ -25,6 +26,12 @@ export const Route = createFileRoute("/_authenticated/lives/new")({
   }),
   component: NewLive,
 });
+
+const FORMATS = [
+  { id: "portrait" as const, label: "Em pé", hint: "Celular, bate-papo", icon: Smartphone, box: "h-12 w-7" },
+  { id: "landscape" as const, label: "Deitado", hint: "Jogos e telas", icon: MonitorPlay, box: "h-7 w-12" },
+  { id: "square" as const, label: "Quadrado", hint: "Música e arte", icon: Square, box: "h-10 w-10" },
+];
 
 const CATEGORIES = [
   "Bate-papo",
@@ -57,6 +64,7 @@ function NewLive() {
     age_restricted: false,
     allow_guests: true,
     auto_record: false,
+    orientation: "portrait" as "portrait" | "landscape" | "square",
   });
 
   const onPickThumb = (f: File | null) => {
@@ -105,6 +113,7 @@ function NewLive() {
           age_restricted: form.age_restricted,
           allow_guests: form.allow_guests,
           auto_record: form.auto_record,
+          orientation: form.orientation,
           thumbnail_url,
         },
       });
@@ -130,6 +139,40 @@ function NewLive() {
       </header>
 
       <form onSubmit={submit} className="space-y-5 rounded-3xl border border-[color:var(--hairline)] bg-[color:var(--surface)] p-5">
+        <div className="space-y-2">
+          <Label>Formato da tela</Label>
+          <div className="grid grid-cols-3 gap-2.5">
+            {FORMATS.map((f) => {
+              const active = form.orientation === f.id;
+              const Icon = f.icon;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setForm({ ...form, orientation: f.id, category: f.id === "landscape" && form.category === "Bate-papo" ? "Jogos" : form.category })}
+                  className={cn(
+                    "relative rounded-2xl border p-3 text-left transition active:scale-[0.97]",
+                    active ? "border-primary bg-primary/10 shadow-elegant" : "border-[color:var(--hairline)] bg-background hover:border-primary/40",
+                  )}
+                >
+                  <div className="h-14 grid place-items-center">
+                    <div className={cn("rounded-md border-2 grid place-items-center", f.box, active ? "border-primary text-primary" : "border-muted-foreground/40 text-muted-foreground")}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                  </div>
+                  <p className="text-[13px] font-semibold mt-1">{f.label}</p>
+                  <p className="text-[10.5px] text-muted-foreground leading-tight">{f.hint}</p>
+                </button>
+              );
+            })}
+          </div>
+          {form.orientation === "landscape" && (
+            <p className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+              <Gamepad2 className="h-3.5 w-3.5 text-primary" /> Ideal para jogos: gire o celular ou compartilhe a tela no estúdio.
+            </p>
+          )}
+        </div>
+
         <div className="space-y-1.5">
           <Label>Miniatura (opcional)</Label>
           <div className="flex items-center gap-3">

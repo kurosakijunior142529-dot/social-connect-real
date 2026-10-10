@@ -421,6 +421,13 @@
       "when": 1791592324510,
       "tag": "0059_tighten_signed_in_read_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1791600000000,
+      "tag": "0060_live_orientation",
+      "breakpoints": true
     }
   ]
 }

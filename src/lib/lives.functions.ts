@@ -15,6 +15,7 @@ const CreateLiveInput = z.object({
   audience: AudienceEnum.default("public"),
   allow_guests: z.boolean().default(true),
   auto_record: z.boolean().default(false),
+  orientation: z.enum(["portrait", "landscape", "square"]).default("portrait"),
 });
 
 export const createLive = createServerFn({ method: "POST" })
@@ -38,6 +39,7 @@ export const createLive = createServerFn({ method: "POST" })
         audience: data.audience,
         allow_guests: data.allow_guests,
         auto_record: data.auto_record,
+        orientation: data.orientation,
         status: "preparing",
       })
       .select("id, livekit_room")

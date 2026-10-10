@@ -277,6 +277,34 @@ function WatchIndex() {
       </header>
 
       <div className="px-4 pt-4 space-y-5">
+        {!showCreate ? (
+          <section className="relative overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] p-5">
+            <div className="pointer-events-none absolute -top-20 -right-10 h-56 w-56 rounded-full bg-primary/25 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-primary/10 to-transparent" />
+            <div className="relative">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.2em] text-primary">
+                <Tv className="h-3 w-3" /> Streaming Amigo
+              </div>
+              <h2 className="mt-2.5 text-[24px] font-display font-bold leading-[1.1] tracking-tight">
+                Sua sala de cinema,<br />com quem você gosta.
+              </h2>
+              <p className="mt-1.5 text-[13px] text-muted-foreground">Play, pausa e chat sincronizados para todo mundo ao mesmo tempo.</p>
+              <div className="mt-4 flex gap-2">
+                <Button className="h-11 flex-1 rounded-full gap-1.5 shadow-elegant" onClick={() => setShowCreate(true)}>
+                  <Plus className="h-4 w-4" /> Criar sala
+                </Button>
+                <Button variant="secondary" className="h-11 flex-1 rounded-full gap-1.5" onClick={() => setTab("invite")}>
+                  <LogIn className="h-4 w-4" /> Tenho convite
+                </Button>
+              </div>
+              <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> Sincronia ao vivo</span>
+                <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> Até 50 pessoas</span>
+                <span className="inline-flex items-center gap-1"><Lock className="h-3 w-3" /> Salas privadas</span>
+              </div>
+            </div>
+          </section>
+        ) : null}
         {showCreate ? (
           <section className="overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] shadow-elegant">
             <div className="p-4 pb-3">
@@ -471,48 +499,55 @@ function WatchIndex() {
                   const full = Number(r.member_count) >= Number(r.max_members);
                   return (
                     <li key={r.id}>
-                      <div className="rounded-[22px] bg-[color:var(--surface)] p-3">
-                        <div className="flex gap-3">
-                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-2xl bg-background grid place-items-center text-[10px] text-muted-foreground">
-                            {thumb ? (
-                              <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        disabled={full}
+                        onClick={() => joinPublicRoom(r.id)}
+                        className="group block w-full overflow-hidden rounded-[24px] border border-[color:var(--hairline)] bg-[color:var(--surface)] text-left transition active:scale-[0.98] hover:border-primary/40 disabled:opacity-60"
+                      >
+                        <div className="relative aspect-video bg-background overflow-hidden">
+                          {thumb ? (
+                            <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center bg-gradient-to-br from-primary/25 via-primary/5 to-transparent">
+                              <Tv className="h-9 w-9 text-primary/70" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/10 to-transparent" />
+                          <div className="absolute left-3 top-3 flex gap-1.5">
+                            {r.scheduled_at && new Date(r.scheduled_at).getTime() > Date.now() - 3600_000 ? (
+                              <span className="rounded-full bg-background/80 backdrop-blur px-2 py-0.5 text-[10.5px] font-semibold">
+                                🗓 {new Date(r.scheduled_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                              </span>
                             ) : (
-                              <Radio className="h-4 w-4 text-primary" />
+                              <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wider text-primary-foreground">
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground animate-pulse" /> Assistindo
+                              </span>
                             )}
+                            <span className="rounded-full bg-background/80 backdrop-blur px-2 py-0.5 text-[10.5px] font-medium">
+                              {categoryEmoji(r.category)} {categoryLabel(r.category)}
+                            </span>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-semibold">{r.title ?? "Sala de assistir"}</div>
-                            <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                              <UserAvatar avatarPath={r.host_avatar_url} displayName={r.host_display_name ?? "?"} className="h-4 w-4" />
-                              <span className="truncate">@{r.host_username ?? "host"}</span>
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                              <span className="rounded-full bg-[color:var(--surface-2)] px-2 py-0.5">
-                                {categoryEmoji(r.category)} {categoryLabel(r.category)}
-                              </span>
-                              <span className="rounded-full bg-[color:var(--surface-2)] px-2 py-0.5">
-                                <Users className="mr-1 inline h-3 w-3" />
-                                {r.member_count}/{r.max_members}
-                              </span>
-                              {r.scheduled_at && new Date(r.scheduled_at).getTime() > Date.now() - 3600_000 ? (
-                                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-500">
-                                  🗓 {new Date(r.scheduled_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                              ) : (
-                                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-primary">ao vivo</span>
-                              )}
-                            </div>
-                          </div>
+                          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/80 backdrop-blur px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                            <Users className="h-3 w-3" /> {r.member_count}/{r.max_members}
+                          </span>
+                          <span className="absolute inset-0 grid place-items-center opacity-0 transition group-hover:opacity-100">
+                            <span className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-elegant">
+                              <Radio className="h-5 w-5" />
+                            </span>
+                          </span>
                         </div>
-                        <Button
-                          size="sm"
-                          disabled={full}
-                          onClick={() => joinPublicRoom(r.id)}
-                          className="mt-3 h-9 w-full rounded-full"
-                        >
-                          {full ? "Sala cheia" : "Entrar na sala"}
-                        </Button>
-                      </div>
+                        <div className="flex items-center gap-3 p-3 pt-2">
+                          <UserAvatar avatarPath={r.host_avatar_url} displayName={r.host_display_name ?? "?"} className="h-9 w-9 shrink-0 ring-2 ring-primary/40" />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[15px] font-semibold leading-tight">{r.title ?? "Sala de assistir"}</div>
+                            <div className="truncate text-[12px] text-muted-foreground">@{r.host_username ?? "host"}</div>
+                          </div>
+                          <span className={cn("shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold", full ? "bg-[color:var(--surface-2)] text-muted-foreground" : "bg-primary text-primary-foreground")}>
+                            {full ? "Cheia" : "Entrar"}
+                          </span>
+                        </div>
+                      </button>
                     </li>
                   );
                 })}

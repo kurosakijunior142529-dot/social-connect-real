@@ -535,7 +535,7 @@ function WatchRoomPage() {
           ) : null}
         </div>
 
-        <div className="relative bg-black aspect-video md:aspect-auto md:flex-1">
+        <div className="relative bg-black aspect-video md:aspect-auto md:flex-1 shadow-[0_20px_60px_-20px_color-mix(in_oklab,var(--primary)_45%,transparent)]">
           <div ref={playerContainerRef} className="absolute inset-0" />
           {!playerReady ? (
             <div className="absolute inset-0 grid place-items-center bg-black text-sm text-white/70">
@@ -578,40 +578,37 @@ function WatchRoomPage() {
         </div>
 
         {/* Controles */}
-        <div className="flex flex-col items-center gap-1.5 py-3 hairline-t bg-[color:var(--surface)]">
-          <div className="flex items-center justify-center gap-2">
-            <Button variant="secondary" size="sm" disabled={!canControl} onClick={() => void control("back")}>
-              -10s
-            </Button>
-            <Button size="sm" disabled={!canControl} onClick={() => void control("toggle")}>
-              {stateQuery.data?.playing ? (
-                <>
-                  <Pause className="h-4 w-4 mr-1" /> Pausar
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-1" /> Tocar
-                </>
-              )}
-            </Button>
-            <Button variant="secondary" size="sm" disabled={!canControl} onClick={() => void control("forward")}>
-              +10s
-            </Button>
+        <div className="relative px-4 py-4 hairline-t bg-[color:var(--surface)]">
+          <div className="flex items-center justify-center gap-4">
+            <button type="button" disabled={!canControl} onClick={() => void control("back")} aria-label="Voltar 10 segundos"
+              className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] text-[12px] font-bold tabular-nums transition active:scale-90 disabled:opacity-40">
+              -10
+            </button>
+            <button type="button" disabled={!canControl} onClick={() => void control("toggle")} aria-label={stateQuery.data?.playing ? "Pausar" : "Tocar"}
+              className="grid h-16 w-16 place-items-center rounded-full bg-primary text-primary-foreground shadow-elegant transition active:scale-90 disabled:opacity-40">
+              {stateQuery.data?.playing ? <Pause className="h-7 w-7 fill-current" /> : <Play className="h-7 w-7 fill-current translate-x-0.5" />}
+            </button>
+            <button type="button" disabled={!canControl} onClick={() => void control("forward")} aria-label="Avançar 10 segundos"
+              className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] text-[12px] font-bold tabular-nums transition active:scale-90 disabled:opacity-40">
+              +10
+            </button>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-            <span className={cn(syncStatus === "syncing" ? "text-primary" : "")}>
-              {syncStatus === "syncing"
-                ? "⟳ Sincronizando…"
-                : syncStatus === "disconnected"
-                  ? "○ Desconectado"
-                  : "● Sincronizado"}
+          <div className="mt-3 flex items-center justify-center gap-2 text-[11px]">
+            <span className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold",
+              syncStatus === "disconnected" ? "bg-destructive/15 text-destructive" : "bg-primary/12 text-primary",
+            )}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", syncStatus === "disconnected" ? "bg-destructive" : "bg-primary", syncStatus === "syncing" && "animate-pulse")} />
+              {syncStatus === "syncing" ? "Sincronizando" : syncStatus === "disconnected" ? "Desconectado" : "Sincronizado"}
             </span>
             {isHost ? (
-              <button type="button" onClick={toggleHostControls} className="underline hover:text-foreground">
-                {hostControlsOnly ? "Somente anfitrião controla" : "Todos podem controlar"}
+              <button type="button" onClick={toggleHostControls} className="inline-flex items-center gap-1 rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 font-medium text-muted-foreground hover:text-foreground">
+                <Crown className="h-3 w-3" /> {hostControlsOnly ? "Só eu controlo" : "Todos controlam"}
               </button>
             ) : (
-              <span>{hostControlsOnly ? "Reprodução controlada pelo anfitrião." : "Controle liberado."}</span>
+              <span className="rounded-full bg-[color:var(--surface-2)] px-2.5 py-1 text-muted-foreground">
+                {hostControlsOnly ? "Anfitrião no controle" : "Controle liberado"}
+              </span>
             )}
           </div>
         </div>
@@ -631,16 +628,19 @@ function WatchRoomPage() {
 
         {tab === "chat" ? (
           <>
-            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 min-h-[280px] bg-[radial-gradient(circle_at_20%_0%,rgba(215,255,58,0.06),transparent_28%)]">
+            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 min-h-[280px] ">
               {messagesQuery.data?.length ? (
                 messagesQuery.data.map((m: any) => (
-                  <div key={m.id} className="flex items-start gap-2">
+                  <div key={m.id} className={cn("flex items-end gap-2", m.sender_id === user.id && "flex-row-reverse")}>
                     <UserAvatar
                       avatarPath={m.profile?.avatar_url ?? null}
                       displayName={m.profile?.display_name ?? m.profile?.username ?? "?"}
-                      className="h-7 w-7"
+                      className="h-7 w-7 shrink-0"
                     />
-                    <div className="min-w-0 flex-1 rounded-2xl bg-background px-3 py-2">
+                    <div className={cn(
+                      "min-w-0 max-w-[80%] rounded-[18px] px-3 py-2",
+                      m.sender_id === user.id ? "bg-primary/15 border border-primary/25 rounded-br-md" : "bg-background border border-[color:var(--hairline)] rounded-bl-md",
+                    )}>
                       <div className="text-[12px] font-semibold truncate text-primary">
                         {m.profile?.display_name ?? m.profile?.username ?? "Usuário"}
                         <span className="ml-2 text-[10px] font-normal text-muted-foreground">
@@ -686,7 +686,7 @@ function WatchRoomPage() {
                         <Crown className="h-3.5 w-3.5" />
                       </span>
                     ) : null}
-                    {m.user_id === user.id ? (
+                    {m.sender_id === user.id ? (
                       <span className="text-[10px] text-muted-foreground">(você)</span>
                     ) : null}
                   </div>

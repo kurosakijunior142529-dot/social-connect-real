@@ -13,6 +13,7 @@ export type LiveFeedRow = {
   ended_at?: string | null;
   language?: string | null;
   age_restricted?: boolean;
+  orientation?: string | null;
   host: {
     id: string;
     username: string;
@@ -44,9 +45,7 @@ export async function fetchActiveLives(limit = 60): Promise<LiveFeedRow[]> {
   const cutoff = new Date(Date.now() - 3 * 60 * 1000).toISOString();
   const { data } = await (supabase as any)
     .from("lives")
-    .select(
-      "id, host_id, title, category, tags, thumbnail_url, viewer_count, peak_viewer_count, started_at, language, age_restricted, last_heartbeat_at",
-    )
+    .select("*")
     .eq("status", "live")
     .gte("last_heartbeat_at", cutoff)
     .order("viewer_count", { ascending: false })

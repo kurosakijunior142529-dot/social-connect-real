@@ -441,7 +441,7 @@ function AIThread() {
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">Vibely AI</div>
             <div className="text-[11px] text-muted-foreground truncate">
-              {videoProgress ?? (sending ? "digitando…" : "textos, imagens, vídeos e publicações")}
+              {videoProgress ?? (sending ? (deep ? "pensando a fundo…" : web ? "pesquisando…" : "digitando…") : `${EXPERTS.find((e) => e.id === expert)?.label ?? "Geral"}${deep ? " · pensar mais" : ""}${web ? " · buscar mais" : ""}`)}
             </div>
           </div>
           <button
@@ -465,7 +465,10 @@ function AIThread() {
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
           {msgs.length === 0 && !sending ? (
-            <EmptyState onPick={(prompt) => submit(prompt)} />
+            <EmptyState
+              expert={expert}
+              onPick={(prompt, ex) => { if (ex) setExpert(ex); submit(prompt); }}
+            />
           ) : null}
           {msgs.map((m, i) => (
             <MsgBubble
@@ -511,18 +514,43 @@ function AIThread() {
               </button>
             ))}
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            {QUICK.map((q) => (
+          {mode === "chat" ? (
+            <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
+              {EXPERTS.map((ex) => (
+                <button
+                  key={ex.id}
+                  onClick={() => setExpert(ex.id)}
+                  className={cn(
+                    "shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                    expert === ex.id
+                      ? "bg-primary/15 text-foreground ring-1 ring-primary/40"
+                      : "bg-[color:var(--surface)] text-muted-foreground",
+                  )}
+                >
+                  <span>{ex.icon}</span>{ex.label}
+                </button>
+              ))}
+              <span className="mx-0.5 w-px shrink-0 self-stretch bg-[color:var(--hairline)]" />
               <button
-                key={q.label}
-                onClick={() => submit(q.prompt)}
-                disabled={sending}
-                className="shrink-0 rounded-full bg-[color:var(--surface)] hover:bg-[color:var(--surface-2)] px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+                onClick={() => setDeep((v) => !v)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                  deep ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface)] text-muted-foreground",
+                )}
               >
-                {q.label}
+                <Brain className="h-3.5 w-3.5" /> Pensar mais
               </button>
-            ))}
-          </div>
+              <button
+                onClick={() => setWeb((v) => !v)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                  web ? "bg-primary text-primary-foreground" : "bg-[color:var(--surface)] text-muted-foreground",
+                )}
+              >
+                <Globe className="h-3.5 w-3.5" /> Buscar mais
+              </button>
+            </div>
+          ) : null}
           {attachments.length ? (
             <div className="mb-2 flex flex-wrap gap-2">
               {attachments.map((f, i) => (

@@ -7,8 +7,9 @@ export type PresenceState = "idle" | "typing" | "recording";
 export function useConversationPresence(
   channelKey: string,
   userId: string,
-): { others: PresenceState; setMe: (s: PresenceState) => void } {
+): { others: PresenceState; online: boolean; setMe: (s: PresenceState) => void } {
   const [others, setOthers] = useState<PresenceState>("idle");
+  const [online, setOnline] = useState(false);
   const chRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
@@ -18,13 +19,16 @@ export function useConversationPresence(
     ch.on("presence", { event: "sync" }, () => {
       const state = ch.presenceState() as Record<string, { state?: PresenceState }[]>;
       let next: PresenceState = "idle";
+      let anyOther = false;
       for (const [key, arr] of Object.entries(state)) {
         if (key === userId) continue;
+        anyOther = true;
         const s = arr[0]?.state;
         if (s === "recording") next = "recording";
         else if (s === "typing" && next !== "recording") next = "typing";
       }
       setOthers(next);
+      setOnline(anyOther);
     });
     ch.subscribe((status) => {
       if (status === "SUBSCRIBED") ch.track({ state: "idle" });
@@ -40,7 +44,7 @@ export function useConversationPresence(
     chRef.current?.track({ state: s });
   }
 
-  return { others, setMe };
+  return { others, online, setMe };
 }
 
 export function TypingIndicator({ state, name }: { state: PresenceState; name?: string | null }) {

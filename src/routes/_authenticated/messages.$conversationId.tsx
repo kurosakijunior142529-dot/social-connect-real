@@ -623,18 +623,21 @@ function ConversationPage() {
                 />
                 <span
                   className={cn(
-                    "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-chat-mine border-2 border-background",
+                    "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background transition-opacity",
+                    presence.online ? "bg-primary" : "opacity-0",
                     presence.others !== "idle" && "animate-pulse",
                   )}
                 />
               </div>
               <div className="min-w-0 leading-tight">
                 <div className="font-semibold text-[15px] truncate"><VerifiedName name={other.display_name} verified={(other as any).is_verified} badgeVariant={(other as any).badge_variant} /></div>
-                <div className={cn("text-[11px] truncate", presence.others !== "idle" ? "text-primary font-medium" : "text-muted-foreground")}>
+                <div className={cn("text-[11px] truncate", presence.others !== "idle" || presence.online ? "text-primary font-medium" : "text-muted-foreground")}>
                   {presence.others === "typing"
                     ? "digitando…"
                     : presence.others === "recording"
                     ? "gravando áudio…"
+                    : presence.online
+                    ? "online agora"
                     : `@${other.username}`}
                 </div>
               </div>

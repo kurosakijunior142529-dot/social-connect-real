@@ -583,7 +583,7 @@ export function CallScreen({
                     <div
                       key={caption.id}
                       className={cn(
-                        "max-w-[85%] break-words rounded-2xl px-3.5 py-2.5",
+                        "w-fit max-w-[85%] break-words rounded-2xl px-3.5 py-2.5",
                         caption.speaker === "me"
                           ? "ml-auto rounded-br-md border border-primary/25 bg-primary/15"
                           : "mr-auto rounded-bl-md border border-white/[0.08] bg-white/[0.05]",

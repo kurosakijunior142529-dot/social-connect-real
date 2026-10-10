@@ -600,6 +600,26 @@ function ConversationPage() {
     [user.id, queryClient],
   );
 
+  if (conv.isError || (conv.isSuccess && !conv.data)) {
+    return (
+      <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-base font-semibold">
+          {conv.isError ? "Não foi possível abrir a conversa." : "Conversa não encontrada."}
+        </p>
+        <p className="text-sm text-muted-foreground">Verifique sua conexão e tente de novo.</p>
+        <div className="flex gap-2">
+          {conv.isError ? (
+            <button type="button" onClick={() => conv.refetch()} className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+              Tentar de novo
+            </button>
+          ) : null}
+          <a href="/messages" className="rounded-full border border-border px-4 py-2 text-sm font-semibold">
+            Voltar às conversas
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-col h-[100dvh] md:h-[calc(100vh-4rem)] overflow-hidden md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]", KEYBOARD_SAFE_CLASS)}>

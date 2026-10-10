@@ -19,7 +19,6 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { CallVoicePicker } from "@/components/call-voice-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CALL_LANGUAGES, useAudioLevel } from "@/components/call-audio-level";
 import type { CallCaption } from "@/components/call-provider";
 
@@ -440,7 +439,7 @@ export function CallScreen({
       {sheet ? (
         <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/50" onClick={() => setSheet(null)}>
           <div
-            className="max-h-[70vh] overflow-hidden rounded-t-[28px] border-t border-white/10 bg-[#0b0b0c] pb-[max(1rem,env(safe-area-inset-bottom))] animate-in slide-in-from-bottom-6"
+            className="flex max-h-[82dvh] flex-col overflow-hidden rounded-t-[28px] border-t border-white/10 bg-[#0b0b0c] pb-[max(1rem,env(safe-area-inset-bottom))] animate-in slide-in-from-bottom-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 px-5 py-4">
@@ -458,7 +457,7 @@ export function CallScreen({
             </div>
 
             {sheet === "settings" ? (
-              <div className="space-y-3 px-5 pb-5">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-5 [-webkit-overflow-scrolling:touch]">
                 <button
                   type="button"
                   onClick={onToggleTranslation}
@@ -642,5 +641,30 @@ function ControlButton({
     >
       {children}
     </button>
+  );
+}
+
+function LangGrid({ value, onChange, withAuto = false }: { value: string; onChange: (v: string) => void; withAuto?: boolean }) {
+  const opts = withAuto ? [{ value: "auto", label: "Automático", flag: "✨" }, ...CALL_LANGUAGES] : CALL_LANGUAGES;
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {opts.map((l) => {
+        const on = value === l.value;
+        return (
+          <button
+            key={l.value}
+            type="button"
+            onClick={() => { if (!on) onChange(l.value); }}
+            className={cn(
+              "flex h-16 flex-col items-center justify-center gap-0.5 rounded-2xl border text-[12px] transition active:scale-95",
+              on ? "border-primary bg-primary/15 font-semibold text-white" : "border-white/[0.07] bg-white/[0.04] text-white/70",
+            )}
+          >
+            <span className="text-xl leading-none">{l.flag}</span>
+            <span className="truncate px-1">{l.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

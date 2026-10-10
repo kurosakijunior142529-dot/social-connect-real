@@ -91,15 +91,17 @@ export function CallVoicePicker({ language }: { language: string }) {
       return;
     }
     setBusy(null);
-    try {
+    // Defer so the tap paints first; cancel any queued speech to avoid piling up.
+    window.setTimeout(() => { try {
       const synth = window.speechSynthesis;
+      synth.cancel();
       const u = new SpeechSynthesisUtterance(sample);
       u.lang = language;
       const uri = v.startsWith("device:") ? v.slice(7) : devices[0]?.uri;
       const voice = uri ? synth.getVoices().find((x) => x.voiceURI === uri) : undefined;
       if (voice) u.voice = voice;
       synth.speak(u);
-    } catch { /* noop */ }
+    } catch { /* noop */ } }, 30);
   }
 
   const items: Item[] =
@@ -144,7 +146,7 @@ export function CallVoicePicker({ language }: { language: string }) {
           ))}
         </div>
       ) : null}
-      <div className="max-h-64 space-y-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
+      <div className="space-y-1.5 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
         {items.map((it) => {
           const selected = value === it.value;
           return (

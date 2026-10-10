@@ -19,6 +19,7 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { CallVoicePicker } from "@/components/call-voice-picker";
+import { AI_VOICES, getCallVoice, setCallVoice } from "@/lib/call-voice";
 import { CALL_LANGUAGES, useAudioLevel } from "@/components/call-audio-level";
 import type { CallCaption } from "@/components/call-provider";
 
@@ -377,6 +378,47 @@ export function CallScreen({
         ) : null}
       </div>
 
+      {/* Fixed translation dock: toggles, language and voice without leaving the call */}
+      {call.status === "accepted" ? (
+        <div className="relative z-10 mx-auto w-full max-w-md space-y-2 px-4 pt-2">
+          <div className="flex gap-2">
+            <DockToggle on={translationEnabled} onClick={onToggleTranslation} label="Tradução" />
+            {onToggleSpeakTranslations ? (
+              <DockToggle on={speakTranslations} onClick={onToggleSpeakTranslations} label="Voz alta" />
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setSheet("settings")}
+              className="h-9 rounded-full border border-white/10 bg-black/40 px-3 text-[12px] text-white/70 backdrop-blur-md active:scale-95"
+            >
+              Mais
+            </button>
+          </div>
+          {translationEnabled ? (
+            <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+              {CALL_LANGUAGES.map((l) => {
+                const on = translationLanguage === l.value;
+                return (
+                  <button
+                    key={l.value}
+                    type="button"
+                    onClick={() => { if (!on) onTranslationLanguageChange(l.value); }}
+                    className={cn(
+                      "flex h-9 shrink-0 items-center gap-1 rounded-full border px-3 text-[12px] backdrop-blur-md transition active:scale-95",
+                      on ? "border-primary bg-primary/20 font-semibold text-white" : "border-white/10 bg-black/40 text-white/70",
+                    )}
+                  >
+                    <span>{l.flag}</span>
+                    {l.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          {translationEnabled && speakTranslations ? <DockVoices /> : null}
+        </div>
+      ) : null}
+
       {/* Floating controls */}
       <div className="relative z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
         <div className="mx-auto flex max-w-md items-center justify-between gap-2 rounded-full border border-white/[0.08] bg-white/[0.06] px-3 py-3 backdrop-blur-2xl">
@@ -662,6 +704,56 @@ function LangGrid({ value, onChange, withAuto = false }: { value: string; onChan
           >
             <span className="text-xl leading-none">{l.flag}</span>
             <span className="truncate px-1">{l.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function DockToggle({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={cn(
+        "flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border text-[12px] font-semibold backdrop-blur-md transition active:scale-95",
+        on ? "border-primary bg-primary text-primary-foreground" : "border-white/10 bg-black/40 text-white/75",
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-primary-foreground" : "bg-white/30")} />
+      {label} {on ? "ligada" : "desligada"}
+    </button>
+  );
+}
+
+const DOCK_VOICES = [
+  { value: "auto", label: "Do celular" },
+  ...["onyx", "cedar", "nova", "coral", "ballad"].map((id) => ({
+    value: `ai:${id}`,
+    label: AI_VOICES.find((v) => v.id === id)?.label ?? id,
+  })),
+];
+
+function DockVoices() {
+  const [value, setValue] = useState("auto");
+  useEffect(() => setValue(getCallVoice()), []);
+  return (
+    <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+      {DOCK_VOICES.map((v) => {
+        const on = value === v.value;
+        return (
+          <button
+            key={v.value}
+            type="button"
+            onClick={() => { setValue(v.value); setCallVoice(v.value); }}
+            className={cn(
+              "h-8 shrink-0 rounded-full border px-3 text-[12px] backdrop-blur-md transition active:scale-95",
+              on ? "border-primary bg-primary/20 font-semibold text-white" : "border-white/10 bg-black/40 text-white/65",
+            )}
+          >
+            🎙️ {v.label}
           </button>
         );
       })}

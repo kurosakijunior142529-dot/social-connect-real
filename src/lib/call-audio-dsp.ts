@@ -28,13 +28,13 @@ export function studioVoice(stream: MediaStream): MediaStream {
 
     const src = ctx.createMediaStreamSource(new MediaStream(stream.getAudioTracks()));
     const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 85; hp.Q.value = 0.7;
-    const mud = ctx.createBiquadFilter(); mud.type = "peaking"; mud.frequency.value = 300; mud.Q.value = 1; mud.gain.value = -2.5;
-    const pres = ctx.createBiquadFilter(); pres.type = "peaking"; pres.frequency.value = 3500; pres.Q.value = 0.9; pres.gain.value = 3.5;
-    const air = ctx.createBiquadFilter(); air.type = "highshelf"; air.frequency.value = 9000; air.gain.value = 1.5;
-    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 15000;
+    const mud = ctx.createBiquadFilter(); mud.type = "peaking"; mud.frequency.value = 300; mud.Q.value = 1; mud.gain.value = -1.5;
+    const pres = ctx.createBiquadFilter(); pres.type = "peaking"; pres.frequency.value = 3500; pres.Q.value = 0.7; pres.gain.value = 1.5;
+    const air = ctx.createBiquadFilter(); air.type = "highshelf"; air.frequency.value = 9000; air.gain.value = -1;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 12000;
     const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -22; comp.knee.value = 12; comp.ratio.value = 3.5; comp.attack.value = 0.004; comp.release.value = 0.18;
-    const gain = ctx.createGain(); gain.gain.value = 1.35;
+    comp.threshold.value = -22; comp.knee.value = 12; comp.ratio.value = 2.5; comp.attack.value = 0.008; comp.release.value = 0.25;
+    const gain = ctx.createGain(); gain.gain.value = 1.1;
     const limiter = ctx.createDynamicsCompressor();
     limiter.threshold.value = -2; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.05;
     const dest = ctx.createMediaStreamDestination();
@@ -75,12 +75,12 @@ export function enhanceMediaElement(el: HTMLMediaElement, preset: "voice" | "pos
     enhanced.add(el);
     const v = preset === "voice";
     const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = v ? 85 : 35; hp.Q.value = 0.7;
-    const mud = ctx.createBiquadFilter(); mud.type = "peaking"; mud.frequency.value = 300; mud.Q.value = 1; mud.gain.value = v ? -2.5 : -1.2;
-    const pres = ctx.createBiquadFilter(); pres.type = "peaking"; pres.frequency.value = 3500; pres.Q.value = 0.9; pres.gain.value = v ? 3.5 : 1.8;
-    const air = ctx.createBiquadFilter(); air.type = "highshelf"; air.frequency.value = 9000; air.gain.value = v ? 1.5 : 1;
+    const mud = ctx.createBiquadFilter(); mud.type = "peaking"; mud.frequency.value = 300; mud.Q.value = 1; mud.gain.value = v ? -1.5 : -1;
+    const pres = ctx.createBiquadFilter(); pres.type = "peaking"; pres.frequency.value = 3500; pres.Q.value = 0.9; pres.gain.value = v ? 1.5 : 1.2;
+    const air = ctx.createBiquadFilter(); air.type = "highshelf"; air.frequency.value = 9000; air.gain.value = v ? -1 : 0;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = v ? -22 : -18; comp.knee.value = 12; comp.ratio.value = v ? 3.5 : 2; comp.attack.value = 0.005; comp.release.value = 0.2;
-    const gain = ctx.createGain(); gain.gain.value = v ? 1.3 : 1.1;
+    const gain = ctx.createGain(); gain.gain.value = v ? 1.1 : 1.05;
     const limiter = ctx.createDynamicsCompressor();
     limiter.threshold.value = -1.5; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.05;
     src.connect(hp).connect(mud).connect(pres).connect(air).connect(comp).connect(gain).connect(limiter).connect(ctx.destination);

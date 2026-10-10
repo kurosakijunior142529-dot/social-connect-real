@@ -1892,6 +1892,7 @@ export type Database = {
           last_heartbeat_at: string
           like_count: number
           livekit_room: string
+          orientation: string
           peak_viewer_count: number
           started_at: string | null
           status: string
@@ -1916,6 +1917,7 @@ export type Database = {
           last_heartbeat_at?: string
           like_count?: number
           livekit_room: string
+          orientation?: string
           peak_viewer_count?: number
           started_at?: string | null
           status?: string
@@ -1940,6 +1942,7 @@ export type Database = {
           last_heartbeat_at?: string
           like_count?: number
           livekit_room?: string
+          orientation?: string
           peak_viewer_count?: number
           started_at?: string | null
           status?: string
@@ -3948,6 +3951,44 @@ export type Database = {
           },
         ]
       }
+      watch_room_queue: {
+        Row: {
+          added_by: string
+          created_at: string
+          id: string
+          room_id: string
+          status: string
+          title: string | null
+          video_id: string
+        }
+        Insert: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          room_id: string
+          status?: string
+          title?: string | null
+          video_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          room_id?: string
+          status?: string
+          title?: string | null
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_room_queue_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "watch_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watch_room_state: {
         Row: {
           playing: boolean
@@ -4200,6 +4241,7 @@ export type Database = {
         Args: { _limit: number; _scope: string; _window_seconds: number }
         Returns: boolean
       }
+      close_watch_room: { Args: { _room: string }; Returns: undefined }
       coins_to_brl: { Args: { _coins: number }; Returns: number }
       credit_coins: {
         Args: { _amount: number; _user: string }
@@ -4309,6 +4351,7 @@ export type Database = {
         }[]
       }
       join_watch_room_impl: { Args: { _room: string }; Returns: string }
+      leave_watch_room: { Args: { _room: string }; Returns: boolean }
       list_public_realities: {
         Args: { _limit?: number; _offset?: number }
         Returns: {

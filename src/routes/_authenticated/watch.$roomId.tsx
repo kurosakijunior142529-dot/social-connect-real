@@ -29,6 +29,11 @@ import {
   Users,
 } from "lucide-react";
 import { ForwardDialog } from "@/components/chat/forward-dialog";
+import { WatchQueue } from "@/components/watch/watch-queue";
+import { useVoice } from "@/components/voice/voice-provider";
+import { appConfirm } from "@/components/app-dialog";
+import { useBroadcastWatching } from "@/lib/watch/presence";
+import { ListVideo, Mic, MicOff, Power, RectangleHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isWatchSessionExpired, requireFreshWatchUser } from "@/lib/watch/auth";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -39,6 +44,8 @@ export const Route = createFileRoute("/_authenticated/watch/$roomId")({
   component: WatchRoomPage,
 });
 
+const REACTIONS = ["❤️", "🔥", "😂", "🍿", "👏"];
+
 type Room = {
   id: string;
   host_id: string;
@@ -46,6 +53,7 @@ type Room = {
   title: string | null;
   invite_code: string;
   provider: string;
+  closed_at?: string | null;
 };
 type RoomState = {
   room_id: string;
@@ -74,7 +82,7 @@ function WatchRoomPage() {
   const [requirement, setRequirement] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("connected");
   const [hostControlsOnly, setHostControlsOnly] = useState(true);
-  const [tab, setTab] = useState<"chat" | "people">("chat");
+  const [tab, setTab] = useState<"chat" | "queue" | "people">("chat");
   const [chatInput, setChatInput] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -114,7 +122,7 @@ function WatchRoomPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("watch_rooms")
-        .select("id, host_id, video_id, title, invite_code, provider")
+        .select("id, host_id, video_id, title, invite_code, provider, closed_at")
         .eq("id", roomId)
         .maybeSingle();
       if (error) throw error;
@@ -177,6 +185,35 @@ function WatchRoomPage() {
   const room = roomQuery.data;
   const isHost = !!room && room.host_id === user.id;
 
+  useBroadcastWatching(user.id, room && !room.closed_at ? { roomId, title: room.title } : null);
+  const voice = useVoice();
+  const inVoice = voice.channel?.id === roomId && voice.status !== "idle";
+  const [theater, setTheater] = useState(false);
+  const [floating, setFloating] = useState<{ id: number; emoji: string; dx: number }[]>([]);
+  const pushFloating = useCallback((emoji: string) => {
+    const id = Date.now() + Math.random();
+    const dx = Math.round(Math.random() * 80 - 60);
+    setFloating((prev) => [...prev.slice(-24), { id, emoji, dx }]);
+    setTimeout(() => setFloating((prev) => prev.filter((f) => f.id !== id)), 2300);
+  }, []);
+  const pushFloatingRef = useRef(pushFloating);
+  pushFloatingRef.current = pushFloating;
+
+  const memberNames = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const m of (membersQuery.data ?? []) as any[]) out[m.user_id] = m.profile?.display_name ?? m.profile?.username ?? "alguém";
+    return out;
+  }, [membersQuery.data]);
+
+  // Sala encerrada pelo anfitrião: todo mundo sai na hora.
+  useEffect(() => {
+    if (!room?.closed_at) return;
+    if (voice.channel?.id === roomId) voice.leave();
+    if (!isHost) toast("Esta sala foi encerrada pelo anfitrião.");
+    navigate({ to: "/watch", replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.closed_at]);
+
   // Realtime subscriptions
   useEffect(() => {
     const ch = supabase
@@ -196,10 +233,22 @@ function WatchRoomPage() {
         { event: "*", schema: "public", table: "watch_room_members", filter: `room_id=eq.${roomId}` },
         () => queryClient.invalidateQueries({ queryKey: ["watch-members", roomId] }),
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "watch_rooms", filter: `id=eq.${roomId}` },
+        () => queryClient.invalidateQueries({ queryKey: ["watch-room", roomId] }),
+      )
       .on("broadcast", { event: "host_controls" }, (msg: any) => {
         if (typeof msg?.payload?.hostControlsOnly === "boolean") {
           setHostControlsOnly(msg.payload.hostControlsOnly);
         }
+      })
+      .on("broadcast", { event: "reaction" }, (msg: any) => {
+        const e = msg?.payload?.emoji;
+        if (typeof e === "string" && REACTIONS.includes(e)) pushFloatingRef.current(e);
+      })
+      .on("broadcast", { event: "room_closed" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["watch-room", roomId] });
       })
       .subscribe((status) => {
         setSyncStatus(status === "SUBSCRIBED" ? "connected" : "disconnected");
@@ -401,13 +450,54 @@ function WatchRoomPage() {
   }
 
   async function leave() {
-    await (supabase as any)
-      .from("watch_room_members")
-      .update({ left_at: new Date().toISOString() })
-      .eq("room_id", roomId)
-      .eq("user_id", user.id);
+    if (inVoice) voice.leave();
+    await (supabase as any).rpc("leave_watch_room", { _room: roomId });
     queryClient.invalidateQueries({ queryKey: ["watch-rooms", user.id] });
+    queryClient.invalidateQueries({ queryKey: ["feed-watch-rooms"] });
     navigate({ to: "/watch" });
+  }
+
+  async function endRoom() {
+    const ok = await appConfirm("Encerrar a sala para todos?", {
+      description: "A sala fecha de vez e some da lista. Ninguém mais consegue entrar.",
+      confirmText: "Encerrar",
+    });
+    if (!ok) return;
+    const { error } = await (supabase as any).rpc("close_watch_room", { _room: roomId });
+    if (error) return toast.error("Não foi possível encerrar a sala.");
+    controlChannelRef.current?.send({ type: "broadcast", event: "room_closed", payload: {} });
+    if (inVoice) voice.leave();
+    queryClient.invalidateQueries({ queryKey: ["watch-rooms", user.id] });
+    queryClient.invalidateQueries({ queryKey: ["feed-watch-rooms"] });
+    toast.success("Sala encerrada");
+    navigate({ to: "/watch" });
+  }
+
+  function sendReaction(emoji: string) {
+    pushFloating(emoji);
+    try { navigator.vibrate?.(8); } catch {}
+    controlChannelRef.current?.send({ type: "broadcast", event: "reaction", payload: { emoji } });
+  }
+
+  async function toggleVoice() {
+    if (inVoice) return voice.leave();
+    try {
+      await voice.join({ id: roomId, name: room?.title ?? "Sala de assistir", emoji: "🍿" });
+    } catch {
+      toast.error("Não foi possível ligar a voz agora.");
+    }
+  }
+
+  async function playVideo(videoId: string) {
+    if (!isHost) return;
+    const { error } = await (supabase as any).from("watch_rooms").update({ video_id: videoId, provider: "youtube" }).eq("id", roomId);
+    if (error) { toast.error("Não foi possível trocar o vídeo."); return; }
+    await (supabase as any).from("watch_room_state").upsert(
+      { room_id: roomId, playing: true, position_sec: 0, video_id: videoId, updated_at: new Date().toISOString(), updated_by: user.id },
+      { onConflict: "room_id" },
+    );
+    queryClient.invalidateQueries({ queryKey: ["watch-room", roomId] });
+    toast.success("Tocando o próximo vídeo");
   }
 
   function toggleFullscreen() {
@@ -482,18 +572,46 @@ function WatchRoomPage() {
             <UserPlus className="h-4 w-4" />
           </button>
           <button
+            onClick={toggleVoice}
+            className={cn(
+              "h-8 w-8 grid place-items-center rounded-full",
+              inVoice ? "bg-primary text-primary-foreground" : "hover:bg-[color:var(--surface-2)]",
+            )}
+            title={inVoice ? "Sair da voz" : "Conversar por voz"}
+            aria-label={inVoice ? "Sair da voz" : "Conversar por voz"}
+          >
+            {inVoice ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+          </button>
+          <button
+            onClick={() => setTheater((v) => !v)}
+            className={cn("h-8 w-8 grid place-items-center rounded-full", theater ? "bg-[color:var(--surface-2)] text-primary" : "hover:bg-[color:var(--surface-2)]")}
+            title="Modo teatro"
+            aria-label="Modo teatro"
+          >
+            <RectangleHorizontal className="h-4 w-4" />
+          </button>
+          <button
             onClick={toggleFullscreen}
             className="h-8 w-8 grid place-items-center rounded-full hover:bg-[color:var(--surface-2)]"
             title="Tela cheia"
           >
             <Maximize2 className="h-4 w-4" />
           </button>
-          <button
-            onClick={leave}
-            className="h-8 px-3 grid place-items-center rounded-full bg-red-600/90 hover:bg-red-600 text-white text-xs font-medium"
-          >
-            <DoorOpen className="h-3.5 w-3.5 mr-1 inline" /> Sair
-          </button>
+          {isHost ? (
+            <button
+              onClick={() => void endRoom()}
+              className="h-8 px-3 grid place-items-center rounded-full bg-destructive text-destructive-foreground text-xs font-semibold"
+            >
+              <span className="flex items-center gap-1"><Power className="h-3.5 w-3.5" /> Encerrar</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => void leave()}
+              className="h-8 px-3 grid place-items-center rounded-full bg-[color:var(--surface-2)] text-xs font-semibold"
+            >
+              <span className="flex items-center gap-1"><DoorOpen className="h-3.5 w-3.5" /> Sair</span>
+            </button>
+          )}
         </header>
 
         {/* Seletor de serviço */}
@@ -575,10 +693,25 @@ function WatchRoomPage() {
               </div>
             </div>
           ) : null}
+          <div className="pointer-events-none absolute bottom-4 right-6 h-0 w-0">
+            {floating.map((f) => (
+              <span key={f.id} className="watch-react absolute bottom-0 right-0 text-3xl" style={{ ["--wx" as any]: `${f.dx}px` }}>
+                {f.emoji}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Controles */}
         <div className="relative px-4 py-4 hairline-t bg-[color:var(--surface)]">
+          <div className="mb-3 flex items-center justify-center gap-2">
+            {REACTIONS.map((emo) => (
+              <button key={emo} type="button" onClick={() => sendReaction(emo)} aria-label={`Reagir ${emo}`}
+                className="grid h-10 w-10 place-items-center rounded-full bg-[color:var(--surface-2)] text-xl transition active:scale-75">
+                {emo}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center justify-center gap-4">
             <button type="button" disabled={!canControl} onClick={() => void control("back")} aria-label="Voltar 10 segundos"
               className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] text-[12px] font-bold tabular-nums transition active:scale-90 disabled:opacity-40">
@@ -616,17 +749,23 @@ function WatchRoomPage() {
       </div>
 
       {/* Chat + people pane */}
+      {!theater ? (
       <aside className="md:w-[390px] overflow-hidden rounded-[28px] border border-[color:var(--hairline)] bg-[color:var(--surface)] flex flex-col md:h-full max-h-[70vh] md:max-h-none shadow-elegant">
         <div className="flex hairline-b bg-[color:var(--surface-2)]/55">
           <TabBtn active={tab === "chat"} onClick={() => setTab("chat")} icon={<MessageCircle className="h-4 w-4" />}>
             Chat
           </TabBtn>
+          <TabBtn active={tab === "queue"} onClick={() => setTab("queue")} icon={<ListVideo className="h-4 w-4" />}>
+            Fila
+          </TabBtn>
           <TabBtn active={tab === "people"} onClick={() => setTab("people")} icon={<Users className="h-4 w-4" />}>
-            Participantes ({membersQuery.data?.length ?? 0})
+            Pessoas ({membersQuery.data?.length ?? 0})
           </TabBtn>
         </div>
 
-        {tab === "chat" ? (
+        {tab === "queue" ? (
+          <WatchQueue roomId={roomId} userId={user.id} isHost={isHost} names={memberNames} onPlay={playVideo} />
+        ) : tab === "chat" ? (
           <>
             <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 min-h-[280px] ">
               {messagesQuery.data?.length ? (
@@ -709,6 +848,7 @@ function WatchRoomPage() {
           </div>
         )}
       </aside>
+      ) : null}
     </div>
   );
 }

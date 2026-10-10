@@ -36,6 +36,24 @@ export const getVoiceChannelAccess = createServerFn({ method: "POST" })
       if (g && g.type === "group") channel = { id: g.id, name: g.title ?? "Grupo" };
     }
     if (!channel) {
+      // Voz do Streaming Amigo: só quem está dentro da sala.
+      const { data: wm } = await ctx.supabase
+        .from("watch_room_members")
+        .select("room_id")
+        .eq("room_id", data.channelId)
+        .eq("user_id", ctx.userId)
+        .is("left_at", null)
+        .maybeSingle();
+      if (wm) {
+        const { data: wr } = await ctx.supabase
+          .from("watch_rooms")
+          .select("id, title, closed_at")
+          .eq("id", data.channelId)
+          .maybeSingle();
+        if (wr && !wr.closed_at) channel = { id: wr.id, name: wr.title ?? "Sala de assistir" };
+      }
+    }
+    if (!channel) {
       const { data: vc, error } = await ctx.supabase
         .from("voice_channels")
         .select("id, name, is_public, created_by")

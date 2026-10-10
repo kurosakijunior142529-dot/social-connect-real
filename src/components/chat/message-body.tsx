@@ -60,6 +60,8 @@ export function MessageBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   if (kind === "location") return <LocationBody msg={msg} />;
   const watchMatch = (msg.content ?? "").match(/https?:\/\/\S+\/watch\?code=([A-Za-z0-9_-]+)(?:&v=([A-Za-z0-9_-]{6,20}))?/);
   if (watchMatch) return <WatchInviteBody text={msg.content ?? ""} code={watchMatch[1]} videoId={watchMatch[2]} />;
+  const postMatch = (msg.content ?? "").match(/(?:https?:\/\/\S+)?\/(?:p|reels?)\/([0-9a-f-]{36})/i);
+  if (postMatch) return <PostLinkBody text={msg.content ?? ""} postId={postMatch[1]} />;
   return <EmojiText text={msg.content ?? ""} />;
 }
 
@@ -578,6 +580,57 @@ function LocationBody({ msg }: { msg: Msg }) {
         </div>
         <a href={route} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-[color:var(--surface-2)] px-3 py-1.5 text-[11px] font-semibold">Rota</a>
       </div>
+    </div>
+  );
+}
+
+/** Link de post/Reel colado na conversa — vira cartão com capa, autor e legenda. */
+function PostLinkBody({ text, postId }: { text: string; postId: string }) {
+  const q = useQuery({
+    queryKey: ["chat-post-link", postId],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase
+        .from("posts")
+        .select("id, caption, media_type, media_url, thumbnail_url, post_kind, author:profiles!posts_author_id_fkey(username, display_name)")
+        .eq("id", postId)
+        .maybeSingle();
+      return data as any;
+    },
+  });
+  const p = q.data;
+  const isVideo = p?.media_type === "video";
+  const cover = useSignedUrl("posts" as any, p?.thumbnail_url ?? (isVideo ? null : p?.media_url) ?? null);
+  const extra = text.replace(/\S*\/(?:p|reels?)\/[0-9a-f-]{36}\S*/i, "").trim();
+  if (q.isLoading) return <div className="h-40 w-60 animate-pulse rounded-2xl bg-black/20" />;
+  if (!p) return <EmojiText text={text} />;
+  return (
+    <div className="space-y-1.5">
+      {extra ? <EmojiText text={extra} /> : null}
+      <Link to="/p/$id" params={{ id: postId }} className="block w-60 max-w-full overflow-hidden rounded-2xl border border-white/10 bg-black/30 active:scale-[0.98] transition">
+        <div className={cn("relative w-full bg-gradient-to-br from-primary/25 via-black/40 to-black", isVideo ? "aspect-[4/5]" : "aspect-square")}>
+          {cover ? <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover" /> : (
+            <div className="grid h-full w-full place-items-center p-4 text-center text-sm text-white/80 line-clamp-6">{p.caption ?? "Publicação"}</div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+          <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur">
+            {isVideo ? "Reel" : "Post"}
+          </span>
+          {isVideo ? (
+            <span className="absolute inset-0 grid place-items-center">
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-black/50 ring-1 ring-white/25 backdrop-blur-md">
+                <Play className="h-5 w-5 text-white" fill="currentColor" strokeWidth={0} />
+              </span>
+            </span>
+          ) : null}
+          <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
+            <p className="text-[12px] font-semibold">@{p.author?.username ?? "vibely"}</p>
+            {p.caption && cover ? <p className="line-clamp-2 text-[11px] text-white/80">{p.caption}</p> : null}
+          </div>
+        </div>
+        <div className="px-3 py-2 text-center text-[12px] font-semibold">{isVideo ? "Assistir Reel" : "Ver publicação"}</div>
+      </Link>
     </div>
   );
 }

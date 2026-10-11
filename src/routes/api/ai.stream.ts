@@ -309,7 +309,11 @@ export const Route = createFileRoute("/api/ai/stream")({
               push({ type: "user", message: userMsg });
 
               // Respostas instantâneas e grátis para mensagens simples (não chama a IA)
-              const quick = !images.length && !docs.length ? quickReply(content) : null;
+              // Só no início da conversa e no modo geral: no meio do papo, "ok"/"beleza" pode ser
+              // a confirmação de algo que a IA ofereceu, então vai para o modelo com contexto.
+              const canQuick =
+                !images.length && !docs.length && ordered.length <= 1 && expert === "geral" && !deep && !web;
+              const quick = canQuick ? quickReply(content) : null;
               if (quick) {
                 push({ type: "delta", text: quick });
                 const { data: aiMsg } = await supabase

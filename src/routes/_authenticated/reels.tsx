@@ -84,6 +84,13 @@ function ReelsPage() {
   const lives = livesQ.data ?? [];
   const hasLives = lives.length > 0;
   useEffect(() => { if (!hasLives && tab === "live") setTab("fyp"); }, [hasLives, tab]);
+  // Barra de status preta e translúcida enquanto o Reels está aberto.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const prev = meta?.getAttribute("content") ?? null;
+    meta?.setAttribute("content", "#000000");
+    return () => { if (prev) meta?.setAttribute("content", prev); };
+  }, []);
 
   /**
    * Hidrata os ids devolvidos pelo VIR mantendo exatamente a ordem do ranking.

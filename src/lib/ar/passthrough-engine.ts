@@ -73,6 +73,7 @@ export class PassthroughEngine implements EffectEngine {
     canvas.height = height;
     this.canvas = canvas;
 
+    void import("@/lib/camera").then((m) => this.stream && m.widenCamera(this.stream));
     const ctx = canvas.getContext("2d");
     const draw = () => {
       this.raf = requestAnimationFrame(draw);

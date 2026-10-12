@@ -105,11 +105,7 @@ function VideoStudio() {
         sampleRate: { ideal: 48000 },
       } as MediaTrackConstraints;
       const gum = (async () => {
-        const attempts: MediaTrackConstraints[] = [
-          { facingMode: { exact: facing }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } },
-          { facingMode: { exact: facing } },
-          { facingMode: facing },
-        ];
+        const attempts = wideVideoConstraints(facing as "user" | "environment");
         let last: unknown;
         for (const video of attempts) {
           try { return await navigator.mediaDevices.getUserMedia({ video, audio: audioC }); } catch (e) { last = e; if ((e as any)?.name === "NotAllowedError") break; }
@@ -120,6 +116,7 @@ function VideoStudio() {
         setTimeout(() => reject(new DOMException("Tempo esgotado ao pedir permissão de câmera.", "TimeoutError")), 15000),
       );
       const s = (await Promise.race([gum, timeout])) as MediaStream;
+      void widenCamera(s);
       streamRef.current = s;
       const el = previewRef.current;
       if (el) {

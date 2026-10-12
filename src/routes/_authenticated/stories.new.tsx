@@ -230,12 +230,7 @@ function NewStoryPage() {
       // Pede o sensor em retrato, alta resolução, sem recorte forçado
       // (o recorte anterior dava zoom gigante e baixa nitidez).
       const open = async () => {
-        const attempts: MediaTrackConstraints[] = [
-          { facingMode: { exact: facing }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } },
-          { facingMode: { exact: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          { facingMode: { exact: facing } },
-          { facingMode: facing },
-        ];
+        const attempts = wideVideoConstraints(facing);
         let last: unknown;
         for (const video of attempts) {
           try { return await navigator.mediaDevices.getUserMedia({ video, audio: true }); } catch (e) { last = e; }
@@ -245,6 +240,7 @@ function NewStoryPage() {
       try {
         const s = await open();
         if (cancelled) return s.getTracks().forEach((t) => t.stop());
+        void widenCamera(s);
         stopCamera();
         streamRef.current = s;
         if (videoRef.current) {

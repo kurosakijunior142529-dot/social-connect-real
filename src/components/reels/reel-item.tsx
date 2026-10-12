@@ -106,7 +106,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     if (!el) return;
     const nearIO = new IntersectionObserver(
       ([e]) => setNear(e.isIntersecting),
-      { rootMargin: "800px 0px", threshold: 0 },
+      { rootMargin: "1600px 0px", threshold: 0 },
     );
     const activeIO = new IntersectionObserver(
       (entries) => {

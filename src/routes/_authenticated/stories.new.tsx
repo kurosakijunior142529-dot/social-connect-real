@@ -239,10 +239,13 @@ function NewStoryPage() {
         throw last;
       };
       try {
+        // Libera a câmera atual ANTES de abrir a outra: no Android, com a
+        // frontal ainda aberta, o pedido da traseira falhava e voltava a mesma.
+        stopCamera();
+        if (videoRef.current) videoRef.current.srcObject = null;
         const s = await open();
         if (cancelled) return s.getTracks().forEach((t) => t.stop());
         void widenCamera(s);
-        stopCamera();
         streamRef.current = s;
         if (videoRef.current) {
           videoRef.current.srcObject = s;

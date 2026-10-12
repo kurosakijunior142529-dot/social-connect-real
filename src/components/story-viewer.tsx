@@ -180,7 +180,7 @@ export function StoryViewer({
               <div className="mt-0.5 flex items-center gap-1 text-[11px] text-white/80"><Music2 className="h-3 w-3" /><span className="truncate">{track.title} · {track.artist}</span></div>
             ) : null}
           </div>
-          {track ? (
+          {track || story.media_type === "video" ? (
             <button onClick={() => setMuted((m) => !m)} aria-label={muted ? "Ligar som" : "Tirar som"}
               className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20 active:scale-95">
               {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
@@ -213,8 +213,13 @@ export function StoryViewer({
                 src={url}
                 className="max-h-full max-w-full animate-in fade-in duration-300"
                 autoPlay
-                muted
+                muted={!!track || muted}
                 playsInline
+                onCanPlay={(e) => {
+                  // Se o navegador bloquear som automático, toca mudo e o botão de som aparece
+                  const v = e.currentTarget;
+                  if (v.paused) v.play().catch(() => { v.muted = true; setMuted(true); void v.play().catch(() => {}); });
+                }}
                 onEnded={next}
                 onLoadedMetadata={(e) => {
                   const ms = Math.round(e.currentTarget.duration * 1000);

@@ -84,6 +84,13 @@ function ReelsPage() {
   const lives = livesQ.data ?? [];
   const hasLives = lives.length > 0;
   useEffect(() => { if (!hasLives && tab === "live") setTab("fyp"); }, [hasLives, tab]);
+  // Barra de status preta e translúcida enquanto o Reels está aberto.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const prev = meta?.getAttribute("content") ?? null;
+    meta?.setAttribute("content", "#000000");
+    return () => { if (prev) meta?.setAttribute("content", prev); };
+  }, []);
 
   /**
    * Hidrata os ids devolvidos pelo VIR mantendo exatamente a ordem do ranking.
@@ -217,9 +224,9 @@ function ReelsPage() {
   useBroadcastReel(user.id, watchingId ?? firstId);
 
   return (
-    <div className="relative h-dvh min-h-dvh w-full md:-mx-4 md:-mt-6 md:w-[calc(100%+2rem)]">
+    <div className="fixed inset-0 z-0 bg-black md:relative md:inset-auto md:h-dvh md:min-h-dvh md:w-[calc(100%+2rem)] md:-mx-4 md:-mt-6">
       {/* Header overlay */}
-      <header className="absolute top-0 inset-x-0 z-20 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-3 bg-gradient-to-b from-black/70 to-transparent px-4 pt-[env(safe-area-inset-top)] text-white">
+      <header className="absolute top-0 inset-x-0 z-20 flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-3 bg-gradient-to-b from-black/40 to-transparent px-4 pt-[env(safe-area-inset-top)] text-white">
         <Link
           to="/"
           className="md:hidden grid h-9 w-9 place-items-center rounded-full bg-black/30 backdrop-blur"
@@ -258,7 +265,7 @@ function ReelsPage() {
       <div
         ref={scrollerRef}
         onScroll={onScroll}
-        className="h-dvh min-h-dvh w-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black no-scrollbar rounded-none md:rounded-2xl"
+        className="h-full w-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black no-scrollbar rounded-none md:h-dvh md:rounded-2xl"
       >
         {tab === "live" ? (
           lives.map((l) => <LiveReelCard key={l.id} l={l} />)

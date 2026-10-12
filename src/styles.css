@@ -661,6 +661,24 @@
 }
 .badge-breathe { animation: badge-breathe-anim 3.2s ease-in-out infinite; }
 
+/* Reflexo metálico sutil da roseta (passa a cada ~4.5s) */
+@keyframes badge-rosette-shine-anim {
+  0%, 72% { transform: translateX(-130%) skewX(-18deg); }
+  100%    { transform: translateX(130%) skewX(-18deg); }
+}
+.badge-rosette-shine { overflow: hidden; }
+.badge-rosette-shine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.7) 50%, transparent 70%);
+  mix-blend-mode: overlay;
+  animation: badge-rosette-shine-anim 4.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .badge-rosette-shine::before { animation: none; opacity: 0; }
+}
+
 /* ============ Identidade dos selos verificados ============ */
 .badge-tone-verified { --badge-tone: oklch(0.79 0.2 147); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }
 .badge-tone-premium { --badge-tone: oklch(0.82 0.16 82); --badge-tone-soft: color-mix(in oklab, var(--badge-tone) 10%, var(--surface)); --badge-tone-border: color-mix(in oklab, var(--badge-tone) 28%, transparent); }

@@ -258,7 +258,7 @@ function ReelsPage() {
       <div
         ref={scrollerRef}
         onScroll={onScroll}
-        className="h-full w-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black no-scrollbar rounded-none md:h-dvh md:rounded-2xl [&>*]:h-[100svh] [&>*]:min-h-0 md:[&>*]:h-dvh"
+        className="h-full w-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black no-scrollbar rounded-none md:h-dvh md:rounded-2xl"
       >
         {tab === "live" ? (
           lives.map((l) => <LiveReelCard key={l.id} l={l} />)

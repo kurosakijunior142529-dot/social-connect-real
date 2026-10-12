@@ -625,12 +625,12 @@ function ProfileContent() {
           </TabsList>
 
           <TabsContent value="all" className="mt-4">
-            <PostGrid posts={posts} empty="Nenhum post ainda." username={username} />
+            <PostGrid posts={posts} loading={postsQuery.isLoading} empty="Nenhum post ainda." username={username} />
           </TabsContent>
           <TabsContent value="videos" className="mt-4">
-            <PostGrid posts={videoPosts} empty="Nenhum vídeo publicado." username={username} />
+            <PostGrid posts={videoPosts} loading={postsQuery.isLoading} empty="Nenhum vídeo publicado." username={username} />
           </TabsContent>
-          <TabsContent value="photos" className="mt-4"><PostGrid posts={photoPosts} empty="Nenhuma foto publicada." username={username} /></TabsContent>
+          <TabsContent value="photos" className="mt-4"><PostGrid posts={photoPosts} loading={postsQuery.isLoading} empty="Nenhuma foto publicada." username={username} /></TabsContent>
           <TabsContent value="vibes" className="mt-4"><VibeGrid vibes={activeVibes} /></TabsContent>
           <TabsContent value="lives" className="mt-4"><LiveGrid lives={liveItems} /></TabsContent>
           <TabsContent value="reposts" className="mt-4">
@@ -654,34 +654,38 @@ function ProfileContent() {
   );
 }
 
-function PostGrid({ posts, empty, username }: { posts: any[]; empty: string; username?: string }) {
+function PostGrid({ posts, empty, username, loading }: { posts: any[]; empty: string; username?: string; loading?: boolean }) {
   // Perfil mostra só fotos e vídeos (sem posts de texto e enquetes)
   posts = posts.filter((p) => !!p?.media_url && p?.post_kind !== "poll");
+  if (loading && !posts.length)
+    return (
+      <div className="-mx-4 grid grid-cols-3 gap-0.5 sm:mx-0 sm:gap-1 md:gap-2">
+        {Array.from({ length: 9 }).map((_, i) => <Skeleton key={i} className="aspect-[4/5] rounded-none sm:rounded-md" />)}
+      </div>
+    );
   if (!posts.length) return <div className="grid min-h-32 place-items-center px-5 text-center text-sm text-muted-foreground"><span className="grid gap-2 place-items-center"><Grid3x3 className="h-6 w-6 text-muted-foreground/50" />{empty}</span></div>;
   return (
-    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:gap-3">
+    <div className="-mx-4 grid grid-cols-3 gap-0.5 sm:mx-0 sm:gap-1 md:gap-2">
       {posts.map((p) => (
         <Link
           key={p.id}
           {...(username
             ? { to: "/posts/$username" as const, params: { username }, search: { start: p.id } }
             : { to: "/p/$id" as const, params: { id: p.id } })}
-          className="group relative aspect-square overflow-hidden rounded-md bg-[color:var(--surface-2)] ring-1 ring-border/60 transition duration-200 hover:ring-primary/20 active:scale-[0.98] md:rounded-lg"
+          className="group relative aspect-[4/5] overflow-hidden bg-[color:var(--surface-2)] transition duration-200 active:opacity-80 sm:rounded-md"
         >
-          {p.media_url ? (
-            <SignedMediaThumb
-              bucket="posts"
-              path={p.media_url}
-              mediaType={p.media_type}
-              alt=""
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full w-full flex-col justify-between bg-gradient-to-br from-[color:var(--surface-2)] to-primary/15 p-2.5">
-              <MessageCircle className="h-3.5 w-3.5 text-primary" />
-              <p className="line-clamp-4 text-[11px] font-medium leading-snug text-foreground">{p.caption || "Publicação"}</p>
-            </div>
-          )}
+          <SignedMediaThumb
+            bucket="posts"
+            path={p.media_url}
+            mediaType={p.media_type}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          {p.view_count ? (
+            <span className="pointer-events-none absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              <Play className="h-3 w-3 fill-current" />{formatCount(p.view_count)}
+            </span>
+          ) : null}
         </Link>
       ))}
     </div>

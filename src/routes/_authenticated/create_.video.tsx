@@ -1,3 +1,4 @@
+import { wideVideoConstraints, widenCamera } from "@/lib/camera";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";

@@ -35,7 +35,7 @@ import { ChatSearchBar } from "@/components/chat/search-bar";
 import { TypingIndicator, useConversationPresence } from "@/components/chat/typing-indicator";
 import { uploadChatFile, kindForFile, bucketForFile } from "@/lib/chat-media";
 import { captureVideoPoster } from "@/lib/media/video-thumbnail";
-import { Smile, Timer, Plus } from "lucide-react";
+import { Smile, Timer, Plus, Camera } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ExpressionPanel, type PanelTab } from "@/components/chat/expression-panel";
 import { WallpaperPicker, wallpaperImage, wallpaperBackground, useCustomWallpaperUrl } from "@/components/chat/wallpaper-picker";
@@ -920,7 +920,11 @@ function ConversationPage() {
             <Sparkles className="h-4 w-4 mb-2.5 text-primary animate-pulse shrink-0" />
           ) : null}
           {!draft.trim() ? (
-            <div className="text-muted-foreground">
+            <div className="flex items-center text-muted-foreground">
+              <label aria-label="Tirar foto" className="inline-grid h-9 w-9 cursor-pointer place-items-center rounded-full transition active:scale-90">
+                <Camera className="h-[20px] w-[20px]" strokeWidth={1.8} />
+                <input type="file" accept="image/*" capture="environment" hidden disabled={isBlockedPair} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void handleFile(f); }} />
+              </label>
               <AttachMenu onFile={handleFile} onLocation={handleLocation} onRun={() => setRunOpen(true)} disabled={isBlockedPair} />
               <RunInviteDrawer open={runOpen} onOpenChange={setRunOpen} onSend={(goal) => void sendPayload({ kind: "run", content: "🏃 Convite para Corrida em Dupla", meta: { runId: crypto.randomUUID(), goal } })} />
             </div>

@@ -95,6 +95,18 @@ export function StoriesRail({ currentUserId, currentProfile }: {
               </span>
               <span className="w-full truncate text-center text-[11px] font-medium">Sua Vibe</span>
             </button>
+          ) : null}
+          {myGroup ? (
+            <Link
+              to="/stories/new"
+              aria-label="Nova Vibe"
+              className="flex w-16 shrink-0 flex-col items-center gap-1.5 rounded-xl py-1 transition-transform hover:-translate-y-0.5"
+            >
+              <span className="grid h-[60px] w-[60px] place-items-center rounded-full border border-dashed border-primary/50 bg-surface-2">
+                <Plus className="h-6 w-6 text-primary" />
+              </span>
+              <span className="w-full truncate text-center text-[11px] text-muted-foreground">Nova Vibe</span>
+            </Link>
           ) : (
             <Link
               to="/stories/new"

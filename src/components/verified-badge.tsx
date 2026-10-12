@@ -110,6 +110,18 @@ export const BADGE_CONFIG: Record<BadgeVariant, {
   },
 };
 
+/** Roseta com 12 pontas arredondadas (polígono em % para clip-path). */
+const ROSETTE_CLIP = (() => {
+  const pts: string[] = [];
+  const steps = 96;
+  for (let i = 0; i < steps; i++) {
+    const a = (i / steps) * Math.PI * 2 - Math.PI / 2;
+    const r = 44 + 6 * Math.cos(a * 12 + Math.PI / 2 * 0);
+    pts.push(`${(50 + r * Math.cos(a)).toFixed(2)}% ${(50 + r * Math.sin(a)).toFixed(2)}%`);
+  }
+  return `polygon(${pts.join(",")})`;
+})();
+
 export function getBadgeVariant(value?: BadgeVariant | string | null): BadgeVariant {
   return value && value in BADGE_CONFIG ? (value as BadgeVariant) : "verified";
 }
@@ -160,32 +172,39 @@ export function VerifiedBadge({
         />
       ) : null}
 
-      {/* Corpo do selo */}
+      {/* Corpo do selo: roseta dentada 3D */}
       <span
-        className={cn(
-          "relative inline-grid place-items-center rounded-full overflow-hidden h-full w-full",
-          animated && "badge-sheen badge-breathe",
-        )}
-        style={{
-          background: cfg.gradient,
-          boxShadow: animated
-            ? `${cfg.glow}, inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.28), 0 0 0 1px ${cfg.ring}`
-            : "inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.25)",
-        }}
+        className={cn("relative inline-grid place-items-center h-full w-full", animated && "badge-breathe")}
+        style={{ filter: animated ? `drop-shadow(${cfg.glow.replace(/^0 0 /, "0 0 ")})` : "drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))" }}
       >
-        {/* Gloss highlight */}
         <span
           aria-hidden
-          className="absolute inset-0 rounded-full pointer-events-none"
+          className="absolute inset-0"
           style={{
-            background:
-              "radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 55%)",
+            background: `radial-gradient(120% 70% at 50% 8%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 50%), radial-gradient(90% 90% at 50% 100%, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 55%), ${cfg.gradient}`,
+            clipPath: ROSETTE_CLIP,
+            WebkitClipPath: ROSETTE_CLIP,
           }}
+        />
+        {/* Chanfro interno */}
+        <span
+          aria-hidden
+          className="absolute rounded-full"
+          style={{
+            inset: "17%",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.3)",
+          }}
+        />
+        {/* Reflexo metálico sutil */}
+        <span
+          aria-hidden
+          className="badge-rosette-shine absolute inset-0 pointer-events-none"
+          style={{ clipPath: ROSETTE_CLIP, WebkitClipPath: ROSETTE_CLIP }}
         />
         <Icon
           strokeWidth={3.5}
-          className="relative text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]"
-          style={{ height: iconSize, width: iconSize }}
+          className="relative text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]"
+          style={{ height: Math.round(size * 0.52), width: Math.round(size * 0.52) }}
         />
       </span>
 

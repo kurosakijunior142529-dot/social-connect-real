@@ -213,8 +213,12 @@ export function StoryViewer({
                 src={url}
                 className="max-h-full max-w-full animate-in fade-in duration-300"
                 autoPlay
-                muted
+                muted={!!track || videoMuted}
                 playsInline
+                onPlay={(e) => {
+                  // Se o navegador bloquear som automático, toca mudo e mostra o botão de som
+                  if (!track && !videoMuted && e.currentTarget.muted) setVideoMuted(true);
+                }}
                 onEnded={next}
                 onLoadedMetadata={(e) => {
                   const ms = Math.round(e.currentTarget.duration * 1000);

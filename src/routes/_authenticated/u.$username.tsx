@@ -637,6 +637,8 @@ function ProfileContent() {
 }
 
 function PostGrid({ posts, empty, username }: { posts: any[]; empty: string; username?: string }) {
+  // Perfil mostra só fotos e vídeos (sem posts de texto e enquetes)
+  posts = posts.filter((p) => !!p?.media_url && p?.post_kind !== "poll");
   if (!posts.length) return <div className="grid min-h-32 place-items-center px-5 text-center text-sm text-muted-foreground"><span className="grid gap-2 place-items-center"><Grid3x3 className="h-6 w-6 text-muted-foreground/50" />{empty}</span></div>;
   return (
     <div className="grid grid-cols-3 gap-1.5 sm:gap-2 md:gap-3">

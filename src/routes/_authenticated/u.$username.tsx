@@ -197,16 +197,34 @@ function ProfileContent() {
     },
   });
 
+  // Publicações carregam sozinhas (sem esperar contadores) para a grade aparecer na hora.
+  const postsQuery = useQuery({
+    queryKey: ["profile-posts", profile?.id],
+    enabled: !!profile?.id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, media_url, media_type, caption, view_count, post_kind, created_at, music_track_id, music_tracks(title, artist, cover_url)")
+        .eq("author_id", profile!.id)
+        .not("media_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(90);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const stats = useQuery({
     queryKey: ["profile-stats", profile?.id, user.id],
     enabled: !!profile?.id,
+    staleTime: 30_000,
     queryFn: async () => {
       const [posts, followers, following, mine, lives] = await Promise.all([
         supabase
           .from("posts")
-          .select("id, media_url, media_type, caption, view_count, post_kind, created_at, music_track_id, music_tracks(title, artist, cover_url)")
-          .eq("author_id", profile!.id)
-          .order("created_at", { ascending: false }),
+          .select("id, view_count")
+          .eq("author_id", profile!.id),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profile!.id),
         supabase.from("follows").select("following_id", { count: "exact", head: true }).eq("follower_id", profile!.id),
         supabase.from("follows").select("*").match({ follower_id: user.id, following_id: profile!.id }).maybeSingle(),
@@ -335,7 +353,7 @@ function ProfileContent() {
   if (profileQuery.isLoading) return <ProfileSkeleton />;
   if (!profile) return <div className="text-center py-12">Usuário não encontrado.</div>;
 
-  const allPosts = (stats.data?.posts ?? []) as any[];
+  const allPosts = (postsQuery.data ?? []) as any[];
   // publicações do feed vs. vídeos curtos (reels) são separados por post_kind
   const posts = allPosts.filter((p) => p.post_kind !== "reel");
   const videoPosts = allPosts.filter((p) => p.post_kind === "reel" || p.media_type === "video");

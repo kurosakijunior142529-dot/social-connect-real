@@ -60,6 +60,7 @@ export function StoryViewer({
   const [muted, setMuted] = useState(false);
   const [pure, setPure] = useState(false);
   const [tray, setTray] = useState(false);
+  const [fitCover, setFitCover] = useState(true);
   const holdRef = useRef<number | null>(null);
   const swipeY = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);

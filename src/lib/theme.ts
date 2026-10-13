@@ -5,11 +5,11 @@ export type AppTheme = "dark" | "light";
 const STORAGE_KEY = "vibely-theme";
 
 export function readTheme(): AppTheme {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "light";
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === "light" ? "light" : "dark";
+    return window.localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 
@@ -32,7 +32,7 @@ export function setStoredTheme(theme: AppTheme) {
 }
 
 export function useAppTheme() {
-  const [theme, setThemeState] = useState<AppTheme>("dark");
+  const [theme, setThemeState] = useState<AppTheme>("light");
 
   useEffect(() => {
     const sync = () => setThemeState(readTheme());

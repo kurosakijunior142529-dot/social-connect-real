@@ -15,7 +15,7 @@ export function useFeatureFlags() {
     queryKey: ["feature-flags"],
     staleTime: 30_000,
     queryFn: async () => {
-      const { data } = await supabase.from("feature_flags").select("key, enabled");
+      const { data } = await (supabase as any).rpc("get_feature_flags") as { data: { key: string; enabled: boolean }[] | null };
       const map: Record<string, boolean> = {};
       for (const f of data ?? []) map[f.key] = f.enabled;
       return map;

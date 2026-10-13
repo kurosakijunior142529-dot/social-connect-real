@@ -25,7 +25,8 @@ import doodle from "@/assets/wallpapers/doodle.jpg";
 export type ChatWallpaper = { id: string; label: string; image?: string };
 
 export const CHAT_WALLPAPERS: ChatWallpaper[] = [
-  { id: "default", label: "Sem imagem" },
+  { id: "default", label: "Padrão (Folhas e gotas)", image: folhas },
+  { id: "none", label: "Sem imagem" },
   { id: "mono", label: "Desenhos Vibely", image: doodle },
   { id: "midnight", label: "Céu estrelado", image: noite },
   { id: "graphite", label: "Montanhas na neblina", image: neblina },
@@ -35,7 +36,7 @@ export const CHAT_WALLPAPERS: ChatWallpaper[] = [
 ];
 
 export function wallpaperImage(type?: string | null) {
-  return CHAT_WALLPAPERS.find((w) => w.id === type)?.image;
+  return CHAT_WALLPAPERS.find((w) => w.id === (type || "default"))?.image;
 }
 
 export function wallpaperBackground(image: string | null | undefined, dim: number) {

@@ -4276,6 +4276,13 @@ export type Database = {
           username: string
         }[]
       }
+      get_feature_flags: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          key: string
+        }[]
+      }
       get_or_create_conversation: {
         Args: { _other_user: string }
         Returns: string

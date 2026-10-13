@@ -497,7 +497,6 @@ function ProfileContent() {
                 <Button onClick={openChat} variant="outline" className="h-11 shrink-0 gap-2 rounded-xl"><MessageCircle className="h-4 w-4" /> <span className="hidden min-[370px]:inline">Mensagem</span></Button>
               </>
             )}
-            <Button onClick={share} variant="outline" className="h-11 shrink-0 gap-2 rounded-xl px-4" aria-label="Compartilhar perfil"><Share2 className="h-4 w-4" /><span className="hidden sm:inline">Compartilhar</span></Button>
             {!isMe && profile.is_creator ? <Button onClick={() => openCheckout({ priceId: "channel_sub_monthly", creatorId: profile.id })} variant={supporting ? "secondary" : "outline"} className="col-span-2 h-11 shrink-0 gap-2 rounded-xl sm:col-span-1"><Crown className="h-4 w-4" /> {supporting ? "Apoiador" : "Apoiar"}</Button> : null}
           </div>
 
@@ -513,10 +512,12 @@ function ProfileContent() {
             {profile.featured_username ? <Link to="/u/$username" params={{ username: profile.featured_username }} className="font-medium text-muted-foreground transition-colors hover:text-primary">Conexão vibrante com @{profile.featured_username}</Link> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>{formatCount(stats.data?.viewsTotal ?? 0)} visualizações</span><span aria-hidden>·</span><span>{formatCount(activeVibes.length)} Vibes ativas</span>
+            {isMe ? <><span>{formatCount(stats.data?.viewsTotal ?? 0)} visualizações</span><span aria-hidden>·</span></> : null}<span>{formatCount(activeVibes.length)} Vibes ativas</span>
             {isMe ? <Link to="/stories/new" className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-1 text-[11px] font-semibold text-foreground transition active:scale-95">Nova Vibe</Link> : null}
           </div>
         </section>
+
+        <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
 
         <section className="space-y-4">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
@@ -602,7 +603,6 @@ function ProfileContent() {
           </DialogContent>
         </Dialog>
 
-        <VibeCollections profileId={profile.id} isMe={isMe} activeVibes={activeVibes} />
 
 
       {isBlockedPair ? (
@@ -681,7 +681,7 @@ function PostGrid({ posts, empty, username, loading }: { posts: any[]; empty: st
             alt=""
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          {p.view_count ? (
+          {p.view_count && p.media_type === "video" ? (
             <span className="pointer-events-none absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-foreground drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
               <Play className="h-3 w-3 fill-current" />{formatCount(p.view_count)}
             </span>

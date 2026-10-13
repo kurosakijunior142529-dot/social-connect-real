@@ -681,6 +681,7 @@ function CollectionPlayer({
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

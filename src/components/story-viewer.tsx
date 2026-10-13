@@ -204,6 +204,15 @@ export function StoryViewer({
           </button>
         </div>
 
+        {/* Ambient blurred backdrop */}
+        {url ? (
+          story.media_type === "video" ? (
+            <video key={`bg-${story.id}`} src={url} muted autoPlay playsInline loop aria-hidden className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
+          ) : (
+            <img key={`bg-${story.id}`} src={url} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
+          )
+        ) : null}
+
         {/* Media */}
         <div key={`${group.userId}-${story.id}`} className="absolute inset-0 grid place-items-center animate-in fade-in zoom-in-[0.97] duration-300 ease-out">
           {url ? (
@@ -211,7 +220,7 @@ export function StoryViewer({
               <video
                 key={story.id}
                 src={url}
-                className="max-h-full max-w-full animate-in fade-in duration-300"
+                className={cn("h-full w-full animate-in fade-in duration-300", fitCover ? "object-cover" : "object-contain")}
                 autoPlay
                 muted={!!track || muted}
                 playsInline
@@ -222,7 +231,9 @@ export function StoryViewer({
                 }}
                 onEnded={next}
                 onLoadedMetadata={(e) => {
-                  const ms = Math.round(e.currentTarget.duration * 1000);
+                  const v = e.currentTarget;
+                  if (v.videoWidth && v.videoHeight) setFitCover(v.videoWidth / v.videoHeight < 0.7);
+                  const ms = Math.round(v.duration * 1000);
                   if (ms > 0 && Number.isFinite(ms)) {
                     setMediaMs(ms);
                     if (timerRef.current) window.clearTimeout(timerRef.current);
@@ -231,7 +242,13 @@ export function StoryViewer({
                 }}
               />
             ) : (
-              <img key={story.id} src={url} alt="" className="max-h-full max-w-full object-contain animate-in fade-in duration-300" />
+              <img
+                key={story.id}
+                src={url}
+                alt=""
+                onLoad={(e) => { const i = e.currentTarget; if (i.naturalWidth && i.naturalHeight) setFitCover(i.naturalWidth / i.naturalHeight < 0.7); }}
+                className={cn("h-full w-full animate-in fade-in duration-300", fitCover ? "object-cover" : "object-contain")}
+              />
             )
           ) : (
             <div className="flex flex-col items-center gap-3">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SignedMediaThumb } from "@/components/signed-image";
@@ -564,25 +565,38 @@ function CollectionPlayer({
 
   const list = items.data ?? [];
   const current = list[index];
-  const { data: url } = useSignedUrl("stories", current?.media_path);
+  const { data: url, isError: urlError } = useSignedUrl("stories", current?.media_path);
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(false), [current?.id]);
 
+  // Fotos só avançam depois de aparecerem na tela.
   useEffect(() => {
-    if (!current || current.media_type === "video") return;
+    if (!current || current.media_type === "video" || !ready) return;
     const t = window.setTimeout(() => {
       setIndex((i) => (i + 1 < list.length ? i + 1 : (onClose(), i)));
     }, 5000);
     return () => window.clearTimeout(t);
-  }, [current, list.length, onClose]);
+  }, [current, ready, list.length, onClose]);
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-black">
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  const empty = items.isSuccess && list.length === 0;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] bg-black">
       <div className="mx-auto flex h-full max-w-md flex-col">
         <div className="flex gap-1 px-3 pt-3">
           {list.map((_, i) => (
             <span key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-white/25">
               <span
                 className="block h-full rounded-full transition-all"
-                style={{ width: i < index ? "100%" : i === index ? "100%" : "0%", background: collection.accent }}
+                style={{ width: i <= index ? "100%" : "0%", background: collection.accent }}
               />
             </span>
           ))}
@@ -597,7 +611,7 @@ function CollectionPlayer({
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-white">{collection.title}</p>
             <p className="text-[11px] text-white/60">
-              {list.length ? `${index + 1} de ${list.length}` : "Carregando…"}
+              {list.length ? `${index + 1} de ${list.length}` : empty ? "Vazio" : "Carregando…"}
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Fechar" className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white">
@@ -605,21 +619,46 @@ function CollectionPlayer({
           </button>
         </div>
 
-        <div className="relative flex-1">
+        <div className="relative flex-1 overflow-hidden">
           {url && current ? (
-            current.media_type === "video" ? (
-              <video
-                key={current.id}
-                src={url}
-                className="h-full w-full object-contain"
-                autoPlay
-                playsInline
-                controls={false}
-                onEnded={() => (index + 1 < list.length ? setIndex(index + 1) : onClose())}
-              />
-            ) : (
-              <img key={current.id} src={url} alt={current.caption ?? ""} className="h-full w-full object-contain" />
-            )
+            <>
+              {current.media_type !== "video" ? (
+                <img src={url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl" />
+              ) : null}
+              {current.media_type === "video" ? (
+                <video
+                  key={current.id}
+                  src={url}
+                  className="relative h-full w-full object-contain"
+                  autoPlay
+                  playsInline
+                  preload="auto"
+                  controls={false}
+                  onLoadedData={() => setReady(true)}
+                  onEnded={() => (index + 1 < list.length ? setIndex(index + 1) : onClose())}
+                />
+              ) : (
+                <img
+                  key={current.id}
+                  src={url}
+                  alt={current.caption ?? ""}
+                  className="relative h-full w-full object-contain"
+                  onLoad={() => setReady(true)}
+                  onError={() => setReady(true)}
+                />
+              )}
+            </>
+          ) : null}
+
+          {!ready && !empty && !urlError ? (
+            <div className="pointer-events-none absolute inset-0 grid place-items-center">
+              <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+            </div>
+          ) : null}
+          {empty || urlError ? (
+            <div className="absolute inset-0 grid place-items-center px-8 text-center text-sm text-white/70">
+              {empty ? "Este Vibe Space ainda não tem Vibes." : "Não foi possível carregar esta Vibe."}
+            </div>
           ) : null}
 
           <button
@@ -642,6 +681,7 @@ function CollectionPlayer({
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

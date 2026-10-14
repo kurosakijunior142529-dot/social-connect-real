@@ -1,6 +1,6 @@
 import { CoverEditor } from "@/components/user/cover-editor";
 import { createFileRoute, useNavigate, Link, Outlet, useChildMatches } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/user-avatar";
@@ -198,22 +198,34 @@ function ProfileContent() {
   });
 
   // Publicações carregam sozinhas (sem esperar contadores) para a grade aparecer na hora.
-  const postsQuery = useQuery({
+  const PAGE = 60;
+  const postsInfinite = useInfiniteQuery({
     queryKey: ["profile-posts", profile?.id],
     enabled: !!profile?.id,
     staleTime: 60_000,
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const from = pageParam as number;
       const { data, error } = await supabase
         .from("posts")
         .select("id, media_url, media_type, caption, view_count, post_kind, created_at, music_track_id, music_tracks(title, artist, cover_url)")
         .eq("author_id", profile!.id)
         .not("media_url", "is", null)
         .order("created_at", { ascending: false })
-        .limit(90);
+        .range(from, from + PAGE - 1);
       if (error) throw error;
       return data ?? [];
     },
+    getNextPageParam: (last, pages) => (last.length < PAGE ? undefined : pages.length * PAGE),
   });
+  const postsQuery = { data: postsInfinite.data?.pages.flat(), isLoading: postsInfinite.isLoading };
+  const loadMore = postsInfinite.hasNextPage ? (
+    <div className="mt-4 flex justify-center">
+      <Button variant="outline" size="sm" disabled={postsInfinite.isFetchingNextPage} onClick={() => postsInfinite.fetchNextPage()}>
+        {postsInfinite.isFetchingNextPage ? "Carregando…" : "Carregar mais"}
+      </Button>
+    </div>
+  ) : null;
 
   const stats = useQuery({
     queryKey: ["profile-stats", profile?.id, user.id],
@@ -626,11 +638,13 @@ function ProfileContent() {
 
           <TabsContent value="all" className="mt-4">
             <PostGrid posts={posts} loading={postsQuery.isLoading} empty="Nenhum post ainda." username={username} />
+            {loadMore}
           </TabsContent>
           <TabsContent value="videos" className="mt-4">
             <PostGrid posts={videoPosts} loading={postsQuery.isLoading} empty="Nenhum vídeo publicado." username={username} />
+            {loadMore}
           </TabsContent>
-          <TabsContent value="photos" className="mt-4"><PostGrid posts={photoPosts} loading={postsQuery.isLoading} empty="Nenhuma foto publicada." username={username} /></TabsContent>
+          <TabsContent value="photos" className="mt-4"><PostGrid posts={photoPosts} loading={postsQuery.isLoading} empty="Nenhuma foto publicada." username={username} />{loadMore}</TabsContent>
           <TabsContent value="vibes" className="mt-4"><VibeGrid vibes={activeVibes} /></TabsContent>
           <TabsContent value="lives" className="mt-4"><LiveGrid lives={liveItems} /></TabsContent>
           <TabsContent value="reposts" className="mt-4">

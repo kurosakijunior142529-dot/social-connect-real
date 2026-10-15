@@ -147,6 +147,49 @@ export function AppShell({
       <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
     ) : null;
 
+  // Arrastar para o lado troca de aba (Feed ↔ Reels ↔ Explorar ↔ Conversas ↔ Perfil).
+  // Carrosséis, faixas roláveis e campos de texto têm prioridade sobre o gesto.
+  const swipeTabs = mobileItems.filter((i) => i.to !== "/create").map((i) => i.to);
+  const swipeIdx = swipeTabs.indexOf(pathname);
+  useEffect(() => {
+    if (swipeIdx < 0) return;
+    let sx = 0, sy = 0, st = 0, ok = false;
+    const blocked = (t: EventTarget | null) => {
+      let el = t as HTMLElement | null;
+      while (el && el !== document.body) {
+        if (el.dataset?.swipeLock !== undefined) return true;
+        const tag = el.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable) return true;
+        if (el.scrollWidth > el.clientWidth + 2) {
+          const ox = getComputedStyle(el).overflowX;
+          if (ox === "auto" || ox === "scroll") return true;
+        }
+        el = el.parentElement;
+      }
+      return false;
+    };
+    const down = (e: TouchEvent) => {
+      if (e.touches.length !== 1 || window.innerWidth >= 768) { ok = false; return; }
+      ok = !blocked(e.target) && !document.querySelector("[role=dialog]");
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+    };
+    const up = (e: TouchEvent) => {
+      if (!ok) return;
+      ok = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - st > 700) return;
+      const next = swipeIdx + (dx < 0 ? 1 : -1);
+      if (next < 0 || next >= swipeTabs.length) return;
+      try { navigator.vibrate?.(6); } catch { /* noop */ }
+      void navigate({ to: swipeTabs[next] });
+    };
+    window.addEventListener("touchstart", down, { passive: true });
+    window.addEventListener("touchend", up, { passive: true });
+    return () => { window.removeEventListener("touchstart", down); window.removeEventListener("touchend", up); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [swipeIdx, swipeTabs.join("|"), navigate]);
+
   const content = children;
 
   return (

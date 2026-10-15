@@ -310,6 +310,49 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
   const friendsQ = useReelFriends(post.id, currentUserId, visible);
   const friends = friendsQ.data ?? [];
 
+  // Seguir direto do Reel, sem sair do vídeo.
+  const authorId = (post as any).author_id as string | undefined;
+  const followQ = useQuery({
+    queryKey: ["follows-me", currentUserId, authorId],
+    enabled: visible && !!authorId && authorId !== currentUserId,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from("follows").select("following_id")
+        .eq("follower_id", currentUserId).eq("following_id", authorId!).maybeSingle();
+      return !!data;
+    },
+  });
+  const [justFollowed, setJustFollowed] = useState(false);
+  const [followHidden, setFollowHidden] = useState(false);
+  const showFollow = !!authorId && authorId !== currentUserId && followQ.data === false && !followHidden;
+  const followAuthor = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!authorId || justFollowed) return;
+    setJustFollowed(true);
+    try { navigator.vibrate?.(10); } catch { /* noop */ }
+    const { error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: authorId });
+    if (error && !/duplicate/i.test(error.message)) {
+      setJustFollowed(false);
+      toast.error("Não foi possível seguir agora.");
+      return;
+    }
+    window.setTimeout(() => setFollowHidden(true), 900);
+    qc.setQueryData(["follows-me", currentUserId, authorId], true);
+  };
+
+  // Arrastar a barra de progresso.
+  const [scrubLabel, setScrubLabel] = useState<string | null>(null);
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const seekTo = (clientX: number, bar: HTMLElement) => {
+    const v = videoRef.current;
+    if (!v || !(v.duration > 0)) return;
+    const r = bar.getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    v.currentTime = f * v.duration;
+    if (progressRef.current) progressRef.current.style.transform = `scaleX(${f})`;
+    setScrubLabel(`${fmt(f * v.duration)} / ${fmt(v.duration)}`);
+  };
+
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return `${window.location.origin}/s/${post.id}`;
@@ -422,6 +465,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     <div
       ref={rootRef}
       data-reel-id={post.id}
+      {...(multi ? { "data-swipe-lock": "" } : {})}
       className="snap-start snap-always relative h-dvh min-h-dvh w-full shrink-0 bg-black overflow-hidden select-none touch-pan-y [contain:layout_paint] [content-visibility:auto]"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -658,15 +702,30 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           onPointerDown={(e) => e.stopPropagation()}
           onPointerUp={(e) => e.stopPropagation()}
         >
-          <Link to="/u/$username" params={{ username: post.author?.username ?? "" }}>
-            <UserAvatar
-              avatarPath={post.author?.avatar_url}
-              displayName={post.author?.display_name ?? "?"}
-              verified={!!(post.author as any)?.is_verified}
-              badgeVariant={((post.author as any)?.badge_variant) ?? null}
-              className="h-10 w-10 ring-2 ring-primary/60 shadow-[0_0_14px_-6px_rgba(34,224,106,0.45)]"
-            />
-          </Link>
+          <div className="relative">
+            <Link to="/u/$username" params={{ username: post.author?.username ?? "" }}>
+              <UserAvatar
+                avatarPath={post.author?.avatar_url}
+                displayName={post.author?.display_name ?? "?"}
+                verified={!!(post.author as any)?.is_verified}
+                badgeVariant={((post.author as any)?.badge_variant) ?? null}
+                className="h-10 w-10 ring-2 ring-primary/60 shadow-[0_0_14px_-6px_rgba(34,224,106,0.45)]"
+              />
+            </Link>
+            {showFollow ? (
+              <button
+                type="button"
+                aria-label="Seguir"
+                onClick={followAuthor}
+                className={cn(
+                  "absolute -bottom-1.5 left-1/2 grid h-5 w-5 -translate-x-1/2 place-items-center rounded-full text-[13px] font-bold leading-none ring-2 ring-black/70 transition-all duration-300",
+                  justFollowed ? "bg-white text-primary scale-110" : "bg-primary text-primary-foreground",
+                )}
+              >
+                {justFollowed ? "✓" : "+"}
+              </button>
+            ) : null}
+          </div>
           <Link
             to="/u/$username"
             params={{ username: post.author?.username ?? "" }}
@@ -714,19 +773,26 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
       </div>
 
 
-      {/* Ultra thin progress bar — expands on interaction */}
+      {/* Barra de progresso: arraste com o dedo para avançar ou voltar */}
+      {scrubLabel ? (
+        <div className="pointer-events-none absolute left-1/2 bottom-[calc(7rem+env(safe-area-inset-bottom))] z-30 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1.5 text-base font-semibold tabular-nums text-white backdrop-blur-md">
+          {scrubLabel}
+        </div>
+      ) : null}
       <div
-        className={cn(
-          "absolute inset-x-0 bottom-0 bg-white/10 transition-all duration-200",
-          scrubberActive ? "h-1.5" : "h-[3px]",
-        )}
-        onPointerEnter={() => setScrubberActive(true)}
-        onPointerLeave={() => setScrubberActive(false)}
+        data-swipe-lock
+        className="absolute inset-x-0 bottom-0 z-20 flex h-6 items-end touch-none"
+        onPointerDown={(e) => { e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); setScrubberActive(true); seekTo(e.clientX, e.currentTarget); }}
+        onPointerMove={(e) => { e.stopPropagation(); if (scrubberActive) seekTo(e.clientX, e.currentTarget); }}
+        onPointerUp={(e) => { e.stopPropagation(); setScrubberActive(false); setScrubLabel(null); }}
+        onPointerCancel={() => { setScrubberActive(false); setScrubLabel(null); }}
       >
-        <div
-          ref={progressRef}
-          className="h-full origin-left scale-x-0 rounded-r-full bg-gradient-to-r from-primary/70 via-primary to-white shadow-[0_0_10px_rgba(34,224,106,0.35)]"
-        />
+        <div className={cn("w-full bg-white/15 transition-all duration-200", scrubberActive ? "h-1.5" : "h-[3px]")}>
+          <div
+            ref={progressRef}
+            className="h-full origin-left scale-x-0 rounded-r-full bg-gradient-to-r from-primary/70 via-primary to-white shadow-[0_0_10px_rgba(34,224,106,0.35)]"
+          />
+        </div>
       </div>
 
       <ShareSheet

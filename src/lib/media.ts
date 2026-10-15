@@ -147,6 +147,8 @@ export async function createSignedUrl(
   expiresIn = SIGNED_TTL,
 ): Promise<string | null> {
   if (!path) return null;
+  // Endereços completos (ex.: foto do Google ou perfis de teste) já são públicos.
+  if (/^https?:\/\//i.test(path)) return path;
   const cached = readCache(bucket, path);
   if (cached) return cached;
 

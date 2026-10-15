@@ -31,9 +31,16 @@ export function StoriesRail({ currentUserId, currentProfile }: {
   const q = useQuery({
     queryKey: ["stories-rail", currentUserId],
     queryFn: async () => {
+      // Só Vibes de quem eu sigo + as minhas
+      const { data: follows } = await supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", currentUserId);
+      const allowed = [currentUserId, ...((follows ?? []).map((f) => f.following_id))];
       const { data: rows } = await (supabase as any)
         .from("stories")
         .select("*")
+        .in("user_id", allowed)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: true });
       const list = (rows ?? []) as StoryRow[];

@@ -8,7 +8,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, UserPlus, Smile, Users, Bell } from "lucide-react";
-import { formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceToNowStrict } from "@/lib/safe-date";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 

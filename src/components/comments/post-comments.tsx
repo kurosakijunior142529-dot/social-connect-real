@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { logVir } from "@/lib/vir";
 import { StickerPicker, type StickerItem } from "@/components/chat/sticker-picker";
 import { AudioReactionsSheet } from "@/components/reels/audio-reactions-sheet";
-import { formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceToNowStrict } from "@/lib/safe-date";
 import { ptBR } from "date-fns/locale";
 
 type CommentRow = {

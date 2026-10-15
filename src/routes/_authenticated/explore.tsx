@@ -775,10 +775,17 @@ function ResultsView({
   });
 
   const grouped = useMemo(() => {
-    const users = rows.filter((r) => r.kind === "user");
-    const tags = rows.filter((r) => r.kind === "hashtag");
-    const media = rows.filter((r) => r.kind === "video" || r.kind === "photo");
-    const texts = rows.filter((r) => r.kind === "post");
+    const seen = new Set<string>();
+    const uniq = rows.filter((r) => {
+      const k = `${r.kind}:${r.id}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    const users = uniq.filter((r) => r.kind === "user");
+    const tags = uniq.filter((r) => r.kind === "hashtag");
+    const media = uniq.filter((r) => r.kind === "video" || r.kind === "photo");
+    const texts = uniq.filter((r) => r.kind === "post");
     return { users, tags, media, texts };
   }, [rows]);
 

@@ -5,7 +5,7 @@ import { getTrack, trackAudioUrl, type MusicTrack } from "@/lib/music/api";
 import { useSignedUrl } from "@/hooks/use-signed-url";
 import { UserAvatar } from "@/components/user-avatar";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceToNowStrict } from "@/lib/safe-date";
 import { ptBR } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";

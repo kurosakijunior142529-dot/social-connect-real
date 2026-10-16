@@ -68,7 +68,7 @@ export function SwipeRow({
   const clear = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl">
+    <div data-swipe-lock className="relative overflow-hidden rounded-2xl">
       <div className="absolute inset-0 flex items-center justify-between px-5 text-[12px] font-semibold">
         <span className={cn("flex items-center gap-1.5 text-primary transition-opacity", dx > 20 ? "opacity-100" : "opacity-0")}>
           {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />} {pinned ? "Desafixar" : "Fixar"}

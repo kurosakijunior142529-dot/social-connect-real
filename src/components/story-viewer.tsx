@@ -91,15 +91,9 @@ export function StoryViewer({
     if (!text || !story || sending) return;
     setSending(true);
     try {
-      const { data: conv } = await (supabase as any).from("conversations").select("id")
-        .or(`and(user_a.eq.${viewerId},user_b.eq.${story.user_id}),and(user_a.eq.${story.user_id},user_b.eq.${viewerId})`).maybeSingle();
-      let cid = conv?.id as string | undefined;
-      if (!cid) {
-        const { data: created, error } = await (supabase as any).from("conversations").insert({ user_a: viewerId, user_b: story.user_id }).select("id").single();
-        if (error) throw error;
-        cid = created.id;
-      }
-      const { error } = await (supabase as any).from("messages").insert({ conversation_id: cid, sender_id: viewerId, content: `Respondeu à sua Vibe: ${text}` });
+      const { data: cid, error: convErr } = await (supabase as any).rpc("get_or_create_conversation", { other_user: story.user_id });
+      if (convErr || !cid) throw convErr ?? new Error("sem conversa");
+      const { error } = await (supabase as any).from("messages").insert({ conversation_id: cid, sender_id: viewerId, content: `Respondeu à sua Vibe: ${text}`, kind: "text" });
       if (error) throw error;
       setMsg(""); setTray(false);
       try { navigator.vibrate?.(12); } catch { /* noop */ }

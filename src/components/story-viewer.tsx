@@ -64,6 +64,50 @@ export function StoryViewer({
   const holdRef = useRef<number | null>(null);
   const swipeY = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const startRef = useRef(0);
+  const remainRef = useRef(0);
+  const [msg, setMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const paused = pure || tray;
+
+  // Segurar (ou abrir resposta) pausa a Vibe; soltar continua de onde parou
+  useEffect(() => {
+    if (!story) return;
+    if (paused) {
+      if (timerRef.current) { window.clearTimeout(timerRef.current); timerRef.current = null; }
+      remainRef.current = Math.max(0, remainRef.current - (Date.now() - startRef.current));
+      videoRef.current?.pause(); audioRef.current?.pause();
+    } else if (remainRef.current > 0 && !timerRef.current) {
+      startRef.current = Date.now();
+      timerRef.current = window.setTimeout(next, remainRef.current);
+      void videoRef.current?.play().catch(() => {}); void audioRef.current?.play().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused]);
+
+  async function sendReply() {
+    const text = msg.trim();
+    if (!text || !story || sending) return;
+    setSending(true);
+    try {
+      const { data: conv } = await (supabase as any).from("conversations").select("id")
+        .or(`and(user_a.eq.${viewerId},user_b.eq.${story.user_id}),and(user_a.eq.${story.user_id},user_b.eq.${viewerId})`).maybeSingle();
+      let cid = conv?.id as string | undefined;
+      if (!cid) {
+        const { data: created, error } = await (supabase as any).from("conversations").insert({ user_a: viewerId, user_b: story.user_id }).select("id").single();
+        if (error) throw error;
+        cid = created.id;
+      }
+      const { error } = await (supabase as any).from("messages").insert({ conversation_id: cid, sender_id: viewerId, content: `Respondeu à sua Vibe: ${text}` });
+      if (error) throw error;
+      setMsg(""); setTray(false);
+      try { navigator.vibrate?.(12); } catch { /* noop */ }
+      toast.success("Resposta enviada");
+    } catch (e: any) {
+      toast.error("Não foi possível enviar agora");
+    } finally { setSending(false); }
+  }
 
   // trilha sonora da Vibe
   useEffect(() => {
@@ -120,6 +164,7 @@ export function StoryViewer({
     // fotos avançam em 5s; vídeos avançam pelo tempo real (onLoadedMetadata/onEnded)
     if (story.media_type !== "video") {
       timerRef.current = window.setTimeout(next, dur);
+      startRef.current = Date.now(); remainRef.current = dur;
     }
     return () => { if (timerRef.current) window.clearTimeout(timerRef.current); };
   }, [story, viewerId, next]);
@@ -150,6 +195,7 @@ export function StoryViewer({
                 style={{
                   transform: i < sIdx ? "scaleX(1)" : i > sIdx ? "scaleX(0)" : undefined,
                   animation: i === sIdx ? `story-progress ${mediaMs}ms linear forwards` : undefined,
+                  animationPlayState: paused ? "paused" : "running",
                 }}
               />
             </div>
@@ -219,6 +265,7 @@ export function StoryViewer({
           {url ? (
             story.media_type === "video" ? (
               <video
+                ref={videoRef}
                 key={story.id}
                 src={url}
                 className={cn("h-full w-full animate-in fade-in duration-300", fitCover ? "object-cover" : "object-contain")}
@@ -239,6 +286,7 @@ export function StoryViewer({
                     setMediaMs(ms);
                     if (timerRef.current) window.clearTimeout(timerRef.current);
                     timerRef.current = window.setTimeout(next, ms + 300);
+                    startRef.current = Date.now(); remainRef.current = ms + 300;
                   }
                 }}
               />
@@ -304,6 +352,11 @@ export function StoryViewer({
               ))}
             </div>
               </div>
+              <form className="mt-3 flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); void sendReply(); }}>
+                <input value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Enviar mensagem…" maxLength={500}
+                  className="h-11 flex-1 rounded-full border border-white/15 bg-white/[0.08] px-4 text-sm text-white placeholder:text-white/50 outline-none focus:border-primary" />
+                <button type="submit" disabled={!msg.trim() || sending} className="h-11 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-40 active:scale-95">Enviar</button>
+              </form>
             </div>
             )}
           </div>

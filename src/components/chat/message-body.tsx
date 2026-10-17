@@ -284,6 +284,8 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
   const [progress, setProgress] = useState(0);
   const [currentMs, setCurrentMs] = useState(0);
   const [fallback, setFallback] = useState(false);
+  const [rate, setRate] = useState(1);
+  useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = rate; }, [rate, src]);
   const totalMs = msg.media_duration_ms ?? 0;
   const bars = useMemo(
     () => Array.from({ length: 28 }, (_, i) => 28 + ((msg.id.charCodeAt(i % msg.id.length) + i * 17) % 46)),
@@ -472,7 +474,8 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
                 <span
                   key={index}
                   className={cn(
-                    "w-1 flex-1 rounded-full transition-colors",
+                    "w-1 flex-1 rounded-full transition-all duration-300",
+                    playing && Math.abs(index / bars.length - progress) < 0.06 && "scale-y-125",
                     active ? "bg-current" : mine ? "bg-background/25" : "bg-muted-foreground/30",
                   )}
                   style={{ height: `${height}%` }}
@@ -482,9 +485,14 @@ function AudioBody({ msg, mine }: { msg: Msg; mine: boolean }) {
           </button>
           <div className="mt-0.5 flex items-center justify-between text-[11px] opacity-70 tabular-nums">
             <span>{formatDuration(currentMs || totalMs)}</span>
-            <span className="inline-flex items-center gap-1">
-              <Mic2 className="h-3 w-3" /> voz
-            </span>
+            {playing && !fallback ? (
+              <button type="button" onClick={() => setRate((r) => (r === 1 ? 1.5 : r === 1.5 ? 2 : 1))}
+                className="rounded-full bg-current/10 px-2 py-0.5 text-[11px] font-bold ring-1 ring-current/25 active:scale-95" aria-label="Velocidade do áudio">
+                {rate}x
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1"><Mic2 className="h-3 w-3" /> voz</span>
+            )}
           </div>
         </div>
       </div>

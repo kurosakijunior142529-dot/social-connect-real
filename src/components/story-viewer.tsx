@@ -91,7 +91,7 @@ export function StoryViewer({
     if (!text || !story || sending) return;
     setSending(true);
     try {
-      const { data: cid, error: convErr } = await (supabase as any).rpc("get_or_create_conversation", { other_user: story.user_id });
+      const { data: cid, error: convErr } = await (supabase as any).rpc("get_or_create_conversation", { _other_user: story.user_id });
       if (convErr || !cid) throw convErr ?? new Error("sem conversa");
       const { error } = await (supabase as any).from("messages").insert({ conversation_id: cid, sender_id: viewerId, content: `Respondeu à sua Vibe: ${text}`, kind: "text" });
       if (error) throw error;

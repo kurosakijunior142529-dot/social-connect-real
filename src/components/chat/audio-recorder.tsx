@@ -22,6 +22,7 @@ export function AudioRecorder({ onSend, disabled }: {
   const pendingStop = useRef<"send" | "cancel" | null>(null);
   const cancelled = useRef(false);
   const lockedRef = useRef(false);
+  const suppressClick = useRef(false);
   const gesture = useRef<{ x: number; y: number; held: boolean } | null>(null);
 
   function releaseTracks() {
@@ -113,7 +114,7 @@ export function AudioRecorder({ onSend, disabled }: {
   }
 
   return (
-    <div data-swipe-lock className={cn("relative shrink-0", recording && "flex min-w-0 flex-1 items-center gap-2")}>
+    <div data-swipe-lock data-audio-recording={recording} className={cn("relative shrink-0", recording && "flex min-w-0 flex-1 items-center gap-2")}>
       {recording && <>
         <span className="h-2 w-2 shrink-0 rounded-full bg-destructive motion-safe:animate-pulse" />
         <span role="status" className="text-xs tabular-nums text-foreground">{formatDuration(elapsed)}</span>
@@ -130,10 +131,12 @@ export function AudioRecorder({ onSend, disabled }: {
         onPointerDown={(event) => {
           if (recording || busy || disabled || event.button !== 0) return;
           event.currentTarget.setPointerCapture(event.pointerId);
+          suppressClick.current = false;
           gesture.current = { x: event.clientX, y: event.clientY, held: false };
           holdTimer.current = setTimeout(() => {
             if (!gesture.current) return;
             gesture.current.held = true;
+            suppressClick.current = true;
             void start(false);
           }, 180);
         }}
@@ -157,6 +160,7 @@ export function AudioRecorder({ onSend, disabled }: {
           if (!lockedRef.current) stop(true);
         }}
         onClick={() => {
+          if (suppressClick.current) { suppressClick.current = false; return; }
           if (lockedRef.current && recorderRef.current) return;
           if (recording) { lockedRef.current = true; setLocked(true); return; }
           if (!busy) void start(true);

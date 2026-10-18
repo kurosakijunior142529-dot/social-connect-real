@@ -8,9 +8,9 @@
 - [x] Refinar interface das Vibes (visualizador, trilho, publicação)
 - [x] Mover conquistas para página dedicada
 - [ ] Conectar Firebase Cloud Messaging no novo workspace
-- [ ] Completar gravação de áudio com trava por gesto
-- [ ] Adicionar puxar para atualizar sem conflitos com gestos existentes
-- [ ] Suavizar carregamento das fotos mantendo proporções
+- [x] Completar gravação de áudio com trava por gesto
+- [x] Adicionar puxar para atualizar sem conflitos com gestos existentes
+- [x] Suavizar carregamento das fotos mantendo proporções
 - [x] Corrigir remoção de marca d'água em vídeos
 - [x] Corrigir privacidade do bucket de realidades (leitura restrita)
 - [x] Refinar profissionalmente o perfil e validar em celulares

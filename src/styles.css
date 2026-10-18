@@ -601,6 +601,7 @@
 @keyframes media-photo-reveal { from { opacity: 0.3; } to { opacity: 1; } }
 .media-photo-ready { animation: media-photo-reveal 240ms ease-out; }
 .audio-record-trigger { touch-action: none; }
+form:has(> [data-audio-recording="true"]) > :not([data-audio-recording="true"]) { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .media-photo-loading, .media-photo-ready { animation: none; }
 }

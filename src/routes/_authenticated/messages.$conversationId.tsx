@@ -1,3 +1,4 @@
+import { SwipeReply } from "@/components/chat/swipe-reply";
 import { appConfirm, appPrompt, appAlert } from "@/components/app-dialog";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { VerifiedName } from "@/components/verified-badge";
@@ -1145,6 +1146,13 @@ const MessageRow = memo(
               />
             ) : null}
             <div className="max-w-[78%]">
+              <SwipeReply
+                onReply={() => p.onReply({ id: m.id, content: m.content })}
+                onDoubleTap={() => {
+                  const h = p.reactions.find((r: any) => r.emoji === "❤️" && r.mine);
+                  if (!h) p.onToggleReaction(m.id, "❤️", false);
+                }}
+              >
               <div
                 style={{
                   borderTopLeftRadius: bigRadius,
@@ -1174,6 +1182,7 @@ const MessageRow = memo(
                   </div>
                 ) : null}
               </div>
+              </SwipeReply>
               {metaRow}
               <ReactionsBar
                 reactions={p.reactions}

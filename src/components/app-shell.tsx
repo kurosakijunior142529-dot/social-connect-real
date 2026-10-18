@@ -12,6 +12,8 @@ import { signOutAndClearSession } from "@/lib/auth-session";
 import { MobileMoreSheet } from "@/components/mobile-more-sheet";
 import { InAppBanner } from "@/components/in-app-banner";
 import { PullToRefresh } from "@/components/pull-to-refresh";
+import { ConnectionBanner } from "@/components/connection-banner";
+import { useQuery } from "@tanstack/react-query";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
@@ -81,6 +83,17 @@ export function AppShell({
   const unread = useUnreadNotifications(userId);
 
   const unreadCount = unread.data ?? 0;
+  const dmUnread = useQuery({
+    queryKey: ["dm-unread", userId],
+    enabled: !!userId,
+    refetchInterval: 20000,
+    queryFn: async () => {
+      const { count } = await supabase.from("chat_messages").select("id", { count: "exact", head: true })
+        .neq("sender_id", userId!).is("read_at", null);
+      return count ?? 0;
+    },
+  });
+  const dmCount = dmUnread.data ?? 0;
 
   const items: NavItem[] = [
     { to: "/", label: t("nav.home"), Icon: Home },
@@ -143,6 +156,12 @@ export function AppShell({
   }, []);
   useEffect(() => setDockHidden(false), [pathname]);
 
+  const DmBadge = () =>
+    dmCount > 0 ? (
+      <span className="unread-pill absolute -top-1.5 -right-2 min-w-4 h-4 px-1 rounded-full bg-primary text-[9px] font-bold leading-4 text-center text-primary-foreground ring-2 ring-background">
+        {dmCount > 99 ? "99+" : dmCount}
+      </span>
+    ) : null;
   const Badge = () =>
     unreadCount > 0 ? (
       <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
@@ -204,6 +223,7 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-background">
       <InAppBanner userId={userId} />
+      <ConnectionBanner />
       {/* Desktop sidebar */}
       <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-64 md:flex-col md:border-r md:border-[color:var(--hairline)] md:bg-sidebar">
         <div className="px-6 pt-8 pb-7">
@@ -227,7 +247,7 @@ export function AppShell({
               >
                 <span className="relative">
                   <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.2 : 1.6} />
-                  {isNotif ? <Badge /> : null}
+                  {isNotif ? <Badge /> : to === "/messages" ? <DmBadge /> : null}
                 </span>
                 {label}
               </Link>
@@ -369,7 +389,7 @@ export function AppShell({
                 >
                   <span className="relative">
                     <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.2 : 1.6} />
-                    {isNotif ? <Badge /> : null}
+                    {isNotif ? <Badge /> : to === "/messages" ? <DmBadge /> : null}
                   </span>
                   {active ? <span className="absolute bottom-1 h-1 w-3 rounded-full bg-primary" /> : null}
                 </Link>

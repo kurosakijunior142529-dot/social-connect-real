@@ -209,7 +209,7 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
         list.length
           ? supabase
               .from("messages")
-              .select("conversation_id, content, created_at, sender_id, media_type, read_at")
+              .select("conversation_id, content, created_at, sender_id, media_type, read_at, kind")
               .in("conversation_id", list.map((c) => c.id))
               .order("created_at", { ascending: false })
           : Promise.resolve({ data: [] as any[] }),
@@ -222,8 +222,10 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
       ]);
       const profiles = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
       const lastByConv = new Map<string, any>();
+      const unreadByConv = new Map<string, number>();
       for (const m of lastMessagesRes.data ?? []) {
         if (!lastByConv.has(m.conversation_id)) lastByConv.set(m.conversation_id, m);
+        if (m.sender_id !== userId && !m.read_at) unreadByConv.set(m.conversation_id, (unreadByConv.get(m.conversation_id) ?? 0) + 1);
       }
       // Streak vale se o último dia em que ambos falaram foi hoje ou ontem (horário de SP)
       const spToday = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -236,7 +238,7 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
       }
       return list.map((c) => {
         const otherId = c.user_a === userId ? c.user_b : c.user_a;
-        return { ...c, other: profiles.get(otherId), last: lastByConv.get(c.id), streak: streakByConv.get(c.id) ?? 0 };
+        return { ...c, other: profiles.get(otherId), last: lastByConv.get(c.id), streak: streakByConv.get(c.id) ?? 0, unreadCount: unreadByConv.get(c.id) ?? 0 };
       });
     },
   });
@@ -383,18 +385,14 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
                   <div className="flex shrink-0 items-center gap-1 text-muted-foreground">
                     {muted && <BellOff className="h-3 w-3" aria-label="Silenciada" />}
                     {p.pinned_at && <Pin className="h-3 w-3 text-primary" aria-label="Fixada" />}
-                    {c.last ? (
-                      <span className="text-[10px] tabular uppercase tracking-widest">
-                        {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
-                      </span>
-                    ) : null}
+                    {c.last ? <TimeLabel at={c.last.created_at} hot={unread && !muted} /> : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className={cn("flex-1 truncate text-[13px] leading-snug", unread ? "font-semibold text-foreground" : "text-muted-foreground")}>
                     {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : "Diga oi 👋"}
                   </div>
-                  {unread && <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", muted ? "bg-muted-foreground" : "bg-primary")} aria-label="Não lida" />}
+                  {unread && <UnreadPill count={c.unreadCount} muted={muted} />}
                 </div>
               </div>
             </Link>
@@ -438,15 +436,23 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
       const { data: lastMessages } = list.length
         ? await (supabase as any)
             .from("chat_messages")
-            .select("chat_id, content, created_at, sender_id, media_type")
+            .select("chat_id, content, created_at, sender_id, media_type, kind")
             .in("chat_id", list.map((c) => c.id))
             .order("created_at", { ascending: false })
         : { data: [] as any[] };
       const lastByChat = new Map<string, any>();
+      const seen = readSeen(userId);
+      const unreadByChat = new Map<string, number>();
       for (const m of (lastMessages ?? []) as any[]) {
         if (!lastByChat.has(m.chat_id)) lastByChat.set(m.chat_id, m);
+        const s = seen[m.chat_id];
+        if (s && m.sender_id !== userId && m.created_at > s) unreadByChat.set(m.chat_id, (unreadByChat.get(m.chat_id) ?? 0) + 1);
       }
-      return list.map((c) => ({ ...c, last: lastByChat.get(c.id) }));
+      // Primeira vez: marca como visto agora para não mostrar números gigantes antigos
+      let changed = false;
+      for (const c of list) if (!seen[c.id]) { seen[c.id] = new Date().toISOString(); changed = true; }
+      if (changed) writeSeen(userId, seen);
+      return list.map((c) => ({ ...c, last: lastByChat.get(c.id), unreadCount: unreadByChat.get(c.id) ?? 0 }));
     },
   });
 
@@ -532,6 +538,8 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
       {rows.map((c: any) => {
         const p = prefOf(c.id);
         const isMuted = mutes.data?.has(c.id) ?? false;
+        const unreadN = c.unreadCount ?? 0;
+        const hasUnread = unreadN > 0 || p.marked_unread;
         return (
           <li key={c.id}>
             <SwipeRow
@@ -543,10 +551,11 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
             >
             <Link
               to="/chats/$id"
-              onClick={() => p.marked_unread && patch(c.id, { marked_unread: false })}
+              onClick={() => { markSeen(userId, c.id); if (p.marked_unread) patch(c.id, { marked_unread: false }); }}
               params={{ id: c.id }}
               className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:scale-[0.99] active:bg-[color:var(--surface)]"
             >
+              <div className={cn("shrink-0 rounded-full p-[2px] transition", hasUnread && !isMuted && type === "channel" ? "unread-ring" : "")}>
               {c.avatar_url ? (
                 <div className="h-12 w-12 rounded-full overflow-hidden bg-[color:var(--surface-2)] border border-white/10">
                   <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -556,6 +565,7 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
                   {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
                 </div>
               )}
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
                   <div className={cn("flex min-w-0 items-center gap-1.5 truncate text-[15px]", p.marked_unread ? "font-bold" : "font-semibold")}>
@@ -564,19 +574,19 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
                     {isMuted && <BellOff className="h-3 w-3 shrink-0 text-muted-foreground" />}
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    {c.last ? (
-                      <span className="text-[10px] tabular uppercase tracking-widest text-muted-foreground">
-                        {formatDistanceToNowStrict(new Date(c.last.created_at), { locale: ptBR })}
-                      </span>
-                    ) : null}
-                    {p.marked_unread && <span className={cn("h-2 w-2 rounded-full", isMuted ? "bg-muted-foreground" : "bg-primary")} />}
+                    {c.last ? <TimeLabel at={c.last.created_at} hot={hasUnread && !isMuted} /> : null}
                   </div>
                 </div>
-                <div className="text-[13px] truncate leading-snug text-muted-foreground">
-                  {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
-                  {type === "channel" && counts.data?.has(c.id) ? (
-                    <div className="mt-0.5 text-[11px] text-muted-foreground/80">{formatMembers(counts.data.get(c.id) ?? 0)}</div>
-                  ) : null}
+                <div className="flex items-start gap-2">
+                  <div className={cn("min-w-0 flex-1 text-[13px] leading-snug", hasUnread ? "text-foreground" : "text-muted-foreground")}>
+                    <div className={cn(type === "channel" ? "line-clamp-2" : "truncate")}>
+                      {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : c.description ?? (type === "group" ? "Grupo criado" : "Canal criado")}
+                    </div>
+                    {type === "channel" && counts.data?.has(c.id) ? (
+                      <div className="mt-0.5 text-[11px] text-muted-foreground/80">{formatMembers(counts.data.get(c.id) ?? 0)}</div>
+                    ) : null}
+                  </div>
+                  {hasUnread && <UnreadPill count={unreadN} muted={isMuted} />}
                 </div>
               </div>
             </Link>
@@ -600,10 +610,55 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
   );
 }
 
+const seenKey = (u: string) => `vibely:chat-seen:${u}`;
+function readSeen(u: string): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(seenKey(u)) || "{}"); } catch { return {}; }
+}
+function writeSeen(u: string, v: Record<string, string>) {
+  try { localStorage.setItem(seenKey(u), JSON.stringify(v)); } catch { /* */ }
+}
+function markSeen(u: string, id: string) {
+  const s = readSeen(u); s[id] = new Date().toISOString(); writeSeen(u, s);
+}
+
+function TimeLabel({ at, hot }: { at: string; hot: boolean }) {
+  const d = new Date(at);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const yest = new Date(now.getTime() - 86400e3).toDateString() === d.toDateString();
+  const label = sameDay
+    ? d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    : yest ? "Ontem"
+    : now.getTime() - d.getTime() < 6 * 86400e3 ? d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")
+    : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  return <span className={cn("text-[11px] tabular", hot ? "font-semibold text-primary" : "text-muted-foreground")}>{label}</span>;
+}
+
+function UnreadPill({ count, muted }: { count: number; muted: boolean }) {
+  const text = count > 999 ? "999+" : count > 0 ? String(count) : "";
+  return (
+    <span
+      aria-label={count ? `${count} não lidas` : "Não lida"}
+      className={cn(
+        "unread-pill grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular leading-none",
+        muted ? "bg-muted-foreground/40 text-foreground" : "bg-primary text-primary-foreground",
+        !text && "h-2.5 min-w-2.5 px-0",
+      )}
+    >
+      {text}
+    </span>
+  );
+}
+
 function Preview({ m, mine }: { m: any; mine: boolean }) {
   const t = String(m.media_type ?? "");
-  const icon = t.startsWith("audio") ? <Mic className="h-3.5 w-3.5" /> : t.startsWith("image") ? <Camera className="h-3.5 w-3.5" /> : t.startsWith("video") ? <Video className="h-3.5 w-3.5" /> : null;
-  const label = t.startsWith("audio") ? "Áudio" : t.startsWith("image") ? "Foto" : t.startsWith("video") ? "Vídeo" : null;
+  const k = String(m.kind ?? "");
+  const isSticker = k === "sticker" || t.includes("sticker");
+  const isGif = k === "gif" || t.includes("gif");
+  const icon = isSticker ? <Sparkles className="h-3.5 w-3.5" /> : t.startsWith("audio") ? <Mic className="h-3.5 w-3.5" /> : t.startsWith("image") ? <Camera className="h-3.5 w-3.5" /> : t.startsWith("video") ? <Video className="h-3.5 w-3.5" /> : null;
+  const label = isSticker ? "Figurinha" : isGif ? "GIF" : t.startsWith("audio") ? "Áudio" : t.startsWith("image") ? "Foto" : t.startsWith("video") ? "Vídeo" : null;
   const text = m.content || label || "Mensagem";
   return (
     <span className="inline-flex max-w-full items-center gap-1 truncate">

@@ -17,6 +17,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/_authenticated/")({
   ssr: false,
+  head: () => ({ meta: [
+    { title: "Feed | Vibely" },
+    { name: "description", content: "Publicações e Vibes dos seus amigos no Vibely." },
+    { property: "og:title", content: "Feed | Vibely" },
+    { property: "og:description", content: "Publicações e Vibes dos seus amigos no Vibely." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: FeedPage,
 });
 

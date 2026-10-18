@@ -40,6 +40,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_authenticated/messages/")({
+  head: () => ({ meta: [
+    { title: "Conversas | Vibely" },
+    { name: "description", content: "Suas conversas privadas, grupos e canais no Vibely." },
+    { property: "og:title", content: "Conversas | Vibely" },
+    { property: "og:description", content: "Suas conversas privadas, grupos e canais no Vibely." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: MessagesPage,
 });
 

@@ -15,7 +15,7 @@ type Props = {
 };
 
 function Placeholder({ className }: { className?: string }) {
-  return <div className={cn("bg-[color:var(--surface-2)] animate-pulse", className)} />;
+  return <div aria-hidden className={cn("media-photo-loading", className)} />;
 }
 
 function BrokenMedia({ className }: { className?: string }) {
@@ -30,6 +30,7 @@ export function SignedImage({ bucket, path, alt, className, fallback }: Props) {
   const { data: url, isLoading, refetch } = useSignedUrl(bucket, path);
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [loadedSource, setLoadedSource] = useState("");
 
   // Reset error state whenever the source changes.
   useEffect(() => {
@@ -46,9 +47,10 @@ export function SignedImage({ bucket, path, alt, className, fallback }: Props) {
       key={attempt}
       src={attempt === 0 ? url : `${url}${url.includes("?") ? "&" : "?"}r=${attempt}`}
       alt={alt}
-      className={className}
+      className={cn(className, loadedSource === `${url}:${attempt}` ? "media-photo-ready" : "media-photo-loading")}
       loading="lazy"
       decoding="async"
+      onLoad={() => setLoadedSource(`${url}:${attempt}`)}
       onError={() => {
         console.error(`[media] failed to load image ${bucket}/${path} (attempt ${attempt + 1})`);
         if (attempt < 2) {

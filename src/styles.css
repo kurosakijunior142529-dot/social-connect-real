@@ -917,3 +917,17 @@ img { content-visibility: auto; }
 .unread-ring > * { outline: 2px solid var(--background); }
 .unread-pill { box-shadow: 0 2px 8px -3px color-mix(in oklab, var(--primary) 70%, transparent); animation: unread-pop .35s cubic-bezier(.3,1.6,.5,1); }
 @keyframes unread-pop { from { transform: scale(.4); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+
+/* Linhas de conversa premium */
+.chat-row { position: relative; }
+.chat-row:hover { background: color-mix(in oklab, var(--surface) 70%, transparent); }
+.chat-row:active { background: var(--surface); }
+.chat-row-hot {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 9%, transparent), transparent 70%);
+}
+.chat-row-hot::before {
+  content: ""; position: absolute; left: 0; top: 22%; bottom: 22%; width: 3px;
+  border-radius: 999px; background: var(--primary);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--primary) 70%, transparent);
+}
+.unread-pill { box-shadow: 0 4px 12px -3px color-mix(in oklab, var(--primary) 60%, transparent); }

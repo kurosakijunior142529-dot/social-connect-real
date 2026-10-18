@@ -555,15 +555,15 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
               to="/chats/$id"
               onClick={() => { markSeen(userId, c.id); if (p.marked_unread) patch(c.id, { marked_unread: false }); }}
               params={{ id: c.id }}
-              className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:scale-[0.99] active:bg-[color:var(--surface)]"
+              className={cn("chat-row flex items-center gap-3 rounded-[22px] px-3 py-3 transition-all active:scale-[0.985]", hasUnread && !isMuted && "chat-row-hot")}
             >
               <div className={cn("shrink-0 rounded-full p-[2px] transition", hasUnread && !isMuted && type === "channel" ? "unread-ring" : "")}>
               {c.avatar_url ? (
-                <div className="h-12 w-12 rounded-full overflow-hidden bg-[color:var(--surface-2)] border border-white/10">
+                <div className="h-[52px] w-[52px] rounded-full overflow-hidden bg-[color:var(--surface-2)] border-2 border-background">
                   <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
                 </div>
               ) : (
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] border border-white/10 text-foreground">
+                <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-gradient-to-br from-primary/25 to-[color:var(--surface-2)] border-2 border-background text-foreground">
                   {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
                 </div>
               )}

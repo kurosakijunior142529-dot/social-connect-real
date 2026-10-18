@@ -1,150 +1,172 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, Send, Trash2 } from "lucide-react";
+import { Mic, Send, Trash2, LockKeyhole, ChevronUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/chat-media";
+import { Button } from "@/components/ui/button";
 
-export function AudioRecorder({
-  onSend,
-  disabled,
-}: {
+export function AudioRecorder({ onSend, disabled }: {
   onSend: (file: File, durationMs: number) => void | Promise<void>;
   disabled?: boolean;
 }) {
   const [recording, setRecording] = useState(false);
+  const [locked, setLocked] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [busy, setBusy] = useState(false);
-  const chunks = useRef<Blob[]>([]);
-  const mr = useRef<MediaRecorder | null>(null);
-  const stream = useRef<MediaStream | null>(null);
-  const startedAt = useRef<number>(0);
-  const timer = useRef<number | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef(true);
+  const starting = useRef(false);
+  const pendingStop = useRef<"send" | "cancel" | null>(null);
   const cancelled = useRef(false);
+  const lockedRef = useRef(false);
+  const suppressClick = useRef(false);
+  const gesture = useRef<{ x: number; y: number; held: boolean } | null>(null);
 
-  useEffect(() => () => cleanup(), []);
-
-  function cleanup() {
-    if (timer.current) window.clearInterval(timer.current);
+  function releaseTracks() {
+    if (timer.current) clearInterval(timer.current);
     timer.current = null;
-    stream.current?.getTracks().forEach((t) => t.stop());
-    stream.current = null;
-    mr.current = null;
-    chunks.current = [];
-    setElapsed(0);
-    setRecording(false);
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    recorderRef.current = null;
   }
 
-  async function start() {
-    if (disabled || busy) return;
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: { ideal: 1 },
-          sampleRate: { ideal: 48000 },
-        } as MediaTrackConstraints,
-      });
-      stream.current = s;
-      // Prefer mp4/AAC when available — Safari/iOS can't play webm/opus.
-      // Chrome desktop supports mp4 recording since v138; Safari uses mp4 natively.
-      const candidates = [
-        "audio/mp4;codecs=mp4a.40.2",
-        "audio/mp4",
-        "audio/aac",
-        "audio/webm;codecs=opus",
-        "audio/webm",
-      ];
-      const mime = candidates.find((c) => MediaRecorder.isTypeSupported(c)) ?? "";
-      // 128 kbps keeps voice notes clean instead of the browser's low default.
-      const recorderOptions: MediaRecorderOptions = { audioBitsPerSecond: 128_000 };
-      const recorder = mime
-        ? new MediaRecorder(s, { ...recorderOptions, mimeType: mime })
-        : new MediaRecorder(s, recorderOptions);
-
-      mr.current = recorder;
-      chunks.current = [];
-      cancelled.current = false;
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.current.push(e.data);
-      };
-      recorder.onstop = async () => {
-        const duration = Date.now() - startedAt.current;
-        const blob = new Blob(chunks.current, { type: recorder.mimeType || "audio/webm" });
-        cleanup();
-        if (cancelled.current) return;
-        if (blob.size < 500) return; // ignore accidental taps
-        setBusy(true);
-        try {
-          const mt = (recorder.mimeType || "audio/webm").toLowerCase();
-          const ext = mt.includes("mp4") || mt.includes("aac") ? "m4a" : "webm";
-          const file = new File([blob], `audio-${Date.now()}.${ext}`, { type: blob.type });
-          await onSend(file, duration);
-        } finally {
-          setBusy(false);
-        }
-      };
-      startedAt.current = Date.now();
-      recorder.start(250);
-      setRecording(true);
-      setElapsed(0);
-      timer.current = window.setInterval(() => setElapsed(Date.now() - startedAt.current), 250);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Permissão de microfone negada");
-      cleanup();
-    }
-  }
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      cancelled.current = true;
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      const recorder = recorderRef.current;
+      if (recorder) {
+        recorder.onstop = null;
+        recorder.ondataavailable = null;
+        if (recorder.state !== "inactive") recorder.stop();
+      }
+      releaseTracks();
+    };
+  }, []);
 
   function stop(cancel = false) {
     cancelled.current = cancel;
-    try {
-      mr.current?.state !== "inactive" && mr.current?.stop();
-    } catch {
-      cleanup();
-    }
+    if (starting.current) { pendingStop.current = cancel ? "cancel" : "send"; return; }
+    const recorder = recorderRef.current;
+    if (recorder?.state === "recording") recorder.stop();
   }
 
-  if (!recording) {
-    return (
-      <button
-        type="button"
-        onClick={start}
-        disabled={disabled || busy}
-        aria-label="Gravar áudio"
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-chat-mine text-chat-mine-foreground glow-chat disabled:opacity-40"
-      >
-        <Mic className="h-[18px] w-[18px]" strokeWidth={2} />
-      </button>
-    );
+  async function start(lock: boolean) {
+    if (disabled || busy || starting.current || recorderRef.current) return;
+    starting.current = true;
+    pendingStop.current = null;
+    cancelled.current = false;
+    lockedRef.current = lock;
+    setLocked(lock);
+    setBusy(true);
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+        throw new Error("Este navegador não permite gravar áudio");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: {
+        echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+        channelCount: { ideal: 1 }, sampleRate: { ideal: 48000 },
+      } });
+      if (!mounted.current || pendingStop.current === "cancel") {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
+      const mime = ["audio/mp4;codecs=mp4a.40.2", "audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm"]
+        .find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, { audioBitsPerSecond: 128_000, ...(mime ? { mimeType: mime } : {}) });
+      recorderRef.current = recorder;
+      const chunks: Blob[] = [];
+      const startedAt = Date.now();
+      recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+      recorder.onstop = async () => {
+        const duration = Date.now() - startedAt;
+        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+        const discard = cancelled.current;
+        releaseTracks();
+        if (!mounted.current) return;
+        setRecording(false); setLocked(false); setElapsed(0);
+        if (discard || blob.size < 500) return;
+        setBusy(true);
+        try {
+          const ext = /mp4|aac/i.test(blob.type) ? "m4a" : "webm";
+          await onSend(new File([blob], `audio-${Date.now()}.${ext}`, { type: blob.type }), duration);
+        } catch { toast.error("Não foi possível enviar o áudio"); }
+        finally { if (mounted.current) setBusy(false); }
+      };
+      recorder.start(250);
+      setRecording(true); setElapsed(0);
+      timer.current = setInterval(() => setElapsed(Date.now() - startedAt), 250);
+      starting.current = false;
+      if (pendingStop.current) stop(pendingStop.current === "cancel");
+    } catch (error) {
+      releaseTracks();
+      if (mounted.current) {
+        setRecording(false);
+        toast.error(error instanceof Error ? error.message : "Não foi possível acessar o microfone");
+      }
+    } finally { starting.current = false; if (mounted.current) setBusy(false); }
   }
 
   return (
-    <div className="flex-1 flex items-center gap-2 rounded-full bg-destructive/10 border border-destructive/30 px-3 py-1.5">
-      <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-      <span className="text-[13px] font-medium text-destructive tabular-nums">
-        {formatDuration(elapsed)}
-      </span>
-      <span className={cn("text-[12px] text-muted-foreground truncate")}>gravando…</span>
-      <button
-        type="button"
-        onClick={() => stop(true)}
-        aria-label="Cancelar"
-        className="ml-auto p-1.5 rounded-full hover:bg-destructive/20 text-destructive"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onClick={() => stop(false)}
-        aria-label="Enviar"
-        className="p-1.5 rounded-full bg-primary text-primary-foreground"
-      >
-        <Send className="h-4 w-4" strokeWidth={2.2} />
-      </button>
-      <button type="button" onClick={() => stop(true)} className="sr-only">
-        <Square className="h-4 w-4" />
-      </button>
+    <div data-swipe-lock data-audio-recording={recording} className={cn("relative shrink-0", recording && "flex min-w-0 flex-1 items-center gap-2")}>
+      {recording && <>
+        <span className="h-2 w-2 shrink-0 rounded-full bg-destructive motion-safe:animate-pulse" />
+        <span role="status" className="text-xs tabular-nums text-foreground">{formatDuration(elapsed)}</span>
+        {locked && <LockKeyhole aria-label="Gravação travada" className="h-4 w-4 shrink-0 text-muted-foreground" />}
+        <Button type="button" variant="ghost" size="icon" className="ml-auto shrink-0 rounded-full text-destructive"
+          onClick={() => stop(true)} aria-label="Cancelar áudio" title="Cancelar áudio"><Trash2 /></Button>
+        <Button type="button" size="icon" className="shrink-0 rounded-full" onClick={() => stop()} aria-label="Enviar áudio" title="Enviar áudio"><Send /></Button>
+      </>}
+      {recording && !locked && <span aria-hidden className="pointer-events-none absolute bottom-14 right-1 flex flex-col items-center gap-1 rounded-full border border-border bg-background p-2 text-muted-foreground shadow-sm"><LockKeyhole className="h-4 w-4" /><ChevronUp className="h-4 w-4" /></span>}
+      <Button type="button" variant="ghost" size="icon"
+        disabled={disabled || busy} aria-label={recording ? "Travar gravação" : "Gravar áudio"}
+        title={recording ? "Travar gravação" : "Gravar áudio"}
+        className={cn("audio-record-trigger h-10 w-10 shrink-0 touch-none rounded-full bg-chat-mine text-chat-mine-foreground glow-chat", recording && locked && "hidden")}
+        onPointerDown={(event) => {
+          if (recording || busy || disabled || event.button !== 0) return;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          suppressClick.current = false;
+          gesture.current = { x: event.clientX, y: event.clientY, held: false };
+          holdTimer.current = setTimeout(() => {
+            if (!gesture.current) return;
+            gesture.current.held = true;
+            suppressClick.current = true;
+            void start(false);
+          }, 180);
+        }}
+        onPointerMove={(event) => {
+          const origin = gesture.current;
+          if (!origin?.held || lockedRef.current) return;
+          if (event.clientY - origin.y < -64) {
+            lockedRef.current = true; setLocked(true);
+            navigator.vibrate?.(10);
+          } else if (event.clientX - origin.x < -80) { gesture.current = null; stop(true); }
+        }}
+        onPointerUp={() => {
+          if (holdTimer.current) clearTimeout(holdTimer.current);
+          const origin = gesture.current;
+          gesture.current = null;
+          if (origin?.held && !lockedRef.current) stop();
+        }}
+        onPointerCancel={() => {
+          if (holdTimer.current) clearTimeout(holdTimer.current);
+          gesture.current = null;
+          if (!lockedRef.current) stop(true);
+        }}
+        onClick={() => {
+          if (suppressClick.current) { suppressClick.current = false; return; }
+          if (lockedRef.current && recorderRef.current) return;
+          if (recording) { lockedRef.current = true; setLocked(true); return; }
+          if (!busy) void start(true);
+        }}>
+        {busy ? <Loader2 className="animate-spin" /> : <Mic />}
+      </Button>
     </div>
   );
 }

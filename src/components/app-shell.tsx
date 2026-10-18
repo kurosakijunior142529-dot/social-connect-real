@@ -11,6 +11,7 @@ import { useUnreadNotifications } from "@/hooks/use-notifications";
 import { signOutAndClearSession } from "@/lib/auth-session";
 import { MobileMoreSheet } from "@/components/mobile-more-sheet";
 import { InAppBanner } from "@/components/in-app-banner";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 
 type NavItem = { to: string; label: string; Icon: typeof Home };
 
@@ -190,7 +191,15 @@ export function AppShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [swipeIdx, swipeTabs.join("|"), navigate]);
 
-  const content = children;
+  const refreshKeys = pathname === "/" ? ["feed-graph", "feed", "stories-rail"]
+    : pathname === "/messages" ? ["conversations", "conv-prefs", "chats", "chat-mutes"] : [];
+  const content = refreshKeys.length ? (
+    <PullToRefresh key={pathname} onRefresh={async () => {
+      for (const key of refreshKeys) {
+        await queryClient.invalidateQueries({ queryKey: [key], refetchType: "active" });
+      }
+    }}>{children}</PullToRefresh>
+  ) : children;
 
   return (
     <div className="min-h-screen bg-background">

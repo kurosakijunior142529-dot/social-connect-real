@@ -11,3 +11,6 @@
 
 - Verification UI is centralized in `verified-badge.tsx`; keep badge meaning, authenticity details, and category visuals sourced from its shared configuration so every surface stays consistent.
 - Wallpaper images use existing allowed conversation wallpaper IDs; resolve images centrally in the picker, while dimming stays device-local per conversation to avoid changing the other participant's brightness.
+- Keep pull-to-refresh scoped to feed and conversation lists in the app shell; exclude nested scrollers and gesture-owned controls to preserve navigation and message actions.
+- Photo loading transitions belong in SignedImage and global semantic CSS, preserving callers' sizing and private-media retries.
+- The shared audio recorder owns pointer capture and recording cleanup so locking gestures behave identically in direct and group conversations.

@@ -7,7 +7,7 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "@/lib/safe-date";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles, Lock, Unlock, Pin, BellOff } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles, Lock, Unlock, Pin, BellOff, CheckCheck } from "lucide-react";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
@@ -365,9 +365,11 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
               to="/messages/$conversationId"
               params={{ conversationId: c.id }}
               onClick={() => { if (p.marked_unread) void savePrefs(userId, c.id, { marked_unread: false }).then(refresh); }}
-              className="flex select-none items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:bg-[color:var(--surface)]"
+              className={cn("chat-row flex select-none items-center gap-3 rounded-[22px] px-3 py-3 transition-all active:scale-[0.985]", unread && !muted && "chat-row-hot")}
             >
-              <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12 rounded-full border border-white/10" />
+              <div className={cn("shrink-0 rounded-full p-[2px]", unread && !muted ? "unread-ring" : "")}>
+                <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-[52px] w-[52px] rounded-full border-2 border-background" />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
                   <div className="truncate text-[15px] font-semibold flex items-center gap-1.5">
@@ -390,7 +392,7 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
                 </div>
                 <div className="flex items-center gap-2">
                   <div className={cn("flex-1 truncate text-[13px] leading-snug", unread ? "font-semibold text-foreground" : "text-muted-foreground")}>
-                    {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : "Diga oi 👋"}
+                    {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} read={!!c.last.read_at} /> : "Diga oi 👋"}
                   </div>
                   {unread && <UnreadPill count={c.unreadCount} muted={muted} />}
                 </div>
@@ -553,15 +555,15 @@ function ChatList({ userId, type, q, filter }: { userId: string; type: "group" |
               to="/chats/$id"
               onClick={() => { markSeen(userId, c.id); if (p.marked_unread) patch(c.id, { marked_unread: false }); }}
               params={{ id: c.id }}
-              className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:scale-[0.99] active:bg-[color:var(--surface)]"
+              className={cn("chat-row flex items-center gap-3 rounded-[22px] px-3 py-3 transition-all active:scale-[0.985]", hasUnread && !isMuted && "chat-row-hot")}
             >
               <div className={cn("shrink-0 rounded-full p-[2px] transition", hasUnread && !isMuted && type === "channel" ? "unread-ring" : "")}>
               {c.avatar_url ? (
-                <div className="h-12 w-12 rounded-full overflow-hidden bg-[color:var(--surface-2)] border border-white/10">
+                <div className="h-[52px] w-[52px] rounded-full overflow-hidden bg-[color:var(--surface-2)] border-2 border-background">
                   <SignedImage bucket="chats" path={c.avatar_url} alt="" className="h-full w-full object-cover" />
                 </div>
               ) : (
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-[color:var(--surface-2)] border border-white/10 text-foreground">
+                <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-gradient-to-br from-primary/25 to-[color:var(--surface-2)] border-2 border-background text-foreground">
                   {type === "group" ? <Users className="h-5 w-5" strokeWidth={1.6} /> : <Megaphone className="h-5 w-5" strokeWidth={1.6} />}
                 </div>
               )}
@@ -652,18 +654,21 @@ function UnreadPill({ count, muted }: { count: number; muted: boolean }) {
   );
 }
 
-function Preview({ m, mine }: { m: any; mine: boolean }) {
+function Preview({ m, mine, read }: { m: any; mine: boolean; read?: boolean }) {
   const t = String(m.media_type ?? "");
   const k = String(m.kind ?? "");
   const isSticker = k === "sticker" || t.includes("sticker");
   const isGif = k === "gif" || t.includes("gif");
-  const icon = isSticker ? <Sparkles className="h-3.5 w-3.5" /> : t.startsWith("audio") ? <Mic className="h-3.5 w-3.5" /> : t.startsWith("image") ? <Camera className="h-3.5 w-3.5" /> : t.startsWith("video") ? <Video className="h-3.5 w-3.5" /> : null;
-  const label = isSticker ? "Figurinha" : isGif ? "GIF" : t.startsWith("audio") ? "Áudio" : t.startsWith("image") ? "Foto" : t.startsWith("video") ? "Vídeo" : null;
+  const cls = "h-3.5 w-3.5";
+  const icon = isSticker ? <Sparkles className={cls} /> : t.startsWith("audio") ? <Mic className={cls} /> : t.startsWith("image") ? <Camera className={cls} /> : t.startsWith("video") ? <Video className={cls} /> : null;
+  const label = isSticker ? "Figurinha" : isGif ? "GIF" : t.startsWith("audio") ? "Mensagem de voz" : t.startsWith("image") ? "Foto" : t.startsWith("video") ? "Vídeo" : null;
   const text = m.content || label || "Mensagem";
   return (
     <span className="inline-flex max-w-full items-center gap-1 truncate">
-      {mine && <span className="shrink-0 text-muted-foreground">Você:</span>}
-      {icon && <span className="shrink-0">{icon}</span>}
+      {mine && (read
+        ? <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-label="Lida" />
+        : <CheckCheck className="h-4 w-4 shrink-0 text-muted-foreground/70" aria-label="Entregue" />)}
+      {icon && <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[color:var(--surface-2)]", t.startsWith("audio") && "text-primary")}>{icon}</span>}
       <span className="truncate">{text}</span>
     </span>
   );

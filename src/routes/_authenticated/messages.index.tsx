@@ -365,9 +365,11 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
               to="/messages/$conversationId"
               params={{ conversationId: c.id }}
               onClick={() => { if (p.marked_unread) void savePrefs(userId, c.id, { marked_unread: false }).then(refresh); }}
-              className="flex select-none items-center gap-3 rounded-2xl px-3 py-2.5 transition-all hover:bg-[color:var(--surface)]/60 active:bg-[color:var(--surface)]"
+              className={cn("chat-row flex select-none items-center gap-3 rounded-[22px] px-3 py-3 transition-all active:scale-[0.985]", unread && !muted && "chat-row-hot")}
             >
-              <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-12 w-12 rounded-full border border-white/10" />
+              <div className={cn("shrink-0 rounded-full p-[2px]", unread && !muted ? "unread-ring" : "")}>
+                <UserAvatar avatarPath={c.other?.avatar_url} displayName={c.other?.display_name ?? "?"} verified={!!(c.other as any)?.is_verified} badgeVariant={((c.other as any)?.badge_variant) ?? null} className="h-[52px] w-[52px] rounded-full border-2 border-background" />
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
                   <div className="truncate text-[15px] font-semibold flex items-center gap-1.5">
@@ -390,7 +392,7 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
                 </div>
                 <div className="flex items-center gap-2">
                   <div className={cn("flex-1 truncate text-[13px] leading-snug", unread ? "font-semibold text-foreground" : "text-muted-foreground")}>
-                    {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} /> : "Diga oi 👋"}
+                    {c.last ? <Preview m={c.last} mine={c.last.sender_id === userId} read={!!c.last.read_at} /> : "Diga oi 👋"}
                   </div>
                   {unread && <UnreadPill count={c.unreadCount} muted={muted} />}
                 </div>

@@ -7,7 +7,7 @@ import { SignedImage } from "@/components/signed-image";
 import { formatDistanceToNowStrict } from "@/lib/safe-date";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles, Lock, Unlock, Pin, BellOff } from "lucide-react";
+import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles, Lock, Unlock, Pin, BellOff, CheckCheck } from "lucide-react";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
@@ -652,18 +652,21 @@ function UnreadPill({ count, muted }: { count: number; muted: boolean }) {
   );
 }
 
-function Preview({ m, mine }: { m: any; mine: boolean }) {
+function Preview({ m, mine, read }: { m: any; mine: boolean; read?: boolean }) {
   const t = String(m.media_type ?? "");
   const k = String(m.kind ?? "");
   const isSticker = k === "sticker" || t.includes("sticker");
   const isGif = k === "gif" || t.includes("gif");
-  const icon = isSticker ? <Sparkles className="h-3.5 w-3.5" /> : t.startsWith("audio") ? <Mic className="h-3.5 w-3.5" /> : t.startsWith("image") ? <Camera className="h-3.5 w-3.5" /> : t.startsWith("video") ? <Video className="h-3.5 w-3.5" /> : null;
-  const label = isSticker ? "Figurinha" : isGif ? "GIF" : t.startsWith("audio") ? "Áudio" : t.startsWith("image") ? "Foto" : t.startsWith("video") ? "Vídeo" : null;
+  const cls = "h-3.5 w-3.5";
+  const icon = isSticker ? <Sparkles className={cls} /> : t.startsWith("audio") ? <Mic className={cls} /> : t.startsWith("image") ? <Camera className={cls} /> : t.startsWith("video") ? <Video className={cls} /> : null;
+  const label = isSticker ? "Figurinha" : isGif ? "GIF" : t.startsWith("audio") ? "Mensagem de voz" : t.startsWith("image") ? "Foto" : t.startsWith("video") ? "Vídeo" : null;
   const text = m.content || label || "Mensagem";
   return (
     <span className="inline-flex max-w-full items-center gap-1 truncate">
-      {mine && <span className="shrink-0 text-muted-foreground">Você:</span>}
-      {icon && <span className="shrink-0">{icon}</span>}
+      {mine && (read
+        ? <CheckCheck className="h-4 w-4 shrink-0 text-primary" aria-label="Lida" />
+        : <CheckCheck className="h-4 w-4 shrink-0 text-muted-foreground/70" aria-label="Entregue" />)}
+      {icon && <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[color:var(--surface-2)]", t.startsWith("audio") && "text-primary")}>{icon}</span>}
       <span className="truncate">{text}</span>
     </span>
   );

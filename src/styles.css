@@ -931,3 +931,7 @@ img { content-visibility: auto; }
   box-shadow: 0 0 10px color-mix(in oklab, var(--primary) 70%, transparent);
 }
 .unread-pill { box-shadow: 0 4px 12px -3px color-mix(in oklab, var(--primary) 60%, transparent); }
+
+@keyframes chat-heart-pop { 0% { transform: scale(.3); opacity: 0 } 30% { transform: scale(1.25); opacity: 1 } 70% { transform: scale(1); opacity: 1 } 100% { transform: scale(1.1) translateY(-12px); opacity: 0 } }
+.chat-heart-pop { animation: chat-heart-pop 700ms ease-out forwards; }
+@media (prefers-reduced-motion: reduce) { .chat-heart-pop { animation: none; opacity: 0; } }

@@ -283,6 +283,7 @@ function DirectList({ userId, q, filter, vault }: { userId: string; q: string; f
         case "read":
           await savePrefs(userId, id, { marked_unread: false });
           await supabase.from("messages").update({ read_at: new Date().toISOString() }).eq("conversation_id", id).neq("sender_id", userId).is("read_at", null);
+          await qc.invalidateQueries({ queryKey: ["dm-unread", userId] });
           break;
         case "mute8h":
           await setMute(userId, id, new Date(Date.now() + 8 * 3600e3).toISOString()); toast.success("Silenciada por 8 horas"); break;

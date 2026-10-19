@@ -88,11 +88,22 @@ export function AppShell({
     enabled: !!userId,
     refetchInterval: 20000,
     queryFn: async () => {
-      const { count } = await supabase.from("chat_messages").select("id", { count: "exact", head: true })
-        .neq("sender_id", userId!).is("read_at", null);
+      if (!userId) return 0;
+      const { count, error } = await supabase.from("messages").select("id", { count: "exact", head: true })
+        .neq("sender_id", userId).is("read_at", null);
+      if (error) throw error;
       return count ?? 0;
     },
   });
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase.channel(`dm-unread:${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["dm-unread", userId] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [userId, queryClient]);
   const dmCount = dmUnread.data ?? 0;
 
   const items: NavItem[] = [

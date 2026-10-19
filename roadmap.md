@@ -8,6 +8,8 @@
 - [x] Refinar interface das Vibes (visualizador, trilho, publicação)
 - [x] Mover conquistas para página dedicada
 - [ ] Conectar Firebase Cloud Messaging no novo workspace
+- [ ] Impedir curtida acidental ao tocar nos controles de mensagens
+- [ ] Corrigir e validar contador de mensagens privadas não lidas
 - [x] Completar gravação de áudio com trava por gesto
 - [x] Adicionar puxar para atualizar sem conflitos com gestos existentes
 - [x] Suavizar carregamento das fotos mantendo proporções

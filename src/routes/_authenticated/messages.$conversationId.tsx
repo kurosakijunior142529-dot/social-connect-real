@@ -240,10 +240,16 @@ function ConversationPage() {
         .from("messages")
         .update({ read_at: new Date().toISOString() })
         .in("id", ids)
-        .then(() => {}, () => ids.forEach((id) => readMarked.current.delete(id)));
+        .then(({ error }: { error: unknown }) => {
+          if (error) {
+            ids.forEach((id) => readMarked.current.delete(id));
+            return;
+          }
+          void queryClient.invalidateQueries({ queryKey: ["dm-unread", user.id] });
+        }, () => ids.forEach((id) => readMarked.current.delete(id)));
     }, 300);
     return () => window.clearTimeout(t);
-  }, [messages.data, user.id]);
+  }, [messages.data, user.id, queryClient]);
 
   const firstScroll = useRef(true);
   useEffect(() => {

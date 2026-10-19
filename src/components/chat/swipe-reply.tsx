@@ -13,7 +13,12 @@ export function SwipeReply({
 }) {
   const [dx, setDx] = useState(0);
   const [heart, setHeart] = useState(0);
-  const s = useRef({ x: 0, y: 0, on: false, fired: false, lastTap: 0 });
+  const s = useRef({ x: 0, y: 0, on: false, fired: false, lastTap: 0, moved: false });
+
+  const isControl = (target: EventTarget | null) =>
+    target instanceof Element && !!target.closest(
+      'button, a, input, textarea, select, audio, video, [role="button"], [role="slider"], [contenteditable]',
+    );
 
   const buzz = (ms: number) => {
     try { navigator.vibrate?.(ms); } catch { /* noop */ }
@@ -25,31 +30,48 @@ export function SwipeReply({
       className="relative"
       style={{ touchAction: "pan-y" }}
       onTouchStart={(e) => {
+        if (e.touches.length !== 1 || isControl(e.target)) {
+          s.current.on = false;
+          s.current.lastTap = 0;
+          return;
+        }
         const t = e.touches[0];
-        s.current = { ...s.current, x: t.clientX, y: t.clientY, on: true, fired: false };
+        s.current = { ...s.current, x: t.clientX, y: t.clientY, on: true, fired: false, moved: false };
       }}
       onTouchMove={(e) => {
         if (!s.current.on) return;
         const t = e.touches[0];
         const mx = t.clientX - s.current.x;
         const my = t.clientY - s.current.y;
+        if (Math.abs(mx) > 10 || Math.abs(my) > 10) {
+          s.current.moved = true;
+          s.current.lastTap = 0;
+        }
         if (Math.abs(my) > Math.abs(mx) && Math.abs(my) > 10) { s.current.on = false; setDx(0); return; }
         const v = Math.max(0, Math.min(80, mx));
         setDx(v);
         if (v >= 60 && !s.current.fired) { s.current.fired = true; buzz(8); }
       }}
-      onTouchEnd={() => {
+      onTouchEnd={(e) => {
+        const active = s.current.on;
         const fired = s.current.fired;
         s.current.on = false;
         setDx(0);
+        if (!active || isControl(e.target)) return;
         if (fired) { onReply(); return; }
+        if (s.current.moved) return;
         const now = Date.now();
-        if (now - s.current.lastTap < 280) {
+        if (s.current.lastTap && now - s.current.lastTap < 280) {
           s.current.lastTap = 0;
           buzz(10);
           setHeart((h) => h + 1);
           onDoubleTap();
         } else s.current.lastTap = now;
+      }}
+      onTouchCancel={() => {
+        s.current.on = false;
+        s.current.lastTap = 0;
+        setDx(0);
       }}
     >
       <div

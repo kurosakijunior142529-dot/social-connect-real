@@ -17,8 +17,6 @@ export function SwipeReply({
 
   const isControl = (target: EventTarget | null) =>
     target instanceof Element && !!target.closest(
-      'button, a, input, textarea, select, audio, video, [role="button"], [role="slider"], [contenteditable], [data-swipe-lock]',
-    )?.closest('[data-swipe-lock]') && target instanceof Element && !!target.closest(
       'button, a, input, textarea, select, audio, video, [role="button"], [role="slider"], [contenteditable]',
     );
 

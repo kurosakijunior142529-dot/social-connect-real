@@ -14,3 +14,5 @@
 - Keep pull-to-refresh scoped to feed and conversation lists in the app shell; exclude nested scrollers and gesture-owned controls to preserve navigation and message actions.
 - Photo loading transitions belong in SignedImage and global semantic CSS, preserving callers' sizing and private-media retries.
 - The shared audio recorder owns pointer capture and recording cleanup so locking gestures behave identically in direct and group conversations.
+- Bubble reply/like gestures must exclude interactive descendants so media controls do not trigger message actions.
+- The shell's private-message unread badge reads `messages` and refreshes on message changes and successful read updates; group/channel read state is separate.

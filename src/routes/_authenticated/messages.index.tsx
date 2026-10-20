@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles, Lock, Unlock, Pin, BellOff, CheckCheck } from "lucide-react";
 import { OnlineBubbles } from "@/components/presence/online-bubbles";
+import { NotesRail } from "@/components/chat/notes-rail";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
 import { ChannelDiscover, useChannelCounts, formatMembers } from "@/components/chat/channel-discover";
@@ -139,6 +140,7 @@ function MessagesPage() {
         </div>
       </header>
 
+      {tab === "direct" && <NotesRail currentUserId={user.id} />}
       <OnlineBubbles currentUserId={user.id} />
 
       {(

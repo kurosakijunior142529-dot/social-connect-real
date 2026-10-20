@@ -456,6 +456,13 @@
       "when": 1791923562651,
       "tag": "0064_feature_flags_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1792509733754,
+      "tag": "0065_migration",
+      "breakpoints": true
     }
   ]
 }

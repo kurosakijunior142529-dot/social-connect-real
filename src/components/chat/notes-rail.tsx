@@ -10,6 +10,7 @@ import { SintoniaAudio, SintoniaDraftAudio } from "@/components/chat/sintonia-au
 import { SINTONIA_MOODS, SINTONIA_AUDIO_MAX_MS, SINTONIA_TEXT_MAX, sintoniaMood, validSintoniaAudio } from "@/lib/sintonias";
 import { formatDuration, uploadChatFile } from "@/lib/chat-media";
 import { cn } from "@/lib/utils";
+import { useGlobalPresence } from "@/lib/presence";
 import { Plus, Radio, AudioLines, Send, Trash2, Clock3, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,6 +19,7 @@ type Sintonia = { user_id: string; content: string; mood: string; audio_path: st
 type DraftAudio = { file: File; duration: number };
 
 export function NotesRail({ currentUserId }: { currentUserId: string }) {
+  const { online } = useGlobalPresence(currentUserId);
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -133,7 +135,7 @@ export function NotesRail({ currentUserId }: { currentUserId: string }) {
           <span className="flex h-4 items-center gap-1 text-[10px] text-muted-foreground">{mine?.audio_path ? <><AudioLines className="h-3 w-3" />{formatDuration(mine.audio_duration_ms)}</> : mine ? sintoniaMood(mine.mood).label : "Texto · Voz · Humor"}</span>
         </Button>
         {notes.data?.others.map((n) => <Button key={n.user_id} variant="ghost" onClick={() => { setReply(""); setSelected(n); }} aria-label={`Sintonia de ${author(n)}`} className={cn("sintonia-tile h-auto w-[156px] shrink-0 flex-col items-start justify-start gap-3 whitespace-normal rounded-lg border border-border bg-surface p-3 text-left", `sintonia-${n.mood}`)}>
-          <div className="flex w-full items-center justify-between"><span className="sintonia-aura"><UserAvatar avatarPath={n.profile?.avatar_url} displayName={author(n)} className="h-10 w-10" /></span><span className="text-xl">{sintoniaMood(n.mood).emoji}</span></div>
+          <div className="flex w-full items-center justify-between"><span className="relative"><span className="sintonia-aura"><UserAvatar avatarPath={n.profile?.avatar_url} displayName={author(n)} className="h-10 w-10" /></span>{online[n.user_id] && <span role="img" aria-label={`${author(n)} online agora`} title="Online agora" className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-surface bg-primary" />}</span><span className="text-xl">{sintoniaMood(n.mood).emoji}</span></div>
           <div className="w-full min-w-0"><span className="block truncate text-[11px] text-muted-foreground">{author(n)}</span><span className="mt-1 block min-h-9 line-clamp-2 break-words text-xs font-medium">{n.content}</span></div>
           <span className="flex h-4 w-full items-center gap-1 text-[10px] text-muted-foreground">{n.audio_path ? <><AudioLines className="h-3 w-3" />{formatDuration(n.audio_duration_ms)}</> : sintoniaMood(n.mood).label}<Send className="ml-auto h-3 w-3" /></span>
         </Button>)}

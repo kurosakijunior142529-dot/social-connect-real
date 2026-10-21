@@ -18,3 +18,4 @@
 - The shell's private-message unread badge reads `messages` and refreshes on message changes and successful read updates; group/channel read state is separate.
 - Sintonias extend the existing user_notes rows; enforce expiry and follower/block visibility in database policies, and store voice as private paths with matching storage read policies.
 - The shared AudioRecorder accepts an optional duration limit; keep microphone lifecycle and gesture cleanup centralized for both messages and Sintonias.
+- Conversation-list presence uses the shared global presence hook inside Sintonias instead of a separate online rail, keeping the top of the list uncluttered.

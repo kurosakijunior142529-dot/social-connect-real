@@ -9,6 +9,7 @@
 - [x] Mover conquistas para página dedicada
 - [ ] Conectar Firebase Cloud Messaging no novo workspace
 - [x] Evoluir Sintonias com áudio curto, humor e resposta privada; publicação, reprodução e exclusão validadas no navegador
+- [x] Integrar presença online às fotos das Sintonias e retirar a barra Online agora das conversas
 - [ ] Impedir curtida acidental ao tocar nos controles de mensagens
 - [ ] Corrigir e validar contador de mensagens privadas não lidas
 - [x] Completar gravação de áudio com trava por gesto

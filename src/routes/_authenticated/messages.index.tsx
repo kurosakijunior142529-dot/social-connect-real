@@ -8,7 +8,6 @@ import { formatDistanceToNowStrict } from "@/lib/safe-date";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircle, Users, Megaphone, Plus, Tv, Flame, Search, X, Mic, Camera, Video, Sparkles, Lock, Unlock, Pin, BellOff, CheckCheck } from "lucide-react";
-import { OnlineBubbles } from "@/components/presence/online-bubbles";
 import { NotesRail } from "@/components/chat/notes-rail";
 import { useBlocks } from "@/hooks/use-blocks";
 import { useState } from "react";
@@ -141,7 +140,6 @@ function MessagesPage() {
       </header>
 
       {tab === "direct" && <NotesRail currentUserId={user.id} />}
-      <OnlineBubbles currentUserId={user.id} />
 
       {(
         <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-2 no-scrollbar">

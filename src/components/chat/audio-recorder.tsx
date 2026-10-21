@@ -5,9 +5,10 @@ import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/chat-media";
 import { Button } from "@/components/ui/button";
 
-export function AudioRecorder({ onSend, disabled }: {
+export function AudioRecorder({ onSend, disabled, maxDurationMs }: {
   onSend: (file: File, durationMs: number) => void | Promise<void>;
   disabled?: boolean;
+  maxDurationMs?: number;
 }) {
   const [recording, setRecording] = useState(false);
   const [locked, setLocked] = useState(false);
@@ -85,7 +86,7 @@ export function AudioRecorder({ onSend, disabled }: {
       const startedAt = Date.now();
       recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
       recorder.onstop = async () => {
-        const duration = Date.now() - startedAt;
+        const duration = Math.min(Date.now() - startedAt, maxDurationMs ?? Infinity);
         const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
         const discard = cancelled.current;
         releaseTracks();
@@ -101,7 +102,11 @@ export function AudioRecorder({ onSend, disabled }: {
       };
       recorder.start(250);
       setRecording(true); setElapsed(0);
-      timer.current = setInterval(() => setElapsed(Date.now() - startedAt), 250);
+      timer.current = setInterval(() => {
+        const duration = Date.now() - startedAt;
+        setElapsed(Math.min(duration, maxDurationMs ?? Infinity));
+        if (maxDurationMs && duration >= maxDurationMs) stop();
+      }, 100);
       starting.current = false;
       if (pendingStop.current) stop(pendingStop.current === "cancel");
     } catch (error) {

@@ -3557,21 +3557,30 @@ export type Database = {
       }
       user_notes: {
         Row: {
+          audio_duration_ms: number | null
+          audio_path: string | null
           content: string
           created_at: string
           expires_at: string
+          mood: string
           user_id: string
         }
         Insert: {
+          audio_duration_ms?: number | null
+          audio_path?: string | null
           content: string
           created_at?: string
           expires_at?: string
+          mood?: string
           user_id: string
         }
         Update: {
+          audio_duration_ms?: number | null
+          audio_path?: string | null
           content?: string
           created_at?: string
           expires_at?: string
+          mood?: string
           user_id?: string
         }
         Relationships: [

@@ -8,6 +8,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Sintonias: restrained, mood-specific accents over neutral surfaces. */
+:root {
+  --sintonia-free: oklch(0.72 0.10 160);
+  --sintonia-happy: oklch(0.77 0.12 85);
+  --sintonia-calm: oklch(0.70 0.09 220);
+  --sintonia-focus: oklch(0.68 0.10 280);
+  --sintonia-miss: oklch(0.72 0.11 10);
+  --sintonia-energy: oklch(0.76 0.13 55);
+}
+.sintonia-tile, .sintonia-preview { --sintonia-tone: var(--sintonia-free); }
+.sintonia-feliz { --sintonia-tone: var(--sintonia-happy); }
+.sintonia-tranquilo { --sintonia-tone: var(--sintonia-calm); }
+.sintonia-focado { --sintonia-tone: var(--sintonia-focus); }
+.sintonia-saudade { --sintonia-tone: var(--sintonia-miss); }
+.sintonia-energia { --sintonia-tone: var(--sintonia-energy); }
+.sintonia-tile { box-shadow: inset 0 -2px 0 color-mix(in oklab, var(--sintonia-tone) 45%, transparent); }
+.sintonia-aura { display: inline-flex; border-radius: 50%; padding: 3px; outline: 1px solid color-mix(in oklab, var(--sintonia-tone) 60%, transparent); animation: sintonia-frequency 4s ease-in-out infinite; }
+@keyframes sintonia-frequency {
+  0%, 100% { box-shadow: 0 0 0 2px color-mix(in oklab, var(--sintonia-tone) 8%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in oklab, var(--sintonia-tone) 15%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .sintonia-aura { animation: none; } }
+
 @theme inline {
   --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "DM Sans Variable", "Noto Color Emoji", ui-sans-serif, system-ui, sans-serif;

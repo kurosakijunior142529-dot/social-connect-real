@@ -16,3 +16,5 @@
 - The shared audio recorder owns pointer capture and recording cleanup so locking gestures behave identically in direct and group conversations.
 - Bubble reply/like gestures must exclude interactive descendants so media controls do not trigger message actions.
 - The shell's private-message unread badge reads `messages` and refreshes on message changes and successful read updates; group/channel read state is separate.
+- Sintonias extend the existing user_notes rows; enforce expiry and follower/block visibility in database policies, and store voice as private paths with matching storage read policies.
+- The shared AudioRecorder accepts an optional duration limit; keep microphone lifecycle and gesture cleanup centralized for both messages and Sintonias.

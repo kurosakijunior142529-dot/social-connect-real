@@ -119,26 +119,18 @@ export function NotesRail({ currentUserId }: { currentUserId: string }) {
   };
 
   return <>
-    <section aria-label="Sintonias" className="sintonias-section border-b border-border py-4" data-swipe-lock>
-      <div className="mb-3 flex items-center gap-2 px-4">
-        <Radio className="h-4 w-4 text-muted-foreground" />
-        <h2 className="font-display text-sm font-semibold">Sintonias</h2>
-        <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground"><Clock3 className="h-3 w-3" />24h</span>
-      </div>
-      <div className="flex gap-3 overflow-x-auto px-4 pb-1 no-scrollbar">
-        <Button variant="ghost" onClick={startEdit} aria-label="Sua Sintonia" className="sintonia-tile h-auto w-[142px] shrink-0 flex-col items-start justify-start gap-3 whitespace-normal rounded-lg border border-border bg-surface p-3 text-left">
-          <div className="flex w-full items-center justify-between">
-            <UserAvatar avatarPath={me?.avatar_url} displayName={me?.display_name ?? me?.username ?? "Você"} className="h-10 w-10" />
-            {mine ? <span className="text-xl">{sintoniaMood(mine.mood).emoji}</span> : <Plus className="h-5 w-5 text-primary" />}
-          </div>
-          <div className="w-full min-w-0"><span className="block text-[11px] text-muted-foreground">Sua frequência</span><span className="mt-1 block min-h-9 line-clamp-2 break-words text-xs font-medium">{mine?.content ?? "O que vibra por aí?"}</span></div>
-          <span className="flex h-4 items-center gap-1 text-[10px] text-muted-foreground">{mine?.audio_path ? <><AudioLines className="h-3 w-3" />{formatDuration(mine.audio_duration_ms)}</> : mine ? sintoniaMood(mine.mood).label : "Texto · Voz · Humor"}</span>
-        </Button>
-        {notes.data?.others.map((n) => <Button key={n.user_id} variant="ghost" onClick={() => { setReply(""); setSelected(n); }} aria-label={`Sintonia de ${author(n)}`} className={cn("sintonia-tile h-auto w-[156px] shrink-0 flex-col items-start justify-start gap-3 whitespace-normal rounded-lg border border-border bg-surface p-3 text-left", `sintonia-${n.mood}`)}>
-          <div className="flex w-full items-center justify-between"><span className="relative"><span className="sintonia-aura"><UserAvatar avatarPath={n.profile?.avatar_url} displayName={author(n)} className="h-10 w-10" /></span>{online[n.user_id] && <span role="img" aria-label={`${author(n)} online agora`} title="Online agora" className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-surface bg-primary" />}</span><span className="text-xl">{sintoniaMood(n.mood).emoji}</span></div>
-          <div className="w-full min-w-0"><span className="block truncate text-[11px] text-muted-foreground">{author(n)}</span><span className="mt-1 block min-h-9 line-clamp-2 break-words text-xs font-medium">{n.content}</span></div>
-          <span className="flex h-4 w-full items-center gap-1 text-[10px] text-muted-foreground">{n.audio_path ? <><AudioLines className="h-3 w-3" />{formatDuration(n.audio_duration_ms)}</> : sintoniaMood(n.mood).label}<Send className="ml-auto h-3 w-3" /></span>
-        </Button>)}
+    <section aria-label="Sintonias" className="sintonias-section border-b border-border pb-2 pt-1" data-swipe-lock>
+      <div className="flex gap-3 overflow-x-auto px-4 pt-7 no-scrollbar">
+        <button type="button" onClick={startEdit} aria-label="Sua Sintonia" className="relative flex w-16 shrink-0 flex-col items-center gap-1">
+          <span className="absolute -top-6 left-1/2 max-w-[72px] -translate-x-1/2 truncate rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] shadow-sm">{mine ? `${sintoniaMood(mine.mood).emoji} ${mine.audio_path ? "🎙" : mine.content}` : "Sintonia?"}</span>
+          <span className="relative"><UserAvatar avatarPath={me?.avatar_url} displayName={me?.display_name ?? me?.username ?? "Você"} className="h-14 w-14" />{!mine && <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"><Plus className="h-3 w-3" /></span>}</span>
+          <span className="w-full truncate text-center text-[10px] text-muted-foreground">Você</span>
+        </button>
+        {notes.data?.others.map((n) => <button type="button" key={n.user_id} onClick={() => { setReply(""); setSelected(n); }} aria-label={`Sintonia de ${author(n)}`} className={cn("relative flex w-16 shrink-0 flex-col items-center gap-1", `sintonia-${n.mood}`)}>
+          <span className="absolute -top-6 left-1/2 max-w-[72px] -translate-x-1/2 truncate rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] shadow-sm">{sintoniaMood(n.mood).emoji} {n.audio_path ? "🎙" : n.content}</span>
+          <span className="relative"><span className="sintonia-aura"><UserAvatar avatarPath={n.profile?.avatar_url} displayName={author(n)} className="h-14 w-14" /></span>{online[n.user_id] && <span role="img" aria-label={`${author(n)} online agora`} className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />}</span>
+          <span className="w-full truncate text-center text-[10px] text-muted-foreground">{author(n)}</span>
+        </button>)}
       </div>
       {notes.isError && <div className="flex items-center justify-between px-4 pt-2 text-xs text-muted-foreground"><span>Sintonias indisponíveis agora.</span><Button variant="ghost" size="sm" onClick={() => void notes.refetch()}>Tentar de novo</Button></div>}
     </section>

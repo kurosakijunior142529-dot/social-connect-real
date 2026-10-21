@@ -1,0 +1,8 @@
+ALTER TABLE public.user_notes ADD COLUMN audio_path text, ADD COLUMN audio_duration_ms integer, ADD COLUMN mood text NOT NULL DEFAULT 'livre';
+ALTER TABLE public.user_notes ADD CONSTRAINT sintonia_mood CHECK (mood IN ('livre','feliz','tranquilo','focado','saudade','energia'));
+ALTER TABLE public.user_notes ADD CONSTRAINT sintonia_audio CHECK ((audio_path IS NULL AND audio_duration_ms IS NULL) OR (audio_path LIKE user_id::text || '/%' AND audio_duration_ms BETWEEN 1 AND 10000));
+ALTER POLICY "Read notes of non-blocked users" ON public.user_notes USING (auth.uid() = user_id OR (expires_at > now() AND NOT public.is_blocked_pair(auth.uid(), user_id) AND EXISTS (SELECT 1 FROM public.follows WHERE follower_id = auth.uid() AND following_id = user_notes.user_id)));
+CREATE FUNCTION public.stamp_sintonia_expiry() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN NEW.created_at := now(); NEW.expires_at := now() + interval '24 hours'; RETURN NEW; END $$;
+CREATE TRIGGER stamp_sintonia_expiry BEFORE INSERT OR UPDATE ON public.user_notes FOR EACH ROW EXECUTE FUNCTION public.stamp_sintonia_expiry();
+CREATE POLICY "sintonia_audio_read" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'chat-audio' AND ((storage.foldername(name))[1] = auth.uid()::text OR EXISTS (SELECT 1 FROM public.user_notes n WHERE n.audio_path = objects.name AND n.expires_at > now())));
+COMMENT ON COLUMN public.user_notes.audio_path IS 'Private chat-audio object path; reads limited to owner and followers of an active, non-blocked Sintonia.';

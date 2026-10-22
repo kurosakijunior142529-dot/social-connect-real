@@ -68,7 +68,7 @@ function MessagesPage() {
 
   return (
     <div>
-      <header className="sticky top-0 z-20 glass-heavy hairline-b">
+      <header className="sticky top-0 z-20 glass-heavy hairline-b pt-[env(safe-area-inset-top)]">
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <h1 className="text-[26px] font-display font-bold tracking-tight">Conversas</h1>
           <div className="flex items-center gap-2">

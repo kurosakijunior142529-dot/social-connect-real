@@ -119,17 +119,23 @@ export function NotesRail({ currentUserId }: { currentUserId: string }) {
   };
 
   return <>
-    <section aria-label="Sintonias" className="sintonias-section border-b border-border pb-2 pt-1" data-swipe-lock>
-      <div className="flex gap-3 overflow-x-auto px-4 pt-7 no-scrollbar">
-        <button type="button" onClick={startEdit} aria-label="Sua Sintonia" className="relative flex w-16 shrink-0 flex-col items-center gap-1">
-          <span className="absolute -top-6 left-1/2 max-w-[72px] -translate-x-1/2 truncate rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] shadow-sm">{mine ? `${sintoniaMood(mine.mood).emoji} ${mine.audio_path ? "🎙" : mine.content}` : "Sintonia?"}</span>
-          <span className="relative"><UserAvatar avatarPath={me?.avatar_url} displayName={me?.display_name ?? me?.username ?? "Você"} className="h-14 w-14" />{!mine && <span className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"><Plus className="h-3 w-3" /></span>}</span>
-          <span className="w-full truncate text-center text-[10px] text-muted-foreground">Você</span>
+    <section aria-label="Sintonias" className="sintonias-section border-b border-border py-2.5" data-swipe-lock>
+      <div className="flex gap-2 overflow-x-auto px-4 no-scrollbar">
+        <button type="button" onClick={startEdit} aria-label="Sua Sintonia" className={cn("sintonia-capsule", mine && `sintonia-${mine.mood}`)}>
+          <span className="relative shrink-0"><UserAvatar avatarPath={me?.avatar_url} displayName={me?.display_name ?? me?.username ?? "Você"} className="h-8 w-8" />{!mine && <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"><Plus className="h-2.5 w-2.5" /></span>}</span>
+          <span className="min-w-0 text-left leading-tight">
+            <span className="block text-[11px] font-semibold">Você</span>
+            <span className="block max-w-[96px] truncate text-[10px] text-muted-foreground">{mine ? `${sintoniaMood(mine.mood).emoji} ${mine.audio_path ? "Voz" : mine.content}` : "Sintonizar"}</span>
+          </span>
+          {mine && <Wave />}
         </button>
-        {notes.data?.others.map((n) => <button type="button" key={n.user_id} onClick={() => { setReply(""); setSelected(n); }} aria-label={`Sintonia de ${author(n)}`} className={cn("relative flex w-16 shrink-0 flex-col items-center gap-1", `sintonia-${n.mood}`)}>
-          <span className="absolute -top-6 left-1/2 max-w-[72px] -translate-x-1/2 truncate rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] shadow-sm">{sintoniaMood(n.mood).emoji} {n.audio_path ? "🎙" : n.content}</span>
-          <span className="relative"><span className="sintonia-aura"><UserAvatar avatarPath={n.profile?.avatar_url} displayName={author(n)} className="h-14 w-14" /></span>{online[n.user_id] && <span role="img" aria-label={`${author(n)} online agora`} className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full border-2 border-background bg-primary" />}</span>
-          <span className="w-full truncate text-center text-[10px] text-muted-foreground">{author(n)}</span>
+        {notes.data?.others.map((n) => <button type="button" key={n.user_id} onClick={() => { setReply(""); setSelected(n); }} aria-label={`Sintonia de ${author(n)}`} className={cn("sintonia-capsule", `sintonia-${n.mood}`)}>
+          <span className="relative shrink-0"><UserAvatar avatarPath={n.profile?.avatar_url} displayName={author(n)} className="h-8 w-8" />{online[n.user_id] && <span role="img" aria-label={`${author(n)} online agora`} className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />}</span>
+          <span className="min-w-0 text-left leading-tight">
+            <span className="block max-w-[96px] truncate text-[11px] font-semibold">{author(n)}</span>
+            <span className="block max-w-[96px] truncate text-[10px] text-muted-foreground">{sintoniaMood(n.mood).emoji} {n.audio_path ? "Voz" : n.content}</span>
+          </span>
+          <Wave />
         </button>)}
       </div>
       {notes.isError && <div className="flex items-center justify-between px-4 pt-2 text-xs text-muted-foreground"><span>Sintonias indisponíveis agora.</span><Button variant="ghost" size="sm" onClick={() => void notes.refetch()}>Tentar de novo</Button></div>}

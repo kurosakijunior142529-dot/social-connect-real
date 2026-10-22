@@ -972,3 +972,8 @@ img { content-visibility: auto; }
 .sintonia-wave i { display: block; width: 2px; height: 100%; border-radius: 2px; background: var(--sintonia-tone, var(--primary)); animation: sintonia-wave 1s ease-in-out infinite; transform-origin: center; }
 @keyframes sintonia-wave { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
 @media (prefers-reduced-motion: reduce) { .sintonia-wave i { animation: none; transform: scaleY(.6); } }
+
+/* Área segura do topo (iPhone): cabeçalhos fixos começam abaixo do relógio/bateria */
+header.sticky:not([class*="safe-area-inset-top"]) {
+  padding-top: env(safe-area-inset-top);
+}

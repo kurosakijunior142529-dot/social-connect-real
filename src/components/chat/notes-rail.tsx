@@ -18,6 +18,10 @@ type Profile = { username: string; display_name: string | null; avatar_url: stri
 type Sintonia = { user_id: string; content: string; mood: string; audio_path: string | null; audio_duration_ms: number | null; expires_at: string; profile?: Profile };
 type DraftAudio = { file: File; duration: number };
 
+function Wave() {
+  return <span aria-hidden className="ml-1 flex h-4 shrink-0 items-end gap-[2px]">{[0, 1, 2].map((i) => <span key={i} className="w-[2px] animate-pulse rounded-full bg-[color:var(--sintonia-tone,var(--primary))]" style={{ height: `${[8, 14, 10][i]}px`, animationDelay: `${i * 150}ms` }} />)}</span>;
+}
+
 export function NotesRail({ currentUserId }: { currentUserId: string }) {
   const { online } = useGlobalPresence(currentUserId);
   const qc = useQueryClient();

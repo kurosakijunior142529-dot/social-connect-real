@@ -963,12 +963,12 @@ img { content-visibility: auto; }
 .sintonia-capsule {
   display: flex; flex-shrink: 0; align-items: center; gap: 0.5rem;
   padding: 0.25rem 0.75rem 0.25rem 0.25rem; border-radius: 9999px;
-  background: color-mix(in oklab, var(--sintonia-color, var(--muted-foreground)) 12%, var(--background));
-  border: 1px solid color-mix(in oklab, var(--sintonia-color, var(--border)) 35%, var(--border));
+  background: color-mix(in oklab, var(--sintonia-tone, var(--muted-foreground)) 12%, var(--background));
+  border: 1px solid color-mix(in oklab, var(--sintonia-tone, var(--border)) 35%, var(--border));
   transition: transform .15s;
 }
 .sintonia-capsule:active { transform: scale(.96); }
 .sintonia-wave { display: flex; align-items: center; gap: 2px; height: 14px; }
-.sintonia-wave i { display: block; width: 2px; height: 100%; border-radius: 2px; background: var(--sintonia-color, var(--primary)); animation: sintonia-wave 1s ease-in-out infinite; transform-origin: center; }
+.sintonia-wave i { display: block; width: 2px; height: 100%; border-radius: 2px; background: var(--sintonia-tone, var(--primary)); animation: sintonia-wave 1s ease-in-out infinite; transform-origin: center; }
 @keyframes sintonia-wave { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
 @media (prefers-reduced-motion: reduce) { .sintonia-wave i { animation: none; transform: scaleY(.6); } }

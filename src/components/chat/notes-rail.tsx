@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AudioRecorder } from "@/components/chat/audio-recorder";
 import { SintoniaAudio, SintoniaDraftAudio } from "@/components/chat/sintonia-audio";
 import { SINTONIA_MOODS, SINTONIA_AUDIO_MAX_MS, SINTONIA_TEXT_MAX, sintoniaMood, validSintoniaAudio } from "@/lib/sintonias";
-import { formatDuration, uploadChatFile } from "@/lib/chat-media";
+import { uploadChatFile } from "@/lib/chat-media";
 import { cn } from "@/lib/utils";
 import { useGlobalPresence } from "@/lib/presence";
-import { Plus, Radio, AudioLines, Send, Trash2, Clock3, Loader2 } from "lucide-react";
+import { Plus, Radio, Send, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Profile = { username: string; display_name: string | null; avatar_url: string | null };

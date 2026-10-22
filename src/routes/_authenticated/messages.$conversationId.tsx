@@ -630,7 +630,7 @@ function ConversationPage() {
 
   return (
     <div className={cn("flex flex-col h-[100dvh] md:h-[calc(100vh-4rem)] overflow-hidden md:rounded-2xl md:overflow-hidden md:bg-[color:var(--surface)]", KEYBOARD_SAFE_CLASS)}>
-      <header className="relative flex items-center gap-2 px-3 h-16 sticky top-0 z-10 bg-background/85 backdrop-blur-md border-b border-border/40">
+      <header className="relative flex items-center gap-2 px-3 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] sticky top-0 z-10 bg-background/85 backdrop-blur-md border-b border-border/40">
         <Link
           to="/messages"
           className="p-2 -ml-1 rounded-full active:bg-[color:var(--surface-2)] md:hidden"

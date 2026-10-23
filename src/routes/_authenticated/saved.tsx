@@ -4,6 +4,7 @@ import { PostCard, usePostsQuery } from "@/components/post-card";
 import { Bookmark } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/saved")({
+  head: () => ({ meta: [{ title: "Salvos | Vibely" }, { name: "description", content: "Seus posts salvos no Vibely." }, { property: "og:title", content: "Salvos | Vibely" }, { property: "og:description", content: "Seus posts salvos no Vibely." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: SavedPage,
 });
 

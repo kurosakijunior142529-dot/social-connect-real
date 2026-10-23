@@ -62,6 +62,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/explore")({
+  head: () => ({ meta: [{ title: "Explorar | Vibely" }, { name: "description", content: "Descubra pessoas, tags e posts no Vibely." }, { property: "og:title", content: "Explorar | Vibely" }, { property: "og:description", content: "Descubra pessoas, tags e posts no Vibely." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   ssr: false,
   component: ExplorePage,
 });

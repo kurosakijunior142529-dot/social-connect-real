@@ -66,7 +66,7 @@ function ProfilePostsFeed() {
 
   return (
     <div>
-      <header className="sticky top-0 z-20 header-veil flex h-14 items-center gap-3 px-4">
+      <header className="sticky top-0 z-20 header-veil flex h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-3 px-4">
         <button
           onClick={() => (window.history.length > 1 ? router.history.back() : router.navigate({ to: "/u/$username", params: { username } }))}
           aria-label="Voltar"

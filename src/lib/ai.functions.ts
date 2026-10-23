@@ -34,7 +34,8 @@ export const translateText = createServerFn({ method: "POST" })
     try {
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data.text));
       hash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-      const { data: cached } = await (context.supabase as any)
+      const { supabaseAdmin: cacheDb } = await import("@/integrations/supabase/client.server");
+      const { data: cached } = await (cacheDb as any)
         .from("translation_cache")
         .select("translated_text")
         .eq("source_hash", hash)

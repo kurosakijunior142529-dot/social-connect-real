@@ -10,6 +10,7 @@ import { MapPin, Loader2, MessageCircle, Tv, User as UserIcon, EyeOff, Compass }
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/nearby")({
+  head: () => ({ meta: [{ title: "Por perto | Vibely" }, { name: "description", content: "Descubra pessoas perto de você no Vibely." }, { property: "og:title", content: "Por perto | Vibely" }, { property: "og:description", content: "Descubra pessoas perto de você no Vibely." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   ssr: false,
   component: NearbyPage,
 });

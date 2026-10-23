@@ -977,3 +977,10 @@ img { content-visibility: auto; }
 header.sticky:not([class*="safe-area-inset-top"]) {
   padding-top: env(safe-area-inset-top);
 }
+
+/* Topo nítido: fundo sólido sem desfoque para textos e botões ficarem legíveis */
+header.sticky,
+header.fixed {
+  background: var(--background) !important;
+  backdrop-filter: none !important;
+}

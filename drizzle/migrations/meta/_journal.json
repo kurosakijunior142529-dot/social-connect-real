@@ -470,6 +470,13 @@
       "when": 1792581974842,
       "tag": "0066_sintonias_audio_mood",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1792730824006,
+      "tag": "0067_policies_config_tables",
+      "breakpoints": true
     }
   ]
 }

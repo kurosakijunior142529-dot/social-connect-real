@@ -19,6 +19,7 @@ import { fetchPostMedia, fetchRepostContext } from "@/lib/reels/carousel";
 import { useBroadcastReel } from "@/lib/reels-presence";
 
 export const Route = createFileRoute("/_authenticated/reels")({
+  head: () => ({ meta: [{ title: "Reels | Vibely" }, { name: "description", content: "Vídeos curtos em tela cheia no Vibely." }, { property: "og:title", content: "Reels | Vibely" }, { property: "og:description", content: "Vídeos curtos em tela cheia no Vibely." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   validateSearch: (search: Record<string, unknown>) => ({
     post: typeof search.post === "string" ? search.post : undefined,
     together: typeof search.together === "string" ? search.together.slice(0, 16) : undefined,

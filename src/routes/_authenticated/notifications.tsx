@@ -13,6 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
+  head: () => ({ meta: [{ title: "Notificações | Vibely" }, { name: "description", content: "Curtidas, seguidores e convites no Vibely." }, { property: "og:title", content: "Notificações | Vibely" }, { property: "og:description", content: "Curtidas, seguidores e convites no Vibely." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: NotificationsPage,
 });
 

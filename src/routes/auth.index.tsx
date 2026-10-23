@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Eye, EyeOff } from "lucide-react";
+import logoAsset from "@/assets/vibely-logo-v.png.asset.json";
 
 export const Route = createFileRoute("/auth/")({
   ssr: false,
@@ -142,9 +143,8 @@ function AuthPage() {
       <div aria-hidden className="auth-orb auth-orb-b" />
       <div className="relative mx-auto flex min-h-dvh w-full max-w-sm flex-col px-6 pt-[calc(env(safe-area-inset-top)+2.5rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
         <div className="flex flex-col items-center text-center">
-          <img src="/logo-vibely.png" alt="" className="h-16 w-16 rounded-[22px] shadow-lg" />
-          <Link to="/auth" className="mt-4 font-display text-[40px] font-semibold leading-none tracking-[-0.04em]">
-            vibely<span className="text-primary">.</span>
+          <Link to="/auth" aria-label="Vibely">
+            <img src={logoAsset.url} alt="Vibely" width={1254} height={1254} className="h-28 w-28 rounded-[30px] object-contain shadow-lg" />
           </Link>
           <p className="mt-3 text-sm text-muted-foreground">Fotos, vídeos e conversas com quem vibra com você.</p>
         </div>

@@ -257,8 +257,8 @@
 }
 /* Topo translúcido que dissolve no conteúdo */
 @utility header-veil {
-  background: linear-gradient(to bottom, color-mix(in oklab, var(--background) 94%, transparent), color-mix(in oklab, var(--background) 72%, transparent));
-  backdrop-filter: blur(24px) saturate(170%);
+  background: var(--background);
+  padding-top: env(safe-area-inset-top);
   border-bottom: 1px solid var(--hairline);
 }
 @utility social-card {
@@ -984,3 +984,9 @@ header.fixed {
   background: var(--background) !important;
   backdrop-filter: none !important;
 }
+
+.auth-orb { position: absolute; border-radius: 9999px; filter: blur(70px); pointer-events: none; opacity: .35; }
+.auth-orb-a { width: 18rem; height: 18rem; top: -6rem; left: -6rem; background: var(--primary); animation: auth-drift 14s ease-in-out infinite alternate; }
+.auth-orb-b { width: 16rem; height: 16rem; bottom: -6rem; right: -5rem; background: color-mix(in oklab, var(--primary) 50%, var(--accent)); animation: auth-drift 18s ease-in-out infinite alternate-reverse; }
+@keyframes auth-drift { to { transform: translate(3rem, 2rem) scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .auth-orb { animation: none; } }

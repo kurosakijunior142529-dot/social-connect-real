@@ -370,8 +370,8 @@ export function AppShell({
 
 
       {/* Mobile bottom nav — Dynamic Dock */}
-      <nav className={cn("md:hidden fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)] pointer-events-none transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)]", dockHidden && "translate-y-[calc(100%+4px)]", isConversation && "hidden")}>
-        <div className={cn("pointer-events-auto mx-3 mb-3 overflow-visible rounded-[26px] dock-glass", isProfile && "shadow-[0_18px_48px_-22px_color-mix(in_oklab,var(--primary)_28%,transparent)]", isReels && "dark bg-black/35 backdrop-blur-xl ring-1 ring-white/10")}>
+      <nav className={cn("md:hidden fixed inset-x-0 bottom-0 z-30 pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-0.75rem))] pointer-events-none transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)]", dockHidden && "translate-y-[calc(100%+4px)]", isConversation && "hidden")}>
+        <div className={cn("pointer-events-auto mx-3 mb-0 overflow-visible rounded-[26px] dock-glass", isProfile && "shadow-[0_18px_48px_-22px_color-mix(in_oklab,var(--primary)_28%,transparent)]", isReels && "dark bg-black/35 backdrop-blur-xl ring-1 ring-white/10")}>
           <div className={cn("flex items-center justify-between px-2 py-2", isProfile && "min-h-16")}>
             {mobileItems.map(({ to, label, Icon }) => {
               const active = to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(to + "/");

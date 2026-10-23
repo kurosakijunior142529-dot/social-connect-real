@@ -1,4 +1,5 @@
 import { appConfirm, appPrompt, appAlert } from "@/components/app-dialog";
+import { followUser } from "@/lib/follow";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -276,7 +277,7 @@ function LiveRoom() {
     if (followQ.data) {
       await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", hostId);
     } else {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: hostId });
+      await followUser(user.id, hostId);
     }
     qc.invalidateQueries({ queryKey: ["live-follow", hostId, user.id] });
   };

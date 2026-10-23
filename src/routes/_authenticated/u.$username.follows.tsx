@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { followUser } from "@/lib/follow";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Search, UserMinus, UserPlus, Users, X } from "lucide-react";
@@ -98,7 +99,7 @@ function FollowsPage() {
   const toggleFollow = useMutation({
     mutationFn: async ({ targetId, follow }: { targetId: string; follow: boolean }) => {
       if (follow) {
-        const { error } = await supabase.from("follows").insert({ follower_id: user.id, following_id: targetId });
+        const { error } = await followUser(user.id, targetId);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("follows").delete().match({ follower_id: user.id, following_id: targetId });

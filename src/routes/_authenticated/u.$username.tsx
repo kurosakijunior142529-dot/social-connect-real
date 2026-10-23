@@ -1,4 +1,5 @@
 import { CoverEditor } from "@/components/user/cover-editor";
+import { followUser } from "@/lib/follow";
 import { createFileRoute, useNavigate, Link, Outlet, useChildMatches } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -315,7 +316,7 @@ function ProfileContent() {
       if (!profile || isMe) return;
       const { error } = wasFollowing
         ? await supabase.from("follows").delete().match({ follower_id: user.id, following_id: profile.id })
-        : await supabase.from("follows").insert({ follower_id: user.id, following_id: profile.id });
+        : await followUser(user.id, profile.id);
       if (error) throw error;
     },
     onMutate: async (wasFollowing: boolean) => {

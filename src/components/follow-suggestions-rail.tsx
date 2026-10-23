@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { followUser } from "@/lib/follow";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,7 +49,7 @@ export function FollowSuggestionsRail({ currentUserId }: { currentUserId: string
   async function follow(id: string) {
     setFollowed((f) => [...f, id]);
     navigator.vibrate?.(8);
-    const { error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: id });
+    const { error } = await followUser(currentUserId, id);
     if (error && error.code !== "23505") {
       setFollowed((f) => f.filter((x) => x !== id));
       return toast.error("Não foi possível seguir agora");

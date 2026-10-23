@@ -1,4 +1,5 @@
 import { enhanceMediaElement } from "@/lib/call-audio-dsp";
+import { followUser } from "@/lib/follow";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logPostView } from "@/lib/search";
 import { logVir, useVirWatch } from "@/lib/vir";
@@ -330,7 +331,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
     if (!authorId || justFollowed) return;
     setJustFollowed(true);
     try { navigator.vibrate?.(10); } catch { /* noop */ }
-    const { error } = await supabase.from("follows").insert({ follower_id: currentUserId, following_id: authorId });
+    const { error } = await followUser(currentUserId, authorId);
     if (error && !/duplicate/i.test(error.message)) {
       setJustFollowed(false);
       toast.error("Não foi possível seguir agora.");

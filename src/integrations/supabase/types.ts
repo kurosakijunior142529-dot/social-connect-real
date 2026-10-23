@@ -1219,6 +1219,39 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_requests: {
+        Row: {
+          created_at: string
+          requester_id: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string
+          requester_id: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string
+          requester_id?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_requests_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           created_at: string
@@ -2254,6 +2287,39 @@ export type Database = {
         }
         Relationships: []
       }
+      muted_users: {
+        Row: {
+          created_at: string
+          muted_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          muted_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          muted_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "muted_users_muted_id_fkey"
+            columns: ["muted_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "muted_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           actor_id: string | null
@@ -2689,8 +2755,10 @@ export type Database = {
       }
       posts: {
         Row: {
+          archived_at: string | null
           author_id: string
           caption: string | null
+          comments_from: string
           created_at: string
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
@@ -2703,10 +2771,13 @@ export type Database = {
           post_kind: string
           thumbnail_url: string | null
           view_count: number
+          visibility: string
         }
         Insert: {
+          archived_at?: string | null
           author_id: string
           caption?: string | null
+          comments_from?: string
           created_at?: string
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
@@ -2719,10 +2790,13 @@ export type Database = {
           post_kind?: string
           thumbnail_url?: string | null
           view_count?: number
+          visibility?: string
         }
         Update: {
+          archived_at?: string | null
           author_id?: string
           caption?: string | null
+          comments_from?: string
           created_at?: string
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
@@ -2735,6 +2809,7 @@ export type Database = {
           post_kind?: string
           thumbnail_url?: string | null
           view_count?: number
+          visibility?: string
         }
         Relationships: [
           {
@@ -3084,6 +3159,39 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restricted_users: {
+        Row: {
+          created_at: string
+          restricted_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          restricted_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          restricted_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restricted_users_restricted_id_fkey"
+            columns: ["restricted_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restricted_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3586,6 +3694,125 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_privacy: {
+        Row: {
+          allow_download: boolean
+          allow_share: boolean
+          allow_story_share: boolean
+          analytics: boolean
+          approve_tags: boolean
+          blocked_words: string[]
+          calls_from: string
+          comments_from: string
+          deactivated_at: string | null
+          default_post_visibility: string
+          dnd_enabled: boolean
+          dnd_end: string
+          dnd_start: string
+          findable_by_contact: boolean
+          follows_visibility: string
+          groups_from: string
+          hide_activity: boolean
+          hide_like_counts: boolean
+          hide_offensive: boolean
+          hide_typing: boolean
+          is_private: boolean
+          login_alerts: boolean
+          mentions_from: string
+          messages_from: string
+          personalization: boolean
+          protect_media: boolean
+          searchable: string
+          sensitive_filter: string
+          share_location: boolean
+          show_in_suggestions: boolean
+          story_audience: string
+          story_replies_from: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_download?: boolean
+          allow_share?: boolean
+          allow_story_share?: boolean
+          analytics?: boolean
+          approve_tags?: boolean
+          blocked_words?: string[]
+          calls_from?: string
+          comments_from?: string
+          deactivated_at?: string | null
+          default_post_visibility?: string
+          dnd_enabled?: boolean
+          dnd_end?: string
+          dnd_start?: string
+          findable_by_contact?: boolean
+          follows_visibility?: string
+          groups_from?: string
+          hide_activity?: boolean
+          hide_like_counts?: boolean
+          hide_offensive?: boolean
+          hide_typing?: boolean
+          is_private?: boolean
+          login_alerts?: boolean
+          mentions_from?: string
+          messages_from?: string
+          personalization?: boolean
+          protect_media?: boolean
+          searchable?: string
+          sensitive_filter?: string
+          share_location?: boolean
+          show_in_suggestions?: boolean
+          story_audience?: string
+          story_replies_from?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_download?: boolean
+          allow_share?: boolean
+          allow_story_share?: boolean
+          analytics?: boolean
+          approve_tags?: boolean
+          blocked_words?: string[]
+          calls_from?: string
+          comments_from?: string
+          deactivated_at?: string | null
+          default_post_visibility?: string
+          dnd_enabled?: boolean
+          dnd_end?: string
+          dnd_start?: string
+          findable_by_contact?: boolean
+          follows_visibility?: string
+          groups_from?: string
+          hide_activity?: boolean
+          hide_like_counts?: boolean
+          hide_offensive?: boolean
+          hide_typing?: boolean
+          is_private?: boolean
+          login_alerts?: boolean
+          mentions_from?: string
+          messages_from?: string
+          personalization?: boolean
+          protect_media?: boolean
+          searchable?: string
+          sensitive_filter?: string
+          share_location?: boolean
+          show_in_suggestions?: boolean
+          story_audience?: string
+          story_replies_from?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_privacy_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
@@ -4257,14 +4484,26 @@ export type Database = {
         Args: { _new_status: string; _note?: string; _withdrawal_id: string }
         Returns: undefined
       }
+      approve_follow_request: {
+        Args: { _requester: string }
+        Returns: undefined
+      }
       bump_ar_effect_usage: { Args: { _effect_id: string }; Returns: undefined }
+      can_call_user: { Args: { _callee: string }; Returns: boolean }
+      can_dm_user: { Args: { _target: string }; Returns: boolean }
       can_interact: { Args: { _user: string }; Returns: boolean }
       can_message: { Args: { _user: string }; Returns: boolean }
       can_publish: { Args: { _user: string }; Returns: boolean }
+      can_see_follows: { Args: { _owner: string }; Returns: boolean }
       can_view_live: {
         Args: { _live: string; _user: string }
         Returns: boolean
       }
+      can_view_post: {
+        Args: { _archived: string; _author: string; _visibility: string }
+        Returns: boolean
+      }
+      can_view_profile_content: { Args: { _owner: string }; Returns: boolean }
       can_view_reality: { Args: { _reality_id: string }; Returns: boolean }
       change_username: { Args: { _new_username: string }; Returns: string }
       channel_member_counts: {
@@ -4377,8 +4616,13 @@ export type Database = {
         Args: { _owner: string; _viewer: string }
         Returns: boolean
       }
+      is_follower: {
+        Args: { _owner: string; _viewer: string }
+        Returns: boolean
+      }
       is_live_host: { Args: { _live_id: string }; Returns: boolean }
       is_live_moderator: { Args: { _live_id: string }; Returns: boolean }
+      is_private_account: { Args: { _owner: string }; Returns: boolean }
       is_supporter: { Args: { _user: string }; Returns: boolean }
       is_watch_host: {
         Args: { _room: string; _user: string }
@@ -4583,6 +4827,10 @@ export type Database = {
           term: string
         }[]
       }
+      privacy_allows: {
+        Args: { _owner: string; _setting: string }
+        Returns: boolean
+      }
       public_post_preview: {
         Args: { _id: string }
         Returns: {
@@ -4651,6 +4899,7 @@ export type Database = {
           term: string
         }[]
       }
+      remove_follower: { Args: { _follower: string }; Returns: undefined }
       report_ephemeral_capture: { Args: { _id: string }; Returns: undefined }
       request_withdrawal: {
         Args: { _amount_coins: number; _bank_account_id: string }

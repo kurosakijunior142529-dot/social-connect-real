@@ -498,6 +498,13 @@
       "when": 1792735398247,
       "tag": "0070_privacy_center",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1792738336843,
+      "tag": "0071_enforce_privacy_controls",
+      "breakpoints": true
     }
   ]
 }

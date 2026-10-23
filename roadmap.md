@@ -8,6 +8,8 @@
 - [x] Refinar interface das Vibes (visualizador, trilho, publicação)
 - [x] Mover conquistas para página dedicada
 - [ ] Conectar Firebase Cloud Messaging no novo workspace
+- [ ] Continuar central de privacidade: controles aplicáveis, solicitações, listas de pessoas e visibilidade dos posts
+- [ ] Completar exportação de dados, desativação/exclusão e autenticação em duas etapas com validação segura
 - [x] Evoluir Sintonias com áudio curto, humor e resposta privada; publicação, reprodução e exclusão validadas no navegador
 - [x] Integrar presença online às fotos das Sintonias e retirar a barra Online agora das conversas
 - [ ] Impedir curtida acidental ao tocar nos controles de mensagens

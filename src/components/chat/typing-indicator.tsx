@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { usePrivacy } from "@/hooks/use-privacy";
 
 export type PresenceState = "idle" | "typing" | "recording";
 
@@ -11,6 +12,8 @@ export function useConversationPresence(
   const [others, setOthers] = useState<PresenceState>("idle");
   const [online, setOnline] = useState(false);
   const chRef = useRef<RealtimeChannel | null>(null);
+  const privacy = usePrivacy(userId);
+  const hideTyping = privacy.isLoading || privacy.isError || privacy.data?.hide_typing === true;
 
   useEffect(() => {
     const ch = supabase.channel(`presence:${channelKey}`, {
@@ -41,8 +44,12 @@ export function useConversationPresence(
   }, [channelKey, userId]);
 
   function setMe(s: PresenceState) {
-    chRef.current?.track({ state: s });
+    chRef.current?.track({ state: hideTyping ? "idle" : s });
   }
+
+  useEffect(() => {
+    if (hideTyping) void chRef.current?.track({ state: "idle" });
+  }, [hideTyping]);
 
   return { others, online, setMe };
 }

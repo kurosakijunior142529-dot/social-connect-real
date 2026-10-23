@@ -4490,6 +4490,7 @@ export type Database = {
       }
       bump_ar_effect_usage: { Args: { _effect_id: string }; Returns: undefined }
       can_call_user: { Args: { _callee: string }; Returns: boolean }
+      can_comment_on_post: { Args: { _post: string }; Returns: boolean }
       can_dm_user: { Args: { _target: string }; Returns: boolean }
       can_interact: { Args: { _user: string }; Returns: boolean }
       can_message: { Args: { _user: string }; Returns: boolean }
@@ -4505,6 +4506,10 @@ export type Database = {
       }
       can_view_profile_content: { Args: { _owner: string }; Returns: boolean }
       can_view_reality: { Args: { _reality_id: string }; Returns: boolean }
+      can_view_story: {
+        Args: { _audience: string; _expires: string; _owner: string }
+        Returns: boolean
+      }
       change_username: { Args: { _new_username: string }; Returns: string }
       channel_member_counts: {
         Args: { _ids: string[] }
@@ -4831,6 +4836,7 @@ export type Database = {
         Args: { _owner: string; _setting: string }
         Returns: boolean
       }
+      privacy_allows_group: { Args: { _invitee: string }; Returns: boolean }
       public_post_preview: {
         Args: { _id: string }
         Returns: {

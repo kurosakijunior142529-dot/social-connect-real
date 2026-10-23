@@ -233,6 +233,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-background">
+      {!isReels && <div aria-hidden className="status-shield md:hidden" />}
       <InAppBanner userId={userId} />
       <ConnectionBanner />
       {/* Desktop sidebar */}

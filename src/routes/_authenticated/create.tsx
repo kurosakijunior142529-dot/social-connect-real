@@ -46,6 +46,9 @@ import { createPoll, validateDraft, type PollDraft } from "@/lib/polls";
 import { cn } from "@/lib/utils";
 import mascot from "@/assets/vibely-ai-mascot.png.asset.json";
 import { CreateModeRail } from "@/components/create/create-mode-rail";
+import { usePrivacy } from "@/hooks/use-privacy";
+import { defaultPostVisibility, type PostVisibility } from "@/lib/privacy";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 type Mode = "media" | "text" | "poll";
@@ -79,6 +82,11 @@ export const Route = createFileRoute("/_authenticated/create")({
 
 function CreatePage() {
   const { user } = Route.useRouteContext();
+  const privacy = usePrivacy(user.id);
+  const [chosenVisibility, setChosenVisibility] = useState<PostVisibility | null>(null);
+  const visibility = chosenVisibility ?? defaultPostVisibility(privacy.data?.default_post_visibility);
+  const [chosenComments, setChosenComments] = useState<string | null>(null);
+  const commentsFrom = chosenComments ?? privacy.data?.comments_from ?? "everyone";
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<string | null>(null);
@@ -315,6 +323,8 @@ function CreatePage() {
         post_kind: "post",
         caption: finalCaption,
         poll_id: pollId,
+        visibility,
+        comments_from: commentsFrom,
       } as any);
       if (error) throw error;
       setPublishState("success");
@@ -428,6 +438,8 @@ function CreatePage() {
           media_type: isVideo ? "video" : "image",
           post_kind: "post",
           caption: caption.trim(),
+          visibility,
+          comments_from: commentsFrom,
           ...(music ? { music_track_id: music.track.id, music_start_ms: music.startMs, music_end_ms: music.endMs, music_volume: music.volume } : {}),
         })
         .select("id")
@@ -720,6 +732,18 @@ function CreatePage() {
           </>
         ) : (
           <form onSubmit={submit} className="animate-fade-in space-y-4">
+            <div className="space-y-3 border-b border-border pb-4">
+              <label htmlFor="post-visibility" className="block text-sm font-medium">Quem pode ver</label>
+              <Select value={visibility} onValueChange={v => setChosenVisibility(defaultPostVisibility(v))} disabled={busy || privacy.isLoading || privacy.isError}>
+                <SelectTrigger id="post-visibility" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="public">Público</SelectItem><SelectItem value="friends">Amigos · seguimos um ao outro</SelectItem><SelectItem value="me">Só eu</SelectItem></SelectContent>
+              </Select>
+              <label htmlFor="post-comments" className="block text-sm font-medium">Quem pode comentar</label>
+              <Select value={commentsFrom} onValueChange={setChosenComments} disabled={busy}>
+                <SelectTrigger id="post-comments" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="everyone">Todos</SelectItem><SelectItem value="following">Quem eu sigo</SelectItem><SelectItem value="nobody">Ninguém</SelectItem></SelectContent>
+              </Select>
+            </div>
             <section className="overflow-hidden rounded-[22px] border border-border/60 bg-surface/80 shadow-sm backdrop-blur">
               <div className="flex gap-3 p-3">
                 {mode === "media" && preview ? (
@@ -801,7 +825,7 @@ function CreatePage() {
             <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-30 rounded-2xl border border-border/70 bg-card p-2 shadow-lg md:bottom-4">
               <Button
                 type="submit"
-                disabled={busy || !canPublish}
+                disabled={busy || !canPublish || privacy.isLoading || privacy.isError}
                 className={cn(
                   "h-11 w-full rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.99] disabled:opacity-100",
                   canPublish && !busy ? "bg-primary text-primary-foreground shadow-[0_10px_28px_-14px_var(--primary)] hover:bg-primary/90" : "bg-surface-2 text-muted-foreground shadow-none",

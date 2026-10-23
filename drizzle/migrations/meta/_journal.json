@@ -484,6 +484,13 @@
       "when": 1792733376749,
       "tag": "0068_scope_post_linked_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1792733597517,
+      "tag": "0069_restrict_music_audio_translations",
+      "breakpoints": true
     }
   ]
 }

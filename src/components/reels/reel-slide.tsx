@@ -73,7 +73,7 @@ export function ReelSlide({ media, active, near, muted, paused, onVideoRef }: Pr
           src={poster}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-2xl saturate-150"
+          className="pointer-events-none absolute inset-0 h-full w-full hidden"
         />
       ) : null}
 

@@ -990,3 +990,6 @@ header.fixed {
 .auth-orb-b { width: 16rem; height: 16rem; bottom: -6rem; right: -5rem; background: color-mix(in oklab, var(--primary) 50%, var(--accent)); animation: auth-drift 18s ease-in-out infinite alternate-reverse; }
 @keyframes auth-drift { to { transform: translate(3rem, 2rem) scale(1.1); } }
 @media (prefers-reduced-motion: reduce) { .auth-orb { animation: none; } }
+
+/* Faixa sólida atrás do relógio/bateria: o conteúdo rolando não aparece embaçado ali */
+.status-shield { position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top); background: var(--background); z-index: 60; pointer-events: none; }

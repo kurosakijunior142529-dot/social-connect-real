@@ -478,7 +478,7 @@ export function ReelItem({ post, currentUserId, muted, onToggleMute, onOpenComme
           src={posterUrl}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-45 blur-2xl saturate-150"
+          className="pointer-events-none absolute inset-0 h-full w-full hidden"
         />
       ) : null}
 
